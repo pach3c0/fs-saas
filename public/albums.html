@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria de Álbuns - FS FOTOGRAFIAS</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/css/shared.css">
+</head>
+<body class="bg-white text-gray-900">
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="text-center space-y-8 animate-fade-in">
+            <!-- Logo -->
+            <h1 class="font-serif text-4xl md:text-5xl font-bold text-white tracking-wider">FS FOTOGRAFIAS</h1>
+            <!-- Mensagem -->
+            <p class="text-gray-400 text-lg font-light">Bem-vindo</p>
+            <!-- Loader animado -->
+            <div class="flex justify-center mt-8">
+                <div class="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="index.html" class="font-serif text-xl font-bold text-neutral-900 hover:text-gray-700 transition-colors">FS FOTOGRAFIAS</a>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="index.html" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">HOME</a>
+                <a href="index.html#portfolio" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">GALERIA</a>
+                <a href="albums.html" class="text-sm text-neutral-900 font-semibold transition-colors">ÁLBUNS</a>
+                <a href="index.html#estudio" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">ESTÚDIO</a>
+                <a href="index.html#sobre" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">SOBRE</a>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden p-2" aria-expanded="false" aria-controls="mobile-menu">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MOBILE MENU -->
+    <div id="mobile-menu" class="md:hidden fixed inset-0 z-40 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div id="mobile-menu-panel" class="absolute top-16 left-0 right-0 bg-white border-b border-gray-100 shadow-lg transform translate-y-2 opacity-0 transition-all duration-200">
+            <div class="px-6 py-6 flex flex-col gap-4">
+                <a href="index.html" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>HOME</a>
+                <a href="index.html#portfolio" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>GALERIA</a>
+                <a href="albums.html" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>ÁLBUNS</a>
+                <a href="index.html#estudio" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>ESTÚDIO</a>
+                <a href="index.html#sobre" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>SOBRE</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO ÁLBUNS -->
+    <section class="pt-32 pb-16 bg-gradient-to-b from-neutral-50 to-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-4">
+                <h1 class="font-serif text-3xl sm:text-5xl md:text-6xl font-bold text-neutral-900 mb-6 fade-in">Galeria de Álbuns</h1>
+                <p class="text-gray-600 font-light text-base sm:text-lg max-w-2xl mx-auto fade-in">Explore todos os nossos ensaios fotográficos. Cada álbum conta uma história única capturada através das lentes.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- GALERIA COMPLETA DE ÁLBUNS -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div id="dom-albums-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Loading skeleton -->
+                <div class="animate-pulse">
+                    <div class="aspect-[4/5] bg-gray-200 rounded-xl mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+                <div class="animate-pulse">
+                    <div class="aspect-[4/5] bg-gray-200 rounded-xl mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+                <div class="animate-pulse">
+                    <div class="aspect-[4/5] bg-gray-200 rounded-xl mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+                <div class="animate-pulse">
+                    <div class="aspect-[4/5] bg-gray-200 rounded-xl mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL DE ÁLBUM -->
+    <div id="album-modal" class="fixed inset-0 z-[100] hidden bg-black/95">
+        <div class="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 bg-gradient-to-b from-black to-transparent">
+            <div>
+                <h3 id="album-modal-title" class="text-white font-serif text-xl"></h3>
+                <p id="album-modal-subtitle" class="text-gray-400 text-xs uppercase"></p>
+            </div>
+            <button onclick="closeAlbum()" class="text-white bg-white/10 p-2 rounded-full hover:bg-white/20">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div id="album-modal-content" class="h-full overflow-y-auto pt-24 pb-12 px-6">
+            <div id="album-modal-photos" class="columns-1 sm:columns-2 lg:columns-4 gap-4 space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer id="footer" class="bg-gray-900 border-t border-gray-800 text-gray-300">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <!-- Grid de Footer -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <!-- Branding -->
+                <div class="space-y-4">
+                    <h3 class="text-white font-serif font-bold text-lg">FS FOTOGRAFIAS</h3>
+                    <p class="text-sm text-gray-400">Fotografia minimalista e autêntica para capturar momentos que importam.</p>
+                    <!-- Social Media -->
+                    <div id="footer-social" class="flex gap-4 pt-4">
+                        <!-- Redes serão preenchidas via JS -->
+                    </div>
+                </div>
+
+                <!-- Links Úteis -->
+                <div>
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide">Links Úteis</h4>
+                    <nav id="footer-links" class="space-y-3">
+                        <!-- Links serão preenchidos via JS -->
+                    </nav>
+                </div>
+
+                <!-- Contato -->
+                <div>
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide">Contato</h4>
+                    <div id="footer-contact" class="space-y-4 text-sm">
+                        <!-- Contatos serão preenchidos via JS -->
+                    </div>
+                </div>
+
+                <!-- Newsletter -->
+                <div id="footer-newsletter">
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide" id="footer-newsletter-title">Receba Novidades</h4>
+                    <p class="text-sm text-gray-400 mb-4" id="footer-newsletter-desc">Inscreva-se para atualizações e promoções exclusivas.</p>
+                    <form onsubmit="handleNewsletterSubscribe(event)" class="space-y-3">
+                        <input 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            class="w-full px-4 py-2 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
+                            required
+                        >
+                        <button 
+                            type="submit"
+                            class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-medium text-sm transition-colors"
+                        >
+                            Inscrever
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                    <p id="footer-copyright">© 2026 FS FOTOGRAFIAS. Todos os direitos reservados.</p>
+                    <div class="space-x-6">
+                        <a href="#" class="hover:text-gray-300 transition-colors">Política de Privacidade</a>
+                        <a href="#" class="hover:text-gray-300 transition-colors">Termos de Serviço</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <script>
+        // ========== STATE ==========
+        let albumsCache = [];
+        let footerData = null;
+        let studioData = null;
+
+        function resolveImagePath(url) {
+            if (!url) return '';
+            if (url.startsWith('http') || url.startsWith('/')) return url;
+            return `/assets/${url}`;
+        }
+
+        // ========== RENDER ÁLBUNS ==========
+        function renderAlbums(albums) {
+            // Validar que albums é um array
+            if (!Array.isArray(albums)) {
+                console.warn('Albums não é um array:', albums);
+                albums = [];
+            }
+
+            const albumsSorted = [...albums].sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+            });
+            albumsCache = albumsSorted;
+
+            const galleryContainer = document.getElementById('dom-albums-gallery');
+            if (!galleryContainer) {
+                console.error('Elemento dom-albums-gallery não encontrado');
+                return;
+            }
+
+            if (albumsSorted.length === 0) {
+                galleryContainer.innerHTML = '<div class="col-span-full text-center py-16"><p class="text-gray-500 text-lg">Nenhum álbum disponível ainda.</p></div>';
+                return;
+            }
+
+            galleryContainer.innerHTML = albumsSorted.map((album, idx) => {
+                const cover = album.cover || album.photos?.[0] || '';
+                const title = album.title || 'Álbum';
+                const subtitle = album.subtitle || '';
+                return `
+                    <div onclick="openAlbum(${idx})" class="group cursor-pointer fade-in">
+                        <div class="aspect-[4/5] rounded-xl overflow-hidden mb-4 relative shadow-2xl bg-black">
+                            <img src="${resolveImagePath(cover)}" loading="lazy" class="w-full h-full object-cover opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
+                                <span class="text-white text-xs border border-white/30 px-3 py-1 rounded-full">VER ÁLBUM</span>
+                            </div>
+                        </div>
+                        ${subtitle ? `<p class="text-neutral-500 text-[10px] uppercase tracking-widest mb-1">${subtitle}</p>` : ''}
+                        <h4 class="font-serif text-lg text-neutral-900 group-hover:text-neutral-600 transition-colors">${title}</h4>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ========== RENDER FOOTER ==========
+        function renderFooter() {
+            if (!footerData || !studioData) return;
+
+            // Redes Sociais
+            const footerSocial = document.getElementById('footer-social');
+            if (footerSocial && footerData.socialMedia) {
+                footerSocial.innerHTML = '';
+                const socials = footerData.socialMedia;
+                const platforms = [
+                    { name: 'Instagram', key: 'instagram', icon: 'instagram' },
+                    { name: 'Facebook', key: 'facebook', icon: 'facebook' },
+                    { name: 'LinkedIn', key: 'linkedin', icon: 'linkedin' },
+                    { name: 'TikTok', key: 'tiktok', icon: 'music' },
+                    { name: 'YouTube', key: 'youtube', icon: 'youtube' },
+                ];
+                
+                platforms.forEach(platform => {
+                    if (socials[platform.key]) {
+                        const a = document.createElement('a');
+                        a.href = socials[platform.key];
+                        a.target = '_blank';
+                        a.className = 'text-gray-400 hover:text-white transition-colors';
+                        a.innerHTML = `<i data-lucide="${platform.icon}" class="w-5 h-5"></i>`;
+                        footerSocial.appendChild(a);
+                    }
+                });
+                
+                if (socials.email) {
+                    const a = document.createElement('a');
+                    a.href = `mailto:${socials.email}`;
+                    a.className = 'text-gray-400 hover:text-white transition-colors';
+                    a.innerHTML = '<i data-lucide="mail" class="w-5 h-5"></i>';
+                    footerSocial.appendChild(a);
+                }
+                
+                lucide.createIcons();
+            }
+
+            // Links Úteis
+            const footerLinks = document.getElementById('footer-links');
+            if (footerLinks && footerData.quickLinks) {
+                footerLinks.innerHTML = '';
+                footerData.quickLinks.forEach(link => {
+                    const a = document.createElement('a');
+                    a.href = link.url;
+                    a.textContent = link.label;
+                    a.className = 'text-sm text-gray-400 hover:text-white transition-colors block';
+                    footerLinks.appendChild(a);
+                });
+            }
+
+            // Contato (vindo de studio)
+            const footerContact = document.getElementById('footer-contact');
+            if (footerContact && studioData) {
+                footerContact.innerHTML = '';
+                
+                if (studioData.address) {
+                    const addressDiv = document.createElement('div');
+                    addressDiv.className = 'flex items-start gap-3';
+                    addressDiv.innerHTML = `
+                        <i data-lucide="map-pin" class="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500"></i>
+                        <span>${studioData.address}</span>
+                    `;
+                    footerContact.appendChild(addressDiv);
+                }
+
+                if (studioData.whatsapp) {
+                    const whatsappDiv = document.createElement('div');
+                    whatsappDiv.className = 'flex items-start gap-3';
+                    whatsappDiv.innerHTML = `
+                        <i data-lucide="phone" class="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500"></i>
+                        <a href="https://wa.me/${studioData.whatsapp.replace(/\D/g, '')}" target="_blank" class="hover:text-white transition-colors">${studioData.whatsapp}</a>
+                    `;
+                    footerContact.appendChild(whatsappDiv);
+                }
+                
+                lucide.createIcons();
+            }
+
+            // Copyright
+            if (footerData.copyright) {
+                document.getElementById('footer-copyright').textContent = footerData.copyright;
+            }
+
+            // Newsletter
+            const newsletterTitle = document.getElementById('footer-newsletter-title');
+            const newsletterDesc = document.getElementById('footer-newsletter-desc');
+            if (footerData.newsletter) {
+                if (newsletterTitle && footerData.newsletter.title) {
+                    newsletterTitle.textContent = footerData.newsletter.title;
+                }
+                if (newsletterDesc && footerData.newsletter.description) {
+                    newsletterDesc.textContent = footerData.newsletter.description;
+                }
+            }
+        }
+
+        // ========== MODAL ==========
+        function openAlbum(index) {
+            const album = albumsCache[index];
+            if (!album) return;
+
+            const modal = document.getElementById('album-modal');
+            const title = document.getElementById('album-modal-title');
+            const subtitle = document.getElementById('album-modal-subtitle');
+            const photosGrid = document.getElementById('album-modal-photos');
+
+            title.textContent = album.title || 'Álbum';
+            subtitle.textContent = album.subtitle || '';
+            
+            photosGrid.innerHTML = (album.photos || []).map(photoUrl => `
+                <div class="break-inside-avoid">
+                    <img src="${resolveImagePath(photoUrl)}" class="w-full rounded-lg shadow-lg" />
+                </div>
+            `).join('');
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function closeAlbum() {
+            document.getElementById('album-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // ========== NEWSLETTER ==========
+        function handleNewsletterSubscribe(event) {
+            event.preventDefault();
+            const email = event.target.querySelector('input[type="email"]').value;
+            alert(`Obrigado por se inscrever com o email: ${email}`);
+            event.target.reset();
+        }
+
+        // ========== LOAD DATA ==========
+        async function loadData() {
+            try {
+                const response = await fetch('/api/site-data');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Dados carregados:', data); // Debug
+                
+                // Sempre chama renderAlbums, mesmo que seja com array vazio
+                renderAlbums(data.albums || []);
+                
+                footerData = data.footer || {};
+                studioData = data.studio || {};
+                renderFooter();
+                
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                const galleryContainer = document.getElementById('dom-albums-gallery');
+                if (galleryContainer) {
+                    galleryContainer.innerHTML = '<div class="col-span-full text-center py-16"><p class="text-red-500">Erro ao carregar álbuns. Tente novamente mais tarde.</p></div>';
+                }
+            } finally {
+                // Esconde splash screen após carregar (com ou sem erro)
+                hideSplashScreen();
+            }
+        }
+
+        // ========== SPLASH SCREEN ==========
+        function hideSplashScreen() {
+            const splash = document.getElementById('splash-screen');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 700);
+            }
+        }
+
+        // ========== MOBILE MENU ==========
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+
+        function openMobileMenu() {
+            if (!mobileMenu || !mobileMenuPanel) return;
+            mobileMenu.classList.remove('opacity-0', 'pointer-events-none');
+            mobileMenuPanel.classList.remove('translate-y-2', 'opacity-0');
+            document.body.classList.add('overflow-hidden');
+            mobileMenuBtn?.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeMobileMenu() {
+            if (!mobileMenu || !mobileMenuPanel) return;
+            mobileMenu.classList.add('opacity-0', 'pointer-events-none');
+            mobileMenuPanel.classList.add('translate-y-2', 'opacity-0');
+            document.body.classList.remove('overflow-hidden');
+            mobileMenuBtn?.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleMobileMenu() {
+            if (!mobileMenu) return;
+            const isOpen = !mobileMenu.classList.contains('pointer-events-none');
+            if (isOpen) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        }
+
+        mobileMenuBtn?.addEventListener('click', toggleMobileMenu);
+        mobileMenu?.addEventListener('click', (event) => {
+            if (event.target === mobileMenu) {
+                closeMobileMenu();
+            }
+        });
+        document.querySelectorAll('[data-close-mobile]')?.forEach((link) => {
+            link.addEventListener('click', () => closeMobileMenu());
+        });
+
+        // ========== INIT ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

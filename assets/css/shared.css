@@ -1,0 +1,20 @@
+/* Fonts */
+:root {
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+}
+
+body { font-family: var(--font-sans); }
+h1, h2, h3, .font-serif { font-family: var(--font-serif); }
+
+/* Fade In Animation */
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+.fade-in-delay { animation-delay: 0.3s; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}

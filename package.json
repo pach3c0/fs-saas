@@ -1,0 +1,39 @@
+{
+  "name": "fs-saas",
+  "version": "1.0.0",
+  "description": "Plataforma SaaS para fotografos: portfolio, selecao de fotos e entrega online",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build:css": "npx @tailwindcss/cli -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.css --minify",
+    "deploy": "npm run build:css"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^9.1.5",
+    "multer": "^2.0.0",
+    "nodemailer": "^8.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "nodemon": "^3.0.2",
+    "tailwindcss": "^4.1.18"
+  },
+  "keywords": [
+    "fotografia",
+    "portfolio",
+    "admin",
+    "galeria"
+  ],
+  "author": "FS FOTOGRAFIAS",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  }
+}

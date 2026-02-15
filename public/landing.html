@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS FOTOGRAFIAS | Fotografia Profissional</title>
+    <meta name="description" content="Fotografia profissional para casamentos, eventos, ensaios e festas. Conheça nosso trabalho e entre em contato.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .serif { font-family: 'Playfair Display', serif; }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .hero-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.35;
+            transition: opacity 1s ease;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(2.5rem, 7vw, 4.5rem);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: #d1d5db;
+            font-weight: 300;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn-whatsapp {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #25D366;
+            color: #fff;
+            padding: 1rem 2.5rem;
+            border-radius: 9999px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+        }
+
+        .btn-whatsapp:hover {
+            background: #20BA5C;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.5);
+        }
+
+        .btn-whatsapp svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            animation: bounce 2s infinite;
+            color: rgba(255,255,255,0.5);
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        /* Portfolio Grid */
+        .portfolio-section {
+            padding: 0;
+        }
+
+        .section-header {
+            text-align: center;
+            padding: 5rem 2rem 3rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .section-header p {
+            color: #9ca3af;
+            font-weight: 300;
+            font-size: 1.125rem;
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0;
+        }
+
+        @media (min-width: 768px) {
+            .portfolio-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (min-width: 1024px) {
+            .portfolio-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .portfolio-item {
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .portfolio-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.7s ease;
+        }
+
+        .portfolio-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .portfolio-item .overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            display: flex;
+            align-items: flex-end;
+            padding: 1.5rem;
+        }
+
+        .portfolio-item:hover .overlay {
+            opacity: 1;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 6rem 2rem;
+            text-align: center;
+            background: linear-gradient(to bottom, #000 0%, #0a0a0a 50%, #000 100%);
+            position: relative;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .cta-section h2 {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            color: #9ca3af;
+            font-size: 1.125rem;
+            font-weight: 300;
+            max-width: 500px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.6;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.95);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox.active { display: flex; }
+
+        .lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
+        .lightbox-prev { left: 1.5rem; }
+        .lightbox-next { right: 1.5rem; }
+
+        /* Footer */
+        .footer {
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+
+        /* WhatsApp flutuante */
+        .float-whatsapp {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 50;
+            background: #25D366;
+            color: white;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 9999px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .float-whatsapp:hover {
+            background: #20BA5C;
+            transform: scale(1.1);
+            animation: none;
+        }
+
+        .float-whatsapp svg {
+            width: 1.75rem;
+            height: 1.75rem;
+            fill: currentColor;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+        }
+
+        .spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: white;
+            border-radius: 9999px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Fade in */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        .fade-in-delay { animation-delay: 0.3s; }
+        .fade-in-delay-2 { animation-delay: 0.6s; }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-bg">
+            <img id="heroBg" src="" alt="">
+            <div class="hero-overlay"></div>
+        </div>
+        <div class="hero-content">
+            <h1 class="serif fade-in">FS FOTOGRAFIAS</h1>
+            <p class="fade-in fade-in-delay">Fotografia profissional que captura a essencia dos seus momentos mais especiais</p>
+            <a id="heroWhatsapp" href="#" target="_blank" rel="noopener" class="btn-whatsapp fade-in fade-in-delay-2" onclick="trackContact()">
+                <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Fale Conosco
+            </a>
+        </div>
+        <div class="scroll-indicator">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+    </section>
+
+    <!-- PORTFOLIO -->
+    <section class="portfolio-section">
+        <div class="section-header">
+            <h2 class="serif">Nosso Trabalho</h2>
+            <p>Cada foto conta uma historia unica</p>
+        </div>
+        <div id="portfolioGrid" class="portfolio-grid">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2 class="serif">Vamos criar algo incrivel juntos?</h2>
+        <p>Entre em contato e conte-nos sobre o seu evento. Teremos prazer em registrar cada momento.</p>
+        <a id="ctaWhatsapp" href="#" target="_blank" rel="noopener" class="btn-whatsapp" onclick="trackContact()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Agendar Sessao no WhatsApp
+        </a>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>&copy; 2026 FS FOTOGRAFIAS. Todos os direitos reservados.</p>
+    </footer>
+
+    <!-- WHATSAPP FLUTUANTE -->
+    <button id="floatWhatsapp" class="float-whatsapp" onclick="goWhatsapp()">
+        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    </button>
+
+    <!-- LIGHTBOX -->
+    <div id="lightbox" class="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <button class="lightbox-nav lightbox-prev" onclick="navLightbox(-1)">&#10094;</button>
+        <img id="lightboxImg" src="" alt="">
+        <button class="lightbox-nav lightbox-next" onclick="navLightbox(1)">&#10095;</button>
+    </div>
+
+    <script>
+    let portfolioImages = [];
+    let lightboxIndex = 0;
+    let whatsappUrl = '#';
+
+    async function init() {
+        try {
+            // Carregar config (Pixel + WhatsApp)
+            const [configRes, siteRes] = await Promise.all([
+                fetch('/api/site-config'),
+                fetch('/api/site-data')
+            ]);
+
+            // Meta Pixel
+            if (configRes.ok) {
+                const config = await configRes.json();
+                if (config.metaPixelId) {
+                    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+                    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+                    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+                    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+                    fbq('init', config.metaPixelId);
+                    fbq('track', 'PageView');
+                }
+            }
+
+            if (!siteRes.ok) return;
+            const data = await siteRes.json();
+
+            // WhatsApp
+            const whatsappNumber = data.studio?.whatsapp || '5511999999999';
+            const msg = 'Ola! Vi seu portfolio e gostaria de mais informacoes sobre seus servicos.';
+            whatsappUrl = 'https://wa.me/' + whatsappNumber + '?text=' + encodeURIComponent(msg);
+            document.getElementById('heroWhatsapp').href = whatsappUrl;
+            document.getElementById('ctaWhatsapp').href = whatsappUrl;
+
+            // Hero background (primeira foto do portfolio)
+            const portfolio = Array.isArray(data.portfolio) ? data.portfolio.filter(function(p) {
+                return typeof p === 'string' ? p : p.image;
+            }) : [];
+
+            if (portfolio.length > 0) {
+                const firstImg = typeof portfolio[0] === 'string' ? portfolio[0] : portfolio[0].image;
+                const heroBg = document.getElementById('heroBg');
+                heroBg.src = resolveImg(firstImg);
+                heroBg.onload = function() { heroBg.style.opacity = '0.35'; };
+            }
+
+            // Portfolio grid
+            portfolioImages = portfolio;
+            renderPortfolio(portfolio);
+
+        } catch (err) {
+            console.warn('Erro ao carregar dados:', err);
+        }
+    }
+
+    function resolveImg(url) {
+        if (!url) return '';
+        if (url.startsWith('http') || url.startsWith('/')) return url;
+        return '/assets/' + url;
+    }
+
+    function renderPortfolio(items) {
+        var grid = document.getElementById('portfolioGrid');
+        if (!items.length) {
+            grid.innerHTML = '<p style="text-align:center; color:#6b7280; padding:4rem; grid-column:1/-1;">Nenhuma foto disponivel.</p>';
+            return;
+        }
+
+        grid.innerHTML = items.map(function(item, idx) {
+            var img = typeof item === 'string' ? item : item.image;
+            var posX = item.posX || 50;
+            var posY = item.posY || 50;
+            var scale = item.scale || 1;
+            var ratio = item.ratio || '3/4';
+            return '<div class="portfolio-item" style="aspect-ratio:' + ratio + ';" onclick="openLightbox(' + idx + ')">' +
+                '<img src="' + resolveImg(img) + '" alt="Foto ' + (idx + 1) + '" loading="lazy" ' +
+                'style="object-position:' + posX + '% ' + posY + '%; transform:scale(' + scale + ');">' +
+                '<div class="overlay"></div>' +
+                '</div>';
+        }).join('');
+    }
+
+    // Lightbox
+    function openLightbox(idx) {
+        lightboxIndex = idx;
+        var item = portfolioImages[idx];
+        var img = typeof item === 'string' ? item : item.image;
+        document.getElementById('lightboxImg').src = resolveImg(img);
+        document.getElementById('lightbox').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function navLightbox(dir) {
+        var total = portfolioImages.length;
+        lightboxIndex = ((lightboxIndex + dir) % total + total) % total;
+        var item = portfolioImages[lightboxIndex];
+        var img = typeof item === 'string' ? item : item.image;
+        document.getElementById('lightboxImg').src = resolveImg(img);
+    }
+
+    // Teclado
+    document.addEventListener('keydown', function(e) {
+        if (!document.getElementById('lightbox').classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navLightbox(-1);
+        if (e.key === 'ArrowRight') navLightbox(1);
+    });
+
+    // WhatsApp
+    function goWhatsapp() {
+        trackContact();
+        window.open(whatsappUrl, '_blank');
+    }
+
+    function trackContact() {
+        if (typeof fbq === 'function') fbq('track', 'Contact');
+    }
+
+    // Init
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    </script>
+</body>
+</html>

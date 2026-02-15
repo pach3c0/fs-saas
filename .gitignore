@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Uploads & Temporários
+uploads/*
+!uploads/.gitkeep
+uploads/sessions/*
+!uploads/sessions/.gitkeep
+*.temp
+*.tmp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+.cache/
+.next/
+out/
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Deployment
+.env.production.local
+.env*.local
+.vercel/

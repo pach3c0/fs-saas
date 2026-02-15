@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS FOTOGRAFIAS | Fotografia</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/css/shared.css">
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+        /* Hero height */
+        .hero-section {
+            min-height: 100vh;
+            min-height: 100svh;
+        }
+
+        /* Smooth transitions */
+        .hero-image {
+            transition: background-size 0.3s ease, background-position 0.3s ease;
+        }
+
+        /* WhatsApp Widget Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+        #whatsapp-btn {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        #whatsapp-btn:hover {
+            animation: none;
+        }
+        #whatsapp-bubble {
+            position: relative;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #whatsapp-bubble::after {
+            content: '';
+            position: absolute;
+            right: 20px;
+            bottom: -8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid white;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .loaded .skeleton {
+            animation: none;
+            background: none;
+        }
+
+        /* FAQ Accordion */
+        .faq-item {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .faq-item:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .faq-question {
+            cursor: pointer;
+            user-select: none;
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+        }
+        .faq-item.active .faq-answer {
+            max-height: 1000px;
+            padding: 1.5rem;
+            padding-top: 0;
+        }
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        .faq-icon {
+            transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 640px) {
+            #whatsapp-widget {
+                bottom: 1rem;
+                right: 1rem;
+            }
+            #whatsapp-btn {
+                padding: 0.75rem;
+            }
+            #whatsapp-bubble {
+                max-width: 14rem;
+            }
+        }
+
+        /* Share Button */
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            letter-spacing: 0.025em;
+        }
+        .share-btn-light {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            backdrop-filter: blur(4px);
+        }
+        .share-btn-light:hover { background: rgba(255,255,255,0.2); }
+        .share-btn-dark {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        .share-btn-dark:hover { background: #e5e7eb; }
+
+        /* Share Dropdown */
+        .share-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            background: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            min-width: 200px;
+            z-index: 30;
+            overflow: hidden;
+        }
+        .share-dropdown.active { display: block; }
+        .share-dropdown a, .share-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 0.8125rem;
+            color: #374151;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s;
+            text-align: left;
+        }
+        .share-dropdown a:hover, .share-dropdown button:hover { background: #f9fafb; }
+        .share-dropdown svg { width: 18px; height: 18px; flex-shrink: 0; }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="text-center space-y-8 animate-fade-in">
+            <!-- Logo -->
+            <h1 id="dom-splash-logo" class="font-serif text-4xl md:text-5xl font-bold text-white tracking-wider">FS FOTOGRAFIAS</h1>
+            <!-- Mensagem -->
+            <p class="text-gray-400 text-lg font-light">Bem-vindo</p>
+            <!-- Loader animado -->
+            <div class="flex justify-center mt-8">
+                <div class="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="#hero" id="dom-nav-logo" class="font-serif text-xl font-bold text-neutral-900 hover:text-gray-700 transition-colors flex items-center gap-2">FS FOTOGRAFIAS</a>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#hero" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">HOME</a>
+                <a href="#portfolio" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">GALERIA</a>
+                <a href="#albums" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">ÁLBUNS</a>
+                <a href="#estudio" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">ESTÚDIO</a>
+                <a href="#sobre" class="text-sm text-gray-600 hover:text-neutral-900 transition-colors">SOBRE</a>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden p-2" aria-expanded="false" aria-controls="mobile-menu">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MOBILE MENU -->
+    <div id="mobile-menu" class="md:hidden fixed inset-0 z-40 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div id="mobile-menu-panel" class="absolute top-16 left-0 right-0 bg-white border-b border-gray-100 shadow-lg transform translate-y-2 opacity-0 transition-all duration-200">
+            <div class="px-6 py-6 flex flex-col gap-4">
+                <a href="#hero" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>HOME</a>
+                <a href="#portfolio" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>GALERIA</a>
+                <a href="#albums" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>ÁLBUNS</a>
+                <a href="#estudio" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>ESTÚDIO</a>
+                <a href="#sobre" class="text-sm text-gray-700 hover:text-neutral-900 transition-colors" data-close-mobile>SOBRE</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO SECTION -->
+    <section id="hero" class="hero-section relative flex items-center overflow-hidden bg-black">
+        <!-- Imagem de fundo (background-image para zoom+posicao corretos) -->
+        <div id="dom-hero-img"
+            class="hero-image absolute inset-0 w-full h-full opacity-0 transition-opacity duration-500"
+            style="background-repeat:no-repeat;"></div>
+
+        <!-- Overlay escuro -->
+        <div id="dom-hero-overlay" class="absolute inset-0"></div>
+
+        <!-- Faixa superior (cinema) -->
+        <div id="dom-hero-top-bar" class="absolute top-0 left-0 right-0 bg-black z-20"></div>
+
+        <!-- Faixa inferior (cinema) -->
+        <div id="dom-hero-bottom-bar" class="absolute bottom-0 left-0 right-0 bg-black z-20"></div>
+
+        <!-- Conteúdo - posicionamento absoluto em relação ao hero -->
+        <div class="absolute inset-0 z-10">
+            <h1 id="dom-hero-title"
+                class="font-serif font-bold text-white fade-in absolute text-center px-6 w-[90%] max-w-3xl leading-tight"
+                style="position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);">
+            </h1>
+            <p id="dom-hero-subtitle"
+                class="text-gray-200 font-light fade-in fade-in-delay absolute text-center px-6 w-[90%] max-w-2xl"
+                style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%);">
+            </p>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 animate-bounce">
+            <a href="#portfolio" class="text-white/70 hover:text-white transition-colors">
+                <i data-lucide="chevron-down" class="w-8 h-8"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- SEÇÃO GALERIA / PORTFÓLIO -->
+    <section id="portfolio" class="bg-black relative">
+        <!-- Botão Share Portfolio -->
+        <div class="absolute top-4 right-4 z-10" style="position:relative;">
+            <div class="flex justify-end px-4 py-3">
+                <button onclick="shareSection('portfolio')" class="share-btn share-btn-light">
+                    <i data-lucide="share-2" class="w-4 h-4"></i> Compartilhar
+                </button>
+            </div>
+        </div>
+        <!-- Grid de Portfólio - Estilo Mosaico sem espaços -->
+        <div id="dom-portfolio-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <!-- Fotos serão carregadas via JS -->
+        </div>
+    </section>
+
+    <!-- SEÇÃO ÁLBUNS RECENTES -->
+    <section id="albums" class="py-24 bg-neutral-950 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+                <div>
+                    <h2 class="font-serif text-4xl md:text-5xl font-bold mb-4">Álbuns Recentes</h2>
+                    <p class="text-gray-400 font-light">Confira os últimos ensaios disponíveis.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="shareSection('albums')" class="share-btn share-btn-light">
+                        <i data-lucide="share-2" class="w-4 h-4"></i> Compartilhar
+                    </button>
+                    <a href="albums.html" class="inline-flex items-center gap-2 text-sm font-medium border-b border-white/30 pb-1 hover:border-white transition-all">
+                        Ver todos os álbuns <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+            <div id="dom-recent-albums" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Álbuns recentes via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO ESTÚDIO -->
+    <section id="estudio" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-start mb-16">
+                <h2 class="font-serif text-4xl md:text-5xl font-bold text-neutral-900"></h2>
+                <button onclick="shareSection('estudio')" class="share-btn share-btn-dark flex-shrink-0">
+                    <i data-lucide="share-2" class="w-4 h-4"></i> Compartilhar
+                </button>
+            </div>
+
+            <!-- Grid Fotos Estúdio - Dinâmico -->
+            <div id="dom-studio-photos" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+                <!-- Fotos serão carregadas via JS -->
+            </div>
+
+            <!-- Video do Estúdio -->
+            <div id="dom-studio-video" class="mb-16" style="display:none;">
+                <!-- Video será carregado via JS -->
+            </div>
+
+            <!-- Localização + Contato -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- Mapa -->
+                <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden shadow-lg">
+                    <iframe id="dom-studio-map"
+                        src=""
+                        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+
+                <!-- Info Estúdio -->
+                <div class="flex flex-col justify-center">
+                    <h3 id="dom-studio-title" class="font-serif text-3xl font-bold mb-6"></h3>
+                    <div class="space-y-6 text-gray-600 font-light">
+                        <p id="dom-studio-description" class="text-lg"></p>
+                        <div class="pt-6 border-t border-gray-200">
+                            <p class="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Endereço</p>
+                            <p id="dom-studio-address" class="text-gray-600"></p>
+                        </div>
+                        <div class="pt-6 border-t border-gray-200">
+                            <p class="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Horários</p>
+                            <p id="dom-studio-hours" class="text-gray-600"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO SOBRE / QUEM SOMOS -->
+    <section id="sobre" class="py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+                <!-- Texto -->
+                <div>
+                    <h2 id="dom-about-title" class="font-serif text-4xl md:text-5xl font-bold mb-8 text-neutral-900"></h2>
+                    <div id="dom-about-text" class="space-y-4 text-gray-600 font-light leading-relaxed text-lg">
+                    </div>
+                </div>
+
+                <!-- Imagens -->
+                <div id="dom-about-images" class="grid gap-4">
+                    <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden shadow-2xl">
+                        <img id="dom-about-img" src="" alt="Sobre nós" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOTÃO FLUTUANTE WHATSAPP -->
+    <div id="whatsapp-widget" class="fixed bottom-6 right-6 z-50 flex items-end gap-3">
+        <!-- Bolha de saudação -->
+        <div id="whatsapp-bubble" class="bg-white rounded-2xl shadow-2xl p-4 max-w-xs animate-fade-in-up hidden">
+            <button onclick="closeWhatsappBubble()" class="absolute -top-2 -right-2 bg-gray-200 hover:bg-gray-300 rounded-full p-1 transition-colors">
+                <i data-lucide="x" class="w-3 h-3 text-gray-600"></i>
+            </button>
+            <p id="whatsapp-greeting" class="text-gray-800 text-sm font-medium">Olá! Como posso ajudar você hoje?</p>
+            <p class="text-gray-500 text-xs mt-1">Clique para conversar no WhatsApp</p>
+        </div>
+
+        <!-- Botão WhatsApp -->
+        <button id="whatsapp-btn" onclick="openWhatsapp()" class="bg-[#25D366] hover:bg-[#20BA5C] text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all hover:scale-110 group">
+            <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- MODAL DE ÁLBUM -->
+    <div id="album-modal" class="fixed inset-0 z-[100] hidden bg-black/95">
+        <div class="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 bg-gradient-to-b from-black to-transparent">
+            <div>
+                <h3 id="album-modal-title" class="text-white font-serif text-xl"></h3>
+                <p id="album-modal-subtitle" class="text-gray-400 text-xs uppercase"></p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="shareAlbum()" class="share-btn share-btn-light">
+                    <i data-lucide="share-2" class="w-4 h-4"></i> Compartilhar
+                </button>
+                <button onclick="closeAlbum()" class="text-white bg-white/10 p-2 rounded-full hover:bg-white/20">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+        <div id="album-modal-content" class="h-full overflow-y-auto pt-24 pb-12 px-6">
+            <div id="album-modal-photos" class="columns-1 sm:columns-2 lg:columns-4 gap-4 space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- SEÇÃO FAQ -->
+    <section id="faq" class="py-24 bg-neutral-900 text-white">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="font-serif text-4xl md:text-5xl font-bold mb-4">IMPORTANTE SABER</h2>
+                <p class="text-gray-400 font-light text-lg">PERGUNTAS FREQUENTES</p>
+            </div>
+
+            <div id="faq-accordion" class="space-y-4">
+                <!-- FAQs serão carregadas via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer id="footer" class="bg-gray-900 border-t border-gray-800 text-gray-300">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <!-- Grid de Footer -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <!-- Branding -->
+                <div class="space-y-4">
+                    <h3 class="text-white font-serif font-bold text-lg">FS FOTOGRAFIAS</h3>
+                    <p class="text-sm text-gray-400">Fotografia minimalista e autêntica para capturar momentos que importam.</p>
+                    <!-- Social Media -->
+                    <div id="footer-social" class="flex gap-4 pt-4">
+                        <!-- Redes serão preenchidas via JS -->
+                    </div>
+                </div>
+
+                <!-- Links Úteis -->
+                <div>
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide">Links Úteis</h4>
+                    <nav id="footer-links" class="space-y-3">
+                        <!-- Links serão preenchidos via JS -->
+                    </nav>
+                </div>
+
+                <!-- Contato -->
+                <div>
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide">Contato</h4>
+                    <div id="footer-contact" class="space-y-4 text-sm">
+                        <!-- Contatos serão preenchidos via JS -->
+                    </div>
+                </div>
+
+                <!-- Newsletter -->
+                <div id="footer-newsletter">
+                    <h4 class="text-white font-semibold mb-6 uppercase text-sm tracking-wide" id="footer-newsletter-title">Receba Novidades</h4>
+                    <p class="text-sm text-gray-400 mb-4" id="footer-newsletter-desc">Inscreva-se para atualizações e promoções exclusivas.</p>
+                    <form onsubmit="handleNewsletterSubscribe(event)" class="space-y-3">
+                        <input
+                            type="email"
+                            placeholder="seu@email.com"
+                            class="w-full px-4 py-2 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
+                            required
+                        >
+                        <button
+                            type="submit"
+                            class="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-medium text-sm transition-colors"
+                        >
+                            Inscrever
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                    <p id="footer-copyright">© 2026 FS FOTOGRAFIAS. Todos os direitos reservados.</p>
+                    <div class="space-x-6">
+                        <a href="#" class="hover:text-gray-300 transition-colors">Política de Privacidade</a>
+                        <a href="#" class="hover:text-gray-300 transition-colors">Termos de Serviço</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

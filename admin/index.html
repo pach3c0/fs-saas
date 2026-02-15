@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS FOTOGRAFIAS | Painel Administrativo</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/css/shared.css">
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+        .nav-item { color: #9ca3af; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; transition: all 0.15s; }
+        .nav-item:hover { background: #1f2937; color: #fff; }
+        .nav-item.active { background: #1f2937; color: #fff; }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #171717;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+<!-- Login Form -->
+<div id="loginForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+    <div style="background:#1f2937; border-radius:0.5rem; padding:2rem; width:24rem; max-width:90vw;">
+        <h2 style="font-size:1.5rem; font-weight:bold; margin-bottom:1.5rem; text-align:center; color:#f3f4f6;">FS FOTOGRAFIAS Admin</h2>
+        <input type="email" id="adminEmail" style="width:100%; border:1px solid #374151; background:#111827; border-radius:0.375rem; padding:0.5rem 1rem; margin-bottom:1rem; color:white; font-size:0.875rem;" placeholder="Email (opcional para login legado)">
+        <input type="password" id="adminPassword" style="width:100%; border:1px solid #374151; background:#111827; border-radius:0.375rem; padding:0.5rem 1rem; margin-bottom:1rem; color:white; font-size:0.875rem;" placeholder="Senha">
+        <button style="width:100%; background:#2563eb; color:white; padding:0.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500; transition:background 0.15s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Entrar</button>
+    </div>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel" class="flex h-screen" style="display: none;">
+    <!-- Sidebar -->
+    <div style="width:16rem; background:#1f2937; border-right:1px solid #374151; display:flex; flex-direction:column; flex-shrink:0; position:relative;">
+        <div style="padding:1.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <h1 style="font-size:1.5rem; font-weight:bold; color:white;">FS <span style="color:#3b82f6;">FOTOGRAFIAS</span></h1>
+                <p style="color:#9ca3af; font-size:0.75rem;">Painel Administrativo</p>
+            </div>
+            <div id="notificationBell" style="position:relative; cursor:pointer; padding:0.375rem; margin-top:0.125rem;" onclick="toggleNotifications()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span id="notifBadge" style="display:none; position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:0.5625rem; font-weight:bold; min-width:14px; height:14px; border-radius:9999px; align-items:center; justify-content:center; line-height:1;">0</span>
+            </div>
+        </div>
+
+        <!-- Notification Dropdown -->
+        <div id="notifDropdown" style="display:none; position:absolute; top:4.25rem; left:0.5rem; right:0.5rem; background:#111827; border:1px solid #374151; border-radius:0.5rem; max-height:400px; overflow-y:auto; z-index:60; box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+            <div style="padding:0.75rem 1rem; border-bottom:1px solid #374151; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.8125rem; font-weight:600; color:#f3f4f6;">Notificacoes</span>
+                <button onclick="markAllNotificationsRead()" style="font-size:0.6875rem; color:#60a5fa; background:none; border:none; cursor:pointer;">Marcar lidas</button>
+            </div>
+            <div id="notifList" style="padding:0.25rem 0;">
+                <p style="color:#6b7280; font-size:0.75rem; text-align:center; padding:1.5rem;">Nenhuma notificacao</p>
+            </div>
+        </div>
+
+        <nav style="padding:0 1rem; flex:1; overflow-y:auto;" class="space-y-2">
+            <div data-tab="hero" class="nav-item">📸 Hero / Capa</div>
+            <div data-tab="logo" class="nav-item">🎨 Logo</div>
+            <div data-tab="sobre" class="nav-item">ℹ️ Sobre</div>
+            <div data-tab="portfolio" class="nav-item">🖼️ Portfólio</div>
+            <div data-tab="albuns" class="nav-item">📁 Álbuns</div>
+            <div data-tab="estudio" class="nav-item">🏢 Estúdio</div>
+            <div data-tab="faq" class="nav-item">❓ FAQ</div>
+            <div data-tab="newsletter" class="nav-item">📧 Newsletter</div>
+            <div data-tab="sessoes" class="nav-item">👥 Sessões</div>
+            <div data-tab="footer" class="nav-item">🔗 Rodapé</div>
+            <div data-tab="integracoes" class="nav-item">🔌 Integrações</div>
+            <div data-tab="marketing" class="nav-item">📈 Marketing</div>
+            <div data-tab="manutencao" class="nav-item">⚙️ Manutenção</div>
+        </nav>
+
+        <div style="padding:0.75rem 1rem; border-top:1px solid #374151; display:flex; flex-direction:column; gap:0.5rem;">
+            <a href="https://crm.fsfotografias.com.br" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; text-align:center; text-decoration:none; transition:background 0.15s;"
+              onmouseenter="this.style.background='#1d4ed8'" onmouseleave="this.style.background='#2563eb'">
+                📊 Abrir CRM
+            </a>
+            <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; background:#1877f2; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; text-align:center; text-decoration:none; transition:background 0.15s;"
+              onmouseenter="this.style.background='#1565c0'" onmouseleave="this.style.background='#1877f2'">
+                📣 Meta Ads
+            </a>
+            <button onclick="logout()" style="width:100%; background:#7f1d1d; color:#fca5a5; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; transition:background 0.15s;"
+              onmouseenter="this.style.background='#991b1b'" onmouseleave="this.style.background='#7f1d1d'">
+                Sair
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-auto" style="background:#111827;">
+        <div style="max-width:72rem; margin:0 auto; padding:2rem;">
+            <div id="tabContent" style="color:#f3f4f6; min-height:200px;">
+                <p style="color:#9ca3af;">Carregando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- App Script -->
+<script type="module" src="/admin/js/app.js"></script>
+
+</body>
+</html>
