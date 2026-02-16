@@ -245,18 +245,22 @@ export async function renderPerfil(container) {
     btn.textContent = 'Salvando...';
     btn.disabled = true;
 
-      const payload = {
-        name: container.querySelector('#orgName').value,
-        email: container.querySelector('#orgEmail').value,
-        whatsapp: container.querySelector('#orgWhatsapp').value,
-        website: container.querySelector('#orgWebsite').value,
-        logo: organizationData.logo,
-        watermarkType: container.querySelector('input[name="watermarkType"]:checked').value,
-        watermarkText: container.querySelector('#watermarkText').value,
-        watermarkOpacity: container.querySelector('#watermarkOpacity').value,
-        watermarkPosition: container.querySelector('input[name="watermarkPosition"]:checked').value,
-        watermarkSize: container.querySelector('input[name="watermarkSize"]:checked').value,
-      };
+    const watermarkTypeInput = container.querySelector('input[name="watermarkType"]:checked');
+    const watermarkPositionInput = container.querySelector('input[name="watermarkPosition"]:checked');
+    const watermarkSizeInput = container.querySelector('input[name="watermarkSize"]:checked');
+
+    const payload = {
+      name: container.querySelector('#orgName').value,
+      email: container.querySelector('#orgEmail').value,
+      whatsapp: container.querySelector('#orgWhatsapp').value,
+      website: container.querySelector('#orgWebsite').value,
+      logo: organizationData.logo,
+      watermarkType: watermarkTypeInput ? watermarkTypeInput.value : 'text', // Fallback para o padrão
+      watermarkText: container.querySelector('#watermarkText').value,
+      watermarkOpacity: container.querySelector('#watermarkOpacity').value,
+      watermarkPosition: watermarkPositionInput ? watermarkPositionInput.value : 'center', // Fallback para o padrão
+      watermarkSize: watermarkSizeInput ? watermarkSizeInput.value : 'medium', // Fallback para o padrão
+    };
 
     try {
       await apiPut('/api/organization/profile', payload);
