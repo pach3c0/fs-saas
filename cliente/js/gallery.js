@@ -148,15 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const commentCount = photo.comments ? photo.comments.length : 0;
             
             return `
-                <div class="relative group aspect-w-1 aspect-h-1" data-photo-id="${photo.id}">
+                <div class="photo-item" data-photo-id="${photo.id}">
                     <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
                     <div style="${watermarkStyle.startsWith('"') ? watermarkStyle.slice(1) : watermarkStyle}"></div>
                     ${state.isSelectionMode ? `
-                        <div class="absolute top-2 right-2 flex gap-2">
-                            <button class="comment-btn p-2 rounded-full transition-colors duration-200 ${hasComments ? 'bg-blue-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}" title="Comentários">
+                        <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; gap:0.5rem; z-index:10;">
+                            <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                             </button>
-                            <button class="select-btn p-2 rounded-full transition-colors duration-200 ${isSelected ? 'bg-red-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}" title="Selecionar">
+                            <button class="photo-heart ${isSelected ? 'selected' : ''}" title="Selecionar">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                             </button>
                         </div>
@@ -202,12 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'submitted':
                 title = 'Seleção Enviada!';
                 message = 'Sua seleção de fotos foi enviada com sucesso. O fotógrafo já foi notificado e em breve suas fotos estarão disponíveis para download.';
-                buttonHtml = `<button id="reopenRequestBtn" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">Preciso alterar minha seleção</button>`;
+                buttonHtml = `<button id="reopenRequestBtn" style="margin-top:1.25rem; background:none; border:1px solid #d1d5db; color:#666; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer;">Preciso alterar minha seleção</button>`;
                 break;
             case 'delivered':
                 title = 'Fotos Entregues!';
                 message = 'Suas fotos estão prontas! Você já pode visualizá-las sem marca d\'água e fazer o download.';
-                buttonHtml = `<button id="viewDeliveredBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ver minhas fotos</button>`;
+                buttonHtml = `<button id="viewDeliveredBtn" style="margin-top:1.25rem; background:#2563eb; color:white; border:none; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer;">Ver minhas fotos</button>`;
                 break;
             default:
                 title = 'Aguardando...';
@@ -215,9 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         statusScreen.innerHTML = `
-            <div class="text-center">
-                <h2 class="text-3xl font-bold mb-2">${title}</h2>
-                <p class="text-gray-400">${message}</p>
+            <div style="text-align:center;">
+                <h2 class="status-title">${title}</h2>
+                <p class="status-desc">${message}</p>
                 ${buttonHtml}
             </div>
         `;
@@ -229,29 +229,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('commentModal')) return;
 
         const modalHtml = `
-            <div id="commentModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-                <div class="fixed inset-0 z-10 overflow-y-auto">
-                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                <div class="sm:flex sm:items-start">
-                                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                        <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Comentários da Foto</h3>
-                                        <div class="mt-2 max-h-60 overflow-y-auto" id="commentsList">
-                                            <!-- Lista de comentários -->
-                                        </div>
-                                        <div class="mt-4">
-                                            <textarea id="newCommentText" rows="3" class="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 p-2" placeholder="Escreva seu comentário ou observação..."></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                                <button type="button" id="saveCommentBtn" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">Enviar</button>
-                                <button type="button" id="closeCommentBtn" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Fechar</button>
-                            </div>
-                        </div>
+            <div id="commentModal" style="display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center;">
+                <div style="position:absolute; inset:0; background:rgba(0,0,0,0.75);"></div>
+                <div style="position:relative; background:white; border-radius:0.5rem; width:100%; max-width:32rem; margin:1rem; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+                    <div style="padding:1.5rem;">
+                        <h3 style="font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Comentários da Foto</h3>
+                        <div id="commentsList" style="max-height:15rem; overflow-y:auto; margin-bottom:1rem;"></div>
+                        <textarea id="newCommentText" rows="3" style="width:100%; border:1px solid #d1d5db; border-radius:0.375rem; padding:0.5rem; font-family:inherit;" placeholder="Escreva seu comentário..."></textarea>
+                    </div>
+                    <div style="background:#f9fafb; padding:0.75rem 1.5rem; display:flex; flex-direction:row-reverse; gap:0.5rem;">
+                        <button type="button" id="saveCommentBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Enviar</button>
+                        <button type="button" id="closeCommentBtn" style="background:white; color:#374151; border:1px solid #d1d5db; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer;">Fechar</button>
                     </div>
                 </div>
             </div>
@@ -279,21 +267,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isClient = comment.author === 'client';
                 const date = new Date(comment.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 commentsList.innerHTML += `
-                    <div class="mb-3 text-left ${isClient ? 'bg-blue-50' : 'bg-gray-100'} p-2 rounded">
-                        <p class="text-xs font-bold ${isClient ? 'text-blue-700' : 'text-gray-700'}">${isClient ? 'Você' : 'Fotógrafo'} <span class="font-normal text-gray-400 ml-1">${date}</span></p>
-                        <p class="text-sm text-gray-800 mt-1">${escapeHtml(comment.text)}</p>
+                    <div style="margin-bottom:0.75rem; text-align:left; padding:0.5rem; border-radius:0.25rem; ${isClient ? 'background:#eff6ff;' : 'background:#f3f4f6;'}">
+                        <p style="font-size:0.75rem; font-weight:bold; ${isClient ? 'color:#1d4ed8;' : 'color:#374151;'}">${isClient ? 'Você' : 'Fotógrafo'} <span style="font-weight:normal; color:#9ca3af; margin-left:0.25rem;">${date}</span></p>
+                        <p style="font-size:0.875rem; color:#1f2937; margin-top:0.25rem;">${escapeHtml(comment.text)}</p>
                     </div>
                 `;
             });
         } else {
-            commentsList.innerHTML = '<p class="text-sm text-gray-500 italic">Nenhum comentário ainda.</p>';
+            commentsList.innerHTML = '<p style="font-size:0.875rem; color:#6b7280; font-style:italic;">Nenhum comentário ainda.</p>';
         }
 
-        commentModal.classList.remove('hidden');
+        commentModal.style.display = 'flex';
     }
 
     function closeCommentModal() {
-        if (commentModal) commentModal.classList.add('hidden');
+        if (commentModal) commentModal.style.display = 'none';
         currentCommentPhotoId = null;
     }
 
@@ -530,12 +518,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     photoGrid.addEventListener('click', (e) => {
-        const selectBtn = e.target.closest('.select-btn');
+        const selectBtn = e.target.closest('.photo-heart');
         if (selectBtn) {
             const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
             togglePhotoSelection(photoId);
         }
-        const commentBtn = e.target.closest('.comment-btn');
+        const commentBtn = e.target.closest('.photo-comment');
         if (commentBtn) {
             const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
             openCommentModal(photoId);

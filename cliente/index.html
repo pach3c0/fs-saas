@@ -70,6 +70,11 @@
         .photo-heart.selected { background: #dc2626; transform: scale(1.15); }
         .photo-heart svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; transition: all 0.2s; }
         .photo-heart.selected svg { fill: #fff; }
+        
+        .photo-comment { position: relative; width: 36px; height: 36px; background: rgba(0,0,0,0.4); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; pointer-events: auto; z-index: 2; color: white; }
+        .photo-comment:hover { background: rgba(0,0,0,0.6); }
+        .photo-comment.has-comments { background: #3b82f6; }
+        .photo-comment svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
 
         /* PHOTO NUMBER */
         .photo-num { position: absolute; bottom: 0.375rem; left: 0.375rem; background: rgba(0,0,0,0.5); color: #fff; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 0.25rem; pointer-events: none; }
@@ -170,34 +175,11 @@
             </div>
         </div>
 
-        <div id="photosGrid" class="photo-grid"></div>
-
-        <!-- Status: submitted -->
-        <div id="statusSubmitted" class="status-screen">
-            <div class="status-icon">
-                <svg viewBox="0 0 24 24" stroke="#16a34a" fill="none" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-            <h2 class="status-title">Selecao Enviada!</h2>
-            <p class="status-desc">Suas fotos favoritas foram enviadas ao fotografo. Aguarde o processamento.</p>
-            <button id="requestReopenBtn" onclick="requestReopen()" style="margin-top:1.25rem; background:none; border:1px solid #d1d5db; color:#666; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer; transition:all 0.2s;">
-                Preciso alterar minha selecao
-            </button>
-            <p id="reopenSent" style="display:none; color:#16a34a; font-size:0.8125rem; margin-top:1rem;">Pedido enviado! Aguarde o fotografo reabrir a selecao.</p>
-            <p style="color:#999; font-size:0.8125rem; margin-top:1rem;">Veja abaixo as fotos que voce selecionou:</p>
-        </div>
-
-        <!-- Grid de fotos selecionadas (apos submit) -->
-        <div id="submittedPhotosGrid" class="photo-grid" style="display:none;"></div>
-
-        <!-- Status: waiting delivery -->
-        <div id="statusWaiting" class="status-screen">
-            <div class="status-icon waiting">
-                <svg viewBox="0 0 24 24" stroke="#d97706" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <h2 class="status-title">Aguardando Processamento</h2>
-            <p class="status-desc">O fotografo esta processando suas fotos selecionadas. Volte em breve para baixar em alta resolucao.</p>
-        </div>
+        <div id="photoGrid" class="photo-grid"></div>
     </div>
+
+    <!-- STATUS SCREEN -->
+    <div id="statusScreen" class="status-screen"></div>
 
     <!-- BOTTOM BAR (selection mode) -->
     <div id="bottomBar" class="bottom-bar" style="display:none;">
