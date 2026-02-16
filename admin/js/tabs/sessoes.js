@@ -163,6 +163,23 @@ export async function renderSessoes(container) {
         </div>
       </div>
     </div>
+
+    <!-- Modal Comentarios -->
+    <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:60; align-items:center; justify-content:center;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; display:flex; flex-direction:column; gap:1rem; max-height:90vh;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Comentários da Foto</h3>
+            <button id="closeCommentsModal" style="color:#9ca3af; background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
+        </div>
+        <div id="commentsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.75rem; min-height:200px; max-height:400px; background:#111827; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
+            <!-- Comentarios aqui -->
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            <input type="text" id="adminCommentInput" placeholder="Escreva uma resposta..." style="flex:1; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:white;">
+            <button id="sendAdminCommentBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Enviar</button>
+        </div>
+      </div>
+    </div>
   `;
 
   // Carrega sessoes
@@ -344,6 +361,9 @@ export async function renderSessoes(container) {
           ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:#3b82f6; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
           <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center;"
             onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
+            <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="Comentários">
+              💬
+            </button>
             <button onclick="deleteSessionPhoto('${sessionId}', '${photo.id}')" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
               X
             </button>
@@ -504,6 +524,77 @@ export async function renderSessoes(container) {
   // Fechar modal de selecao
   container.querySelector('#closeSelectionModal').onclick = () => {
     container.querySelector('#selectionModal').style.display = 'none';
+  };
+
+  // Modal de Comentarios
+  let currentCommentSessionId = null;
+  let currentCommentPhotoId = null;
+  const commentsModal = container.querySelector('#commentsModal');
+  const commentsList = container.querySelector('#commentsList');
+  const commentInput = container.querySelector('#adminCommentInput');
+
+  window.openComments = (sessionId, photoId) => {
+    currentCommentSessionId = sessionId;
+    currentCommentPhotoId = photoId;
+    const session = sessionsData.find(s => s._id === sessionId);
+    if (!session) return;
+    const photo = session.photos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    renderCommentsList(photo.comments || []);
+    commentsModal.style.display = 'flex';
+  };
+
+  function renderCommentsList(comments) {
+    if (!comments || comments.length === 0) {
+        commentsList.innerHTML = '<p style="color:#6b7280; text-align:center; font-style:italic;">Nenhum comentário.</p>';
+        return;
+    }
+    commentsList.innerHTML = comments.map(c => {
+        const isAdmin = c.author === 'admin';
+        const date = new Date(c.createdAt).toLocaleString('pt-BR');
+        return `
+            <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? '#1e3a8a' : '#374151'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
+                <div style="font-size:0.75rem; color:${isAdmin ? '#93c5fd' : '#d1d5db'}; margin-bottom:0.25rem; font-weight:bold;">
+                    ${isAdmin ? 'Você' : 'Cliente'} <span style="font-weight:normal; opacity:0.7;">${date}</span>
+                </div>
+                <div style="color:#f3f4f6; font-size:0.875rem;">${escapeHtml(c.text)}</div>
+            </div>
+        `;
+    }).join('');
+    commentsList.scrollTop = commentsList.scrollHeight;
+  }
+
+  container.querySelector('#closeCommentsModal').onclick = () => {
+    commentsModal.style.display = 'none';
+  };
+
+  container.querySelector('#sendAdminCommentBtn').onclick = async () => {
+    const text = commentInput.value.trim();
+    if (!text || !currentCommentSessionId || !currentCommentPhotoId) return;
+
+    try {
+        const response = await fetch(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${appState.authToken}` 
+            },
+            body: JSON.stringify({ text })
+        });
+        if (!response.ok) throw new Error('Erro ao enviar');
+        
+        // Recarregar sessoes para atualizar dados locais
+        await renderSessoes(container);
+        
+        // Reabrir modal com dados atualizados
+        const session = sessionsData.find(s => s._id === currentCommentSessionId);
+        const photo = session.photos.find(p => p.id === currentCommentPhotoId);
+        renderCommentsList(photo.comments || []);
+        commentInput.value = '';
+    } catch (error) {
+        alert('Erro: ' + error.message);
+    }
   };
 
   // Upload de fotos na sessao

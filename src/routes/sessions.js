@@ -388,6 +388,35 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
   }
 });
 
+router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const session = await Session.findOne({ 
+      _id: req.params.sessionId, 
+      organizationId: req.user.organizationId 
+    });
+    
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const photo = session.photos.find(p => p.id === req.params.photoId);
+    if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
+
+    const newComment = {
+      text,
+      createdAt: new Date(),
+      author: 'admin'
+    };
+
+    if (!photo.comments) photo.comments = [];
+    photo.comments.push(newComment);
+
+    await session.save();
+    res.json({ success: true, comment: newComment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ADMIN: Exportar lista de fotos selecionadas (para Lightroom)
 router.get('/sessions/:sessionId/export', (req, res) => {
   const token = req.query.token || (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);

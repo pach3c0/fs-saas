@@ -40,6 +40,9 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [x] Foto de capa por sessao
 - [x] Rota publica de dados da organizacao
 
+### Problemas Conhecidos (Bugs)
+- [ ] **Galeria do Cliente**: Apos login, o corpo da pagina fica em branco (body blank) em alguns casos. Investigar renderizacao no `gallery.js` ou CSS.
+
 ---
 
 ## FASE 1 - Perfil e Identidade Visual (Concluido em 15/02/2026)
@@ -110,12 +113,12 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 **Objetivo**: Paridade com PicSize na experiencia de selecao
 **Prioridade**: ALTA
 **Complexidade**: Media
-**Status**: EM ANDAMENTO (Fase 3.1 iniciada)
+**Status**: EM ANDAMENTO (Fase 3.1 concluida, iniciando 3.2)
 **Estimativa**: ~3-4 dias
 
 ### 3.1 Comentarios nas Fotos
 - [x] Frontend: Interface de comentários na galeria (ícone, modal, lista)
-- [ ] Campo `comments` no array de fotos da Session:
+- [x] Campo `comments` no array de fotos da Session:
   ```
   photos: [{
     id, filename, url, uploadedAt,
