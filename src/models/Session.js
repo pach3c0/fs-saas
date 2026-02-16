@@ -24,6 +24,7 @@ const sessionSchema = new mongoose.Schema({
     selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered'], default: 'pending' },
     selectedPhotos: [String],
     selectionSubmittedAt: Date,
+    selectionDeadline: Date,
     deliveredAt: Date,
     // Foto de capa da galeria
     coverPhoto: { type: String, default: '' },

@@ -129,10 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
+
+        let deadlineHtml = '';
+        if (state.session.selectionDeadline && state.session.selectionStatus !== 'submitted' && state.session.selectionStatus !== 'delivered') {
+            const now = new Date();
+            const deadline = new Date(state.session.selectionDeadline);
+            if (deadline > now) {
+                const diffTime = Math.abs(deadline - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                deadlineHtml = `<div class="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-bold ml-2">Prazo: ${diffDays} dia(s)</div>`;
+            }
+        }
+
         galleryHeader.innerHTML = `
             <div class="container mx-auto flex justify-between items-center">
                 ${logoHtml}
-                <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
+                <div class="flex items-center"><h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>${deadlineHtml}</div>
             </div>
         `;
     }
@@ -229,6 +241,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 title = 'Fotos Entregues!';
                 message = 'Suas fotos estão prontas! Você já pode visualizá-las sem marca d\'água e fazer o download.';
                 buttonHtml = `<button id="viewDeliveredBtn" style="margin-top:1.25rem; background:#2563eb; color:white; border:none; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer;">Ver minhas fotos</button>`;
+                break;
+            case 'expired':
+                title = 'Prazo Encerrado';
+                message = 'O prazo para seleção de fotos desta sessão expirou. Entre em contato com o fotógrafo para solicitar a reabertura.';
+                buttonHtml = '';
                 break;
             default:
                 title = 'Aguardando...';
@@ -418,6 +435,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initializeGallery() {
         try {
+            // Verificar prazo
+            const now = new Date();
+            const deadline = state.session.selectionDeadline ? new Date(state.session.selectionDeadline) : null;
+            const isExpired = deadline && now > deadline;
+
+            if (isExpired && state.session.selectionStatus !== 'submitted' && state.session.selectionStatus !== 'delivered') {
+                state.session.selectionStatus = 'expired'; // Forçar status visualmente
+                renderStatusScreen();
+                gallerySection.style.display = 'none';
+                loginSection.style.display = 'none';
+                return;
+            }
+
             // Tenta renderizar primeiro antes de trocar a tela
             if (state.session.selectionStatus === 'submitted' || (state.session.selectionStatus === 'delivered' && state.session.mode === 'selection')) {
                 if (state.session.selectionStatus === 'delivered') {

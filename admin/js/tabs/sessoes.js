@@ -50,6 +50,10 @@ export async function renderSessoes(container) {
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Data</label>
           <input type="date" id="sessionDate" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
         </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Prazo Seleção (Opcional)</label>
+          <input type="datetime-local" id="sessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+        </div>
 
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Foto de Capa</label>
@@ -120,6 +124,10 @@ export async function renderSessoes(container) {
         <div style="background:#111827; border-radius:0.5rem; padding:0.75rem 1rem;">
           <span id="editSessionName" style="color:#f3f4f6; font-weight:600;"></span>
           <span id="editSessionType" style="color:#9ca3af; font-size:0.875rem; margin-left:0.5rem;"></span>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Prazo Seleção</label>
+          <input type="datetime-local" id="editSessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
         </div>
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Modo</label>
@@ -203,6 +211,11 @@ export async function renderSessoes(container) {
         const limit = session.packageLimit || 30;
         const extras = Math.max(0, selectedCount - limit);
         const extraPrice = session.extraPhotoPrice || 25;
+        
+        // Verificar expiracao visualmente
+        const now = new Date();
+        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
 
         return `
         <div style="border:1px solid #374151; border-radius:0.75rem; padding:1rem; background:#1f2937;">
@@ -211,8 +224,8 @@ export async function renderSessoes(container) {
               <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <strong style="color:#f3f4f6; font-size:1.125rem;">${session.name}</strong>
                 <span style="color:#9ca3af; font-size:0.875rem;">${session.type}</span>
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; font-weight:600;">
-                  ${status.text}
+                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${isExpired ? '#fca5a5' : status.color}; background:${isExpired ? '#7f1d1d' : status.bg}; font-weight:600;">
+                  ${isExpired ? 'Expirado' : status.text}
                 </span>
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:#818cf8; background:#1e1b4b; font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : 'Galeria'}
@@ -221,6 +234,7 @@ export async function renderSessoes(container) {
               <div style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
                 ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : ''}
+                ${deadline ? ` • Prazo: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
                 ${extras > 0 ? ` • <span style="color:#fbbf24;">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
               </div>
             </div>
@@ -300,6 +314,7 @@ export async function renderSessoes(container) {
     const name = container.querySelector('#sessionName').value.trim();
     const type = container.querySelector('#sessionType').value;
     const date = container.querySelector('#sessionDate').value;
+    const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
     const mode = container.querySelector('#sessionMode').value;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
@@ -315,7 +330,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ name, type, date, mode, packageLimit, extraPhotoPrice, coverPhoto })
+        body: JSON.stringify({ name, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto })
       });
 
       if (!response.ok) throw new Error('Erro ao criar');
@@ -475,6 +490,7 @@ export async function renderSessoes(container) {
 
     container.querySelector('#editSessionName').textContent = session.name;
     container.querySelector('#editSessionType').textContent = session.type;
+    container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
     container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
@@ -491,6 +507,7 @@ export async function renderSessoes(container) {
   container.querySelector('#confirmEditSession').onclick = async () => {
     if (!editingSessionId) return;
     const mode = editModeSelect.value;
+    const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
 
@@ -501,7 +518,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ mode, packageLimit, extraPhotoPrice })
+        body: JSON.stringify({ mode, selectionDeadline, packageLimit, extraPhotoPrice })
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
