@@ -276,7 +276,8 @@ router.post('/client/comments/:sessionId', async (req, res) => {
 router.get('/sessions', authenticateToken, async (req, res) => {
   try {
     const sessions = await Session.find({ organizationId: req.user.organizationId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .populate('clientId', 'name email phone');
     res.json({ sessions });
   } catch (error) {
     res.status(500).json({ error: error.message });

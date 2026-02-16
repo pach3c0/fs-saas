@@ -46,6 +46,7 @@ Site/
         faq.js              # renderFaq(container)
         newsletter.js       # renderNewsletter(container)
         sessoes.js          # renderSessoes(container)
+        clientes.js         # renderClientes(container) - CRM de clientes
         footer.js           # renderFooter(container)
         manutencao.js       # renderManutencao(container)
       utils/
@@ -78,6 +79,7 @@ Site/
     models/
       SiteData.js           # Documento unico com todo o conteudo do site
       Session.js            # Sessoes de clientes (fotos privadas)
+      Client.js             # Clientes do fotografo (CRM)
       Notification.js       # Notificacoes do admin (acessos, selecoes, etc)
       Newsletter.js         # Inscritos na newsletter
     routes/
@@ -87,6 +89,7 @@ Site/
       site-data.js          # GET/PUT /site-data, GET /site-config
       newsletter.js         # POST /newsletter/subscribe, GET/DELETE /newsletter
       sessions.js           # CRUD /sessions, upload/delete fotos, client endpoints
+      clients.js            # CRUD /clients, GET /clients/:id/sessions
       upload.js             # POST /admin/upload (imagens em /uploads/), POST /admin/upload-video (videos em /uploads/videos/)
       notifications.js      # GET /notifications, GET /notifications/unread-count, PUT /notifications/read-all
       organization.js       # GET/PUT /organization/profile, GET /organization/public
@@ -224,6 +227,15 @@ Tab chama uploadVideo(file, token, onProgress)
 | POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario em foto |
 | GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
 | POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
+
+### Rotas de Clientes (CRM - com autenticacao):
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | `/api/clients` | Lista clientes com contagem de sessoes |
+| POST | `/api/clients` | Cria cliente |
+| PUT | `/api/clients/:id` | Edita cliente |
+| DELETE | `/api/clients/:id` | Deleta cliente (desvincula sessoes) |
+| GET | `/api/clients/:id/sessions` | Sessoes vinculadas ao cliente |
 
 ---
 

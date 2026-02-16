@@ -36,7 +36,9 @@ const sessionSchema = new mongoose.Schema({
     watermark: { type: Boolean, default: true },
     canShare: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
-    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true }
+    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
+    // CRM: cliente vinculado
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null }
 }, { timestamps: true });
 
 // Index composto para busca rápida de sessão por org + código

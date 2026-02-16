@@ -181,14 +181,14 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 5 - CRM de Clientes
+## FASE 5 - CRM de Clientes (CONCLUIDO em 16/02/2026)
 **Objetivo**: Gerenciar base de clientes separado das sessoes
 **Prioridade**: MEDIA
 **Complexidade**: Media
 **Estimativa**: ~3-4 dias
 
 ### 5.1 Modelo Client
-- [ ] Novo modelo `src/models/Client.js`:
+- [x] Novo modelo `src/models/Client.js`:
   ```
   {
     organizationId,
@@ -197,32 +197,31 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
     phone,
     notes,
     tags: [String],          // ex: 'casamento', 'aniversario'
-    sessions: [ObjectId],    // referencia para Session
     createdAt, updatedAt
   }
   ```
-- [ ] Indice composto: `{ organizationId, email }` (unico)
+- [x] Indice composto: `{ organizationId, email }` (unico, sparse)
 
 ### 5.2 Aba Clientes no Admin
-- [ ] Nova aba `admin/js/tabs/clientes.js`
-- [ ] Listagem de clientes com busca e paginacao
-- [ ] Formulario: criar/editar cliente (nome, email, telefone, notas, tags)
-- [ ] Visualizar sessoes vinculadas ao cliente
-- [ ] Ao criar sessao: selecionar cliente existente ou criar novo
+- [x] Nova aba `admin/js/tabs/clientes.js`
+- [x] Listagem de clientes com busca por nome/email/telefone
+- [x] Formulario: criar/editar cliente (nome, email, telefone, notas, tags)
+- [x] Visualizar sessoes vinculadas ao cliente (modal)
+- [x] Ao criar sessao: dropdown para selecionar cliente existente
 
 ### 5.3 Rotas do Backend
-- [ ] `GET /api/clients` - listar clientes (com busca e paginacao)
-- [ ] `POST /api/clients` - criar cliente
-- [ ] `PUT /api/clients/:id` - editar cliente
-- [ ] `DELETE /api/clients/:id` - deletar cliente
-- [ ] `GET /api/clients/:id/sessions` - sessoes do cliente
+- [x] `GET /api/clients` - listar clientes (com contagem de sessoes)
+- [x] `POST /api/clients` - criar cliente
+- [x] `PUT /api/clients/:id` - editar cliente
+- [x] `DELETE /api/clients/:id` - deletar cliente (desvincula sessoes)
+- [x] `GET /api/clients/:id/sessions` - sessoes do cliente
 
 ### 5.4 Integracao Session <-> Client
-- [ ] Campo `clientId` no modelo Session (referencia ao Client)
-- [ ] Ao criar sessao: dropdown para selecionar cliente
-- [ ] Historico: quantas sessoes o cliente ja teve
+- [x] Campo `clientId` no modelo Session (referencia ao Client)
+- [x] Ao criar sessao: dropdown para selecionar cliente (auto-preenche nome)
+- [x] Historico: contagem de sessoes por cliente
 
-**Arquivos afetados**: `src/models/Client.js` (novo), `src/routes/clients.js` (novo), `src/server.js`, `admin/js/tabs/clientes.js` (novo), `admin/js/tabs/sessoes.js`, `admin/index.html`
+**Arquivos afetados**: `src/models/Client.js` (novo), `src/routes/clients.js` (novo), `src/server.js`, `admin/js/tabs/clientes.js` (novo), `admin/js/tabs/sessoes.js`, `admin/index.html`, `src/models/Session.js`, `src/routes/sessions.js`
 
 ---
 

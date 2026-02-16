@@ -127,6 +127,7 @@ app.use('/api', require('./routes/sessions'));
 app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));
 app.use('/api', require('./routes/organization'));
+app.use('/api', require('./routes/clients'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

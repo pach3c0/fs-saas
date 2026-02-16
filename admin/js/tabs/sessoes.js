@@ -69,6 +69,13 @@ export async function renderSessoes(container) {
       <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; display:flex; flex-direction:column; gap:1rem; max-height:90vh; overflow-y:auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Nova Sessao</h3>
         <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente (opcional)</label>
+          <select id="sessionClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+            <option value="">-- Nenhum cliente vinculado --</option>
+          </select>
+          <p style="font-size:0.625rem; color:#6b7280; margin-top:0.25rem;">Selecionar um cliente preenche o nome automaticamente.</p>
+        </div>
+        <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Nome do Cliente</label>
           <input type="text" id="sessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="Ex: Maria Silva">
         </div>
@@ -419,8 +426,38 @@ export async function renderSessoes(container) {
 
   // Nova sessao - modal
   const newSessionModal = container.querySelector('#newSessionModal');
-  container.querySelector('#addSessionBtn').onclick = () => {
+  container.querySelector('#addSessionBtn').onclick = async () => {
+    // Limpar campos ao abrir
+    container.querySelector('#sessionClientId').innerHTML = '<option value="">-- Nenhum cliente vinculado --</option>';
+    container.querySelector('#sessionName').value = '';
+
+    // Carregar clientes para o dropdown
+    try {
+      const resp = await fetch('/api/clients', {
+        headers: { 'Authorization': `Bearer ${appState.authToken}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const select = container.querySelector('#sessionClientId');
+        (data.clients || []).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c._id;
+          opt.textContent = c.name + (c.email ? ` (${c.email})` : '');
+          opt.dataset.name = c.name;
+          select.appendChild(opt);
+        });
+      }
+    } catch (e) { /* silencioso, dropdown fica vazio */ }
+
     newSessionModal.style.display = 'flex';
+  };
+
+  // Auto-preencher nome ao selecionar cliente
+  container.querySelector('#sessionClientId').onchange = (e) => {
+    const opt = e.target.selectedOptions[0];
+    if (opt && opt.dataset.name) {
+      container.querySelector('#sessionName').value = opt.dataset.name;
+    }
   };
 
   container.querySelector('#cancelNewSession').onclick = () => {
@@ -436,6 +473,7 @@ export async function renderSessoes(container) {
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
+    const clientId = container.querySelector('#sessionClientId').value || null;
 
     if (!name) { alert('Nome obrigatorio'); return; }
     if (!date) { alert('Data obrigatoria'); return; }
@@ -447,7 +485,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ name, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto })
+        body: JSON.stringify({ name, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto, clientId })
       });
 
       if (!response.ok) throw new Error('Erro ao criar');
