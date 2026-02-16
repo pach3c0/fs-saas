@@ -98,7 +98,8 @@ function updateWatermarkPreview(container) {
 
 export async function renderPerfil(container) {
   try {
-    organizationData = await apiGet('/api/organization/profile');
+        const response = await apiGet('/api/organization/profile');
+        organizationData = response.data || response;
   } catch (error) {
     container.innerHTML = `<p style="color:#f87171;">Erro ao carregar dados do perfil.</p>`;
     return;
@@ -256,8 +257,16 @@ export async function renderPerfil(container) {
     const watermarkPositionInput = container.querySelector('input[name="watermarkPosition"]:checked');
     const watermarkSizeInput = container.querySelector('input[name="watermarkSize"]:checked');
 
+    const name = container.querySelector('#orgName').value.trim();
+    if (!name) {
+        alert('O nome do estúdio é obrigatório.');
+        btn.textContent = 'Salvar Alterações';
+        btn.disabled = false;
+        return;
+    }
+
     const payload = {
-      name: container.querySelector('#orgName').value,
+      name: name,
       email: container.querySelector('#orgEmail').value,
       whatsapp: container.querySelector('#orgWhatsapp').value,
       website: container.querySelector('#orgWebsite').value,
