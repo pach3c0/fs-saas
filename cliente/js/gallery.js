@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectionBar = document.getElementById('selectionInfo');
     const selectionCount = document.getElementById('selectionCount');
     const extraInfo = document.getElementById('extraInfo');
-    const submitSelectionBtn = document.getElementById('submitSelectionBtn');
+    const submitSelectionBtn = document.getElementById('submitBtn');
     const galleryHeader = document.getElementById('galleryHeader');
     const statusScreen = document.getElementById('statusScreen');
 
