@@ -23,7 +23,8 @@ router.post('/client/verify-code', async (req, res) => {
       accessCode, 
       isActive: true,
       organizationId: req.organizationId 
-    });
+    }).populate('organizationId'); // Popular dados da organização
+
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
     // Notificar admin
@@ -50,7 +51,20 @@ router.post('/client/verify-code', async (req, res) => {
       extraPhotoPrice: session.extraPhotoPrice || 25,
       watermark: session.watermark !== false,
       accessCode: session.accessCode,
-      coverPhoto: session.coverPhoto || ''
+      coverPhoto: session.coverPhoto || '',
+      // Enviar dados da organização para o frontend
+      organization: session.organizationId ? {
+        id: session.organizationId._id,
+        name: session.organizationId.name,
+        logo: session.organizationId.logo,
+        watermark: session.organizationId.watermarkType ? {
+            watermarkType: session.organizationId.watermarkType,
+            watermarkText: session.organizationId.watermarkText,
+            watermarkOpacity: session.organizationId.watermarkOpacity,
+            watermarkPosition: session.organizationId.watermarkPosition,
+            watermarkSize: session.organizationId.watermarkSize
+        } : null
+      } : null
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -63,7 +77,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     const session = await Session.findOne({ 
       _id: req.params.sessionId,
       organizationId: req.organizationId
-    });
+    }).populate('organizationId');
+
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({
       success: true,
@@ -73,7 +88,20 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       selectionStatus: session.selectionStatus,
       watermark: session.watermark,
       packageLimit: session.packageLimit,
-      extraPhotoPrice: session.extraPhotoPrice
+      extraPhotoPrice: session.extraPhotoPrice,
+      // Garantir que organization venha também no refresh
+      organization: session.organizationId ? {
+        id: session.organizationId._id,
+        name: session.organizationId.name,
+        logo: session.organizationId.logo,
+        watermark: session.organizationId.watermarkType ? {
+            watermarkType: session.organizationId.watermarkType,
+            watermarkText: session.organizationId.watermarkText,
+            watermarkOpacity: session.organizationId.watermarkOpacity,
+            watermarkPosition: session.organizationId.watermarkPosition,
+            watermarkSize: session.organizationId.watermarkSize
+        } : null
+      } : null
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

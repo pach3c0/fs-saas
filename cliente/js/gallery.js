@@ -77,8 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
             watermarkSize: size = 'medium'
         } = watermark;
 
-        const orgName = state.session.organization.name || '';
-        const logoUrl = state.session.organization.logo ? `/uploads/${state.session.organization.id}/${state.session.organization.logo}` : '';
+        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const logoUrl = (state.session.organization && state.session.organization.logo) ? `/uploads/${state.session.organization.id}/${state.session.organization.logo}` : '';
 
         let styles = `
             position: absolute;
@@ -117,15 +117,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Renderização ---
 
     function renderHeader() {
-        const org = state.session.organization;
-        if (!org) return;
+        // Fallback seguro se organization não vier populado
+        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const orgLogo = (state.session.organization && state.session.organization.logo) || null;
+        const orgId = (state.session.organization && state.session.organization.id) || null;
 
         let logoHtml = '';
-        if (org.logo) {
-            const logoUrl = `/uploads/${org.id}/${org.logo}`;
-            logoHtml = `<img src="${logoUrl}" alt="${escapeHtml(org.name)}" style="max-height: 40px; max-width: 150px;">`;
+        if (orgLogo && orgId) {
+            const logoUrl = `/uploads/${orgId}/${orgLogo}`;
+            logoHtml = `<img src="${logoUrl}" alt="${escapeHtml(orgName)}" style="max-height: 40px; max-width: 150px;">`;
         } else {
-            logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(org.name)}</h1>`;
+            logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
         galleryHeader.innerHTML = `
             <div class="container mx-auto flex justify-between items-center">
@@ -138,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPhotos() {
         if (!state.photos) return;
 
-        const watermarkStyle = getWatermarkStyle(state.session.organization.watermark);
+        const watermarkStyle = getWatermarkStyle(state.session.organization ? state.session.organization.watermark : null);
 
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
