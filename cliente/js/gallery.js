@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('loginBtn');
     const errorMessage = document.getElementById('errorMessage');
     const photoGrid = document.getElementById('photoGrid');
-    const selectionBar = document.getElementById('selectionBar');
+    const selectionBar = document.getElementById('selectionInfo');
     const selectionCount = document.getElementById('selectionCount');
     const extraInfo = document.getElementById('extraInfo');
     const submitSelectionBtn = document.getElementById('submitSelectionBtn');
@@ -418,6 +418,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Só esconde o login se tudo acima funcionou
             loginSection.style.display = 'none';
+
+        } catch (error) {
+            console.error("Erro ao inicializar a galeria:", error);
+            alert("Ocorreu um erro ao carregar a galeria. Por favor, recarregue a página e tente novamente.");
+            loginSection.style.display = 'block';
+            gallerySection.style.display = 'none';
         }
 
         startPolling();
@@ -426,17 +432,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function togglePhotoSelection(photoId) {
         const isSelected = state.selectedPhotos.includes(photoId);
         const photoCard = photoGrid.querySelector(`[data-photo-id="${photoId}"]`);
-        const selectBtn = photoCard.querySelector('.select-btn');
+        const selectBtn = photoCard.querySelector('.photo-heart');
 
         // Optimistic UI
         if (isSelected) {
             state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
-            selectBtn.classList.remove('bg-red-500', 'text-white');
-            selectBtn.classList.add('bg-white/70', 'text-gray-800');
+            selectBtn.classList.remove('selected');
         } else {
             state.selectedPhotos.push(photoId);
-            selectBtn.classList.add('bg-red-500', 'text-white');
-            selectBtn.classList.remove('bg-white/70', 'text-gray-800');
+            selectBtn.classList.add('selected');
         }
         updateSelectionBar();
 
@@ -451,10 +455,10 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Erro ao salvar seleção. Tente novamente.');
             if (isSelected) {
                 state.selectedPhotos.push(photoId);
-                selectBtn.classList.add('bg-red-500', 'text-white');
+                selectBtn.classList.add('selected');
             } else {
                 state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
-                selectBtn.classList.remove('bg-red-500', 'text-white');
+                selectBtn.classList.remove('selected');
             }
             updateSelectionBar();
         }
