@@ -25,19 +25,23 @@ const sizeOptions = [
     { value: 'large', label: 'Grande' },
 ];
 
+// Placeholders em Base64 para evitar erros 404 e dependências externas
 const PLACEHOLDER_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzNzQxNTEiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiNmZmYiPkxvZ288L3RleHQ+PC9zdmc+';
 const PREVIEW_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzc0MTUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmaWxsPSIjOWNhM2FmIiBmb250LXNpemU9IjI0Ij5Gb3RvIGRlIFByZXZpZXc8L3RleHQ+PC9zdmc+';
 
 function updateWatermarkPreview(container) {
+    if (!container) return;
     const preview = container.querySelector('#watermarkPreview');
     if (!preview) return;
 
     const typeInput = container.querySelector('input[name="watermarkType"]:checked');
-    if (!typeInput) return; // Elemento pode não estar pronto, saia graciosamente.
-    const type = typeInput.value;
+    const type = typeInput ? typeInput.value : 'text';
 
-    const text = container.querySelector('#watermarkText').value;
-    const opacity = container.querySelector('#watermarkOpacity').value;
+    const textInput = container.querySelector('#watermarkText');
+    const text = textInput ? textInput.value : '';
+
+    const opacityInput = container.querySelector('#watermarkOpacity');
+    const opacity = opacityInput ? opacityInput.value : 15;
 
     const positionInput = container.querySelector('input[name="watermarkPosition"]:checked');
     if (!positionInput) return;
@@ -133,7 +137,7 @@ export async function renderPerfil(container) {
       <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
         <h3 style="font-size:1.25rem; font-weight:600; color:#f3f4f6; margin-bottom:1rem;">Logotipo</h3>
         <div style="display:flex; align-items:center; gap:1.5rem;">
-            <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px; max-width:150px; background:white; padding:5px; border-radius:4px;">
+            <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px; max-width:150px; background:white; padding:5px; border-radius:4px; object-fit: contain;">
             <div>
                 <label style="background:#374151; color:white; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer;">
                     Enviar Logo
@@ -214,7 +218,7 @@ export async function renderPerfil(container) {
       });
       organizationData.logo = result.url;
       container.querySelector('#logoPreview').src = resolveImagePath(result.url);
-      updateWatermarkPreview();
+      updateWatermarkPreview(container);
     } catch (error) {
       alert('Erro no upload: ' + error.message);
     } finally {
