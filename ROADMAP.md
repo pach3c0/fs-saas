@@ -40,9 +40,6 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [x] Foto de capa por sessao
 - [x] Rota publica de dados da organizacao
 
-### Problemas Conhecidos (Bugs)
-- [ ] **Galeria do Cliente**: Apos login, o corpo da pagina fica em branco (body blank) em alguns casos. Investigar renderizacao no `gallery.js` ou CSS.
-
 ---
 
 ## FASE 1 - Perfil e Identidade Visual (Concluido em 15/02/2026)

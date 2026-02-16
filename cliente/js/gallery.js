@@ -396,23 +396,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializeGallery() {
-        loginSection.style.display = 'none';
-
-        if (state.session.selectionStatus === 'submitted' || state.session.selectionStatus === 'delivered' && state.session.mode === 'selection') {
-            if (state.session.selectionStatus === 'delivered') {
-                // Se entregue, vai direto para as fotos sem marca d'água
-                gallerySection.style.display = 'block';
-                selectionBar.style.display = 'none';
+        try {
+            // Tenta renderizar primeiro antes de trocar a tela
+            if (state.session.selectionStatus === 'submitted' || (state.session.selectionStatus === 'delivered' && state.session.mode === 'selection')) {
+                if (state.session.selectionStatus === 'delivered') {
+                    // Se entregue, vai direto para as fotos sem marca d'água
+                    renderHeader();
+                    renderPhotos();
+                    gallerySection.style.display = 'block';
+                    selectionBar.style.display = 'none';
+                    statusScreen.style.display = 'none';
+                } else {
+                    renderStatusScreen();
+                    gallerySection.style.display = 'none';
+                }
+            } else {
                 renderHeader();
                 renderPhotos();
-            } else {
-                renderStatusScreen();
+                gallerySection.style.display = 'block';
+                statusScreen.style.display = 'none';
             }
-        } else {
-            gallerySection.style.display = 'block';
-            statusScreen.style.display = 'none';
-            renderHeader();
-            renderPhotos();
+            // Só esconde o login se tudo acima funcionou
+            loginSection.style.display = 'none';
         }
 
         startPolling();
