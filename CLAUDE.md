@@ -37,6 +37,7 @@ Site/
       app.js                # Orquestrador: init, login, switchTab, logout
       state.js              # Estado global: appState, loadAppData, saveAppData
       tabs/                 # 1 arquivo por aba, carregado via dynamic import
+        perfil.js           # renderPerfil(container) - Perfil do estudio, logo, watermark
         hero.js             # renderHero(container)
         sobre.js            # renderSobre(container)
         portfolio.js        # renderPortfolio(container)
@@ -88,6 +89,7 @@ Site/
       sessions.js           # CRUD /sessions, upload/delete fotos, client endpoints
       upload.js             # POST /admin/upload (imagens em /uploads/), POST /admin/upload-video (videos em /uploads/videos/)
       notifications.js      # GET /notifications, GET /notifications/unread-count, PUT /notifications/read-all
+      organization.js       # GET/PUT /organization/profile, GET /organization/public
     utils/
       multerConfig.js       # createUploader(subdir, options) - config compartilhada do multer
       notifications.js      # notify(type, sessionId, sessionName, message) - helper de criacao
@@ -182,6 +184,7 @@ Tab chama uploadVideo(file, token, onProgress)
   selectedPhotos: [String],         // IDs das fotos selecionadas pelo cliente
   selectionSubmittedAt: Date,       // Data do envio da selecao
   deliveredAt: Date,                // Data da entrega
+  coverPhoto: String,               // URL da foto de capa da galeria
   watermark: Boolean,               // Mostrar watermark (default true)
   canShare: Boolean,                // Cliente pode compartilhar (default false)
   isActive: Boolean                 // Sessao ativa (default true)
@@ -837,6 +840,120 @@ Documento unico no MongoDB que armazena todo o conteudo do site:
   }
 }
 ```
+
+---
+
+## CONTEXTO SAAS E EVOLUCAO DO PROJETO
+
+### Objetivo do Projeto
+Este app e um **concorrente direto do PicSize** (picsize.com.br). Referencia competitiva com 30k+ fotografos. Nosso objetivo e oferecer as mesmas funcionalidades com preco menor e arquitetura mais leve.
+
+### Produtos Planejados (equivalentes ao PicSize)
+1. **Gallery PRO** (selecao + entrega + prova de albuns) - parcialmente implementado
+2. **Site PRO** (site profissional customizavel) - futuro
+3. **Entrega Online** (download em alta resolucao) - planejado FASE 4
+4. **Prova de Album Folheavel** - planejado FASE 8
+
+### Multi-Tenancy (implementado em 14/02/2026)
+- Cada fotografo e uma `Organization` com `slug` unico
+- Producao: `slug.dominio.com.br` (subdomain)
+- Desenvolvimento: `?_tenant=slug` (query parameter)
+- Modelos: `User`, `Organization` (novos), todos os outros com `organizationId`
+- Uploads isolados: `/uploads/{orgId}/`
+- Login: email + senha (JWT com userId, organizationId, role)
+- Script de migracao: `node src/scripts/migrate-to-multitenancy.js`
+
+### Documentacao Complementar
+- **ROADMAP.md** - Fases de implementacao detalhadas (12 fases)
+- **ARCHITECTURE.md** - Decisoes tecnicas, padroes, escalabilidade
+- **MULTITENANCY-README.md** - Detalhes da implementacao multi-tenant
+- **MULTITENANCY-CHECKLIST.md** - Checklist de verificacao
+- **VPS-GUIDE.md** - Guia da infra na VPS Contabo
+- **METODOLOGIA_CLAUDE.md** - Filosofia e padroes de desenvolvimento
+
+### Regras para Novas Features
+1. **Sempre filtrar por `organizationId`** em queries e uploads
+2. **Novos modelos**: sempre incluir `organizationId` + `timestamps: true`
+3. **Novas abas admin**: seguir padrao ES Modules + inline styles dark mode
+4. **Novas rotas**: registrar no `server.js` com `app.use('/api', require(...))`
+5. **Upload**: salvar em `/uploads/{orgId}/subdir/`
+6. **Consultar ROADMAP.md** para saber o que implementar e em que ordem
+
+---
+
+## ATUALIZACAO DE DOCUMENTACAO (OBRIGATORIO)
+
+**Apos implementar qualquer feature do ROADMAP, SEMPRE atualize a documentacao:**
+
+### O que atualizar:
+
+| Documento | Quando atualizar | O que fazer |
+|-----------|-----------------|-------------|
+| **ROADMAP.md** | SEMPRE | Marcar itens como `[x]`, adicionar data de conclusao |
+| **CLAUDE.md** | SEMPRE | Adicionar novos arquivos na estrutura, novas rotas nas tabelas, novos modelos |
+| **ARCHITECTURE.md** | Se mudar modelo/relacao | Atualizar diagrama de dados, relacoes, decisoes tecnicas |
+
+### Como atualizar:
+
+1. **ROADMAP.md**: Marcar checkboxes `[x]` dos itens concluidos. Adicionar `(Concluido em DD/MM/AAAA)` no titulo da fase se todas as subtarefas estiverem prontas.
+2. **CLAUDE.md**:
+   - Se criou nova aba admin → adicionar na arvore de arquivos em "ARQUITETURA"
+   - Se criou nova rota → adicionar na arvore de arquivos e nas tabelas de rotas
+   - Se criou novo modelo → adicionar na arvore e documentar campos
+   - Se mudou padrao/convencao → documentar na secao relevante
+3. **ARCHITECTURE.md**: Atualizar apenas se mudar decisao arquitetural, adicionar novo modelo ou nova relacao entre modelos.
+
+**NAO atualizar**: MULTITENANCY-README, REVISAO-FINAL, METODOLOGIA_CLAUDE (sao documentos historicos).
+
+**Quando o usuario pedir "atualize a documentacao"**: seguir as regras acima.
+
+---
+
+## MODELO DE DADOS: Organization (Perfil do Fotografo)
+
+Armazena dados do estudio/fotografo, identidade visual e configuracoes de watermark:
+
+```javascript
+{
+  name: String,                   // Nome do estudio (obrigatorio)
+  slug: String,                   // Slug unico para subdomain (obrigatorio, lowercase)
+  ownerId: ObjectId,              // Referencia ao User dono
+  plan: 'free' | 'basic' | 'pro', // Plano atual
+  isActive: Boolean,
+  // Perfil
+  logo: String,                   // URL do logotipo (/uploads/{orgId}/xxx)
+  phone: String,                  // Telefone
+  whatsapp: String,               // Numero WhatsApp (formato 5511999999999)
+  email: String,                  // Email de contato publico
+  website: String,                // URL do site pessoal
+  bio: String,                    // Biografia/descricao
+  address: String,                // Endereco
+  city: String,                   // Cidade
+  state: String,                  // Estado (UF)
+  // Identidade visual
+  primaryColor: String,           // Cor primaria hex (default #1a1a1a)
+  // Watermark
+  watermarkType: 'text' | 'logo', // Tipo de watermark
+  watermarkText: String,          // Texto customizado do watermark
+  watermarkOpacity: Number        // Opacidade 5-50 (default 15)
+}
+```
+
+### Rotas da Organization:
+
+| Metodo | Rota | Auth | Descricao |
+|--------|------|------|-----------|
+| GET | `/api/organization/profile` | JWT | Dados completos do perfil (admin) |
+| PUT | `/api/organization/profile` | JWT | Atualizar perfil |
+| GET | `/api/organization/public` | Tenant | Dados publicos (logo, watermark) para galeria |
+
+### Aba Perfil (`admin/js/tabs/perfil.js`):
+- Usa API direta (`apiGet/apiPut`) em vez de `saveAppData()`
+- Upload de logo com preview
+- Campos: nome, telefone, whatsapp, email, website, endereco, cidade, estado, bio
+- Identidade visual: cor primaria (color picker)
+- Watermark: tipo (texto/logo), texto, opacidade (slider com preview ao vivo)
+- Link do painel (slug.fsfotografias.com.br) com botao copiar
 
 ---
 

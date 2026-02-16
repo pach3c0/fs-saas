@@ -115,6 +115,7 @@ app.use('/api/site-config', resolveTenant);
 app.use('/api/faq', resolveTenant);
 app.use('/api/newsletter/subscribe', resolveTenant);
 app.use('/api/client', resolveTenant);
+app.use('/api/organization/public', resolveTenant);
 
 // ============================================================================
 // ROTAS (cada router montado apenas UMA vez)
@@ -125,6 +126,7 @@ app.use('/api', require('./routes/newsletter'));
 app.use('/api', require('./routes/sessions'));
 app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));
+app.use('/api', require('./routes/organization'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

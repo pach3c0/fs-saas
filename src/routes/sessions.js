@@ -41,8 +41,16 @@ router.post('/client/verify-code', async (req, res) => {
       success: true,
       sessionId: session._id,
       clientName: session.name,
+      sessionType: session.type || '',
+      galleryDate: session.date ? new Date(session.date).toLocaleDateString('pt-BR') : '',
+      totalPhotos: (session.photos || []).length,
       mode: session.mode || 'gallery',
-      selectionStatus: session.selectionStatus || 'pending'
+      selectionStatus: session.selectionStatus || 'pending',
+      packageLimit: session.packageLimit || 30,
+      extraPhotoPrice: session.extraPhotoPrice || 25,
+      watermark: session.watermark !== false,
+      accessCode: session.accessCode,
+      coverPhoto: session.coverPhoto || ''
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

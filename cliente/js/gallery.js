@@ -31,10 +31,45 @@ let selectionStatus = 'pending';
 let lightboxIndex = 0;
 let sessionId = null;
 let accessCode = '';
+let orgData = null;
 
 // SVG icons
 const HEART_SVG = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 const DOWNLOAD_SVG = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+// ========== ORG BRANDING ==========
+function applyOrgBranding() {
+    if (!orgData) return;
+    // Exibir logo no nav
+    const navLogo = document.querySelector('.nav-logo');
+    if (navLogo && orgData.logo) {
+        navLogo.innerHTML = `<img src="${orgData.logo}" alt="${orgData.name || ''}" style="max-height:32px; max-width:160px; object-fit:contain;">`;
+    } else if (navLogo && orgData.name) {
+        navLogo.textContent = orgData.name;
+    }
+    // Atualizar watermark no lightbox
+    const lbWatermark = document.querySelector('.lightbox-watermark span');
+    if (lbWatermark) {
+        lbWatermark.textContent = getWatermarkText();
+    }
+}
+
+function getWatermarkText() {
+    if (orgData && orgData.watermarkType === 'text' && orgData.watermarkText) {
+        return orgData.watermarkText;
+    }
+    if (orgData && orgData.name) {
+        return orgData.name;
+    }
+    return 'FS FOTOGRAFIAS';
+}
+
+function getWatermarkOpacity() {
+    if (orgData && orgData.watermarkOpacity) {
+        return orgData.watermarkOpacity / 100;
+    }
+    return 0.15;
+}
 
 // ========== LOGIN ==========
 async function handleLogin(e) {
@@ -65,6 +100,16 @@ async function handleLogin(e) {
         extraPhotoPrice = sessionData.extraPhotoPrice || 25;
         selectionStatus = sessionData.selectionStatus || 'pending';
 
+        // Carregar dados da organizacao (logo, watermark)
+        try {
+            const orgRes = await fetch('/api/organization/public');
+            if (orgRes.ok) {
+                const orgResult = await orgRes.json();
+                orgData = orgResult.data || null;
+                applyOrgBranding();
+            }
+        } catch (e) { /* ignora */ }
+
         if (typeof fbq === 'function') fbq('track', 'Lead', { content_name: sessionData.clientName });
 
         document.getElementById('loginArea').style.display = 'none';
@@ -80,6 +125,18 @@ async function handleLogin(e) {
 async function loadGallery() {
     document.getElementById('clientName').textContent = sessionData.clientName;
     document.getElementById('galleryMeta').innerHTML = `${sessionData.sessionType} <span>&middot;</span> ${sessionData.galleryDate} <span>&middot;</span> ${sessionData.totalPhotos} fotos`;
+
+    // Exibir foto de capa se existir
+    if (sessionData.coverPhoto) {
+        const header = document.querySelector('.gallery-header');
+        if (header && !document.getElementById('coverBanner')) {
+            const banner = document.createElement('div');
+            banner.id = 'coverBanner';
+            banner.style.cssText = 'width:100%; max-height:300px; overflow:hidden; border-radius:0.75rem; margin-bottom:1rem;';
+            banner.innerHTML = `<img src="${sessionData.coverPhoto}" style="width:100%; height:100%; object-fit:cover; pointer-events:none;" alt="">`;
+            header.insertBefore(banner, header.firstChild);
+        }
+    }
 
     try {
         const res = await fetch(`/api/client/photos/${sessionId}?code=${encodeURIComponent(accessCode)}`);
@@ -159,7 +216,7 @@ function renderSelectionMode() {
         return `
             <div class="photo-item" onclick="openLightbox(${idx})">
                 <img src="${photo.url}" alt="" loading="lazy">
-                ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text">FS FOTOGRAFIAS</span></div>' : ''}
+                ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
                 <button class="photo-heart ${isSelected ? 'selected' : ''}" onclick="event.stopPropagation(); toggleSelect('${photo.id}', this)">
                     ${HEART_SVG}
                 </button>
@@ -186,7 +243,7 @@ function renderGalleryMode() {
     grid.innerHTML = photos.map((photo, idx) => `
         <div class="photo-item" onclick="openLightbox(${idx})">
             <img src="${photo.url}" alt="" loading="lazy">
-            ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text">FS FOTOGRAFIAS</span></div>' : ''}
+            ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
             <div class="photo-download">
                 <a href="${photo.url}" download="${photo.filename}" onclick="event.stopPropagation()">
                     ${DOWNLOAD_SVG} Baixar
@@ -220,7 +277,7 @@ function showStatusScreen(type) {
             submittedGrid.innerHTML = selectedList.map((photo, idx) => `
                 <div class="photo-item" onclick="openLightbox(${photos.indexOf(photo)})">
                     <img src="${photo.url}" alt="" loading="lazy">
-                    ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text">FS FOTOGRAFIAS</span></div>' : ''}
+                    ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
                     <div style="position:absolute; top:0.5rem; right:0.5rem; width:28px; height:28px; background:#dc2626; border-radius:50%; display:flex; align-items:center; justify-content:center; pointer-events:none;">
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" fill="#fff" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     </div>

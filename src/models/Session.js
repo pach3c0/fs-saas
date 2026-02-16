@@ -20,6 +20,8 @@ const sessionSchema = new mongoose.Schema({
     selectedPhotos: [String],
     selectionSubmittedAt: Date,
     deliveredAt: Date,
+    // Foto de capa da galeria
+    coverPhoto: { type: String, default: '' },
     // Config
     watermark: { type: Boolean, default: true },
     canShare: { type: Boolean, default: false },

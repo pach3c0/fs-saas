@@ -4,6 +4,7 @@
 
 import { appState } from '../state.js';
 import { formatDate, copyToClipboard, resolveImagePath } from '../utils/helpers.js';
+import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 const STATUS_LABELS = {
   pending: { text: 'Pendente', color: '#9ca3af', bg: '#1f2937' },
@@ -48,6 +49,22 @@ export async function renderSessoes(container) {
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Data</label>
           <input type="date" id="sessionDate" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+        </div>
+
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Foto de Capa</label>
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div id="coverPreview" style="width:80px; height:60px; background:#111827; border:1px dashed #374151; border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+              <span style="color:#6b7280; font-size:0.625rem;">Sem capa</span>
+            </div>
+            <label style="background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.75rem;">
+              Upload
+              <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
+            </label>
+            <div id="coverProgress"></div>
+          </div>
+          <p style="font-size:0.625rem; color:#6b7280; margin-top:0.25rem;">Exibida no topo da galeria do cliente.</p>
+          <input type="hidden" id="sessionCoverPhoto" value="">
         </div>
 
         <div style="border-top:1px solid #374151; padding-top:1rem;">
@@ -236,6 +253,22 @@ export async function renderSessoes(container) {
     selectionFields.style.display = modeSelect.value === 'selection' ? 'flex' : 'none';
   };
 
+  // Upload de foto de capa
+  container.querySelector('#coverInput').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await uploadImage(file, appState.authToken, (percent) => {
+        showUploadProgress('coverProgress', percent);
+      });
+      container.querySelector('#sessionCoverPhoto').value = result.url;
+      container.querySelector('#coverPreview').innerHTML = `<img src="${resolveImagePath(result.url)}" style="width:100%; height:100%; object-fit:cover;">`;
+      e.target.value = '';
+    } catch (error) {
+      alert('Erro no upload: ' + error.message);
+    }
+  };
+
   // Nova sessao - modal
   const newSessionModal = container.querySelector('#newSessionModal');
   container.querySelector('#addSessionBtn').onclick = () => {
@@ -253,6 +286,7 @@ export async function renderSessoes(container) {
     const mode = container.querySelector('#sessionMode').value;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
+    const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
 
     if (!name) { alert('Nome obrigatorio'); return; }
     if (!date) { alert('Data obrigatoria'); return; }
@@ -264,7 +298,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ name, type, date, mode, packageLimit, extraPhotoPrice })
+        body: JSON.stringify({ name, type, date, mode, packageLimit, extraPhotoPrice, coverPhoto })
       });
 
       if (!response.ok) throw new Error('Erro ao criar');
