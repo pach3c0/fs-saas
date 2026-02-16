@@ -83,8 +83,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 **Objetivo**: Funcionalidades avancadas de watermark (posicao, tamanho, ladrilhado)
 **Prioridade**: ALTA
 **Complexidade**: Media
-**Estimativa**: ~1-2 dias
-**Status**: IMPLEMENTADO (Gemini) - Aguardando verificação do Claude para conclusão
+**Status**: PARCIALMENTE CONCLUIDO (16/02/2026) - 2.1 completa, 2.2 pendente
 **Nota**: Watermark basico (texto customizado + opacidade) ja implementado na Fase 1
 
 ### 2.1 Configuracao Avancada de Marca D'Agua
@@ -96,7 +95,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
   - `watermarkSize` ('small' | 'medium' | 'large')
 - [x] Se tipo=logo: usar imagem do logo como watermark (PNG transparente)
 - [x] Opcao de watermark "ladrilhado" (tiled) - repeticao diagonal para protecao maxima
-- [x] Escolher fonte/tamanho do texto
+- [x] Watermark customizado aplicado tambem no lightbox (posicao, tamanho, logo ou texto)
 
 ### 2.2 Selo Anti-Copia
 - [ ] Opcao de adicionar "Copia nao autorizada" como texto secundario
@@ -110,42 +109,36 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 **Objetivo**: Paridade com PicSize na experiencia de selecao
 **Prioridade**: ALTA
 **Complexidade**: Media
-**Status**: EM ANDAMENTO (Fase 3.1 concluida, iniciando 3.2)
-**Estimativa**: ~3-4 dias
+**Status**: CONCLUIDO (16/02/2026)
 
 ### 3.1 Comentarios nas Fotos
-- [x] Frontend: Interface de comentários na galeria (ícone, modal, lista)
-- [x] Correção de múltiplos bugs na renderização da galeria do cliente (Gemini, aguardando revisão Claude)
-- [x] Campo `comments` no array de fotos da Session:
-  ```
-  photos: [{
-    id, filename, url, uploadedAt,
-    comments: [{ text, createdAt, author: 'client' | 'admin' }]
-  }]
-  ```
-- [ ] Na galeria do cliente: icone de balao no canto da foto
-- [ ] Ao clicar no balao: campo de texto para comentar
-- [ ] No admin (aba Sessoes): visualizar comentarios de cada foto
-- [ ] Admin pode responder comentarios
-- [ ] Notificacao quando cliente comenta
+- [x] Campo `comments` no array de fotos da Session (`src/models/Session.js`)
+- [x] Rota cliente: `POST /api/client/comments/:sessionId` (com notificacao `comment_added`)
+- [x] Rota admin: `POST /api/sessions/:sessionId/photos/:photoId/comments`
+- [x] Na galeria do cliente: icone de balao no canto da foto (modo selecao)
+- [x] Modal de comentarios: lista historico + campo para novo comentario
+- [x] Indicador visual quando foto ja tem comentarios (icone azul)
+- [x] No admin (aba Sessoes): visualizar e responder comentarios de cada foto (modal por foto, envio sem re-renderizar)
 
 ### 3.2 Prazo/Expiracao da Selecao
- - [x] Campo `selectionDeadline` (Date) no modelo Session
- - [x] Campo ao criar sessao: "Data limite para selecao" (date picker)
- - [x] Na galeria do cliente: contador regressivo "X dias restantes"
- - [x] Ao expirar: status muda para 'expired', cliente ve mensagem "Prazo encerrado"
- - [x] Novo status: `expired` (alem dos 4 existentes)
- - [x] Admin pode estender prazo (editar deadline)
- - [x] Notificacao quando faltam 3 dias e quando expira
+- [x] Campos `selectionDeadline`, `deadlineWarningSent`, `deadlineExpiredSent` no modelo Session
+- [x] Campo ao criar sessao: "Prazo Selecao" (datetime-local picker)
+- [x] Admin pode estender prazo (campo no modal de editar sessao)
+- [x] Na galeria do cliente: contador "X dia(s)" no header quando ha prazo
+- [x] Ao expirar: status muda para `expired`, cliente ve tela "Prazo Encerrado"
+- [x] Status `expired` adicionado ao enum do modelo e ao admin
+- [x] Backend bloqueia selecao/comentario apos prazo expirado
+- [x] `src/utils/deadlineChecker.js`: verifica prazos, gera notificacoes, atualiza status
+- [x] Rota `POST /api/sessions/check-deadlines` para disparar verificacao manual
 
 ### 3.3 Filtros Avancados na Listagem de Sessoes
-- [ ] Filtro por status da selecao (checkbox: pending, in_progress, submitted, delivered, expired)
-- [ ] Filtro por modo (selection / gallery)
-- [ ] Filtro por periodo de criacao (date range picker)
-- [ ] Campo de busca por nome do cliente
-- [ ] Ordenacao: mais recente, mais antigo, nome A-Z
+- [x] Filtro por status (pending, in_progress, submitted, delivered, expired)
+- [x] Filtro por modo (selection / gallery)
+- [x] Campo de busca por nome do cliente
+- [x] Ordenacao: mais recente, mais antigo, nome A-Z, nome Z-A
+- [x] Filtro por periodo de criacao (date range picker com botao Limpar)
 
-**Arquivos afetados**: `src/models/Session.js`, `src/routes/sessions.js`, `admin/js/tabs/sessoes.js`, `cliente/js/gallery.js`
+**Arquivos afetados**: `src/models/Session.js`, `src/routes/sessions.js`, `src/utils/deadlineChecker.js`, `admin/js/tabs/sessoes.js`, `cliente/js/gallery.js`, `cliente/index.html`
 
 ---
 

@@ -93,6 +93,7 @@ Site/
     utils/
       multerConfig.js       # createUploader(subdir, options) - config compartilhada do multer
       notifications.js      # notify(type, sessionId, sessionName, message) - helper de criacao
+      deadlineChecker.js    # checkDeadlines(orgId) - verifica prazos e gera notificacoes
   package.json              # Node 22, CommonJS
 ```
 
@@ -184,6 +185,8 @@ Tab chama uploadVideo(file, token, onProgress)
   selectedPhotos: [String],         // IDs das fotos selecionadas pelo cliente
   selectionSubmittedAt: Date,       // Data do envio da selecao
   selectionDeadline: Date,          // Data limite para selecao
+  deadlineWarningSent: Boolean,     // Aviso de 3 dias enviado
+  deadlineExpiredSent: Boolean,     // Aviso de expiracao enviado
   deliveredAt: Date,                // Data da entrega
   coverPhoto: String,               // URL da foto de capa da galeria
   watermark: Boolean,               // Mostrar watermark (default true)
@@ -212,6 +215,7 @@ Tab chama uploadVideo(file, token, onProgress)
 | DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto |
 | PUT | `/api/sessions/:id/reopen` | Reabre selecao (submitted → in_progress) |
 | PUT | `/api/sessions/:id/deliver` | Marca como entregue |
+| POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
 
 ---
 

@@ -21,7 +21,7 @@ const sessionSchema = new mongoose.Schema({
     packageLimit: { type: Number, default: 30 },
     extraPhotoPrice: { type: Number, default: 25 },
     // Fluxo de selecao
-    selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered'], default: 'pending' },
+    selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered', 'expired'], default: 'pending' },
     selectedPhotos: [String],
     selectionSubmittedAt: Date,
     selectionDeadline: Date,

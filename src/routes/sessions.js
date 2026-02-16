@@ -113,11 +113,11 @@ router.get('/client/photos/:sessionId', async (req, res) => {
   }
 });
 
-// CLIENTE: Selecionar foto
+// CLIENTE: Selecionar/desselecionar foto (toggle)
 router.put('/client/select/:sessionId', async (req, res) => {
   try {
-    const { photoId, selected } = req.body;
-    const session = await Session.findOne({ 
+    const { photoId } = req.body;
+    const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
@@ -129,11 +129,12 @@ router.put('/client/select/:sessionId', async (req, res) => {
     }
 
     if (!session.selectedPhotos) session.selectedPhotos = [];
-    
-    if (selected) {
-      if (!session.selectedPhotos.includes(photoId)) session.selectedPhotos.push(photoId);
+
+    const idx = session.selectedPhotos.indexOf(photoId);
+    if (idx > -1) {
+      session.selectedPhotos.splice(idx, 1);
     } else {
-      session.selectedPhotos = session.selectedPhotos.filter(id => id !== photoId);
+      session.selectedPhotos.push(photoId);
     }
 
     if (session.selectionStatus === 'pending' && session.selectedPhotos.length > 0) {

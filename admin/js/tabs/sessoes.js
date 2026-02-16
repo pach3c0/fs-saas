@@ -3,7 +3,7 @@
  */
 
 import { appState } from '../state.js';
-import { formatDate, copyToClipboard, resolveImagePath } from '../utils/helpers.js';
+import { formatDate, copyToClipboard, resolveImagePath, escapeHtml } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 const STATUS_LABELS = {
@@ -49,6 +49,13 @@ export async function renderSessoes(container) {
                 <option value="selection">Seleção</option>
                 <option value="gallery">Galeria</option>
             </select>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+            <span style="color:#9ca3af; font-size:0.875rem;">Periodo:</span>
+            <input type="date" id="filterDateFrom" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
+            <span style="color:#6b7280; font-size:0.875rem;">ate</span>
+            <input type="date" id="filterDateTo" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
+            <button id="clearDateFilter" style="padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid #374151; background:none; color:#9ca3af; cursor:pointer; font-size:0.75rem;">Limpar</button>
         </div>
       </div>
 
@@ -242,11 +249,16 @@ export async function renderSessoes(container) {
     const sortValue = container.querySelector('#filterSort').value;
     const modeValue = container.querySelector('#filterMode').value;
     const checkedStatuses = Array.from(container.querySelectorAll('#statusFilters input:checked')).map(cb => cb.value);
+    const dateFromVal = container.querySelector('#filterDateFrom').value;
+    const dateToVal = container.querySelector('#filterDateTo').value;
+    // Converter para datas com hora no limite do dia
+    const dateFrom = dateFromVal ? new Date(dateFromVal + 'T00:00:00') : null;
+    const dateTo = dateToVal ? new Date(dateToVal + 'T23:59:59') : null;
 
     let filtered = sessionsData.filter(session => {
         // Filtro de Texto
         if (searchTerm && !session.name.toLowerCase().includes(searchTerm)) return false;
-        
+
         // Filtro de Modo
         if (modeValue !== 'all' && session.mode !== modeValue) return false;
 
@@ -254,13 +266,20 @@ export async function renderSessoes(container) {
         const now = new Date();
         const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
         const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
-        
+
         // Determinar status efetivo para filtro
         let effectiveStatus = session.selectionStatus;
         if (isExpired) effectiveStatus = 'expired';
 
         // Filtro de Status
         if (!checkedStatuses.includes(effectiveStatus)) return false;
+
+        // Filtro de Periodo (por data de criacao da sessao)
+        if (dateFrom || dateTo) {
+            const createdAt = new Date(session.createdAt);
+            if (dateFrom && createdAt < dateFrom) return false;
+            if (dateTo && createdAt > dateTo) return false;
+        }
 
         return true;
     });
@@ -359,6 +378,13 @@ export async function renderSessoes(container) {
   container.querySelector('#filterMode').addEventListener('change', filterAndRender);
   container.querySelectorAll('#statusFilters input').forEach(cb => {
       cb.addEventListener('change', filterAndRender);
+  });
+  container.querySelector('#filterDateFrom').addEventListener('change', filterAndRender);
+  container.querySelector('#filterDateTo').addEventListener('change', filterAndRender);
+  container.querySelector('#clearDateFilter').addEventListener('click', () => {
+      container.querySelector('#filterDateFrom').value = '';
+      container.querySelector('#filterDateTo').value = '';
+      filterAndRender();
   });
 
   // Toggle campos de selecao no modal
@@ -674,27 +700,38 @@ export async function renderSessoes(container) {
     const text = commentInput.value.trim();
     if (!text || !currentCommentSessionId || !currentCommentPhotoId) return;
 
+    const btn = container.querySelector('#sendAdminCommentBtn');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
     try {
         const response = await fetch(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${appState.authToken}` 
+                'Authorization': `Bearer ${appState.authToken}`
             },
             body: JSON.stringify({ text })
         });
         if (!response.ok) throw new Error('Erro ao enviar');
-        
-        // Recarregar sessoes para atualizar dados locais
-        await renderSessoes(container);
-        
-        // Reabrir modal com dados atualizados
+        const result = await response.json();
+
+        // Atualiza dados locais sem re-renderizar a tela inteira
         const session = sessionsData.find(s => s._id === currentCommentSessionId);
-        const photo = session.photos.find(p => p.id === currentCommentPhotoId);
-        renderCommentsList(photo.comments || []);
+        if (session) {
+            const photo = session.photos.find(p => p.id === currentCommentPhotoId);
+            if (photo) {
+                if (!photo.comments) photo.comments = [];
+                photo.comments.push(result.comment);
+                renderCommentsList(photo.comments);
+            }
+        }
         commentInput.value = '';
     } catch (error) {
         alert('Erro: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
     }
   };
 

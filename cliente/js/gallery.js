@@ -64,9 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return `url("data:image/svg+xml;base64,${btoa(svg)}")`;
     }
 
-    function getWatermarkStyle(watermark) {
+    // Retorna { style, innerHTML } para o elemento overlay do watermark
+    function getWatermarkOverlay(watermark) {
+        const hidden = { style: 'display:none;', innerHTML: '' };
+
         if (!watermark || state.session.selectionStatus === 'delivered') {
-            return 'display: none;';
+            return hidden;
         }
 
         const {
@@ -78,40 +81,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } = watermark;
 
         const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
-        const logoUrl = (state.session.organization && state.session.organization.logo) ? `/uploads/${state.session.organization.id}/${state.session.organization.logo}` : '';
+        // logo já é uma URL relativa como /uploads/{orgId}/filename.jpg
+        const logoUrl = (state.session.organization && state.session.organization.logo) || '';
 
-        let styles = `
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            opacity: ${opacity / 100};
-        `;
+        const baseStyle = `position:absolute; inset:0; pointer-events:none; opacity:${opacity / 100};`;
 
         if (position === 'tiled') {
-            styles += `background-repeat: repeat; background-position: center;`;
-            if (type === 'logo' && logoUrl) {
-                const bgSize = { small: '100px', medium: '150px', large: '200px' }[size] || '150px';
-                styles += `background-image: url(${logoUrl}); background-size: ${bgSize};`;
-            } else {
-                const watermarkContent = text || orgName;
-                styles += `background-image: ${createTiledWatermarkSvg(watermarkContent, opacity, size)};`;
-            }
-        } else {
-            const justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
-            const alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
-            styles += `display: flex; justify-content: ${justifyContent}; align-items: ${alignItems}; padding: 1rem;`;
-
-            if (type === 'logo' && logoUrl) {
-                const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
-                return styles + `"><img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%;" alt="Watermark">`;
-            } else {
-                const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
-                const watermarkContent = text || orgName;
-                return styles + `"><span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: ${fontSize}; text-shadow: 0 0 2px black;">${escapeHtml(watermarkContent)}</span>`;
-            }
+            const bgStyle = type === 'logo' && logoUrl
+                ? `background-image:url(${logoUrl}); background-size:${{ small: '100px', medium: '150px', large: '200px' }[size] || '150px'}; background-repeat:repeat; background-position:center;`
+                : `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)};`;
+            return { style: baseStyle + bgStyle, innerHTML: '' };
         }
 
-        return styles + '"';
+        const justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
+        const alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
+        const flexStyle = `display:flex; justify-content:${justifyContent}; align-items:${alignItems}; padding:1rem;`;
+
+        if (type === 'logo' && logoUrl) {
+            const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
+            return {
+                style: baseStyle + flexStyle,
+                innerHTML: `<img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%;" alt="Watermark">`
+            };
+        }
+
+        const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
+        return {
+            style: baseStyle + flexStyle,
+            innerHTML: `<span style="font-family:Arial,sans-serif; font-weight:bold; color:white; font-size:${fontSize}; text-shadow:0 0 2px black;">${escapeHtml(text || orgName)}</span>`
+        };
     }
 
     // --- Renderização ---
@@ -152,17 +150,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPhotos() {
         if (!state.photos) return;
 
-        const watermarkStyle = getWatermarkStyle(state.session.organization ? state.session.organization.watermark : null);
+        const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null);
 
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const hasComments = photo.comments && photo.comments.length > 0;
-            const commentCount = photo.comments ? photo.comments.length : 0;
-            
+
             return `
                 <div class="photo-item" data-photo-id="${photo.id}">
                     <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
-                    <div style="${watermarkStyle.startsWith('"') ? watermarkStyle.slice(1) : watermarkStyle}"></div>
+                    <div style="${wm.style}">${wm.innerHTML}</div>
                     ${state.isSelectionMode ? `
                         <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; gap:0.5rem; z-index:10;">
                             <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
@@ -575,6 +572,84 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
+    // --- Lightbox ---
+
+    let lightboxIndex = 0;
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCounter = document.getElementById('lightboxCounter');
+    const lightboxHeart = document.getElementById('lightboxHeart');
+    const lightboxDownload = document.getElementById('lightboxDownload');
+    const lightboxWatermark = document.getElementById('lightboxWatermark');
+
+    function openLightbox(index) {
+        lightboxIndex = index;
+        renderLightbox();
+        lightbox.classList.add('active');
+    }
+
+    function renderLightbox() {
+        const photo = state.photos[lightboxIndex];
+        if (!photo) return;
+
+        lightboxImg.src = photo.url;
+        lightboxCounter.textContent = `${lightboxIndex + 1} / ${state.photos.length}`;
+
+        // Watermark customizado no lightbox
+        if (lightboxWatermark) {
+            const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null);
+            lightboxWatermark.style.cssText = wm.style;
+            lightboxWatermark.innerHTML = wm.innerHTML;
+        }
+
+        // Botão de seleção
+        if (lightboxHeart) {
+            lightboxHeart.style.display = state.isSelectionMode ? 'flex' : 'none';
+            lightboxHeart.classList.toggle('selected', state.selectedPhotos.includes(photo.id));
+        }
+
+        // Botão de download (modo gallery ou delivered)
+        if (lightboxDownload) {
+            const canDownload = state.session.mode === 'gallery' || state.session.selectionStatus === 'delivered';
+            lightboxDownload.style.display = canDownload ? 'flex' : 'none';
+            if (canDownload) {
+                lightboxDownload.href = photo.url;
+                lightboxDownload.download = photo.filename || 'foto.jpg';
+            }
+        }
+    }
+
+    window.closeLightbox = function() {
+        lightbox.classList.remove('active');
+    };
+
+    window.lightboxNav = function(dir) {
+        lightboxIndex = (lightboxIndex + dir + state.photos.length) % state.photos.length;
+        renderLightbox();
+    };
+
+    window.toggleLightboxHeart = function() {
+        const photo = state.photos[lightboxIndex];
+        if (!photo) return;
+        togglePhotoSelection(photo.id);
+        lightboxHeart.classList.toggle('selected', state.selectedPhotos.includes(photo.id));
+    };
+
+    // Swipe no lightbox
+    let touchStartX = 0;
+    lightbox.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    lightbox.addEventListener('touchend', (e) => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) lightboxNav(diff > 0 ? 1 : -1);
+    });
+
+    // Fechar lightbox clicando no fundo
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
+    });
+
+    // --- Event Listeners ---
+
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     photoGrid.addEventListener('click', (e) => {
@@ -582,11 +657,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectBtn) {
             const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
             togglePhotoSelection(photoId);
+            return;
         }
         const commentBtn = e.target.closest('.photo-comment');
         if (commentBtn) {
             const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
             openCommentModal(photoId);
+            return;
+        }
+        // Clique na foto abre lightbox
+        const photoItem = e.target.closest('[data-photo-id]');
+        if (photoItem) {
+            const photoId = photoItem.dataset.photoId;
+            const index = state.photos.findIndex(p => p.id === photoId);
+            if (index > -1) openLightbox(index);
         }
     });
 
