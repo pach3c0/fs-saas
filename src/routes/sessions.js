@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const { checkDeadlines } = require('../utils/deadlineChecker');
 
 const uploadSession = createUploader('sessions');
 
@@ -122,6 +123,11 @@ router.put('/client/select/:sessionId', async (req, res) => {
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
+    // Validar prazo
+    if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de seleção expirou' });
+    }
+
     if (!session.selectedPhotos) session.selectedPhotos = [];
     
     if (selected) {
@@ -158,6 +164,11 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       organizationId: req.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Validar prazo
+    if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de seleção expirou' });
+    }
 
     session.selectionStatus = 'submitted';
     session.selectionSubmittedAt = new Date();
@@ -218,6 +229,11 @@ router.post('/client/comments/:sessionId', async (req, res) => {
 
     if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+
+    // Validar prazo
+    if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de seleção expirou' });
+    }
 
     const photo = session.photos.find(p => p.id === photoId);
     if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
@@ -448,6 +464,17 @@ router.get('/sessions/:sessionId/export', (req, res) => {
     .catch(error => {
       res.status(500).json({ error: error.message });
     });
+});
+
+// ADMIN: Verificar prazos manualmente (Gatilho para Cron)
+router.post('/sessions/check-deadlines', authenticateToken, async (req, res) => {
+  try {
+    // Verifica apenas para a organização do usuário logado
+    const result = await checkDeadlines(req.user.organizationId);
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;

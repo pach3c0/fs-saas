@@ -25,6 +25,8 @@ const sessionSchema = new mongoose.Schema({
     selectedPhotos: [String],
     selectionSubmittedAt: Date,
     selectionDeadline: Date,
+    deadlineWarningSent: { type: Boolean, default: false }, // Aviso de 3 dias enviado?
+    deadlineExpiredSent: { type: Boolean, default: false }, // Aviso de expirado enviado?
     deliveredAt: Date,
     // Foto de capa da galeria
     coverPhoto: { type: String, default: '' },
