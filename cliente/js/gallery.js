@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoading(loginBtn);
         errorMessage.textContent = '';
+        errorMessage.style.display = 'none';
 
         try {
             const response = await fetch('/api/client/verify-code', {
@@ -367,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
         } finally {
             hideLoading(loginBtn);
         }
@@ -382,10 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const previousStatus = state.session ? state.session.selectionStatus : null;
-            state.session = result.session;
+            state.session = result;
             state.photos = result.photos;
-            state.selectedPhotos = result.session.selectedPhotos || [];
-            state.isSelectionMode = result.session.mode === 'selection';
+            state.selectedPhotos = result.selectedPhotos || [];
+            state.isSelectionMode = result.mode === 'selection';
 
             if (!isPolling) {
                 initializeGallery();
@@ -399,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (!isPolling) {
                 errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
             }
             console.error("Polling error:", error);
         }

@@ -82,6 +82,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({
       success: true,
+      name: session.name,
+      type: session.type,
       photos: session.photos,
       selectedPhotos: session.selectedPhotos || [],
       mode: session.mode,
