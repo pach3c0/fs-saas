@@ -175,6 +175,48 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
   }
 });
 
+// CLIENTE: Adicionar comentário
+router.post('/client/comments/:sessionId', async (req, res) => {
+  try {
+    const { accessCode, photoId, text } = req.body;
+    const session = await Session.findOne({ 
+      _id: req.params.sessionId,
+      organizationId: req.organizationId
+    });
+
+    if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+
+    const photo = session.photos.find(p => p.id === photoId);
+    if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
+
+    const newComment = {
+      text,
+      createdAt: new Date(),
+      author: 'client'
+    };
+
+    if (!photo.comments) photo.comments = [];
+    photo.comments.push(newComment);
+
+    await session.save();
+
+    try { 
+      await Notification.create({ 
+        type: 'comment_added', 
+        sessionId: session._id, 
+        sessionName: session.name, 
+        message: `${session.name} comentou em uma foto`,
+        organizationId: session.organizationId
+      }); 
+    } catch(e){}
+
+    res.json({ success: true, comment: newComment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================================
 // ROTAS DO ADMIN
 // ============================================================================

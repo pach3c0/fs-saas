@@ -336,10 +336,12 @@ export async function renderSessoes(container) {
       const selectedIds = session.selectedPhotos || [];
       grid.innerHTML = photos.map((photo, idx) => {
         const isSelected = selectedIds.includes(photo.id);
+        const hasComments = photo.comments && photo.comments.length > 0;
         return `
         <div style="position:relative; aspect-ratio:3/4; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : ''}">
           <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="width:100%; height:100%; object-fit:cover;">
           ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:#16a34a; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">Selecionada</div>' : ''}
+          ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:#3b82f6; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
           <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center;"
             onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
             <button onclick="deleteSessionPhoto('${sessionId}', '${photo.id}')" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">

@@ -22,6 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const galleryHeader = document.getElementById('galleryHeader');
     const statusScreen = document.getElementById('statusScreen');
 
+    // Elementos dinâmicos
+    let commentModal = null;
+    let currentCommentPhotoId = null;
+
     // --- Funções de Utilidade ---
     function escapeHtml(str) {
         const p = document.createElement('p');
@@ -137,13 +141,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
+            const hasComments = photo.comments && photo.comments.length > 0;
+            const commentCount = photo.comments ? photo.comments.length : 0;
+            
             return `
                 <div class="relative group aspect-w-1 aspect-h-1" data-photo-id="${photo.id}">
                     <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
                     <div style="${watermarkStyle.startsWith('"') ? watermarkStyle.slice(1) : watermarkStyle}"></div>
                     ${state.isSelectionMode ? `
-                        <div class="absolute top-2 right-2">
-                            <button class="select-btn p-2 rounded-full transition-colors duration-200 ${isSelected ? 'bg-red-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}">
+                        <div class="absolute top-2 right-2 flex gap-2">
+                            <button class="comment-btn p-2 rounded-full transition-colors duration-200 ${hasComments ? 'bg-blue-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}" title="Comentários">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            </button>
+                            <button class="select-btn p-2 rounded-full transition-colors duration-200 ${isSelected ? 'bg-red-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}" title="Selecionar">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                             </button>
                         </div>
@@ -208,6 +218,118 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${buttonHtml}
             </div>
         `;
+    }
+
+    // --- Modal de Comentários ---
+
+    function createCommentModal() {
+        if (document.getElementById('commentModal')) return;
+
+        const modalHtml = `
+            <div id="commentModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+                <div class="fixed inset-0 z-10 overflow-y-auto">
+                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <div class="sm:flex sm:items-start">
+                                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                        <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Comentários da Foto</h3>
+                                        <div class="mt-2 max-h-60 overflow-y-auto" id="commentsList">
+                                            <!-- Lista de comentários -->
+                                        </div>
+                                        <div class="mt-4">
+                                            <textarea id="newCommentText" rows="3" class="w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 p-2" placeholder="Escreva seu comentário ou observação..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="button" id="saveCommentBtn" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">Enviar</button>
+                                <button type="button" id="closeCommentBtn" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Fechar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        commentModal = document.getElementById('commentModal');
+        
+        document.getElementById('closeCommentBtn').addEventListener('click', closeCommentModal);
+        document.getElementById('saveCommentBtn').addEventListener('click', submitComment);
+    }
+
+    function openCommentModal(photoId) {
+        createCommentModal();
+        currentCommentPhotoId = photoId;
+        const photo = state.photos.find(p => p.id === photoId);
+        const commentsList = document.getElementById('commentsList');
+        const textarea = document.getElementById('newCommentText');
+        
+        textarea.value = '';
+        commentsList.innerHTML = '';
+
+        if (photo && photo.comments && photo.comments.length > 0) {
+            photo.comments.forEach(comment => {
+                const isClient = comment.author === 'client';
+                const date = new Date(comment.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                commentsList.innerHTML += `
+                    <div class="mb-3 text-left ${isClient ? 'bg-blue-50' : 'bg-gray-100'} p-2 rounded">
+                        <p class="text-xs font-bold ${isClient ? 'text-blue-700' : 'text-gray-700'}">${isClient ? 'Você' : 'Fotógrafo'} <span class="font-normal text-gray-400 ml-1">${date}</span></p>
+                        <p class="text-sm text-gray-800 mt-1">${escapeHtml(comment.text)}</p>
+                    </div>
+                `;
+            });
+        } else {
+            commentsList.innerHTML = '<p class="text-sm text-gray-500 italic">Nenhum comentário ainda.</p>';
+        }
+
+        commentModal.classList.remove('hidden');
+    }
+
+    function closeCommentModal() {
+        if (commentModal) commentModal.classList.add('hidden');
+        currentCommentPhotoId = null;
+    }
+
+    async function submitComment() {
+        const text = document.getElementById('newCommentText').value.trim();
+        if (!text) return;
+
+        const btn = document.getElementById('saveCommentBtn');
+        showLoading(btn, 'Enviando...');
+
+        try {
+            const response = await fetch(`/api/client/comments/${state.sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    accessCode: state.accessCode, 
+                    photoId: currentCommentPhotoId,
+                    text: text 
+                }),
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error);
+
+            // Atualiza localmente
+            const photo = state.photos.find(p => p.id === currentCommentPhotoId);
+            if (photo) {
+                if (!photo.comments) photo.comments = [];
+                photo.comments.push(result.comment);
+            }
+            
+            // Re-renderiza modal e grid (para mostrar indicador)
+            openCommentModal(currentCommentPhotoId);
+            renderPhotos();
+
+        } catch (error) {
+            alert('Erro ao enviar comentário: ' + error.message);
+        } finally {
+            hideLoading(btn);
+        }
     }
 
     // --- Lógica da API e Ações ---
@@ -408,6 +530,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectBtn) {
             const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
             togglePhotoSelection(photoId);
+        }
+        const commentBtn = e.target.closest('.comment-btn');
+        if (commentBtn) {
+            const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
+            openCommentModal(photoId);
         }
     });
 

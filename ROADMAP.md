@@ -84,18 +84,19 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 **Prioridade**: ALTA
 **Complexidade**: Media
 **Estimativa**: ~1-2 dias
+**Status**: IMPLEMENTADO (Gemini) - Aguardando verificação do Claude para conclusão
 **Nota**: Watermark basico (texto customizado + opacidade) ja implementado na Fase 1
 
 ### 2.1 Configuracao Avancada de Marca D'Agua
 - [x] Campos basicos ja implementados: `watermarkType`, `watermarkText`, `watermarkOpacity` (Fase 1)
 - [x] Configuracao na aba Perfil com preview ao vivo (Fase 1)
 - [x] Aplicar watermark customizado no frontend (CSS overlay) na galeria do cliente (Fase 1)
-- [ ] Campos adicionais na Organization:
+- [x] Campos adicionais na Organization:
   - `watermarkPosition` ('center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'tiled')
   - `watermarkSize` ('small' | 'medium' | 'large')
-- [ ] Se tipo=logo: usar imagem do logo como watermark (PNG transparente)
-- [ ] Opcao de watermark "ladrilhado" (tiled) - repeticao diagonal para protecao maxima
-- [ ] Escolher fonte/tamanho do texto
+- [x] Se tipo=logo: usar imagem do logo como watermark (PNG transparente)
+- [x] Opcao de watermark "ladrilhado" (tiled) - repeticao diagonal para protecao maxima
+- [x] Escolher fonte/tamanho do texto
 
 ### 2.2 Selo Anti-Copia
 - [ ] Opcao de adicionar "Copia nao autorizada" como texto secundario
@@ -109,9 +110,11 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 **Objetivo**: Paridade com PicSize na experiencia de selecao
 **Prioridade**: ALTA
 **Complexidade**: Media
+**Status**: EM ANDAMENTO (Fase 3.1 iniciada)
 **Estimativa**: ~3-4 dias
 
 ### 3.1 Comentarios nas Fotos
+- [x] Frontend: Interface de comentários na galeria (ícone, modal, lista)
 - [ ] Campo `comments` no array de fotos da Session:
   ```
   photos: [{

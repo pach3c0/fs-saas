@@ -9,7 +9,12 @@ const sessionSchema = new mongoose.Schema({
         id: String,
         filename: String,
         url: String,
-        uploadedAt: Date
+        uploadedAt: Date,
+        comments: [{
+            text: String,
+            createdAt: { type: Date, default: Date.now },
+            author: { type: String, enum: ['client', 'admin'], default: 'client' }
+        }]
     }],
     // Modo da sessao
     mode: { type: String, enum: ['selection', 'gallery'], default: 'selection' },
