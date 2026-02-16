@@ -25,15 +25,24 @@ const sizeOptions = [
     { value: 'large', label: 'Grande' },
 ];
 
-function updateWatermarkPreview() {
-    const preview = document.getElementById('watermarkPreview');
+function updateWatermarkPreview(container) {
+    const preview = container.querySelector('#watermarkPreview');
     if (!preview) return;
 
-    const type = document.querySelector('input[name="watermarkType"]:checked').value;
-    const text = document.getElementById('watermarkText').value;
-    const opacity = document.getElementById('watermarkOpacity').value;
-    const position = document.querySelector('input[name="watermarkPosition"]:checked').value;
-    const size = document.querySelector('input[name="watermarkSize"]:checked').value;
+    const typeInput = container.querySelector('input[name="watermarkType"]:checked');
+    if (!typeInput) return; // Elemento pode não estar pronto, saia graciosamente.
+    const type = typeInput.value;
+
+    const text = container.querySelector('#watermarkText').value;
+    const opacity = container.querySelector('#watermarkOpacity').value;
+
+    const positionInput = container.querySelector('input[name="watermarkPosition"]:checked');
+    if (!positionInput) return;
+    const position = positionInput.value;
+
+    const sizeInput = container.querySelector('input[name="watermarkSize"]:checked');
+    if (!sizeInput) return;
+    const size = sizeInput.value;
 
     const watermarkEl = preview.querySelector('.watermark-overlay');
     if (!watermarkEl) return;
@@ -213,28 +222,29 @@ export async function renderPerfil(container) {
 
   // Watermark Preview Listeners
   const watermarkControls = [
-    '#watermarkText',
-    '#watermarkOpacity',
-    ...Array.from(document.querySelectorAll('input[name="watermarkType"]')),
-    ...Array.from(document.querySelectorAll('input[name="watermarkPosition"]')),
-    ...Array.from(document.querySelectorAll('input[name="watermarkSize"]')),
+      '#watermarkText',
+      '#watermarkOpacity',
+      ...Array.from(container.querySelectorAll('input[name="watermarkType"]')),
+      ...Array.from(container.querySelectorAll('input[name="watermarkPosition"]')),
+      ...Array.from(container.querySelectorAll('input[name="watermarkSize"]')),
   ];
 
+  const previewUpdater = () => updateWatermarkPreview(container);
+
   watermarkControls.forEach(control => {
-    const el = typeof control === 'string' ? container.querySelector(control) : control;
-    if (el) {
-      el.addEventListener('input', updateWatermarkPreview);
-      el.addEventListener('change', updateWatermarkPreview);
-    }
+      const el = typeof control === 'string' ? container.querySelector(control) : control;
+      if (el) {
+          el.addEventListener('input', previewUpdater);
+          el.addEventListener('change', previewUpdater);
+      }
   });
 
   // Salvar perfil
-  container.querySelector('#saveProfileBtn').onclick = async () => {
-    const btn = container.querySelector('#saveProfileBtn');
+  container.querySelector('#saveProfileBtn').onclick = async (e) => {
+    const btn = e.target;
     btn.textContent = 'Salvando...';
     btn.disabled = true;
 
-    try {
       const payload = {
         name: container.querySelector('#orgName').value,
         email: container.querySelector('#orgEmail').value,
@@ -248,6 +258,7 @@ export async function renderPerfil(container) {
         watermarkSize: container.querySelector('input[name="watermarkSize"]:checked').value,
       };
 
+    try {
       await apiPut('/api/organization/profile', payload);
       // Atualiza o cache local para o próximo render
       Object.assign(organizationData, payload);
@@ -261,5 +272,5 @@ export async function renderPerfil(container) {
   };
 
   // Initial render of the preview
-  updateWatermarkPreview();
+  updateWatermarkPreview(container);
 }
