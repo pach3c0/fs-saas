@@ -118,12 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fallback seguro se organization não vier populado
         const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
         const orgLogo = (state.session.organization && state.session.organization.logo) || null;
-        const orgId = (state.session.organization && state.session.organization.id) || null;
 
         let logoHtml = '';
-        if (orgLogo && orgId) {
-            const logoUrl = `/uploads/${orgId}/${orgLogo}`;
-            logoHtml = `<img src="${logoUrl}" alt="${escapeHtml(orgName)}" style="max-height: 40px; max-width: 150px;">`;
+        if (orgLogo) {
+            // orgLogo já é URL relativa completa: /uploads/{orgId}/filename.jpg
+            logoHtml = `<img src="${orgLogo}" alt="${escapeHtml(orgName)}" style="max-height: 40px; max-width: 150px;">`;
         } else {
             logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
@@ -139,10 +138,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        const isDelivered = state.session.selectionStatus === 'delivered';
+        const downloadAllBtn = isDelivered
+            ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}"
+                  style="background:#16a34a; color:white; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600; text-decoration:none; white-space:nowrap;"
+                  download>
+                  ⬇ Baixar Todas
+               </a>`
+            : '';
+
         galleryHeader.innerHTML = `
             <div class="container mx-auto flex justify-between items-center">
                 ${logoHtml}
-                <div class="flex items-center"><h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>${deadlineHtml}</div>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
+                    ${deadlineHtml}
+                    ${downloadAllBtn}
+                </div>
             </div>
         `;
     }
@@ -152,22 +164,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null);
 
+        const isDelivered = state.session.selectionStatus === 'delivered';
+
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const hasComments = photo.comments && photo.comments.length > 0;
+
+            const downloadBtn = isDelivered
+                ? `<a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}"
+                      style="display:flex; align-items:center; justify-content:center; width:2rem; height:2rem; background:rgba(22,163,74,0.9); border-radius:9999px; color:white; text-decoration:none; font-size:1rem;"
+                      title="Download" download>⬇</a>`
+                : '';
 
             return `
                 <div class="photo-item" data-photo-id="${photo.id}">
                     <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
                     <div style="${wm.style}">${wm.innerHTML}</div>
-                    ${state.isSelectionMode ? `
+                    ${(state.isSelectionMode || isDelivered) ? `
                         <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; gap:0.5rem; z-index:10;">
-                            <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                            </button>
-                            <button class="photo-heart ${isSelected ? 'selected' : ''}" title="Selecionar">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                            </button>
+                            ${state.isSelectionMode ? `
+                                <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                </button>
+                                <button class="photo-heart ${isSelected ? 'selected' : ''}" title="Selecionar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                </button>
+                            ` : ''}
+                            ${downloadBtn}
                         </div>
                     ` : ''}
                 </div>
@@ -608,12 +631,12 @@ document.addEventListener('DOMContentLoaded', () => {
             lightboxHeart.classList.toggle('selected', state.selectedPhotos.includes(photo.id));
         }
 
-        // Botão de download (modo gallery ou delivered)
+        // Botão de download (apenas no modo delivered)
         if (lightboxDownload) {
-            const canDownload = state.session.mode === 'gallery' || state.session.selectionStatus === 'delivered';
+            const canDownload = state.session.selectionStatus === 'delivered';
             lightboxDownload.style.display = canDownload ? 'flex' : 'none';
             if (canDownload) {
-                lightboxDownload.href = photo.url;
+                lightboxDownload.href = `/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}`;
                 lightboxDownload.download = photo.filename || 'foto.jpg';
             }
         }

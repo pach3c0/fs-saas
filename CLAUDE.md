@@ -175,13 +175,15 @@ Tab chama uploadVideo(file, token, onProgress)
   photos: [{                        // Fotos da sessao
     id: String,
     filename: String,
-    url: String,
-    uploadedAt: Date
+    url: String,                    // thumb 1200px (para galeria com watermark)
+    urlOriginal: String,            // original sem compressao (para entrega em alta)
+    uploadedAt: Date,
+    comments: [{ text, createdAt, author: 'client'|'admin' }]
   }],
   mode: 'selection' | 'gallery',    // Modo da sessao
   packageLimit: Number,             // Limite de fotos do pacote (default 30)
   extraPhotoPrice: Number,          // Preco por foto extra (default R$25)
-  selectionStatus: String,          // pending → in_progress → submitted → delivered
+  selectionStatus: String,          // pending → in_progress → submitted → delivered | expired
   selectedPhotos: [String],         // IDs das fotos selecionadas pelo cliente
   selectionSubmittedAt: Date,       // Data do envio da selecao
   selectionDeadline: Date,          // Data limite para selecao
@@ -189,6 +191,7 @@ Tab chama uploadVideo(file, token, onProgress)
   deadlineExpiredSent: Boolean,     // Aviso de expiracao enviado
   deliveredAt: Date,                // Data da entrega
   coverPhoto: String,               // URL da foto de capa da galeria
+  highResDelivery: Boolean,         // Entrega em alta resolucao (default false) — serve urlOriginal no download
   watermark: Boolean,               // Mostrar watermark (default true)
   canShare: Boolean,                // Cliente pode compartilhar (default false)
   isActive: Boolean                 // Sessao ativa (default true)
@@ -203,18 +206,23 @@ Tab chama uploadVideo(file, token, onProgress)
 | PUT | `/api/client/select/:id` | Seleciona/deseleciona uma foto |
 | POST | `/api/client/submit-selection/:id` | Finaliza a selecao |
 | POST | `/api/client/request-reopen/:id` | Pede reabertura da selecao |
+| POST | `/api/client/comments/:sessionId` | Adiciona comentario em foto |
+| GET | `/api/client/download/:sessionId/:photoId?code=X` | Download individual (original se highResDelivery) |
+| GET | `/api/client/download-all/:sessionId?code=X` | Download ZIP de todas as fotos entregues |
 
 ### Rotas do admin (com autenticacao):
 | Metodo | Rota | Descricao |
 |--------|------|-----------|
 | GET | `/api/sessions` | Lista todas as sessoes |
 | POST | `/api/sessions` | Cria nova sessao |
-| PUT | `/api/sessions/:id` | Edita sessao |
+| PUT | `/api/sessions/:id` | Edita sessao (inclui highResDelivery) |
 | DELETE | `/api/sessions/:id` | Deleta sessao |
-| POST | `/api/sessions/:id/photos` | Upload de fotos (multer) |
-| DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto |
+| POST | `/api/sessions/:id/photos` | Upload de fotos (salva original + thumb 1200px) |
+| DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto (remove thumb e original do disco) |
 | PUT | `/api/sessions/:id/reopen` | Reabre selecao (submitted → in_progress) |
 | PUT | `/api/sessions/:id/deliver` | Marca como entregue |
+| POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario em foto |
+| GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
 | POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
 
 ---

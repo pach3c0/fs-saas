@@ -8,7 +8,8 @@ const sessionSchema = new mongoose.Schema({
     photos: [{
         id: String,
         filename: String,
-        url: String,
+        url: String,         // thumb (comprimida para galeria)
+        urlOriginal: String, // original sem compressao (para entrega em alta)
         uploadedAt: Date,
         comments: [{
             text: String,
@@ -31,6 +32,7 @@ const sessionSchema = new mongoose.Schema({
     // Foto de capa da galeria
     coverPhoto: { type: String, default: '' },
     // Config
+    highResDelivery: { type: Boolean, default: false }, // Entrega em alta resolucao
     watermark: { type: Boolean, default: true },
     canShare: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

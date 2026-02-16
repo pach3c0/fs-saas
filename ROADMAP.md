@@ -142,42 +142,42 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 4 - Entrega Online em Alta Resolucao
+## FASE 4 - Entrega Online em Alta Resolucao (CONCLUIDO em 16/02/2026)
 **Objetivo**: Cliente baixa fotos em qualidade original, sem compressao
 **Prioridade**: ALTA
 **Complexidade**: Alta
-**Estimativa**: ~4-5 dias
 
 ### 4.1 Sistema de Entrega em Alta
-- [ ] Toggle ON/OFF por sessao: `highResDelivery` (boolean)
-- [ ] Quando admin marca como "delivered" e highResDelivery=true:
+- [x] Toggle ON/OFF por sessao: `highResDelivery` (boolean) no modal de editar sessao
+- [x] Quando admin marca como "delivered" e highResDelivery=true:
   - Fotos sao servidas sem watermark
   - Botao "Baixar foto" em cada foto individual
   - Botao "Baixar todas" (gera ZIP no servidor)
-- [ ] Fotos mantidas na resolucao original (sem compressao do upload)
-  - Novo campo no upload: salvar versao comprimida (para galeria) + original (para entrega)
+- [x] Fotos mantidas na resolucao original (sem compressao do upload)
+  - Upload salva original + gera thumb 1200px via `sharp`
   - `photos[].urlOriginal` (resolucao original)
-  - `photos[].urlThumb` (comprimida para galeria com watermark)
+  - `photos[].url` (thumb 1200px para galeria)
 
 ### 4.2 Download em ZIP
-- [ ] Rota `GET /api/client/download-all/:sessionId?code=X`
-- [ ] Backend usa `archiver` (npm) para gerar ZIP on-the-fly
-- [ ] Stream direto para o cliente (nao salvar ZIP no disco)
-- [ ] Limitar a sessoes com status "delivered"
-- [ ] Barra de progresso no frontend
+- [x] Rota `GET /api/client/download-all/:sessionId?code=X`
+- [x] Backend usa `archiver` para gerar ZIP on-the-fly
+- [x] Stream direto para o cliente (nao salva ZIP no disco)
+- [x] Limitado a sessoes com status "delivered"
+- [x] Modo selection: ZIP inclui apenas fotos selecionadas; modo gallery: todas
 
 ### 4.3 Download Individual
-- [ ] Rota `GET /api/client/download/:sessionId/:photoId?code=X`
-- [ ] Servir foto original com header `Content-Disposition: attachment`
-- [ ] Botao de download em cada foto no modo "delivered"
+- [x] Rota `GET /api/client/download/:sessionId/:photoId?code=X`
+- [x] Serve foto original com header `Content-Disposition: attachment`
+- [x] Botao de download em cada foto no modo "delivered"
+- [x] Delete de foto tambem remove urlOriginal do disco
 
 ### 4.4 Controle de Resolucao por Plano (futuro)
 - [ ] Plano Standard: fotos entregues em 1920px
 - [ ] Plano Plus/Infinity: resolucao original
 - [ ] Campo `maxResolution` na Organization (baseado no plano)
 
-**Dependencias**: npm `archiver` para ZIP
-**Arquivos afetados**: `src/routes/sessions.js`, `src/utils/multerConfig.js`, `cliente/js/gallery.js`, `admin/js/tabs/sessoes.js`
+**Dependencias**: `sharp` (thumb), `archiver` (ZIP)
+**Arquivos afetados**: `src/routes/sessions.js`, `src/models/Session.js`, `cliente/js/gallery.js`, `admin/js/tabs/sessoes.js`
 
 ---
 

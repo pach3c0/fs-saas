@@ -8,6 +8,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const sharp = require('sharp');
+const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
 
 const uploadSession = createUploader('sessions');
@@ -333,20 +335,35 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
 
 router.post('/sessions/:id/photos', authenticateToken, uploadSession.array('photos'), async (req, res) => {
   try {
-    const session = await Session.findOne({ 
-      _id: req.params.id, 
-      organizationId: req.user.organizationId 
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    
+
     const orgId = req.user.organizationId;
-    const newPhotos = req.files.map(file => ({
-      id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      filename: file.filename,
-      url: `/uploads/${orgId}/sessions/${file.filename}`,
-      uploadedAt: new Date()
-    }));
-    
+    const newPhotos = [];
+
+    for (const file of req.files) {
+      const originalPath = file.path;
+      const thumbFilename = 'thumb-' + file.filename;
+      const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
+
+      // Gerar thumb comprimida (1200px, qualidade 85)
+      await sharp(originalPath)
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toFile(thumbPath);
+
+      newPhotos.push({
+        id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        filename: file.filename,
+        url: `/uploads/${orgId}/sessions/${thumbFilename}`,      // thumb para galeria
+        urlOriginal: `/uploads/${orgId}/sessions/${file.filename}`, // original para entrega
+        uploadedAt: new Date()
+      });
+    }
+
     session.photos.push(...newPhotos);
     await session.save();
     res.json({ success: true, photos: newPhotos });
@@ -357,24 +374,29 @@ router.post('/sessions/:id/photos', authenticateToken, uploadSession.array('phot
 
 router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (req, res) => {
   try {
-    const session = await Session.findOne({ 
-      _id: req.params.sessionId, 
-      organizationId: req.user.organizationId 
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.user.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     const idx = session.photos.findIndex(p => p.id === req.params.photoId);
     if (idx > -1) {
       const photo = session.photos[idx];
-      if (photo.url.startsWith('/uploads/')) {
+      // Deletar thumb
+      if (photo.url && photo.url.startsWith('/uploads/')) {
         try { fs.unlinkSync(path.join(__dirname, '../..', photo.url)); } catch(e){}
       }
+      // Deletar original
+      if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) {
+        try { fs.unlinkSync(path.join(__dirname, '../..', photo.urlOriginal)); } catch(e){}
+      }
       session.photos.splice(idx, 1);
-      
+
       if (session.selectedPhotos) {
         session.selectedPhotos = session.selectedPhotos.filter(id => id !== req.params.photoId);
       }
-      
+
       await session.save();
     }
     res.json({ success: true });
@@ -473,6 +495,89 @@ router.post('/sessions/check-deadlines', authenticateToken, async (req, res) => 
     // Verifica apenas para a organização do usuário logado
     const result = await checkDeadlines(req.user.organizationId);
     res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// ROTAS DE DOWNLOAD (FASE 4 - Entrega em Alta Resolução)
+// ============================================================================
+
+// CLIENTE: Download de foto individual (alta resolução)
+router.get('/client/download/:sessionId/:photoId', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.organizationId
+    });
+
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
+    if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+
+    const photo = session.photos.find(p => p.id === req.params.photoId);
+    if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
+
+    // Se highResDelivery ativo e urlOriginal existe, servir original; caso contrário thumb
+    const urlToServe = (session.highResDelivery && photo.urlOriginal) ? photo.urlOriginal : photo.url;
+    const filePath = path.join(__dirname, '../..', urlToServe);
+
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
+
+    const filename = path.basename(filePath);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.sendFile(filePath);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CLIENTE: Download de todas as fotos entregues em ZIP
+router.get('/client/download-all/:sessionId', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.organizationId
+    });
+
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
+    if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+
+    // Determinar quais fotos incluir no ZIP
+    // No modo 'selection': só as fotos selecionadas; no modo 'gallery': todas
+    const selectedIds = session.selectedPhotos || [];
+    const photosToZip = session.mode === 'selection'
+      ? session.photos.filter(p => selectedIds.includes(p.id))
+      : session.photos;
+
+    if (photosToZip.length === 0) return res.status(404).json({ error: 'Nenhuma foto para download' });
+
+    const sessionName = session.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="fotos-${sessionName}.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.pipe(res);
+
+    for (const photo of photosToZip) {
+      const urlToServe = (session.highResDelivery && photo.urlOriginal) ? photo.urlOriginal : photo.url;
+      const filePath = path.join(__dirname, '../..', urlToServe);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: path.basename(filePath) });
+      }
+    }
+
+    archive.on('error', (err) => {
+      console.error('Erro ao criar ZIP:', err);
+      if (!res.headersSent) res.status(500).json({ error: 'Erro ao criar ZIP' });
+    });
+
+    await archive.finalize();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

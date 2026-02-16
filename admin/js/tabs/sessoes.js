@@ -183,6 +183,13 @@ export async function renderSessoes(container) {
           </div>
         </div>
         <p style="font-size:0.6875rem; color:#6b7280;">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
+        <div style="border-top:1px solid #374151; padding-top:0.75rem;">
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="editHighResDelivery" style="width:1rem; height:1rem; accent-color:#2563eb; cursor:pointer;">
+            <span style="color:#f3f4f6; font-size:0.875rem; font-weight:500;">Entrega em alta resolucao</span>
+          </label>
+          <p style="font-size:0.6875rem; color:#6b7280; margin-top:0.25rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
+        </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button id="cancelEditSession" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
           <button id="confirmEditSession" style="padding:0.5rem 1rem; background:#2563eb; color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Salvar</button>
@@ -604,6 +611,7 @@ export async function renderSessoes(container) {
     editModeSelect.value = session.mode || 'selection';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
     container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
+    container.querySelector('#editHighResDelivery').checked = session.highResDelivery || false;
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
 
     editModal.style.display = 'flex';
@@ -620,6 +628,7 @@ export async function renderSessoes(container) {
     const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
+    const highResDelivery = container.querySelector('#editHighResDelivery').checked;
 
     try {
       const response = await fetch(`/api/sessions/${editingSessionId}`, {
@@ -628,7 +637,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ mode, selectionDeadline, packageLimit, extraPhotoPrice })
+        body: JSON.stringify({ mode, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
