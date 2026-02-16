@@ -51,6 +51,7 @@ router.post('/client/verify-code', async (req, res) => {
       extraPhotoPrice: session.extraPhotoPrice || 25,
       watermark: session.watermark !== false,
       accessCode: session.accessCode,
+      selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
       // Enviar dados da organização para o frontend
       organization: session.organizationId ? {
@@ -89,6 +90,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       mode: session.mode,
       selectionStatus: session.selectionStatus,
       watermark: session.watermark,
+      selectionDeadline: session.selectionDeadline,
       packageLimit: session.packageLimit,
       extraPhotoPrice: session.extraPhotoPrice,
       // Garantir que organization venha também no refresh
