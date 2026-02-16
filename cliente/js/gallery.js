@@ -23,6 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const galleryHeader = document.getElementById('galleryHeader');
     const statusScreen = document.getElementById('statusScreen');
 
+    // PWA Elements
+    const pwaBanner = document.getElementById('pwaInstallBanner');
+    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+    const pwaDismissBtn = document.getElementById('pwaDismissBtn');
+    const iosModal = document.getElementById('iosInstallModal');
+    let deferredPrompt;
+
     // Elementos dinâmicos
     let commentModal = null;
     let currentCommentPhotoId = null;
@@ -489,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Só esconde o login se tudo acima funcionou
             loginSection.style.display = 'none';
+            setupPWA();
 
         } catch (error) {
             console.error("Erro ao inicializar a galeria:", error);
@@ -583,6 +591,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- PWA Logic ---
+    function setupPWA() {
+        // 1. Atualizar Manifest Dinâmico
+        const manifestLink = document.getElementById('manifestLink');
+        if (manifestLink && state.session) {
+            manifestLink.href = `/api/client/manifest/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}`;
+        }
+
+        // 2. Atualizar Theme Color
+        const themeColorMeta = document.getElementById('themeColorMeta');
+        if (themeColorMeta && state.session && state.session.organization && state.session.organization.primaryColor) {
+            themeColorMeta.content = state.session.organization.primaryColor;
+        }
+
+        // 3. Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/cliente/sw.js')
+                .then(reg => console.log('SW registrado'))
+                .catch(err => console.error('Erro SW:', err));
+        }
+
+        // 4. Detectar iOS para mostrar instrução manual
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (isIos && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+            if (pwaBanner) {
+                pwaBanner.style.display = 'flex';
+                if (pwaInstallBtn) {
+                    pwaInstallBtn.onclick = () => {
+                        if (iosModal) iosModal.style.display = 'flex';
+                        pwaBanner.style.display = 'none';
+                    };
+                }
+            }
+        }
+    }
+
     // --- Polling ---
     function startPolling() {
         if (state.pollingInterval) {
@@ -672,6 +718,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Event Listeners ---
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (!localStorage.getItem('pwaDismissed') && pwaBanner) {
+            pwaBanner.style.display = 'flex';
+        }
+    });
+
+    if (pwaInstallBtn) {
+        pwaInstallBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                pwaBanner.style.display = 'none';
+            }
+        });
+    }
+
+    if (pwaDismissBtn) {
+        pwaDismissBtn.addEventListener('click', () => {
+            if (pwaBanner) pwaBanner.style.display = 'none';
+            localStorage.setItem('pwaDismissed', 'true');
+        });
+    }
 
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 

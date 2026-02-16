@@ -75,6 +75,53 @@ router.post('/client/verify-code', async (req, res) => {
   }
 });
 
+// CLIENTE: Manifest dinâmico para PWA
+router.get('/client/manifest/:sessionId', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const session = await Session.findOne({
+      _id: req.params.sessionId
+    }).populate('organizationId');
+
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
+
+    const org = session.organizationId;
+    const themeColor = org && org.primaryColor ? org.primaryColor : '#1a1a1a';
+    const orgName = org ? org.name : 'FS Fotografias';
+
+    // Ícones padrão (o usuário deve garantir que estes arquivos existam em /cliente/icons/)
+    const icons = [
+        {
+            "src": "/cliente/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/cliente/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ];
+
+    const manifest = {
+      name: session.name || orgName,
+      short_name: session.name ? session.name.split(' ')[0] : 'Galeria',
+      start_url: `/cliente/?code=${code}`,
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: themeColor,
+      orientation: "portrait",
+      icons: icons
+    };
+
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.json(manifest);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // CLIENTE: Listar fotos
 router.get('/client/photos/:sessionId', async (req, res) => {
   try {
