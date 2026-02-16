@@ -136,7 +136,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
  - [x] Ao expirar: status muda para 'expired', cliente ve mensagem "Prazo encerrado"
  - [x] Novo status: `expired` (alem dos 4 existentes)
  - [x] Admin pode estender prazo (editar deadline)
-- [ ] Notificacao quando faltam 3 dias e quando expira
+ - [x] Notificacao quando faltam 3 dias e quando expira
 
 ### 3.3 Filtros Avancados na Listagem de Sessoes
 - [ ] Filtro por status da selecao (checkbox: pending, in_progress, submitted, delivered, expired)

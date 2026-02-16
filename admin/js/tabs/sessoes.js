@@ -10,7 +10,8 @@ const STATUS_LABELS = {
   pending: { text: 'Pendente', color: '#9ca3af', bg: '#1f2937' },
   in_progress: { text: 'Em seleção', color: '#fbbf24', bg: '#422006' },
   submitted: { text: 'Seleção enviada', color: '#34d399', bg: '#064e3b' },
-  delivered: { text: 'Entregue', color: '#60a5fa', bg: '#1e3a5f' }
+  delivered: { text: 'Entregue', color: '#60a5fa', bg: '#1e3a5f' },
+  expired: { text: 'Expirado', color: '#fca5a5', bg: '#7f1d1d' }
 };
 
 export async function renderSessoes(container) {
@@ -21,6 +22,34 @@ export async function renderSessoes(container) {
         <button id="addSessionBtn" style="background:#16a34a; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500;">
           + Nova Sessao
         </button>
+      </div>
+
+      <!-- Filtros -->
+      <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; flex-direction:column; gap:1rem;">
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <input type="text" id="filterSearch" placeholder="Buscar cliente..." style="flex:1; min-width:200px; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6;">
+            <select id="filterSort" style="padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6;">
+                <option value="newest">Mais recentes</option>
+                <option value="oldest">Mais antigos</option>
+                <option value="az">Nome A-Z</option>
+                <option value="za">Nome Z-A</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;" id="statusFilters">
+                <span style="color:#9ca3af; font-size:0.875rem;">Status:</span>
+                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="pending" checked> Pendente</label>
+                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="in_progress" checked> Em seleção</label>
+                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="submitted" checked> Enviada</label>
+                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="delivered" checked> Entregue</label>
+                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="expired" checked> Expirado</label>
+            </div>
+            <select id="filterMode" style="padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; margin-left:auto;">
+                <option value="all">Todos os modos</option>
+                <option value="selection">Seleção</option>
+                <option value="gallery">Galeria</option>
+            </select>
+        </div>
       </div>
 
       <div id="sessionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
@@ -201,21 +230,74 @@ export async function renderSessoes(container) {
 
     const result = await response.json();
     sessionsData = result.sessions || [];
+    filterAndRender();
+  } catch (error) {
     const list = container.querySelector('#sessionsList');
+    if (list) list.innerHTML = `<p style="color:#f87171;">${error.message}</p>`;
+  }
 
-    if (sessionsData.length > 0) {
-      list.innerHTML = sessionsData.map(session => {
-        const status = STATUS_LABELS[session.selectionStatus] || STATUS_LABELS.pending;
+  // Função de filtragem e renderização
+  function filterAndRender() {
+    const searchTerm = container.querySelector('#filterSearch').value.toLowerCase();
+    const sortValue = container.querySelector('#filterSort').value;
+    const modeValue = container.querySelector('#filterMode').value;
+    const checkedStatuses = Array.from(container.querySelectorAll('#statusFilters input:checked')).map(cb => cb.value);
+
+    let filtered = sessionsData.filter(session => {
+        // Filtro de Texto
+        if (searchTerm && !session.name.toLowerCase().includes(searchTerm)) return false;
+        
+        // Filtro de Modo
+        if (modeValue !== 'all' && session.mode !== modeValue) return false;
+
+        // Verificar expiração para filtro de status
+        const now = new Date();
+        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
+        
+        // Determinar status efetivo para filtro
+        let effectiveStatus = session.selectionStatus;
+        if (isExpired) effectiveStatus = 'expired';
+
+        // Filtro de Status
+        if (!checkedStatuses.includes(effectiveStatus)) return false;
+
+        return true;
+    });
+
+    // Ordenação
+    filtered.sort((a, b) => {
+        if (sortValue === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortValue === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortValue === 'az') return a.name.localeCompare(b.name);
+        if (sortValue === 'za') return b.name.localeCompare(a.name);
+        return 0;
+    });
+
+    renderList(filtered);
+  }
+
+  function renderList(items) {
+    const list = container.querySelector('#sessionsList');
+    if (items.length === 0) {
+        list.innerHTML = '<p style="color:#9ca3af; text-align:center; padding:2rem;">Nenhuma sessão encontrada com os filtros atuais.</p>';
+        return;
+    }
+
+    list.innerHTML = items.map(session => {
+        const now = new Date();
+        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
+        
+        // Usar status 'expired' se aplicável, senão o status original
+        const statusKey = isExpired ? 'expired' : session.selectionStatus;
+        const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
+        
         const mode = session.mode || 'gallery';
         const selectedCount = (session.selectedPhotos || []).length;
         const limit = session.packageLimit || 30;
         const extras = Math.max(0, selectedCount - limit);
         const extraPrice = session.extraPhotoPrice || 25;
-        
-        // Verificar expiracao visualmente
-        const now = new Date();
-        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
-        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
 
         return `
         <div style="border:1px solid #374151; border-radius:0.75rem; padding:1rem; background:#1f2937;">
@@ -224,8 +306,8 @@ export async function renderSessoes(container) {
               <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <strong style="color:#f3f4f6; font-size:1.125rem;">${session.name}</strong>
                 <span style="color:#9ca3af; font-size:0.875rem;">${session.type}</span>
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${isExpired ? '#fca5a5' : status.color}; background:${isExpired ? '#7f1d1d' : status.bg}; font-weight:600;">
-                  ${isExpired ? 'Expirado' : status.text}
+                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; font-weight:600;">
+                  ${status.text}
                 </span>
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:#818cf8; background:#1e1b4b; font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : 'Galeria'}
@@ -269,13 +351,15 @@ export async function renderSessoes(container) {
           </div>
         </div>
       `}).join('');
-    } else {
-      list.innerHTML = '<p style="color:#9ca3af; text-align:center; padding:2rem;">Nenhuma sessao criada</p>';
-    }
-  } catch (error) {
-    const list = container.querySelector('#sessionsList');
-    if (list) list.innerHTML = `<p style="color:#f87171;">${error.message}</p>`;
   }
+
+  // Event Listeners para Filtros
+  container.querySelector('#filterSearch').addEventListener('input', filterAndRender);
+  container.querySelector('#filterSort').addEventListener('change', filterAndRender);
+  container.querySelector('#filterMode').addEventListener('change', filterAndRender);
+  container.querySelectorAll('#statusFilters input').forEach(cb => {
+      cb.addEventListener('change', filterAndRender);
+  });
 
   // Toggle campos de selecao no modal
   const modeSelect = container.querySelector('#sessionMode');
