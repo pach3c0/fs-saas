@@ -115,6 +115,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ### 3.1 Comentarios nas Fotos
 - [x] Frontend: Interface de comentários na galeria (ícone, modal, lista)
+- [x] Correção de múltiplos bugs na renderização da galeria do cliente (Gemini, aguardando revisão Claude)
 - [x] Campo `comments` no array de fotos da Session:
   ```
   photos: [{
@@ -129,12 +130,12 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [ ] Notificacao quando cliente comenta
 
 ### 3.2 Prazo/Expiracao da Selecao
-- [ ] Campo `selectionDeadline` (Date) no modelo Session
-- [ ] Campo ao criar sessao: "Data limite para selecao" (date picker)
-- [ ] Na galeria do cliente: contador regressivo "X dias restantes"
-- [ ] Ao expirar: status muda para 'expired', cliente ve mensagem "Prazo encerrado"
-- [ ] Novo status: `expired` (alem dos 4 existentes)
-- [ ] Admin pode estender prazo (editar deadline)
+ - [x] Campo `selectionDeadline` (Date) no modelo Session
+ - [x] Campo ao criar sessao: "Data limite para selecao" (date picker)
+ - [x] Na galeria do cliente: contador regressivo "X dias restantes"
+ - [x] Ao expirar: status muda para 'expired', cliente ve mensagem "Prazo encerrado"
+ - [x] Novo status: `expired` (alem dos 4 existentes)
+ - [x] Admin pode estender prazo (editar deadline)
 - [ ] Notificacao quando faltam 3 dias e quando expira
 
 ### 3.3 Filtros Avancados na Listagem de Sessoes

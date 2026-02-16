@@ -183,6 +183,7 @@ Tab chama uploadVideo(file, token, onProgress)
   selectionStatus: String,          // pending → in_progress → submitted → delivered
   selectedPhotos: [String],         // IDs das fotos selecionadas pelo cliente
   selectionSubmittedAt: Date,       // Data do envio da selecao
+  selectionDeadline: Date,          // Data limite para selecao
   deliveredAt: Date,                // Data da entrega
   coverPhoto: String,               // URL da foto de capa da galeria
   watermark: Boolean,               // Mostrar watermark (default true)

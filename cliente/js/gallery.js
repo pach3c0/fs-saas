@@ -169,25 +169,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateSelectionBar() {
+        const bottomBar = document.getElementById('bottomBar');
         if (!state.isSelectionMode) {
-            selectionBar.style.display = 'none';
+            if (selectionBar) selectionBar.style.display = 'none';
+            if (bottomBar) bottomBar.style.display = 'none';
             return;
         }
 
-        selectionBar.style.display = 'flex';
+        if (selectionBar) selectionBar.style.display = 'block';
+        if (bottomBar) bottomBar.style.display = 'block';
+
         const count = state.selectedPhotos.length;
         const limit = state.session.packageLimit || 0;
         const extraPrice = state.session.extraPhotoPrice || 0;
 
-        selectionCount.textContent = `${count} / ${limit} selecionadas`;
+        const selectedNum = document.getElementById('selectedNum');
+        const limitNum = document.getElementById('limitNum');
+        if (selectedNum) selectedNum.textContent = count;
+        if (limitNum) limitNum.textContent = limit;
+
+        const barCount = document.getElementById('barCount');
+        const barLimit = document.getElementById('barLimit');
+        const barExtra = document.getElementById('barExtra');
+        if(barCount) barCount.textContent = count;
+        if(barLimit) barLimit.textContent = limit;
 
         if (count > limit) {
             const extraCount = count - limit;
             const extraCost = extraCount * extraPrice;
-            extraInfo.textContent = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2)})`;
-            extraInfo.style.display = 'block';
+            const extraText = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2).replace('.',',')})`;
+            if (extraInfo) {
+                extraInfo.textContent = extraText;
+                extraInfo.style.display = 'block';
+            }
+             if (barExtra) {
+                barExtra.textContent = extraText;
+                barExtra.style.display = 'block';
+            }
         } else {
-            extraInfo.style.display = 'none';
+            if (extraInfo) extraInfo.style.display = 'none';
+            if (barExtra) barExtra.style.display = 'none';
         }
     }
 
