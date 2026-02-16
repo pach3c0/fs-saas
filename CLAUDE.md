@@ -8,8 +8,8 @@ Plataforma de portfolio fotografico com 3 frontends e 1 backend:
 - **Galeria do cliente** (`cliente/index.html` + `cliente/js/gallery.js`) - Fotos privadas com codigo de acesso
 - **API backend** (`src/server.js` + `src/routes/`) - Express.js + MongoDB
 
-Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `fsfotografias.com.br`
-Path na VPS: `/var/www/fs-fotografias`
+Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `app.fsfotografias.com.br`
+Path na VPS: `/var/www/fs-saas`
 
 ---
 
@@ -647,14 +647,33 @@ container.querySelectorAll('.meu-item').forEach(item => {
 
 ## VARIAVEIS DE AMBIENTE
 
+### VPS (producao - `/var/www/fs-saas/.env`):
 ```
-MONGODB_URI=mongodb://localhost:27017/fsfotografias  # MongoDB local na VPS
-ADMIN_PASSWORD=...                                # Senha admin (texto plano, legado)
-ADMIN_PASSWORD_HASH=...                           # Hash bcrypt da senha (preferido)
+NODE_ENV=production
+PORT=3051                                         # Porta do Express (Nginx faz proxy)
 JWT_SECRET=...                                    # Secret para assinar tokens
-NODE_ENV=production                               # Ambiente
-PORT=3000                                         # Porta do Express
+ADMIN_PASSWORD_HASH=...                           # Hash bcrypt da senha
+OWNER_EMAIL=...                                   # Email do dono da plataforma
+BASE_DOMAIN=app.fsfotografias.com.br              # Dominio base do SaaS
+OWNER_SLUG=fs                                     # Slug da organizacao principal
+SMTP_HOST=smtp.titan.email                        # Servidor SMTP
+SMTP_PORT=465                                     # Porta SMTP
+SMTP_USER=...                                     # Email SMTP
+SMTP_PASS=...                                     # Senha SMTP
 ```
+
+### Local (desenvolvimento - `.env` na raiz):
+```
+PORT=3051
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://...                     # MongoDB Atlas (dev)
+JWT_SECRET=...
+BASE_DOMAIN=fsfotografias.com.br
+OWNER_SLUG=fs
+OWNER_EMAIL=...
+```
+
+**IMPORTANTE**: Na VPS o MongoDB e local (`mongodb://localhost:27017/fsfotografias`), configurado diretamente no `src/server.js` como fallback quando `MONGODB_URI` nao esta definido.
 
 ---
 
@@ -670,8 +689,12 @@ npm start            # Iniciar servidor (producao)
 
 ## DEPLOY NA VPS
 
-O app roda na VPS Contabo com Nginx como reverse proxy e PM2 como process manager.
-Path: `/var/www/fs-fotografias`
+O app SaaS roda na VPS Contabo com Nginx como reverse proxy e PM2 como process manager.
+Path: `/var/www/fs-saas`
+
+**ATENCAO**: Na VPS existem DOIS apps separados:
+- `/var/www/fs-fotografias` → Site original (single-tenant) em `fsfotografias.com.br` (porta 3002)
+- `/var/www/fs-saas` → App SaaS (multi-tenant) em `app.fsfotografias.com.br` (porta 3051)
 
 ### Deploy de atualizacoes:
 ```bash
@@ -679,20 +702,38 @@ Path: `/var/www/fs-fotografias`
 git add . && git commit -m "descricao" && git push
 
 # Na VPS (via SSH):
-cd /var/www/fs-fotografias && git pull && npm install && pm2 restart fsfotografias
+cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas
 ```
 
 ### Estrutura do servidor:
 ```
 Nginx (porta 80/443)
-  ├── /uploads/     → /var/www/fs-fotografias/uploads/ (static)
-  ├── /assets/      → /var/www/fs-fotografias/assets/ (static)
-  ├── /admin/js/    → /var/www/fs-fotografias/admin/js/ (static, ESM)
-  └── /*            → localhost:3002 (proxy para Node.js)
 
-PM2: gerencia processo Node.js (auto-restart)
+  Config: /etc/nginx/sites-enabled/fs-saas
+  Server name: app.fsfotografias.com.br
+  ├── /uploads/     → /var/www/fs-saas/uploads/ (static)
+  ├── /assets/      → /var/www/fs-saas/assets/ (static)
+  ├── /admin/js/    → /var/www/fs-saas/admin/js/ (static, ESM)
+  ├── /saas-admin/  → /var/www/fs-saas/saas-admin/ (static)
+  └── /*            → localhost:3051 (proxy para Node.js)
+
+PM2 processos:
+  - fsfotografias      (id 2) → porta 3002 (site original, NAO MEXER)
+  - fsfotografias-saas (id 4) → porta 3051 (app SaaS)
+
 MongoDB: localhost:27017 (sempre conectado)
+SSL: Let's Encrypt via Certbot (auto-renovacao)
 ```
+
+### URLs atuais (temporario ate dominio proprio):
+| URL | Destino |
+|-----|---------|
+| `fsfotografias.com.br` | Site original do fotografo |
+| `app.fsfotografias.com.br` | App SaaS (redireciona para o site pois o Nginx do site original tambem responde) |
+| `app.fsfotografias.com.br/cadastro` | Landing page do SaaS (cadastro de fotografos) |
+| `app.fsfotografias.com.br/admin/` | Painel admin do fotografo |
+| `app.fsfotografias.com.br/saas-admin/` | Painel super-admin do SaaS |
+| `app.fsfotografias.com.br/cliente/` | Galeria do cliente |
 
 ---
 
@@ -704,7 +745,7 @@ MongoDB: localhost:27017 (sempre conectado)
 - [ ] Se criou novo modelo: verificar se tem `timestamps: true`
 - [ ] Testar localmente com `npm run dev`
 - [ ] Commitar e push para GitHub
-- [ ] Na VPS: `cd /var/www/fs-fotografias && git pull && npm install && pm2 restart fsfotografias`
+- [ ] Na VPS: `cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas`
 
 ---
 
@@ -954,6 +995,65 @@ Armazena dados do estudio/fotografo, identidade visual e configuracoes de waterm
 - Identidade visual: cor primaria (color picker)
 - Watermark: tipo (texto/logo), texto, opacidade (slider com preview ao vivo)
 - Link do painel (slug.fsfotografias.com.br) com botao copiar
+
+---
+
+## INSTRUCOES PARA IAs - CENARIO ATUAL DA INFRAESTRUTURA
+
+**LEIA ESTA SECAO COM ATENCAO antes de sugerir qualquer alteracao de deploy, infra ou configuracao.**
+
+### Contexto
+Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS com o site original single-tenant do fotografo. Sao dois apps COMPLETAMENTE SEPARADOS com repositorios, bancos, portas e processos PM2 diferentes.
+
+### Regras criticas para IAs:
+
+1. **NUNCA confunda os dois apps:**
+   - Site original: `/var/www/fs-fotografias`, PM2 `fsfotografias`, porta `3002`, Nginx `fsfotografias`
+   - App SaaS: `/var/www/fs-saas`, PM2 `fsfotografias-saas`, porta `3051`, Nginx `fs-saas`
+
+2. **NUNCA altere a porta do SaaS.** A porta e `3051` (definida no `.env` da VPS). Se mudar, o Nginx retorna 502.
+
+3. **NUNCA mexer no site original** (`/var/www/fs-fotografias`). Ele funciona independentemente e nao faz parte deste repositorio.
+
+4. **NUNCA modificar configs do Nginx** sem autorizacao explicita do usuario. Erros de Nginx derrubam ambos os sites.
+
+5. **NUNCA fazer `pm2 restart all`** - isso reinicia TODOS os processos. Use sempre `pm2 restart fsfotografias-saas`.
+
+6. **Deploy correto:**
+   ```bash
+   cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas
+   ```
+
+7. **Logs do SaaS:**
+   ```bash
+   pm2 logs fsfotografias-saas --lines 50
+   ```
+
+8. **Se o usuario reportar 502 Bad Gateway:**
+   - Verificar se PM2 esta rodando: `pm2 list`
+   - Verificar logs: `pm2 logs fsfotografias-saas --lines 50`
+   - Verificar se a porta 3051 esta no `.env`: `grep PORT /var/www/fs-saas/.env`
+   - Reiniciar: `pm2 restart fsfotografias-saas`
+
+9. **DNS e SSL:**
+   - DNS gerenciado na Hostinger (nao no Contabo)
+   - `app.fsfotografias.com.br` → A record para `5.189.174.18`
+   - SSL via Let's Encrypt/Certbot (auto-renovacao)
+   - Certificados em `/etc/letsencrypt/live/`
+
+10. **Desenvolvimento local:**
+    - Porta: `3051` (mesma da producao)
+    - MongoDB: Atlas (cloud) no dev, local na VPS
+    - Tenant em dev: `?_tenant=slug` (query parameter)
+    - Tenant em prod: subdomain (`slug.app.fsfotografias.com.br` - futuro)
+
+### Arquivos de configuracao na VPS (referencia, NAO editar sem pedir):
+| Arquivo | Funcao |
+|---------|--------|
+| `/var/www/fs-saas/.env` | Variaveis de ambiente do SaaS |
+| `/etc/nginx/sites-enabled/fs-saas` | Config Nginx do SaaS |
+| `/etc/nginx/sites-enabled/fsfotografias` | Config Nginx do site original (NAO MEXER) |
+| PM2 ecosystem | Gerenciado via CLI, sem arquivo ecosystem.config.js |
 
 ---
 

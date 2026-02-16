@@ -323,11 +323,11 @@ archive.pipe(res); // stream direto para o response
 git add . && git commit -m "descricao" && git push
 
 # VPS (via SSH)
-cd /var/www/fs-fotografias
+cd /var/www/fs-saas
 git pull
 npm install
 npm run build:css  # se alterou HTML com Tailwind
-pm2 restart fsfotografias
+pm2 restart fsfotografias-saas
 ```
 
 ### Checklist Pre-Deploy
@@ -341,3 +341,6 @@ pm2 restart fsfotografias
 ---
 
 *Ultima atualizacao: 15/02/2026 - Fase 1 (Perfil + Identidade Visual) concluida*
+
+ssh root@5.189.174.18
+senha:zypvo2gacCuwpecnod
