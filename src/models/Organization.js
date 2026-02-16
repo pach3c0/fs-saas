@@ -1,19 +1,16 @@
 const mongoose = require('mongoose');
 
-const organizationSchema = new mongoose.Schema({
+const OrganizationSchema = new mongoose.Schema({
   name: { type: String, required: true },
   slug: {
     type: String,
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
-    match: [/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minusculas, numeros e hifens']
   },
-  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
-  isActive: { type: Boolean, default: true },
-  deletedAt: { type: Date, default: null },
+  isActive: { type: Boolean, default: false },
   // Perfil do fotografo
   logo: { type: String, default: '' },
   phone: { type: String, default: '' },
@@ -29,7 +26,27 @@ const organizationSchema = new mongoose.Schema({
   // Watermark customizado
   watermarkType: { type: String, enum: ['text', 'logo'], default: 'text' },
   watermarkText: { type: String, default: '' },
-  watermarkOpacity: { type: Number, default: 15 }
+  watermarkOpacity: { type: Number, min: 5, max: 50, default: 15 },
+  watermarkPosition: {
+    type: String,
+    enum: ['center', 'bottom-right', 'bottom-left', 'top-right', 'top-left', 'tiled'],
+    default: 'center'
+  },
+  watermarkSize: {
+    type: String,
+    enum: ['small', 'medium', 'large'],
+    default: 'medium'
+  }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Organization', organizationSchema);
+/**
+ * Garante que o slug seja unico por organização.
+ */
+OrganizationSchema.index({ slug: 1 });
+
+/**
+ * Indice para otimizar buscas de organizações ativas.
+ */
+OrganizationSchema.index({ isActive: 1 });
+
+module.exports = mongoose.model('Organization', OrganizationSchema);

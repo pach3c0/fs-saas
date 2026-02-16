@@ -1,519 +1,425 @@
-// ========== META PIXEL (dinâmico) ==========
-(async function loadPixel() {
-    try {
-        const res = await fetch('/api/site-config');
-        if (res.ok) {
-            const config = await res.json();
-            if (config.metaPixelId) {
-                !function(f,b,e,v,n,t,s)
-                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                n.queue=[];t=b.createElement(e);t.async=!0;
-                t.src=v;s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s)}(window, document,'script',
-                'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', config.metaPixelId);
-                fbq('track', 'PageView');
-            }
-        }
-    } catch (e) { /* ignora */ }
-})();
+document.addEventListener('DOMContentLoaded', () => {
+    const state = {
+        accessCode: null,
+        sessionId: null,
+        session: null,
+        photos: [],
+        selectedPhotos: [],
+        isSelectionMode: false,
+        pollingInterval: null,
+    };
 
-// ========== STATE ==========
-let sessionData = null;
-let photos = [];
-let selectedPhotos = new Set();
-let galleryMode = 'gallery';
-let packageLimit = 30;
-let extraPhotoPrice = 25;
-let selectionStatus = 'pending';
-let lightboxIndex = 0;
-let sessionId = null;
-let accessCode = '';
-let orgData = null;
+    const loginSection = document.getElementById('loginSection');
+    const gallerySection = document.getElementById('gallerySection');
+    const accessCodeInput = document.getElementById('accessCode');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const photoGrid = document.getElementById('photoGrid');
+    const selectionBar = document.getElementById('selectionBar');
+    const selectionCount = document.getElementById('selectionCount');
+    const extraInfo = document.getElementById('extraInfo');
+    const submitSelectionBtn = document.getElementById('submitSelectionBtn');
+    const galleryHeader = document.getElementById('galleryHeader');
+    const statusScreen = document.getElementById('statusScreen');
 
-// SVG icons
-const HEART_SVG = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
-const DOWNLOAD_SVG = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-
-// ========== ORG BRANDING ==========
-function applyOrgBranding() {
-    if (!orgData) return;
-    // Exibir logo no nav
-    const navLogo = document.querySelector('.nav-logo');
-    if (navLogo && orgData.logo) {
-        navLogo.innerHTML = `<img src="${orgData.logo}" alt="${orgData.name || ''}" style="max-height:32px; max-width:160px; object-fit:contain;">`;
-    } else if (navLogo && orgData.name) {
-        navLogo.textContent = orgData.name;
+    // --- Funções de Utilidade ---
+    function escapeHtml(str) {
+        const p = document.createElement('p');
+        p.textContent = str;
+        return p.innerHTML;
     }
-    // Atualizar watermark no lightbox
-    const lbWatermark = document.querySelector('.lightbox-watermark span');
-    if (lbWatermark) {
-        lbWatermark.textContent = getWatermarkText();
-    }
-}
 
-function getWatermarkText() {
-    if (orgData && orgData.watermarkType === 'text' && orgData.watermarkText) {
-        return orgData.watermarkText;
-    }
-    if (orgData && orgData.name) {
-        return orgData.name;
-    }
-    return 'FS FOTOGRAFIAS';
-}
-
-function getWatermarkOpacity() {
-    if (orgData && orgData.watermarkOpacity) {
-        return orgData.watermarkOpacity / 100;
-    }
-    return 0.15;
-}
-
-// ========== LOGIN ==========
-async function handleLogin(e) {
-    e.preventDefault();
-    const code = document.getElementById('codeInput').value.trim();
-    const errorEl = document.getElementById('loginError');
-    errorEl.style.display = 'none';
-
-    try {
-        const res = await fetch('/api/client/verify-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accessCode: code })
-        });
-
-        if (!res.ok) {
-            const data = await res.json();
-            errorEl.textContent = data.error || 'Codigo invalido';
-            errorEl.style.display = 'block';
-            return;
-        }
-
-        sessionData = await res.json();
-        sessionId = sessionData.sessionId;
-        accessCode = sessionData.accessCode;
-        galleryMode = sessionData.mode || 'gallery';
-        packageLimit = sessionData.packageLimit || 30;
-        extraPhotoPrice = sessionData.extraPhotoPrice || 25;
-        selectionStatus = sessionData.selectionStatus || 'pending';
-
-        // Carregar dados da organizacao (logo, watermark)
-        try {
-            const orgRes = await fetch('/api/organization/public');
-            if (orgRes.ok) {
-                const orgResult = await orgRes.json();
-                orgData = orgResult.data || null;
-                applyOrgBranding();
-            }
-        } catch (e) { /* ignora */ }
-
-        if (typeof fbq === 'function') fbq('track', 'Lead', { content_name: sessionData.clientName });
-
-        document.getElementById('loginArea').style.display = 'none';
-        document.getElementById('galleryArea').style.display = 'block';
-        loadGallery();
-    } catch (err) {
-        errorEl.textContent = 'Erro de conexao. Tente novamente.';
-        errorEl.style.display = 'block';
-    }
-}
-
-// ========== LOAD GALLERY ==========
-async function loadGallery() {
-    document.getElementById('clientName').textContent = sessionData.clientName;
-    document.getElementById('galleryMeta').innerHTML = `${sessionData.sessionType} <span>&middot;</span> ${sessionData.galleryDate} <span>&middot;</span> ${sessionData.totalPhotos} fotos`;
-
-    // Exibir foto de capa se existir
-    if (sessionData.coverPhoto) {
-        const header = document.querySelector('.gallery-header');
-        if (header && !document.getElementById('coverBanner')) {
-            const banner = document.createElement('div');
-            banner.id = 'coverBanner';
-            banner.style.cssText = 'width:100%; max-height:300px; overflow:hidden; border-radius:0.75rem; margin-bottom:1rem;';
-            banner.innerHTML = `<img src="${sessionData.coverPhoto}" style="width:100%; height:100%; object-fit:cover; pointer-events:none;" alt="">`;
-            header.insertBefore(banner, header.firstChild);
+    function showLoading(button, text = 'Carregando...') {
+        if(button) {
+            button.dataset.originalText = button.textContent;
+            button.textContent = text;
+            button.disabled = true;
         }
     }
 
-    try {
-        const res = await fetch(`/api/client/photos/${sessionId}?code=${encodeURIComponent(accessCode)}`);
-        if (!res.ok) throw new Error('Erro ao carregar');
-        const data = await res.json();
+    function hideLoading(button) {
+        if(button && button.dataset.originalText) {
+            button.textContent = button.dataset.originalText;
+            button.disabled = false;
+        }
+    }
 
-        photos = data.photos || [];
-        galleryMode = data.mode || galleryMode;
-        selectionStatus = data.selectionStatus || selectionStatus;
-        const serverSelected = data.selectedPhotos || [];
-        selectedPhotos = new Set(serverSelected);
+    // --- Lógica da Marca D'água Avançada ---
 
-        if (galleryMode === 'selection') {
-            if (selectionStatus === 'submitted') {
-                showStatusScreen('submitted');
-                startStatusPolling();
-                return;
+    function createTiledWatermarkSvg(text, opacity, size) {
+        const fontSize = { small: 14, medium: 20, large: 28 }[size] || 20;
+        const safeText = escapeHtml(text);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+                font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}"
+                fill="rgba(255,255,255,${opacity / 150})" transform="rotate(-30 125 100)">
+                ${safeText}
+            </text>
+        </svg>`;
+        return `url("data:image/svg+xml;base64,${btoa(svg)}")`;
+    }
+
+    function getWatermarkStyle(watermark) {
+        if (!watermark || state.session.selectionStatus === 'delivered') {
+            return 'display: none;';
+        }
+
+        const {
+            watermarkType: type = 'text',
+            watermarkText: text = '',
+            watermarkOpacity: opacity = 15,
+            watermarkPosition: position = 'center',
+            watermarkSize: size = 'medium'
+        } = watermark;
+
+        const orgName = state.session.organization.name || '';
+        const logoUrl = state.session.organization.logo ? `/uploads/${state.session.organization.id}/${state.session.organization.logo}` : '';
+
+        let styles = `
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: ${opacity / 100};
+        `;
+
+        if (position === 'tiled') {
+            styles += `background-repeat: repeat; background-position: center;`;
+            if (type === 'logo' && logoUrl) {
+                const bgSize = { small: '100px', medium: '150px', large: '200px' }[size] || '150px';
+                styles += `background-image: url(${logoUrl}); background-size: ${bgSize};`;
+            } else {
+                const watermarkContent = text || orgName;
+                styles += `background-image: ${createTiledWatermarkSvg(watermarkContent, opacity, size)};`;
             }
-            if (selectionStatus === 'delivered') {
-                renderGalleryMode();
-                return;
-            }
-            renderSelectionMode();
         } else {
-            renderGalleryMode();
-        }
-    } catch (err) {
-        document.getElementById('photosGrid').innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:3rem; color:#999;">Erro ao carregar fotos</p>';
-    }
-}
+            const justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
+            const alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
+            styles += `display: flex; justify-content: ${justifyContent}; align-items: ${alignItems}; padding: 1rem;`;
 
-// Polling para detectar quando admin reabrir a selecao
-let pollingInterval = null;
-function startStatusPolling() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(async () => {
-        try {
-            const res = await fetch(`/api/client/photos/${sessionId}?code=${encodeURIComponent(accessCode)}`);
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.selectionStatus !== 'submitted') {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-                // Limpar flag de pedido de reabertura
-                sessionStorage.removeItem(`reopen_requested_${sessionId}`);
-                // Status mudou - recarregar galeria
-                selectionStatus = data.selectionStatus;
-                selectedPhotos = new Set(data.selectedPhotos || []);
-                document.getElementById('statusSubmitted').classList.remove('active');
-                document.getElementById('submittedPhotosGrid').style.display = 'none';
-                if (data.selectionStatus === 'delivered') {
-                    renderGalleryMode();
-                } else {
-                    renderSelectionMode();
-                }
+            if (type === 'logo' && logoUrl) {
+                const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
+                return styles + `"><img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%;" alt="Watermark">`;
+            } else {
+                const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
+                const watermarkContent = text || orgName;
+                return styles + `"><span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: ${fontSize}; text-shadow: 0 0 2px black;">${escapeHtml(watermarkContent)}</span>`;
             }
-        } catch (e) { /* ignore polling errors */ }
-    }, 15000); // Checa a cada 15 segundos
-}
+        }
 
-// ========== SELECTION MODE ==========
-function renderSelectionMode() {
-    const grid = document.getElementById('photosGrid');
-    const showWatermark = sessionData.watermark !== false;
+        return styles + '"';
+    }
 
-    document.getElementById('selectionInfo').style.display = 'block';
-    document.getElementById('bottomBar').style.display = 'block';
-    document.getElementById('limitNum').textContent = packageLimit;
-    document.getElementById('barLimit').textContent = packageLimit;
+    // --- Renderização ---
 
-    grid.style.display = 'grid';
-    document.getElementById('statusSubmitted').classList.remove('active');
-    document.getElementById('statusWaiting').classList.remove('active');
+    function renderHeader() {
+        const org = state.session.organization;
+        if (!org) return;
 
-    grid.innerHTML = photos.map((photo, idx) => {
-        const isSelected = selectedPhotos.has(photo.id);
-        return `
-            <div class="photo-item" onclick="openLightbox(${idx})">
-                <img src="${photo.url}" alt="" loading="lazy">
-                ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
-                <button class="photo-heart ${isSelected ? 'selected' : ''}" onclick="event.stopPropagation(); toggleSelect('${photo.id}', this)">
-                    ${HEART_SVG}
-                </button>
-                <div class="photo-num">${idx + 1}</div>
+        let logoHtml = '';
+        if (org.logo) {
+            const logoUrl = `/uploads/${org.id}/${org.logo}`;
+            logoHtml = `<img src="${logoUrl}" alt="${escapeHtml(org.name)}" style="max-height: 40px; max-width: 150px;">`;
+        } else {
+            logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(org.name)}</h1>`;
+        }
+        galleryHeader.innerHTML = `
+            <div class="container mx-auto flex justify-between items-center">
+                ${logoHtml}
+                <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
             </div>
         `;
-    }).join('');
+    }
 
-    updateSelectionUI();
-}
+    function renderPhotos() {
+        if (!state.photos) return;
 
-// ========== GALLERY MODE (view/download) ==========
-function renderGalleryMode() {
-    const grid = document.getElementById('photosGrid');
-    const isDelivered = selectionStatus === 'delivered';
-    const showWatermark = !isDelivered && sessionData.watermark !== false;
+        const watermarkStyle = getWatermarkStyle(state.session.organization.watermark);
 
-    document.getElementById('selectionInfo').style.display = 'none';
-    document.getElementById('bottomBar').style.display = 'none';
-    grid.style.display = 'grid';
-    document.getElementById('statusSubmitted').classList.remove('active');
-    document.getElementById('statusWaiting').classList.remove('active');
-
-    grid.innerHTML = photos.map((photo, idx) => `
-        <div class="photo-item" onclick="openLightbox(${idx})">
-            <img src="${photo.url}" alt="" loading="lazy">
-            ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
-            <div class="photo-download">
-                <a href="${photo.url}" download="${photo.filename}" onclick="event.stopPropagation()">
-                    ${DOWNLOAD_SVG} Baixar
-                </a>
-            </div>
-            <div class="photo-num">${idx + 1}</div>
-        </div>
-    `).join('');
-}
-
-// ========== STATUS SCREENS ==========
-function showStatusScreen(type) {
-    document.getElementById('photosGrid').style.display = 'none';
-    document.getElementById('selectionInfo').style.display = 'none';
-    document.getElementById('bottomBar').style.display = 'none';
-
-    if (type === 'submitted') {
-        document.getElementById('statusSubmitted').classList.add('active');
-        // Verificar se pedido de reabertura ja foi enviado
-        if (sessionStorage.getItem(`reopen_requested_${sessionId}`)) {
-            const btn = document.getElementById('requestReopenBtn');
-            const sentMsg = document.getElementById('reopenSent');
-            if (btn) btn.style.display = 'none';
-            if (sentMsg) sentMsg.style.display = 'block';
-        }
-        // Mostrar as fotos selecionadas abaixo do status
-        const submittedGrid = document.getElementById('submittedPhotosGrid');
-        const selectedList = photos.filter(p => selectedPhotos.has(p.id));
-        if (selectedList.length > 0) {
-            const showWatermark = sessionData.watermark !== false;
-            submittedGrid.innerHTML = selectedList.map((photo, idx) => `
-                <div class="photo-item" onclick="openLightbox(${photos.indexOf(photo)})">
-                    <img src="${photo.url}" alt="" loading="lazy">
-                    ${showWatermark ? '<div class="watermark-overlay"><span class="watermark-text" style="color:rgba(255,255,255,${getWatermarkOpacity()})">${getWatermarkText()}</span></div>' : ''}
-                    <div style="position:absolute; top:0.5rem; right:0.5rem; width:28px; height:28px; background:#dc2626; border-radius:50%; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" fill="#fff" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                    </div>
-                    <div class="photo-num">${idx + 1}</div>
+        photoGrid.innerHTML = state.photos.map(photo => {
+            const isSelected = state.selectedPhotos.includes(photo.id);
+            return `
+                <div class="relative group aspect-w-1 aspect-h-1" data-photo-id="${photo.id}">
+                    <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
+                    <div style="${watermarkStyle.startsWith('"') ? watermarkStyle.slice(1) : watermarkStyle}"></div>
+                    ${state.isSelectionMode ? `
+                        <div class="absolute top-2 right-2">
+                            <button class="select-btn p-2 rounded-full transition-colors duration-200 ${isSelected ? 'bg-red-500 text-white' : 'bg-white/70 text-gray-800 hover:bg-white'}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
-            `).join('');
-            submittedGrid.style.display = 'grid';
-        }
-    }
-}
+            `;
+        }).join('');
 
-// ========== SELECTION LOGIC ==========
-async function toggleSelect(photoId, btnEl) {
-    const isCurrentlySelected = selectedPhotos.has(photoId);
-    const newState = !isCurrentlySelected;
-
-    // Optimistic UI update
-    if (newState) {
-        selectedPhotos.add(photoId);
-        if (btnEl) btnEl.classList.add('selected');
-    } else {
-        selectedPhotos.delete(photoId);
-        if (btnEl) btnEl.classList.remove('selected');
-    }
-    updateSelectionUI();
-
-    // Send to server
-    try {
-        const res = await fetch(`/api/client/select/${sessionId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ photoId, selected: newState, accessCode })
-        });
-
-        if (!res.ok) {
-            // Revert on error
-            if (newState) {
-                selectedPhotos.delete(photoId);
-                if (btnEl) btnEl.classList.remove('selected');
-            } else {
-                selectedPhotos.add(photoId);
-                if (btnEl) btnEl.classList.add('selected');
-            }
-            updateSelectionUI();
-            const data = await res.json();
-            if (data.error) alert(data.error);
-        }
-    } catch (err) {
-        // Revert on network error
-        if (newState) {
-            selectedPhotos.delete(photoId);
-            if (btnEl) btnEl.classList.remove('selected');
-        } else {
-            selectedPhotos.add(photoId);
-            if (btnEl) btnEl.classList.add('selected');
-        }
-        updateSelectionUI();
-    }
-}
-
-function updateSelectionUI() {
-    const count = selectedPhotos.size;
-    const extras = Math.max(0, count - packageLimit);
-    const extraTotal = extras * extraPhotoPrice;
-
-    // Top bar
-    document.getElementById('selectedNum').textContent = count;
-    const extraInfoEl = document.getElementById('extraInfo');
-    if (extras > 0) {
-        extraInfoEl.textContent = `+${extras} extras (R$ ${extraTotal.toFixed(2)})`;
-        extraInfoEl.style.display = 'block';
-    } else {
-        extraInfoEl.style.display = 'none';
+        updateSelectionBar();
     }
 
-    // Bottom bar
-    document.getElementById('barCount').textContent = count;
-    const barExtraEl = document.getElementById('barExtra');
-    if (extras > 0) {
-        barExtraEl.textContent = `+${extras} extras = R$ ${extraTotal.toFixed(2)}`;
-        barExtraEl.style.display = 'block';
-    } else {
-        barExtraEl.style.display = 'none';
-    }
-
-    // Submit button
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = count === 0;
-}
-
-async function submitSelection() {
-    const count = selectedPhotos.size;
-    if (count === 0) return;
-
-    const extras = Math.max(0, count - packageLimit);
-    let msg = `Finalizar selecao com ${count} fotos?`;
-    if (extras > 0) {
-        msg += `\n\n${extras} foto(s) extra(s) = R$ ${(extras * extraPhotoPrice).toFixed(2)}`;
-    }
-    msg += '\n\nApos finalizar, o fotografo sera notificado. Caso precise alterar, entre em contato.';
-
-    if (!confirm(msg)) return;
-
-    try {
-        const res = await fetch(`/api/client/submit-selection/${sessionId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accessCode })
-        });
-
-        if (!res.ok) {
-            const data = await res.json();
-            alert(data.error || 'Erro ao finalizar');
+    function updateSelectionBar() {
+        if (!state.isSelectionMode) {
+            selectionBar.style.display = 'none';
             return;
         }
 
-        if (typeof fbq === 'function') fbq('track', 'CompleteRegistration', { content_name: sessionData.clientName, value: extras * extraPhotoPrice, currency: 'BRL' });
+        selectionBar.style.display = 'flex';
+        const count = state.selectedPhotos.length;
+        const limit = state.session.packageLimit || 0;
+        const extraPrice = state.session.extraPhotoPrice || 0;
 
-        selectionStatus = 'submitted';
-        showStatusScreen('submitted');
-    } catch (err) {
-        alert('Erro de conexao. Tente novamente.');
-    }
-}
+        selectionCount.textContent = `${count} / ${limit} selecionadas`;
 
-// ========== PEDIR REABERTURA ==========
-async function requestReopen() {
-    const btn = document.getElementById('requestReopenBtn');
-    const sentMsg = document.getElementById('reopenSent');
-
-    btn.disabled = true;
-    btn.textContent = 'Enviando...';
-
-    try {
-        const res = await fetch(`/api/client/request-reopen/${sessionId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accessCode })
-        });
-
-        if (res.ok) {
-            btn.style.display = 'none';
-            sentMsg.style.display = 'block';
-            sessionStorage.setItem(`reopen_requested_${sessionId}`, 'true');
+        if (count > limit) {
+            const extraCount = count - limit;
+            const extraCost = extraCount * extraPrice;
+            extraInfo.textContent = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2)})`;
+            extraInfo.style.display = 'block';
         } else {
-            const data = await res.json();
-            alert(data.error || 'Erro ao enviar pedido');
-            btn.disabled = false;
-            btn.textContent = 'Preciso alterar minha selecao';
+            extraInfo.style.display = 'none';
         }
-    } catch (err) {
-        alert('Erro de conexao. Tente novamente.');
-        btn.disabled = false;
-        btn.textContent = 'Preciso alterar minha selecao';
-    }
-}
-
-// ========== LIGHTBOX ==========
-function openLightbox(idx) {
-    lightboxIndex = idx;
-    updateLightbox();
-    document.getElementById('lightbox').classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-function lightboxNav(dir) {
-    lightboxIndex = (lightboxIndex + dir + photos.length) % photos.length;
-    updateLightbox();
-}
-
-function updateLightbox() {
-    const photo = photos[lightboxIndex];
-    if (!photo) return;
-
-    document.getElementById('lightboxImg').src = photo.url;
-    document.getElementById('lightboxCounter').textContent = `${lightboxIndex + 1} / ${photos.length}`;
-
-    // Watermark
-    const showWatermark = selectionStatus !== 'delivered' && sessionData.watermark !== false;
-    document.getElementById('lightboxWatermark').style.display = showWatermark ? 'flex' : 'none';
-
-    // Heart button (only in selection mode, not submitted/delivered)
-    const heartBtn = document.getElementById('lightboxHeart');
-    if (galleryMode === 'selection' && selectionStatus !== 'submitted' && selectionStatus !== 'delivered') {
-        heartBtn.style.display = 'flex';
-        heartBtn.classList.toggle('selected', selectedPhotos.has(photo.id));
-    } else {
-        heartBtn.style.display = 'none';
     }
 
-    // Download button (only in gallery mode or delivered)
-    const dlBtn = document.getElementById('lightboxDownload');
-    if (galleryMode === 'gallery' || selectionStatus === 'delivered') {
-        dlBtn.style.display = 'flex';
-        dlBtn.href = photo.url;
-        dlBtn.download = photo.filename;
-    } else {
-        dlBtn.style.display = 'none';
-    }
-}
+    function renderStatusScreen() {
+        loginSection.style.display = 'none';
+        gallerySection.style.display = 'none';
+        statusScreen.style.display = 'flex';
 
-function toggleLightboxHeart() {
-    const photo = photos[lightboxIndex];
-    if (!photo) return;
-    toggleSelect(photo.id, null);
-    // Update lightbox heart
-    const heartBtn = document.getElementById('lightboxHeart');
-    heartBtn.classList.toggle('selected', selectedPhotos.has(photo.id));
-    // Update grid heart too
-    const gridHearts = document.querySelectorAll('.photo-heart');
-    if (gridHearts[lightboxIndex]) {
-        gridHearts[lightboxIndex].classList.toggle('selected', selectedPhotos.has(photo.id));
-    }
-}
+        let title, message, buttonHtml = '';
 
-// Keyboard navigation
-document.addEventListener('keydown', (e) => {
-    if (!document.getElementById('lightbox').classList.contains('active')) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') lightboxNav(-1);
-    if (e.key === 'ArrowRight') lightboxNav(1);
+        switch (state.session.selectionStatus) {
+            case 'submitted':
+                title = 'Seleção Enviada!';
+                message = 'Sua seleção de fotos foi enviada com sucesso. O fotógrafo já foi notificado e em breve suas fotos estarão disponíveis para download.';
+                buttonHtml = `<button id="reopenRequestBtn" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">Preciso alterar minha seleção</button>`;
+                break;
+            case 'delivered':
+                title = 'Fotos Entregues!';
+                message = 'Suas fotos estão prontas! Você já pode visualizá-las sem marca d\'água e fazer o download.';
+                buttonHtml = `<button id="viewDeliveredBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ver minhas fotos</button>`;
+                break;
+            default:
+                title = 'Aguardando...';
+                message = 'Algo inesperado aconteceu. Por favor, contate o fotógrafo.';
+        }
+
+        statusScreen.innerHTML = `
+            <div class="text-center">
+                <h2 class="text-3xl font-bold mb-2">${title}</h2>
+                <p class="text-gray-400">${message}</p>
+                ${buttonHtml}
+            </div>
+        `;
+    }
+
+    // --- Lógica da API e Ações ---
+
+    async function handleLogin() {
+        const code = accessCodeInput.value.trim();
+        if (!code) {
+            errorMessage.textContent = 'Por favor, insira o código de acesso.';
+            return;
+        }
+
+        showLoading(loginBtn);
+        errorMessage.textContent = '';
+
+        try {
+            const response = await fetch('/api/client/verify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: code }),
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Código de acesso inválido.');
+            }
+
+            state.accessCode = code;
+            state.sessionId = result.sessionId;
+            await loadSessionData();
+
+        } catch (error) {
+            errorMessage.textContent = error.message;
+        } finally {
+            hideLoading(loginBtn);
+        }
+    }
+
+    async function loadSessionData(isPolling = false) {
+        try {
+            const response = await fetch(`/api/client/photos/${state.sessionId}?code=${state.accessCode}`);
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Não foi possível carregar a galeria.');
+            }
+
+            const previousStatus = state.session ? state.session.selectionStatus : null;
+            state.session = result.session;
+            state.photos = result.photos;
+            state.selectedPhotos = result.session.selectedPhotos || [];
+            state.isSelectionMode = result.session.mode === 'selection';
+
+            if (!isPolling) {
+                initializeGallery();
+            } else {
+                // Se o status mudou, recarrega a galeria
+                if (previousStatus !== state.session.selectionStatus) {
+                    initializeGallery();
+                }
+            }
+
+        } catch (error) {
+            if (!isPolling) {
+                errorMessage.textContent = error.message;
+            }
+            console.error("Polling error:", error);
+        }
+    }
+
+    function initializeGallery() {
+        loginSection.style.display = 'none';
+
+        if (state.session.selectionStatus === 'submitted' || state.session.selectionStatus === 'delivered' && state.session.mode === 'selection') {
+            if (state.session.selectionStatus === 'delivered') {
+                // Se entregue, vai direto para as fotos sem marca d'água
+                gallerySection.style.display = 'block';
+                selectionBar.style.display = 'none';
+                renderHeader();
+                renderPhotos();
+            } else {
+                renderStatusScreen();
+            }
+        } else {
+            gallerySection.style.display = 'block';
+            statusScreen.style.display = 'none';
+            renderHeader();
+            renderPhotos();
+        }
+
+        startPolling();
+    }
+
+    async function togglePhotoSelection(photoId) {
+        const isSelected = state.selectedPhotos.includes(photoId);
+        const photoCard = photoGrid.querySelector(`[data-photo-id="${photoId}"]`);
+        const selectBtn = photoCard.querySelector('.select-btn');
+
+        // Optimistic UI
+        if (isSelected) {
+            state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
+            selectBtn.classList.remove('bg-red-500', 'text-white');
+            selectBtn.classList.add('bg-white/70', 'text-gray-800');
+        } else {
+            state.selectedPhotos.push(photoId);
+            selectBtn.classList.add('bg-red-500', 'text-white');
+            selectBtn.classList.remove('bg-white/70', 'text-gray-800');
+        }
+        updateSelectionBar();
+
+        try {
+            await fetch(`/api/client/select/${state.sessionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: state.accessCode, photoId }),
+            });
+        } catch (error) {
+            // Revert UI on error
+            alert('Erro ao salvar seleção. Tente novamente.');
+            if (isSelected) {
+                state.selectedPhotos.push(photoId);
+                selectBtn.classList.add('bg-red-500', 'text-white');
+            } else {
+                state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
+                selectBtn.classList.remove('bg-red-500', 'text-white');
+            }
+            updateSelectionBar();
+        }
+    }
+
+    async function submitSelection() {
+        if (!confirm('Tem certeza que deseja finalizar sua seleção? Após o envio, não será possível fazer alterações sem solicitar ao fotógrafo.')) {
+            return;
+        }
+
+        showLoading(submitSelectionBtn, 'Enviando...');
+
+        try {
+            const response = await fetch(`/api/client/submit-selection/${state.sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: state.accessCode }),
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error);
+
+            state.session.selectionStatus = 'submitted';
+            renderStatusScreen();
+
+        } catch (error) {
+            alert('Erro ao enviar seleção: ' + error.message);
+        } finally {
+            hideLoading(submitSelectionBtn);
+        }
+    }
+
+    async function requestReopen() {
+        const btn = document.getElementById('reopenRequestBtn');
+        showLoading(btn, 'Enviando pedido...');
+        try {
+            const response = await fetch(`/api/client/request-reopen/${state.sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: state.accessCode }),
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error);
+
+            alert('Seu pedido de reabertura foi enviado ao fotógrafo!');
+            btn.textContent = 'Pedido Enviado';
+            btn.disabled = true;
+
+        } catch (error) {
+            alert('Erro ao solicitar reabertura: ' + error.message);
+            hideLoading(btn);
+        }
+    }
+
+    // --- Polling ---
+    function startPolling() {
+        if (state.pollingInterval) {
+            clearInterval(state.pollingInterval);
+        }
+        // Poll only if the selection is not delivered yet
+        if (state.session.selectionStatus !== 'delivered') {
+            state.pollingInterval = setInterval(() => loadSessionData(true), 15000);
+        }
+    }
+
+    // --- Event Listeners ---
+    loginBtn.addEventListener('click', handleLogin);
+    accessCodeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+
+    photoGrid.addEventListener('click', (e) => {
+        const selectBtn = e.target.closest('.select-btn');
+        if (selectBtn) {
+            const photoId = e.target.closest('[data-photo-id]').dataset.photoId;
+            togglePhotoSelection(photoId);
+        }
+    });
+
+    submitSelectionBtn.addEventListener('click', submitSelection);
+
+    statusScreen.addEventListener('click', (e) => {
+        if (e.target.id === 'reopenRequestBtn') {
+            requestReopen();
+        }
+        if (e.target.id === 'viewDeliveredBtn') {
+            initializeGallery();
+        }
+    });
+
 });
-
-// Swipe support for lightbox
-let touchStartX = 0;
-document.getElementById('lightbox').addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-}, { passive: true });
-document.getElementById('lightbox').addEventListener('touchend', (e) => {
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-        lightboxNav(diff > 0 ? 1 : -1);
-    }
-}, { passive: true });
