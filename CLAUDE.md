@@ -229,6 +229,11 @@ Tab chama uploadVideo(file, token, onProgress)
 | PUT | `/api/sessions/:id/reopen` | Reabre selecao (submitted → in_progress) |
 | PUT | `/api/sessions/:id/deliver` | Marca como entregue |
 | POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario em foto |
+| POST | `/api/sessions/:id/participants` | Adiciona participante (multi-seleção) |
+| PUT | `/api/sessions/:id/participants/:pid` | Edita participante |
+| DELETE | `/api/sessions/:id/participants/:pid` | Remove participante |
+| PUT | `/api/sessions/:id/participants/:pid/deliver` | Entrega individual |
+| GET | `/api/sessions/:id/participants/export` | Exporta seleções dos participantes |
 | GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
 | POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
 

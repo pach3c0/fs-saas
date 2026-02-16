@@ -22,11 +22,26 @@ const uploadSession = createUploader('sessions');
 router.post('/client/verify-code', async (req, res) => {
   try {
     const { accessCode } = req.body;
-    const session = await Session.findOne({ 
+    let session = await Session.findOne({ 
       accessCode, 
       isActive: true,
       organizationId: req.organizationId 
     }).populate('organizationId'); // Popular dados da organização
+
+    let participant = null;
+
+    // Se não achou pelo código da sessão, tenta achar pelo código de participante
+    if (!session) {
+      session = await Session.findOne({
+        'participants.accessCode': accessCode,
+        isActive: true,
+        organizationId: req.organizationId
+      }).populate('organizationId');
+
+      if (session) {
+        participant = session.participants.find(p => p.accessCode === accessCode);
+      }
+    }
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
@@ -35,8 +50,8 @@ router.post('/client/verify-code', async (req, res) => {
       await Notification.create({ 
         type: 'session_accessed', 
         sessionId: session._id, 
-        sessionName: session.name, 
-        message: `${session.name} acessou a galeria`,
+        sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+        message: `${participant ? participant.name : session.name} acessou a galeria`,
         organizationId: session.organizationId
       }); 
     } catch(e){}
@@ -44,18 +59,20 @@ router.post('/client/verify-code', async (req, res) => {
     res.json({
       success: true,
       sessionId: session._id,
-      clientName: session.name,
+      clientName: participant ? participant.name : session.name,
       sessionType: session.type || '',
       galleryDate: session.date ? new Date(session.date).toLocaleDateString('pt-BR') : '',
       totalPhotos: (session.photos || []).length,
       mode: session.mode || 'gallery',
-      selectionStatus: session.selectionStatus || 'pending',
-      packageLimit: session.packageLimit || 30,
+      selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
+      packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
       extraPhotoPrice: session.extraPhotoPrice || 25,
       watermark: session.watermark !== false,
       accessCode: session.accessCode,
       selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
+      isParticipant: !!participant,
+      participantId: participant ? participant._id : null,
       // Enviar dados da organização para o frontend
       organization: session.organizationId ? {
         id: session.organizationId._id,
@@ -131,17 +148,32 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     }).populate('organizationId');
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const { participantId } = req.query;
+    let selectedPhotos = session.selectedPhotos || [];
+    let selectionStatus = session.selectionStatus;
+    let packageLimit = session.packageLimit;
+
+    if (session.mode === 'multi_selection' && participantId) {
+      const p = session.participants.id(participantId);
+      if (p) {
+        selectedPhotos = p.selectedPhotos || [];
+        selectionStatus = p.selectionStatus;
+        packageLimit = p.packageLimit;
+      }
+    }
+
     res.json({
       success: true,
       name: session.name,
       type: session.type,
       photos: session.photos,
-      selectedPhotos: session.selectedPhotos || [],
+      selectedPhotos: selectedPhotos,
       mode: session.mode,
-      selectionStatus: session.selectionStatus,
+      selectionStatus: selectionStatus,
       watermark: session.watermark,
       selectionDeadline: session.selectionDeadline,
-      packageLimit: session.packageLimit,
+      packageLimit: packageLimit,
       extraPhotoPrice: session.extraPhotoPrice,
       // Garantir que organization venha também no refresh
       organization: session.organizationId ? {
@@ -165,7 +197,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
 // CLIENTE: Selecionar/desselecionar foto (toggle)
 router.put('/client/select/:sessionId', async (req, res) => {
   try {
-    const { photoId } = req.body;
+    const { photoId, participantId } = req.body;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
@@ -177,30 +209,55 @@ router.put('/client/select/:sessionId', async (req, res) => {
       return res.status(403).json({ error: 'O prazo de seleção expirou' });
     }
 
-    if (!session.selectedPhotos) session.selectedPhotos = [];
+    let currentSelection = [];
+    let participant = null;
 
-    const idx = session.selectedPhotos.indexOf(photoId);
-    if (idx > -1) {
-      session.selectedPhotos.splice(idx, 1);
+    if (session.mode === 'multi_selection' && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
+      if (!participant.selectedPhotos) participant.selectedPhotos = [];
+      currentSelection = participant.selectedPhotos;
     } else {
-      session.selectedPhotos.push(photoId);
+      if (!session.selectedPhotos) session.selectedPhotos = [];
+      currentSelection = session.selectedPhotos;
     }
 
-    if (session.selectionStatus === 'pending' && session.selectedPhotos.length > 0) {
-      session.selectionStatus = 'in_progress';
+    const idx = currentSelection.indexOf(photoId);
+    if (idx > -1) {
+      currentSelection.splice(idx, 1);
+    } else {
+      currentSelection.push(photoId);
+    }
+
+    // Atualizar status para in_progress se for a primeira seleção
+    let shouldNotify = false;
+    if (participant) {
+      if (participant.selectionStatus === 'pending' && currentSelection.length > 0) {
+        participant.selectionStatus = 'in_progress';
+        shouldNotify = true;
+      }
+    } else {
+      if (session.selectionStatus === 'pending' && currentSelection.length > 0) {
+        session.selectionStatus = 'in_progress';
+        shouldNotify = true;
+      }
+    }
+
+    await session.save();
+
+    if (shouldNotify) {
       try { 
         await Notification.create({ 
           type: 'selection_started', 
           sessionId: session._id, 
-          sessionName: session.name, 
-          message: `${session.name} iniciou a seleção`,
+          sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+          message: `${participant ? participant.name : session.name} iniciou a seleção`,
           organizationId: session.organizationId
         }); 
       } catch(e){}
     }
 
-    await session.save();
-    res.json({ success: true, selectedCount: session.selectedPhotos.length });
+    res.json({ success: true, selectedCount: currentSelection.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -209,6 +266,7 @@ router.put('/client/select/:sessionId', async (req, res) => {
 // CLIENTE: Finalizar seleção
 router.post('/client/submit-selection/:sessionId', async (req, res) => {
   try {
+    const { participantId } = req.body;
     const session = await Session.findOne({ 
       _id: req.params.sessionId,
       organizationId: req.organizationId
@@ -220,16 +278,27 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       return res.status(403).json({ error: 'O prazo de seleção expirou' });
     }
 
-    session.selectionStatus = 'submitted';
-    session.selectionSubmittedAt = new Date();
+    let participant = null;
+    if (session.mode === 'multi_selection' && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
+      participant.selectionStatus = 'submitted';
+      participant.submittedAt = new Date();
+    } else {
+      session.selectionStatus = 'submitted';
+      session.selectionSubmittedAt = new Date();
+    }
+
     await session.save();
+
+    const selectedCount = participant ? participant.selectedPhotos.length : session.selectedPhotos.length;
 
     try { 
       await Notification.create({ 
         type: 'selection_submitted', 
         sessionId: session._id, 
-        sessionName: session.name, 
-        message: `${session.name} finalizou a seleção (${session.selectedPhotos.length} fotos)`,
+        sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+        message: `${participant ? participant.name : session.name} finalizou a seleção (${selectedCount} fotos)`,
         organizationId: session.organizationId
       }); 
     } catch(e){}
@@ -535,6 +604,108 @@ router.get('/sessions/:sessionId/export', (req, res) => {
     .catch(error => {
       res.status(500).json({ error: error.message });
     });
+});
+
+// ADMIN: Gerenciar Participantes (Multi-Seleção)
+
+// Adicionar participante
+router.post('/sessions/:id/participants', authenticateToken, async (req, res) => {
+  try {
+    const { name, email, phone, packageLimit } = req.body;
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    session.participants.push({
+      name, email, phone, packageLimit, accessCode,
+      selectionStatus: 'pending',
+      selectedPhotos: []
+    });
+
+    await session.save();
+    res.json({ success: true, participants: session.participants });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Editar participante
+router.put('/sessions/:id/participants/:pid', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const p = session.participants.id(req.params.pid);
+    if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+
+    if (req.body.name) p.name = req.body.name;
+    if (req.body.email !== undefined) p.email = req.body.email;
+    if (req.body.phone !== undefined) p.phone = req.body.phone;
+    if (req.body.packageLimit) p.packageLimit = req.body.packageLimit;
+
+    await session.save();
+    res.json({ success: true, participants: session.participants });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remover participante
+router.delete('/sessions/:id/participants/:pid', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    session.participants.pull(req.params.pid);
+    await session.save();
+    res.json({ success: true, participants: session.participants });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Entregar participante individualmente
+router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const p = session.participants.id(req.params.pid);
+    if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+
+    p.selectionStatus = 'delivered';
+    await session.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Exportar seleções dos participantes
+router.get('/sessions/:id/participants/export', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    let output = `SESSÃO: ${session.name}\nDATA: ${new Date().toLocaleDateString('pt-BR')}\nTOTAL DE PARTICIPANTES: ${session.participants.length}\n\n`;
+
+    session.participants.forEach(p => {
+      output += `----------------------------------------\n`;
+      output += `PARTICIPANTE: ${p.name} (Código: ${p.accessCode})\n`;
+      output += `STATUS: ${p.selectionStatus}\n`;
+      output += `FOTOS SELECIONADAS (${p.selectedPhotos.length}):\n`;
+      
+      const filenames = session.photos.filter(ph => p.selectedPhotos.includes(ph.id)).map(ph => ph.filename);
+      output += filenames.length > 0 ? filenames.join('\n') : '(nenhuma)';
+      output += `\n\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="selecoes-${session.name.replace(/\s+/g, '-')}.txt"`);
+    res.send(output);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ADMIN: Verificar prazos manualmente (Gatilho para Cron)

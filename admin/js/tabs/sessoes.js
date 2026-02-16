@@ -47,6 +47,7 @@ export async function renderSessoes(container) {
             <select id="filterMode" style="padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; margin-left:auto;">
                 <option value="all">Todos os modos</option>
                 <option value="selection">Seleção</option>
+                <option value="multi_selection">Multi-Seleção</option>
                 <option value="gallery">Galeria</option>
             </select>
         </div>
@@ -121,6 +122,7 @@ export async function renderSessoes(container) {
             <select id="sessionMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
               <option value="selection">Selecao (cliente escolhe favoritas)</option>
               <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
+              <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
             </select>
           </div>
           <div id="selectionFields" style="display:flex; gap:0.75rem; margin-top:0.75rem;">
@@ -133,6 +135,7 @@ export async function renderSessoes(container) {
               <input type="number" id="sessionExtraPrice" value="25" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
             </div>
           </div>
+          <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:#fbbf24; margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes e seus limites individuais após criar a sessão.</p>
         </div>
 
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
@@ -218,6 +221,42 @@ export async function renderSessoes(container) {
       </div>
       <div style="flex:1; overflow-y:auto; padding:1.5rem;">
         <div id="selectionPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Participantes (Multi-Seleção) -->
+    <div id="participantsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
+      <div style="background:#1f2937; border-bottom:1px solid #374151; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h3 id="participantsModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Participantes</h3>
+            <p style="font-size:0.75rem; color:#9ca3af;">Gerencie os alunos/clientes desta sessão</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+          <button id="exportParticipantsBtn" style="padding:0.5rem 1rem; background:#16a34a; color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Seleções</button>
+          <button id="closeParticipantsModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
+        </div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:1.5rem;">
+        <!-- Form Adicionar -->
+        <div style="background:#111827; padding:1rem; border-radius:0.5rem; border:1px solid #374151; margin-bottom:1.5rem;">
+            <h4 style="color:#f3f4f6; font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
+                <div style="flex:2; min-width:200px;">
+                    <input type="text" id="newPartName" placeholder="Nome completo" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <input type="email" id="newPartEmail" placeholder="Email (opcional)" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <input type="number" id="newPartLimit" placeholder="Limite" value="30" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                </div>
+                <button id="addParticipantBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Adicionar</button>
+            </div>
+        </div>
+
+        <!-- Lista -->
+        <div id="participantsList" style="display:flex; flex-direction:column; gap:0.5rem;">
         </div>
       </div>
     </div>
@@ -327,6 +366,7 @@ export async function renderSessoes(container) {
         const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
         
         const mode = session.mode || 'gallery';
+        const isMulti = mode === 'multi_selection';
         const selectedCount = (session.selectedPhotos || []).length;
         const limit = session.packageLimit || 30;
         const extras = Math.max(0, selectedCount - limit);
@@ -343,14 +383,14 @@ export async function renderSessoes(container) {
                   ${status.text}
                 </span>
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:#818cf8; background:#1e1b4b; font-weight:500;">
-                  ${mode === 'selection' ? 'Selecao' : 'Galeria'}
+                  ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
               </div>
               <div style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
-                ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : ''}
+                ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : (isMulti ? ` • ${(session.participants || []).length} participantes` : '')}
                 ${deadline ? ` • Prazo: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
-                ${extras > 0 ? ` • <span style="color:#fbbf24;">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
+                ${!isMulti && extras > 0 ? ` • <span style="color:#fbbf24;">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
               </div>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0;">
@@ -361,7 +401,11 @@ export async function renderSessoes(container) {
               <button onclick="viewSelection('${session._id}')" style="background:#7c3aed; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Selecao
               </button>` : ''}
-              ${session.selectionStatus === 'submitted' ? `
+              ${isMulti ? `
+              <button onclick="viewParticipants('${session._id}')" style="background:#7c3aed; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+                Participantes
+              </button>` : ''}
+              ${!isMulti && session.selectionStatus === 'submitted' ? `
               <button onclick="reopenSelection('${session._id}')" style="background:#f59e0b; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Reabrir
               </button>
@@ -404,8 +448,11 @@ export async function renderSessoes(container) {
   // Toggle campos de selecao no modal
   const modeSelect = container.querySelector('#sessionMode');
   const selectionFields = container.querySelector('#selectionFields');
+  const multiHint = container.querySelector('#multiSelectionHint');
+
   modeSelect.onchange = () => {
     selectionFields.style.display = modeSelect.value === 'selection' ? 'flex' : 'none';
+    multiHint.style.display = modeSelect.value === 'multi_selection' ? 'block' : 'none';
   };
 
   // Upload de foto de capa
@@ -780,6 +827,103 @@ export async function renderSessoes(container) {
         btn.disabled = false;
         btn.textContent = 'Enviar';
     }
+  };
+
+  // --- PARTICIPANTES (Multi-Seleção) ---
+  let currentParticipantsSessionId = null;
+  const participantsModal = container.querySelector('#participantsModal');
+  const participantsList = container.querySelector('#participantsList');
+
+  window.viewParticipants = async (sessionId) => {
+    currentParticipantsSessionId = sessionId;
+    const session = sessionsData.find(s => s._id === sessionId);
+    if (!session) return;
+
+    container.querySelector('#participantsModalTitle').textContent = `Participantes - ${session.name}`;
+    renderParticipantsList(session.participants || []);
+    participantsModal.style.display = 'flex';
+  };
+
+  function renderParticipantsList(participants) {
+    if (!participants || participants.length === 0) {
+        participantsList.innerHTML = '<p style="color:#9ca3af; text-align:center;">Nenhum participante adicionado.</p>';
+        return;
+    }
+
+    participantsList.innerHTML = participants.map(p => {
+        const status = STATUS_LABELS[p.selectionStatus] || STATUS_LABELS.pending;
+        const count = (p.selectedPhotos || []).length;
+        return `
+        <div style="background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="color:#f3f4f6; font-weight:600;">${p.name}</div>
+                <div style="color:#9ca3af; font-size:0.75rem;">
+                    Código: <span style="font-family:monospace; color:#60a5fa; cursor:pointer;" onclick="copySessionCode('${p.accessCode}')" title="Copiar">${p.accessCode}</span>
+                    • ${count}/${p.packageLimit} fotos
+                    • <span style="color:${status.color};">${status.text}</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+                ${p.selectionStatus === 'submitted' ? `
+                <button onclick="deliverParticipant('${p._id}')" style="background:#16a34a; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">Entregar</button>
+                ` : ''}
+                <button onclick="deleteParticipant('${p._id}')" style="background:#7f1d1d; color:#fca5a5; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">X</button>
+            </div>
+        </div>
+        `;
+    }).join('');
+  }
+
+  container.querySelector('#addParticipantBtn').onclick = async () => {
+    const name = container.querySelector('#newPartName').value.trim();
+    const email = container.querySelector('#newPartEmail').value.trim();
+    const packageLimit = container.querySelector('#newPartLimit').value;
+
+    if (!name) return alert('Nome obrigatório');
+
+    try {
+        const response = await fetch(`/api/sessions/${currentParticipantsSessionId}/participants`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${appState.authToken}` },
+            body: JSON.stringify({ name, email, packageLimit })
+        });
+        const result = await response.json();
+        if (result.success) {
+            renderParticipantsList(result.participants);
+            container.querySelector('#newPartName').value = '';
+            container.querySelector('#newPartEmail').value = '';
+        }
+    } catch (e) { alert(e.message); }
+  };
+
+  window.deleteParticipant = async (pid) => {
+    if (!confirm('Remover participante?')) return;
+    const response = await fetch(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    const result = await response.json();
+    if (result.success) renderParticipantsList(result.participants);
+  };
+
+  window.deliverParticipant = async (pid) => {
+    if (!confirm('Marcar como entregue?')) return;
+    await fetch(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}/deliver`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    // Recarregar lista para atualizar status
+    const session = await (await fetch(`/api/sessions`, { headers: { 'Authorization': `Bearer ${appState.authToken}` } })).json();
+    const updatedSession = session.sessions.find(s => s._id === currentParticipantsSessionId);
+    if (updatedSession) renderParticipantsList(updatedSession.participants);
+  };
+
+  container.querySelector('#closeParticipantsModal').onclick = () => {
+    participantsModal.style.display = 'none';
+  };
+
+  container.querySelector('#exportParticipantsBtn').onclick = () => {
+    window.open(`/api/sessions/${currentParticipantsSessionId}/participants/export?token=${appState.authToken}`, '_blank');
   };
 
   // Upload de fotos na sessao

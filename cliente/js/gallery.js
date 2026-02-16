@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
         session: null,
         photos: [],
         selectedPhotos: [],
+        isParticipant: false,
+        participantId: null,
         isSelectionMode: false,
         pollingInterval: null,
     };
@@ -417,6 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             state.accessCode = code;
             state.sessionId = result.sessionId;
+            state.isParticipant = result.isParticipant || false;
+            state.participantId = result.participantId || null;
             await loadSessionData();
 
         } catch (error) {
@@ -429,7 +433,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSessionData(isPolling = false) {
         try {
-            const response = await fetch(`/api/client/photos/${state.sessionId}?code=${state.accessCode}`);
+            let url = `/api/client/photos/${state.sessionId}?code=${state.accessCode}`;
+            if (state.isParticipant && state.participantId) {
+                url += `&participantId=${state.participantId}`;
+            }
+            const response = await fetch(url);
             const result = await response.json();
 
             if (!result.success) {
@@ -523,11 +531,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateSelectionBar();
 
+        const payload = { accessCode: state.accessCode, photoId };
+        if (state.isParticipant) {
+            payload.participantId = state.participantId;
+        }
+
         try {
             await fetch(`/api/client/select/${state.sessionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode: state.accessCode, photoId }),
+                body: JSON.stringify(payload),
             });
         } catch (error) {
             // Revert UI on error
@@ -550,11 +563,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showLoading(submitSelectionBtn, 'Enviando...');
 
+        const payload = { accessCode: state.accessCode };
+        if (state.isParticipant) {
+            payload.participantId = state.participantId;
+        }
+
         try {
             const response = await fetch(`/api/client/submit-selection/${state.sessionId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode: state.accessCode }),
+                body: JSON.stringify(payload),
             });
             const result = await response.json();
             if (!result.success) throw new Error(result.error);

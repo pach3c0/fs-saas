@@ -253,6 +253,12 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [ ] Splash screen com logo do fotografo (futuro)
 - [ ] Notificacao push quando admin entrega (futuro - Fase 6.3)
 
+### 6.3 Melhorias UX (pendente)
+- [ ] Salvar codigo de acesso no `localStorage` — quando o cliente abre o app novamente, ja entra direto na galeria sem precisar digitar o codigo
+  - Salvar `{ sessionId, accessCode }` apos login bem-sucedido
+  - Ao abrir o app, verificar se ha codigo salvo e tentar login automatico
+  - Botao "Trocar galeria" para limpar o codigo salvo
+
 **Arquivos afetados**: `cliente/index.html`, `cliente/js/gallery.js`, `cliente/sw.js` (novo), `cliente/icons/` (novo), `src/routes/sessions.js`
 
 ---
@@ -276,22 +282,20 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
     submittedAt
   }]
   ```
-- [ ] Tela de login: cliente informa codigo pessoal
-- [ ] Galeria mostra TODAS as fotos, cada cliente seleciona as suas
-- [ ] Admin ve selecao de cada participante separadamente
+- [x] Tela de login: cliente informa codigo pessoal (backend detecta se é participante)
+- [x] Galeria mostra TODAS as fotos, cada cliente seleciona as suas (participantId no state)
+- [x] Admin ve selecao de cada participante separadamente (modal de participantes)
 
 ### 7.2 Selecao sem Senha (com Cadastro)
-- [ ] Opcao na sessao: `accessType: 'code' | 'register' | 'public'`
   - `code`: comportamento atual (codigo de acesso)
   - `register`: cliente preenche nome+email para acessar
   - `public`: galeria publica (qualquer pessoa acessa)
 - [ ] Se `register`: formulario de cadastro que cria participante automaticamente
-- [ ] Registros salvos no CRM automaticamente
 
 ### 7.3 Painel do Admin para Multi-Selecao
-- [ ] Visualizar selecao de cada participante
-- [ ] Exportar lista: quem selecionou quais fotos
-- [ ] Relatório de fotos mais selecionadas (ranking)
+- [x] Visualizar selecao de cada participante (lista com status)
+- [x] Exportar lista: quem selecionou quais fotos (TXT consolidado)
+- [ ] Relatório de fotos mais selecionadas (ranking) (futuro)
 
 **Arquivos afetados**: `src/models/Session.js`, `src/routes/sessions.js`, `admin/js/tabs/sessoes.js`, `cliente/js/gallery.js`, `cliente/index.html`
 
