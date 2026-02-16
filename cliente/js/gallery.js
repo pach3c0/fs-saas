@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loginSection = document.getElementById('loginSection');
     const gallerySection = document.getElementById('gallerySection');
+    const loginForm = document.getElementById('loginForm');
     const accessCodeInput = document.getElementById('accessCode');
     const loginBtn = document.getElementById('loginBtn');
     const errorMessage = document.getElementById('errorMessage');
@@ -334,7 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Lógica da API e Ações ---
 
-    async function handleLogin() {
+    async function handleLogin(e) {
+        if (e) e.preventDefault();
         const code = accessCodeInput.value.trim();
         if (!code) {
             errorMessage.textContent = 'Por favor, insira o código de acesso.';
@@ -520,10 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
-    loginBtn.addEventListener('click', handleLogin);
-    accessCodeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
-    });
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     photoGrid.addEventListener('click', (e) => {
         const selectBtn = e.target.closest('.select-btn');
