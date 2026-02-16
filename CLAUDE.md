@@ -67,8 +67,12 @@ Site/
       main.js               # JS do site publico (~730 linhas)
   cliente/
     index.html              # Galeria privada do cliente (HTML apenas, sem JS inline)
+    sw.js                   # Service Worker PWA (cache offline de fotos)
+    icons/
+      icon-192.png          # Icone PWA 192x192
+      icon-512.png          # Icone PWA 512x512
     js/
-      gallery.js            # JS da galeria do cliente (~437 linhas)
+      gallery.js            # JS da galeria do cliente
   uploads/                  # Imagens do admin (servidas pelo Nginx)
   uploads/sessions/         # Fotos de sessoes de clientes
   uploads/videos/           # Videos do estudio (ate 300MB)

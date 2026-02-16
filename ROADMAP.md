@@ -225,30 +225,35 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 6 - APP Foto (PWA)
+## FASE 6 - APP Foto (PWA) (CONCLUIDO em 16/02/2026)
 **Objetivo**: Cliente salva a galeria como app no celular
 **Prioridade**: MEDIA
 **Complexidade**: Media
 **Estimativa**: ~2-3 dias
 
 ### 6.1 Progressive Web App
-- [ ] Gerar `manifest.json` dinamico por sessao:
-  - `name`: nome da sessao ou fotografo
-  - `short_name`: nome curto
-  - `icons`: logo do fotografo (ou icone padrao)
+- [x] Gerar `manifest.json` dinamico por sessao (rota `/api/client/manifest/:sessionId`)
+  - `name`: nome do cliente da sessao
+  - `short_name`: primeiro nome do cliente
+  - `icons`: icones padrao em `/cliente/icons/`
   - `start_url`: URL da galeria com codigo
   - `display`: 'standalone'
-  - `theme_color`: cor personalizada
-- [ ] Service Worker basico para cache offline das fotos ja carregadas
-- [ ] Rota `GET /api/client/manifest/:sessionId` que retorna manifest dinamico
-- [ ] Banner "Adicionar a tela inicial" no mobile (detectar Safari/Chrome e mostrar instrucoes)
+  - `theme_color`: cor primaria da organizacao
+- [x] Service Worker com cache offline das fotos ja carregadas (`cliente/sw.js`)
+  - Cache First para fotos (thumbs em `/uploads/.../sessions/thumb-*`)
+  - Network First para chamadas de API (nunca cacheadas)
+  - Cache generico para HTML/JS/CSS/fontes
+- [x] Rota `GET /api/client/manifest/:sessionId?code=X` no backend
+- [x] Banner "Adicionar a tela inicial" no mobile
+  - Android/Chrome: usa `beforeinstallprompt` nativo
+  - iOS/Safari: modal com instrucoes visuais passo a passo
 
 ### 6.2 Experiencia Standalone
-- [ ] Quando aberto como PWA: esconder barra do navegador
-- [ ] Splash screen com logo do fotografo
-- [ ] Notificacao quando admin adiciona novas fotos ou entrega
+- [x] `display: standalone` no manifest (esconde barra do navegador)
+- [ ] Splash screen com logo do fotografo (futuro)
+- [ ] Notificacao push quando admin entrega (futuro - Fase 6.3)
 
-**Arquivos afetados**: `cliente/index.html`, `cliente/js/gallery.js`, `src/routes/sessions.js`
+**Arquivos afetados**: `cliente/index.html`, `cliente/js/gallery.js`, `cliente/sw.js` (novo), `cliente/icons/` (novo), `src/routes/sessions.js`
 
 ---
 
