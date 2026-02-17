@@ -10,6 +10,7 @@ import { renderPortfolio } from './portfolio.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
+import { renderNewsletter } from './newsletter.js';
 
 export async function renderMeuSite(container) {
   container.innerHTML = `
@@ -47,6 +48,7 @@ export async function renderMeuSite(container) {
         <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Álbuns</button>
         <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Estúdio</button>
         <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
+        <button class="sub-tab-btn" data-target="config-newsletter" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Newsletter</button>
       </div>
 
       <!-- Conteúdo das Abas -->
@@ -147,6 +149,9 @@ export async function renderMeuSite(container) {
 
         <!-- FAQ (renderizado pelo faq.js) -->
         <div id="config-faq" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Newsletter (renderizado pelo newsletter.js) -->
+        <div id="config-newsletter" class="sub-tab-content" style="display:none;"></div>
       </div>
     </div>
   `;
@@ -199,6 +204,8 @@ export async function renderMeuSite(container) {
           renderEstudio(targetContainer);
         } else if (btn.dataset.target === 'config-faq') {
           renderFaq(targetContainer);
+        } else if (btn.dataset.target === 'config-newsletter') {
+          renderNewsletter(targetContainer);
         }
     };
   });
