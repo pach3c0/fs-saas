@@ -199,8 +199,9 @@ export async function renderMeuSite(container) {
     await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
   };
 
-  // Links
-  const siteUrl = `${window.location.origin}/site?_tenant=${appState.user.organizationSlug || ''}`;
+  // Links - usar _tenant do URL atual ou 'fs' como fallback
+  const currentTenant = new URLSearchParams(window.location.search).get('_tenant') || 'fs';
+  const siteUrl = `${window.location.origin}/site?_tenant=${currentTenant}`;
   container.querySelector('#viewSiteLink').href = siteUrl;
   container.querySelector('#copySiteLink').onclick = () => {
     navigator.clipboard.writeText(siteUrl);
