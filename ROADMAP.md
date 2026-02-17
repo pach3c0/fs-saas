@@ -263,41 +263,34 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 7 - Selecao Multipla (Formaturas e Shows)
+## FASE 7 - Selecao Multipla (Formaturas e Shows) (CONCLUIDO em 16/02/2026)
 **Objetivo**: Varios clientes selecionam fotos na mesma galeria
 **Prioridade**: MEDIA
 **Complexidade**: Alta
 **Estimativa**: ~5-6 dias
 
 ### 7.1 Modo Multi-Selecao
-- [ ] Novo modo de sessao: `mode: 'multi_selection'`
-- [ ] Cada "participante" tem sua propria selecao independente:
+- [x] Novo modo de sessao: `mode: 'multi_selection'` (enum atualizado no Session.js)
+- [x] Array `Session.participants[]` com schema completo:
   ```
-  Session.participants: [{
-    name, email, phone,
-    accessCode,              // codigo unico por participante
-    selectedPhotos: [String],
-    selectionStatus,
-    packageLimit,
-    submittedAt
-  }]
+  { name, email, phone, accessCode, selectedPhotos, selectionStatus, packageLimit, submittedAt, deliveredAt }
   ```
 - [x] Tela de login: cliente informa codigo pessoal (backend detecta se é participante)
 - [x] Galeria mostra TODAS as fotos, cada cliente seleciona as suas (participantId no state)
 - [x] Admin ve selecao de cada participante separadamente (modal de participantes)
 
 ### 7.2 Selecao sem Senha (com Cadastro)
-  - `code`: comportamento atual (codigo de acesso)
-  - `register`: cliente preenche nome+email para acessar
-  - `public`: galeria publica (qualquer pessoa acessa)
-- [ ] Se `register`: formulario de cadastro que cria participante automaticamente
+- [ ] `accessType: 'register' | 'public'` (futuro)
+- [ ] Se `register`: formulario de cadastro que cria participante automaticamente (futuro)
 
 ### 7.3 Painel do Admin para Multi-Selecao
-- [x] Visualizar selecao de cada participante (lista com status)
+- [x] Visualizar selecao de cada participante (lista com status e badges)
+- [x] CRUD de participantes: adicionar, editar, remover
+- [x] Entrega individual por participante
 - [x] Exportar lista: quem selecionou quais fotos (TXT consolidado)
-- [ ] Relatório de fotos mais selecionadas (ranking) (futuro)
+- [ ] Ranking de fotos mais selecionadas (futuro)
 
-**Arquivos afetados**: `src/models/Session.js`, `src/routes/sessions.js`, `admin/js/tabs/sessoes.js`, `cliente/js/gallery.js`, `cliente/index.html`
+**Arquivos afetados**: `src/models/Session.js`, `src/routes/sessions.js`, `admin/js/tabs/sessoes.js`, `cliente/js/gallery.js`
 
 ---
 

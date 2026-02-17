@@ -18,7 +18,7 @@ const sessionSchema = new mongoose.Schema({
         }]
     }],
     // Modo da sessao
-    mode: { type: String, enum: ['selection', 'gallery'], default: 'selection' },
+    mode: { type: String, enum: ['selection', 'gallery', 'multi_selection'], default: 'selection' },
     packageLimit: { type: Number, default: 30 },
     extraPhotoPrice: { type: Number, default: 25 },
     // Fluxo de selecao
@@ -38,7 +38,23 @@ const sessionSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
     // CRM: cliente vinculado
-    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null }
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
+    // Multi-selecao: participantes individuais (modo multi_selection)
+    participants: [{
+        name: { type: String, required: true },
+        email: { type: String, default: '' },
+        phone: { type: String, default: '' },
+        accessCode: { type: String, required: true },
+        selectedPhotos: [String],
+        selectionStatus: {
+            type: String,
+            enum: ['pending', 'in_progress', 'submitted', 'delivered'],
+            default: 'pending'
+        },
+        packageLimit: { type: Number, default: 30 },
+        submittedAt: Date,
+        deliveredAt: Date
+    }]
 }, { timestamps: true });
 
 // Index composto para busca rápida de sessão por org + código
