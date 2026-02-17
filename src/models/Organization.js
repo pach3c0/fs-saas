@@ -98,6 +98,29 @@ const OrganizationSchema = new mongoose.Schema({
       address: { type: String, default: '' },
       mapEmbed: { type: String, default: '' }
     }
+  },
+  // Integrações de marketing e analytics
+  integrations: {
+    googleAnalytics: {
+      enabled: { type: Boolean, default: false },
+      measurementId: { type: String, default: '' }
+    },
+    metaPixel: {
+      enabled: { type: Boolean, default: false },
+      pixelId: { type: String, default: '' },
+      accessToken: { type: String, default: '' }
+    },
+    whatsapp: {
+      enabled: { type: Boolean, default: true },
+      number: { type: String, default: '' },
+      message: { type: String, default: 'Olá! Vi seu site e gostaria de mais informações.' },
+      position: { type: String, enum: ['bottom-right', 'bottom-left'], default: 'bottom-right' },
+      showOnMobile: { type: Boolean, default: true }
+    },
+    seo: {
+      googleSiteVerification: { type: String, default: '' },
+      robots: { type: String, default: 'index, follow' }
+    }
   }
 }, { timestamps: true });
 

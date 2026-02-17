@@ -18,7 +18,7 @@ router.get('/site/config', async (req, res) => {
     }
 
     const org = await Organization.findById(req.organizationId)
-      .select('name logo primaryColor siteEnabled siteTheme siteConfig siteSections siteContent email');
+      .select('name logo primaryColor siteEnabled siteTheme siteConfig siteSections siteContent email integrations');
 
     if (!org) {
       return res.status(404).json({ error: 'Organização não encontrada' });
