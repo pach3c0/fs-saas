@@ -222,6 +222,11 @@ export async function renderMeuSite(container) {
         btn.style.color = '#f3f4f6';
         contents.forEach(c => c.style.display = 'none');
         container.querySelector(`#${btn.dataset.target}`).style.display = 'block';
+
+        // Renderizar Hero Studio quando a tab for aberta
+        if (btn.dataset.target === 'config-hero') {
+          renderHeroStudio();
+        }
     };
   });
 
@@ -742,18 +747,6 @@ export async function renderMeuSite(container) {
     // Renderizar preview inicial
     updateHeroPreview();
   };
-
-  // Chamar quando a tab Hero for aberta
-  const originalSwitchTab = container.querySelectorAll('.sub-tab-btn');
-  originalSwitchTab.forEach(btn => {
-    const originalClick = btn.onclick;
-    btn.onclick = function() {
-      if (originalClick) originalClick.call(this);
-      if (btn.dataset.target === 'config-hero') {
-        renderHeroStudio();
-      }
-    };
-  });
 
   // (Serviços e Depoimentos requerem lógica de lista dinâmica similar a FAQ, omitido para brevidade mas estrutura HTML pronta)
 }
