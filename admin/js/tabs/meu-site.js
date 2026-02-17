@@ -42,11 +42,15 @@ export async function renderMeuSite(container) {
       <!-- Tabs de Navegação Interna -->
       <div style="display:flex; gap:0.5rem; border-bottom:1px solid #374151; padding-bottom:0.5rem; overflow-x:auto;">
         <button class="sub-tab-btn active" data-target="config-geral" style="background:none; border:none; color:#f3f4f6; padding:0.5rem 1rem; cursor:pointer; border-bottom:2px solid #2563eb;">Geral</button>
+        <button class="sub-tab-btn" data-target="config-secoes" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Seções</button>
         <button class="sub-tab-btn" data-target="config-hero" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Hero</button>
         <button class="sub-tab-btn" data-target="config-sobre" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Sobre</button>
         <button class="sub-tab-btn" data-target="config-portfolio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Portfólio</button>
+        <button class="sub-tab-btn" data-target="config-servicos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Serviços</button>
+        <button class="sub-tab-btn" data-target="config-depoimentos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Depoimentos</button>
         <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Álbuns</button>
         <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Estúdio</button>
+        <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Contato</button>
         <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
         <button class="sub-tab-btn" data-target="config-newsletter" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Newsletter</button>
       </div>
@@ -109,6 +113,9 @@ export async function renderMeuSite(container) {
             </div>
         </div>
 
+        <!-- Seções (Ativar/Desativar) -->
+        <div id="config-secoes" class="sub-tab-content" style="display:none;"></div>
+
         <!-- Hero -->
         <div id="config-hero" class="sub-tab-content" style="display:none;"></div>
 
@@ -141,11 +148,20 @@ export async function renderMeuSite(container) {
         <!-- Portfólio (renderizado pelo portfolio.js) -->
         <div id="config-portfolio" class="sub-tab-content" style="display:none;"></div>
 
+        <!-- Serviços -->
+        <div id="config-servicos" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Depoimentos -->
+        <div id="config-depoimentos" class="sub-tab-content" style="display:none;"></div>
+
         <!-- Álbuns (renderizado pelo albuns.js) -->
         <div id="config-albuns" class="sub-tab-content" style="display:none;"></div>
 
         <!-- Estúdio (renderizado pelo estudio.js) -->
         <div id="config-estudio" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Contato -->
+        <div id="config-contato" class="sub-tab-content" style="display:none;"></div>
 
         <!-- FAQ (renderizado pelo faq.js) -->
         <div id="config-faq" class="sub-tab-content" style="display:none;"></div>
@@ -194,14 +210,22 @@ export async function renderMeuSite(container) {
         targetContainer.style.display = 'block';
 
         // Renderizar conteúdo específico de cada tab
-        if (btn.dataset.target === 'config-hero') {
+        if (btn.dataset.target === 'config-secoes') {
+          renderSecoes();
+        } else if (btn.dataset.target === 'config-hero') {
           renderHeroStudio();
         } else if (btn.dataset.target === 'config-portfolio') {
           renderPortfolio(targetContainer);
+        } else if (btn.dataset.target === 'config-servicos') {
+          renderServicos();
+        } else if (btn.dataset.target === 'config-depoimentos') {
+          renderDepoimentos();
         } else if (btn.dataset.target === 'config-albuns') {
           renderAlbuns(targetContainer);
         } else if (btn.dataset.target === 'config-estudio') {
           renderEstudio(targetContainer);
+        } else if (btn.dataset.target === 'config-contato') {
+          renderContato();
         } else if (btn.dataset.target === 'config-faq') {
           renderFaq(targetContainer);
         } else if (btn.dataset.target === 'config-newsletter') {
@@ -666,5 +690,258 @@ export async function renderMeuSite(container) {
     updateHeroPreview();
   };
 
-  // (Serviços e Depoimentos requerem lógica de lista dinâmica similar a FAQ, omitido para brevidade mas estrutura HTML pronta)
+  // --- SEÇÕES (Ativar/Desativar) ---
+  const renderSecoes = () => {
+    const secoesContainer = container.querySelector('#config-secoes');
+    const siteSections = configData.siteSections || ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
+    const allSections = [
+      { id: 'hero', label: 'Hero / Capa' },
+      { id: 'sobre', label: 'Sobre Mim' },
+      { id: 'portfolio', label: 'Portfólio' },
+      { id: 'servicos', label: 'Serviços' },
+      { id: 'depoimentos', label: 'Depoimentos' },
+      { id: 'contato', label: 'Contato' }
+    ];
+
+    secoesContainer.innerHTML = `
+      <div style="max-width:600px;">
+        <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.5rem;">Seções do Site</h3>
+        <p style="color:#9ca3af; margin-bottom:1.5rem; font-size:0.875rem;">Marque as seções que deseja exibir no site público.</p>
+
+        <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+          ${allSections.map(sec => {
+            const checked = siteSections.includes(sec.id) ? 'checked' : '';
+            return `
+              <label style="display:flex; align-items:center; gap:0.75rem; background:#1f2937; padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid #374151; cursor:pointer; transition:all 0.2s;">
+                <input type="checkbox" value="${sec.id}" ${checked} style="width:18px; height:18px; cursor:pointer;">
+                <span style="color:#f3f4f6; font-weight:500;">${sec.label}</span>
+              </label>
+            `;
+          }).join('')}
+        </div>
+
+        <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1.5rem;">Salvar Seções</button>
+      </div>
+    `;
+
+    secoesContainer.querySelector('#saveSectionsBtn').onclick = async () => {
+      const selected = [];
+      secoesContainer.querySelectorAll('input:checked').forEach(cb => selected.push(cb.value));
+      await apiPut('/api/site/admin/config', { siteSections: selected });
+      alert('Seções salvas!');
+      configData.siteSections = selected;
+    };
+  };
+
+  // --- SERVIÇOS ---
+  const renderServicos = () => {
+    const servicosContainer = container.querySelector('#config-servicos');
+    const servicos = configData.siteContent?.servicos || [];
+
+    const renderList = () => {
+      const list = servicos.map((srv, idx) => `
+        <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
+          <div style="display:grid; gap:0.75rem;">
+            <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Título</label>
+                <input type="text" value="${srv.title || ''}" data-srv-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+              </div>
+              <button onclick="deleteServico(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover">🗑️</button>
+            </div>
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Descrição</label>
+              <textarea rows="2" data-srv-desc="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${srv.description || ''}</textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Ícone (emoji)</label>
+                <input type="text" value="${srv.icon || '📸'}" data-srv-icon="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="📸">
+              </div>
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Preço (opcional)</label>
+                <input type="text" value="${srv.price || ''}" data-srv-price="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="R$ 500">
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      servicosContainer.innerHTML = `
+        <div style="max-width:700px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <div>
+              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Serviços</h3>
+              <p style="color:#9ca3af; font-size:0.875rem;">Adicione os serviços que você oferece</p>
+            </div>
+            <button id="addServicoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">+ Adicionar</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
+            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum serviço adicionado</p>'}
+          </div>
+
+          ${servicos.length > 0 ? '<button id="saveServicosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Serviços</button>' : ''}
+        </div>
+      `;
+
+      servicosContainer.querySelector('#addServicoBtn').onclick = () => {
+        servicos.push({ title: 'Novo Serviço', description: '', icon: '📸', price: '' });
+        renderList();
+      };
+
+      window.deleteServico = (idx) => {
+        if (!confirm('Remover este serviço?')) return;
+        servicos.splice(idx, 1);
+        renderList();
+      };
+
+      const saveBtn = servicosContainer.querySelector('#saveServicosBtn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          const updated = [];
+          servicos.forEach((_, idx) => {
+            updated.push({
+              title: servicosContainer.querySelector(`[data-srv-title="${idx}"]`)?.value || '',
+              description: servicosContainer.querySelector(`[data-srv-desc="${idx}"]`)?.value || '',
+              icon: servicosContainer.querySelector(`[data-srv-icon="${idx}"]`)?.value || '📸',
+              price: servicosContainer.querySelector(`[data-srv-price="${idx}"]`)?.value || ''
+            });
+          });
+          await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, servicos: updated } });
+          alert('Serviços salvos!');
+          configData.siteContent.servicos = updated;
+        };
+      }
+    };
+
+    renderList();
+  };
+
+  // --- DEPOIMENTOS ---
+  const renderDepoimentos = () => {
+    const depoContainer = container.querySelector('#config-depoimentos');
+    const depoimentos = configData.siteContent?.depoimentos || [];
+
+    const renderList = () => {
+      const list = depoimentos.map((dep, idx) => `
+        <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
+          <div style="display:grid; gap:0.75rem;">
+            <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nome do Cliente</label>
+                <input type="text" value="${dep.name || ''}" data-dep-name="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+              </div>
+              <button onclick="deleteDepoimento(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover">🗑️</button>
+            </div>
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Depoimento</label>
+              <textarea rows="3" data-dep-text="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${dep.text || ''}</textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr auto; gap:0.75rem;">
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Foto do Cliente (URL)</label>
+                <input type="text" value="${dep.photo || ''}" data-dep-photo="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="URL da foto">
+              </div>
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nota (1-5)</label>
+                <input type="number" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:80px; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      depoContainer.innerHTML = `
+        <div style="max-width:700px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <div>
+              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Depoimentos</h3>
+              <p style="color:#9ca3af; font-size:0.875rem;">Adicione depoimentos de clientes satisfeitos</p>
+            </div>
+            <button id="addDepoimentoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">+ Adicionar</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
+            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum depoimento adicionado</p>'}
+          </div>
+
+          ${depoimentos.length > 0 ? '<button id="saveDepoimentosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Depoimentos</button>' : ''}
+        </div>
+      `;
+
+      depoContainer.querySelector('#addDepoimentoBtn').onclick = () => {
+        depoimentos.push({ name: 'Cliente', text: '', photo: '', rating: 5 });
+        renderList();
+      };
+
+      window.deleteDepoimento = (idx) => {
+        if (!confirm('Remover este depoimento?')) return;
+        depoimentos.splice(idx, 1);
+        renderList();
+      };
+
+      const saveBtn = depoContainer.querySelector('#saveDepoimentosBtn');
+      if (saveBtn) {
+        saveBtn.onclick = async () => {
+          const updated = [];
+          depoimentos.forEach((_, idx) => {
+            updated.push({
+              name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
+              text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
+              photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || '',
+              rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5)
+            });
+          });
+          await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, depoimentos: updated } });
+          alert('Depoimentos salvos!');
+          configData.siteContent.depoimentos = updated;
+        };
+      }
+    };
+
+    renderList();
+  };
+
+  // --- CONTATO ---
+  const renderContato = () => {
+    const contatoContainer = container.querySelector('#config-contato');
+    const contato = configData.siteContent?.contato || {};
+
+    contatoContainer.innerHTML = `
+      <div style="max-width:600px;">
+        <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:1.5rem;">Seção de Contato</h3>
+
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+          <div>
+            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
+            <input type="text" id="contatoTitle" value="${contato.title || 'Entre em Contato'}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+          </div>
+
+          <div>
+            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
+            <textarea id="contatoText" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
+          </div>
+
+          <div>
+            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Endereço (opcional)</label>
+            <input type="text" id="contatoAddress" value="${contato.address || ''}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="Rua Exemplo, 123 - São Paulo/SP">
+          </div>
+
+          <button id="saveContatoBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:0.5rem;">Salvar Contato</button>
+        </div>
+      </div>
+    `;
+
+    contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
+      const newContato = {
+        title: contatoContainer.querySelector('#contatoTitle').value,
+        text: contatoContainer.querySelector('#contatoText').value,
+        address: contatoContainer.querySelector('#contatoAddress').value
+      };
+      await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
+      alert('Contato salvo!');
+      configData.siteContent.contato = newContato;
+    };
+  };
 }
