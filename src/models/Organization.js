@@ -36,6 +36,68 @@ const OrganizationSchema = new mongoose.Schema({
     type: String,
     enum: ['small', 'medium', 'large'],
     default: 'medium'
+  },
+  // Site público do fotógrafo
+  siteEnabled: { type: Boolean, default: false },
+  siteTheme: {
+    type: String,
+    enum: ['elegante', 'minimalista', 'moderno', 'escuro', 'colorido'],
+    default: 'elegante'
+  },
+  // Configurações gerais do site
+  siteConfig: {
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    heroTitle: { type: String, default: '' },
+    heroSubtitle: { type: String, default: '' },
+    heroImage: { type: String, default: '' },
+    whatsapp: { type: String, default: '' },
+    whatsappMessage: { type: String, default: 'Olá! Vi seu site e gostaria de mais informações.' },
+    instagramUrl: { type: String, default: '' },
+    facebookUrl: { type: String, default: '' },
+    email: { type: String, default: '' },
+    copyright: { type: String, default: '' }
+  },
+  // Seções ativas e ordem
+  siteSections: {
+    type: [String],
+    default: ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato']
+  },
+  // Conteúdo de cada seção
+  siteContent: {
+    sobre: {
+      title: { type: String, default: 'Sobre Mim' },
+      text: { type: String, default: '' },
+      image: { type: String, default: '' }
+    },
+    servicos: [{
+      id: String,
+      title: String,
+      description: String,
+      price: String,
+      icon: { type: String, default: '📷' }
+    }],
+    depoimentos: [{
+      id: String,
+      name: String,
+      text: String,
+      rating: { type: Number, default: 5 },
+      photo: { type: String, default: '' }
+    }],
+    portfolio: {
+      title: { type: String, default: 'Portfólio' },
+      subtitle: { type: String, default: '' },
+      photos: [{
+        url: String,
+        caption: { type: String, default: '' }
+      }]
+    },
+    contato: {
+      title: { type: String, default: 'Entre em Contato' },
+      text: { type: String, default: '' },
+      address: { type: String, default: '' },
+      mapEmbed: { type: String, default: '' }
+    }
   }
 }, { timestamps: true });
 

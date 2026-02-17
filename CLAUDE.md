@@ -65,6 +65,10 @@ Site/
     albums.html             # Pagina de albuns
     js/
       main.js               # JS do site publico (~730 linhas)
+  site/                     # Template do site do fotografo (Fase 9)
+    index.html
+    js/site.js
+    css/site.css
   cliente/
     index.html              # Galeria privada do cliente (HTML apenas, sem JS inline)
     sw.js                   # Service Worker PWA (cache offline de fotos)
@@ -97,6 +101,7 @@ Site/
       upload.js             # POST /admin/upload (imagens em /uploads/), POST /admin/upload-video (videos em /uploads/videos/)
       notifications.js      # GET /notifications, GET /notifications/unread-count, PUT /notifications/read-all
       organization.js       # GET/PUT /organization/profile, GET /organization/public
+      site.js               # GET /site/config, PUT /site/admin/config (Fase 9)
     utils/
       multerConfig.js       # createUploader(subdir, options) - config compartilhada do multer
       notifications.js      # notify(type, sessionId, sessionName, message) - helper de criacao
@@ -235,6 +240,8 @@ Tab chama uploadVideo(file, token, onProgress)
 | PUT | `/api/sessions/:id/participants/:pid/deliver` | Entrega individual |
 | GET | `/api/sessions/:id/participants/export` | Exporta seleções dos participantes |
 | GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
+| GET | `/api/site/config` | Config pública do site do fotógrafo |
+| PUT | `/api/site/admin/config` | Atualiza config do site (admin) |
 | POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
 
 ### Rotas de Clientes (CRM - com autenticacao):

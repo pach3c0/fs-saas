@@ -20,6 +20,10 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/admin', express.static(path.join(__dirname, '../admin')));
 app.use('/cliente', express.static(path.join(__dirname, '../cliente')));
 app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
+// Fase 8: servir visualizador de álbum de prova
+app.use('/album', express.static(path.join(__dirname, '../album')));
+// Fase 9: servir site do fotógrafo
+app.use('/site', express.static(path.join(__dirname, '../site')));
 
 // Rota de Cadastro (Landing Page)
 app.use('/cadastro', express.static(path.join(__dirname, '../cadastro')));
@@ -30,6 +34,11 @@ app.get('/cadastro', (req, res) => {
 // SPA route for client gallery
 app.get('/galeria/:id', (req, res) => {
   res.sendFile(path.join(__dirname, '../cliente/index.html'));
+});
+
+// SPA route for photographer site
+app.get('/site', (req, res) => {
+  res.sendFile(path.join(__dirname, '../site/index.html'));
 });
 
 // Preview route (bypasses maintenance curtain)
@@ -116,6 +125,7 @@ app.use('/api/faq', resolveTenant);
 app.use('/api/newsletter/subscribe', resolveTenant);
 app.use('/api/client', resolveTenant);
 app.use('/api/organization/public', resolveTenant);
+app.use('/api/site/config', resolveTenant);
 
 // ============================================================================
 // ROTAS (cada router montado apenas UMA vez)
@@ -128,6 +138,9 @@ app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));
 app.use('/api', require('./routes/organization'));
 app.use('/api', require('./routes/clients'));
+// Fase 8: registrar rotas de álbuns de prova
+app.use('/api', require('./routes/albums'));
+app.use('/api', require('./routes/site'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

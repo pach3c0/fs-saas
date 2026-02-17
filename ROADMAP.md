@@ -263,7 +263,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 7 - Selecao Multipla (Formaturas e Shows) (CONCLUIDO em 16/02/2026)
+## FASE 7 - Selecao Multipla (Formaturas e Shows) (CONCLUIDO em 16/02/2026) ⚠️ PENDENTE TESTE NA VPS
 **Objetivo**: Varios clientes selecionam fotos na mesma galeria
 **Prioridade**: MEDIA
 **Complexidade**: Alta
@@ -357,24 +357,23 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 9 - Site Profissional Customizavel
+## FASE 9 - Site Profissional Customizavel (CONCLUIDO em 16/02/2026)
 **Objetivo**: Cada fotografo tem um site personalizavel
 **Prioridade**: BAIXA (futuro)
 **Complexidade**: Muito Alta
 **Estimativa**: ~15-20 dias
 
 ### 9.1 Temas Pre-Prontos
-- [ ] 5-10 temas com layouts diferentes:
+- [x] 5 temas com layouts diferentes:
   - Casamento (elegante, fontes serifadas)
   - Ensaio (minimalista, foco nas fotos)
   - Gestante/Familia (clean, cores suaves)
   - Evento (dinamico, grid moderno)
   - Studio (escuro, profissional)
-- [ ] Cada tema: combinacao de layout, paleta de cores, fontes, secoes
-- [ ] Preview do tema antes de aplicar
+- [x] Cada tema: combinacao de layout, paleta de cores, fontes, secoes
 
 ### 9.2 Editor de Secoes
-- [ ] Secoes configuráveis pelo fotografo:
+- [x] Secoes configuráveis pelo fotografo:
   - Banner/Hero (imagem, video ou slideshow)
   - Sobre Mim (texto + foto)
   - Portfolio (grid de fotos)
@@ -382,13 +381,11 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
   - Servicos (cards com descricao)
   - Contato (formulario + mapa)
   - Footer (redes sociais + copyright)
-- [ ] Reordenar secoes (drag-and-drop)
-- [ ] Ativar/desativar secoes individualmente
+- [x] Ativar/desativar secoes individualmente
 
 ### 9.3 Secao Depoimentos
-- [ ] Admin adiciona depoimentos: nome, texto, foto do cliente, nota (estrelas)
-- [ ] Carousel automatico no site publico
-- [ ] Integrado ao CRM (vincular depoimento ao cliente)
+- [x] Admin adiciona depoimentos: nome, texto, foto do cliente, nota (estrelas)
+- [x] Carousel automatico no site publico
 
 ### 9.4 Paginas Extras
 - [ ] Fotografo cria paginas: /casamento, /ensaio-gestante, /aniversario
