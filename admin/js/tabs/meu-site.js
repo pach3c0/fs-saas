@@ -3,9 +3,13 @@
  */
 
 import { appState } from '../state.js';
-import { apiGet, apiPut, apiPost, apiDelete } from '../utils/api.js';
+import { apiGet, apiPut } from '../utils/api.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
-import { resolveImagePath, generateId } from '../utils/helpers.js';
+import { resolveImagePath } from '../utils/helpers.js';
+import { renderPortfolio } from './portfolio.js';
+import { renderAlbuns } from './albuns.js';
+import { renderEstudio } from './estudio.js';
+import { renderFaq } from './faq.js';
 
 export async function renderMeuSite(container) {
   container.innerHTML = `
@@ -38,12 +42,11 @@ export async function renderMeuSite(container) {
       <div style="display:flex; gap:0.5rem; border-bottom:1px solid #374151; padding-bottom:0.5rem; overflow-x:auto;">
         <button class="sub-tab-btn active" data-target="config-geral" style="background:none; border:none; color:#f3f4f6; padding:0.5rem 1rem; cursor:pointer; border-bottom:2px solid #2563eb;">Geral</button>
         <button class="sub-tab-btn" data-target="config-hero" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Hero</button>
-        <button class="sub-tab-btn" data-target="config-secoes" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Seções</button>
         <button class="sub-tab-btn" data-target="config-sobre" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Sobre</button>
         <button class="sub-tab-btn" data-target="config-portfolio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Portfólio</button>
-        <button class="sub-tab-btn" data-target="config-servicos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Serviços</button>
-        <button class="sub-tab-btn" data-target="config-depoimentos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Depoimentos</button>
-        <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Contato</button>
+        <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Álbuns</button>
+        <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Estúdio</button>
+        <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
       </div>
 
       <!-- Conteúdo das Abas -->
@@ -107,14 +110,7 @@ export async function renderMeuSite(container) {
         <!-- Hero -->
         <div id="config-hero" class="sub-tab-content" style="display:none;"></div>
 
-        <!-- Seções -->
-        <div id="config-secoes" class="sub-tab-content" style="display:none;">
-            <p style="color:#9ca3af; margin-bottom:1rem;">Marque as seções que deseja exibir no site.</p>
-            <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.75rem; max-width:400px;"></div>
-            <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem;">Salvar Seções</button>
-        </div>
-
-        <!-- Sobre -->
+        <!-- Sobre (mantém versão simplificada para site.js) -->
         <div id="config-sobre" class="sub-tab-content" style="display:none;">
             <div style="display:grid; gap:1rem; max-width:600px;">
                 <div>
@@ -140,49 +136,17 @@ export async function renderMeuSite(container) {
             </div>
         </div>
 
-        <!-- Portfólio -->
-        <div id="config-portfolio" class="sub-tab-content" style="display:none;">
-            <div style="margin-bottom:1.5rem;">
-                <label style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-weight:600;">
-                    + Adicionar Fotos
-                    <input type="file" id="portfolioUpload" accept="image/*" multiple style="display:none;">
-                </label>
-            </div>
-            <div id="portfolioGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:1rem;"></div>
-        </div>
+        <!-- Portfólio (renderizado pelo portfolio.js) -->
+        <div id="config-portfolio" class="sub-tab-content" style="display:none;"></div>
 
-        <!-- Serviços -->
-        <div id="config-servicos" class="sub-tab-content" style="display:none;">
-            <div id="servicosList" style="display:flex; flex-direction:column; gap:1rem; max-width:600px;"></div>
-            <button id="addServicoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; margin-top:1rem;">+ Adicionar Serviço</button>
-            <button id="saveServicosBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem; display:block;">Salvar Serviços</button>
-        </div>
+        <!-- Álbuns (renderizado pelo albuns.js) -->
+        <div id="config-albuns" class="sub-tab-content" style="display:none;"></div>
 
-        <!-- Depoimentos -->
-        <div id="config-depoimentos" class="sub-tab-content" style="display:none;">
-            <div id="depoimentosList" style="display:flex; flex-direction:column; gap:1rem; max-width:600px;"></div>
-            <button id="addDepoimentoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; margin-top:1rem;">+ Adicionar Depoimento</button>
-            <button id="saveDepoimentosBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem; display:block;">Salvar Depoimentos</button>
-        </div>
+        <!-- Estúdio (renderizado pelo estudio.js) -->
+        <div id="config-estudio" class="sub-tab-content" style="display:none;"></div>
 
-        <!-- Contato -->
-        <div id="config-contato" class="sub-tab-content" style="display:none;">
-            <div style="display:grid; gap:1rem; max-width:600px;">
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
-                    <input type="text" id="contatoTitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
-                    <textarea id="contatoText" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;"></textarea>
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Endereço</label>
-                    <input type="text" id="contatoAddress" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <button id="saveContatoBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem;">Salvar Contato</button>
-            </div>
-        </div>
+        <!-- FAQ (renderizado pelo faq.js) -->
+        <div id="config-faq" class="sub-tab-content" style="display:none;"></div>
       </div>
     </div>
   `;
@@ -194,7 +158,7 @@ export async function renderMeuSite(container) {
   } catch (e) { console.error(e); }
 
   // Preencher campos
-  const { siteEnabled, siteTheme, siteConfig = {}, siteSections = [], siteContent = {} } = configData;
+  const { siteEnabled, siteTheme, siteConfig = {}, siteContent = {} } = configData;
 
   // Status Toggle
   const toggle = container.querySelector('#siteEnabledToggle');
@@ -221,11 +185,20 @@ export async function renderMeuSite(container) {
         btn.style.borderBottom = '2px solid #2563eb';
         btn.style.color = '#f3f4f6';
         contents.forEach(c => c.style.display = 'none');
-        container.querySelector(`#${btn.dataset.target}`).style.display = 'block';
+        const targetContainer = container.querySelector(`#${btn.dataset.target}`);
+        targetContainer.style.display = 'block';
 
-        // Renderizar Hero Studio quando a tab for aberta
+        // Renderizar conteúdo específico de cada tab
         if (btn.dataset.target === 'config-hero') {
           renderHeroStudio();
+        } else if (btn.dataset.target === 'config-portfolio') {
+          renderPortfolio(targetContainer);
+        } else if (btn.dataset.target === 'config-albuns') {
+          renderAlbuns(targetContainer);
+        } else if (btn.dataset.target === 'config-estudio') {
+          renderEstudio(targetContainer);
+        } else if (btn.dataset.target === 'config-faq') {
+          renderFaq(targetContainer);
         }
     };
   });
@@ -267,69 +240,7 @@ export async function renderMeuSite(container) {
     alert('Salvo!');
   };
 
-  // --- SEÇÕES ---
-  const allSections = ['sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
-  const list = container.querySelector('#sectionsList');
-  allSections.forEach(sec => {
-    const checked = siteSections.includes(sec) ? 'checked' : '';
-    list.innerHTML += `
-        <label style="display:flex; align-items:center; gap:0.5rem; color:#d1d5db; background:#111827; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151;">
-            <input type="checkbox" value="${sec}" ${checked}> ${sec.charAt(0).toUpperCase() + sec.slice(1)}
-        </label>
-    `;
-  });
-  container.querySelector('#saveSectionsBtn').onclick = async () => {
-    const selected = ['hero']; // Hero sempre ativo
-    list.querySelectorAll('input:checked').forEach(cb => selected.push(cb.value));
-    await apiPut('/api/site/admin/config', { siteSections: selected });
-    alert('Seções salvas!');
-  };
-
-  // --- PORTFOLIO ---
-  const renderPortfolio = () => {
-    const grid = container.querySelector('#portfolioGrid');
-    const photos = (configData.siteContent?.portfolio?.photos || []);
-    grid.innerHTML = photos.map((p, idx) => `
-        <div style="position:relative; aspect-ratio:1;">
-            <img src="${resolveImagePath(p.url)}" style="width:100%; height:100%; object-fit:cover; border-radius:0.375rem;">
-            <button onclick="deletePortfolioPhoto(${idx})" style="position:absolute; top:0.25rem; right:0.25rem; background:#ef4444; color:white; border:none; border-radius:0.25rem; cursor:pointer; padding:0.25rem;">X</button>
-        </div>
-    `).join('');
-  };
-  renderPortfolio();
-
-  container.querySelector('#portfolioUpload').onchange = async (e) => {
-    const files = Array.from(e.target.files);
-    for (const file of files) {
-        const formData = new FormData();
-        formData.append('photo', file);
-        const res = await fetch('/api/site/admin/portfolio', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${appState.authToken}` },
-            body: formData
-        });
-        if(res.ok) {
-            const data = await res.json();
-            if(!configData.siteContent) configData.siteContent = {};
-            if(!configData.siteContent.portfolio) configData.siteContent.portfolio = { photos: [] };
-            configData.siteContent.portfolio.photos.push({ url: data.url });
-        }
-    }
-    renderPortfolio();
-  };
-
-  window.deletePortfolioPhoto = async (idx) => {
-    if(!confirm('Deletar foto?')) return;
-    await apiDelete(`/api/site/admin/portfolio/${idx}`);
-    configData.siteContent.portfolio.photos.splice(idx, 1);
-    renderPortfolio();
-  };
-
-  // --- SOBRE, SERVIÇOS, DEPOIMENTOS, CONTATO ---
-  // Implementação simplificada para brevidade, seguindo padrão similar ao Geral
-  // (Preencher campos, salvar no objeto siteContent e enviar PUT)
-  
-  // Sobre
+  // --- SOBRE ---
   const sobre = siteContent.sobre || {};
   container.querySelector('#sobreTitle').value = sobre.title || '';
   container.querySelector('#sobreText').value = sobre.text || '';
