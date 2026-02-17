@@ -107,12 +107,67 @@ function renderSite(data) {
   });
 
   // HERO
+  var heroBg = document.getElementById('heroBg');
+  var heroTitle = document.getElementById('heroTitle');
+  var heroSubtitle = document.getElementById('heroSubtitle');
+  var heroOverlay = document.querySelector('.hero-overlay');
+
   if (config.heroImage) {
-    document.getElementById('heroBg').style.backgroundImage = 'url(' + config.heroImage + ')';
+    heroBg.style.backgroundImage = 'url(' + config.heroImage + ')';
+    // Aplicar transform (scale e position)
+    var scale = config.heroScale || 1;
+    var posX = config.heroPosX !== undefined ? config.heroPosX : 50;
+    var posY = config.heroPosY !== undefined ? config.heroPosY : 50;
+    heroBg.style.transform = 'scale(' + scale + ')';
+    heroBg.style.transformOrigin = posX + '% ' + posY + '%';
+    heroBg.style.backgroundPosition = posX + '% ' + posY + '%';
   }
-  document.getElementById('heroTitle').textContent = config.heroTitle || data.name || 'Fotografia Profissional';
-  document.getElementById('heroSubtitle').textContent = config.heroSubtitle || '';
+
+  // Textos
+  heroTitle.textContent = config.heroTitle || data.name || 'Fotografia Profissional';
+  heroSubtitle.textContent = config.heroSubtitle || '';
   document.getElementById('heroEyebrow').textContent = data.name || '';
+
+  // Posicionamento dos textos
+  if (config.titlePosX !== undefined && config.titlePosY !== undefined) {
+    heroTitle.style.position = 'absolute';
+    heroTitle.style.left = config.titlePosX + '%';
+    heroTitle.style.top = config.titlePosY + '%';
+    heroTitle.style.transform = 'translate(-50%, -50%)';
+  }
+
+  if (config.subtitlePosX !== undefined && config.subtitlePosY !== undefined) {
+    heroSubtitle.style.position = 'absolute';
+    heroSubtitle.style.left = config.subtitlePosX + '%';
+    heroSubtitle.style.top = config.subtitlePosY + '%';
+    heroSubtitle.style.transform = 'translate(-50%, -50%)';
+  }
+
+  // Font sizes
+  if (config.titleFontSize) {
+    heroTitle.style.fontSize = config.titleFontSize + 'px';
+  }
+  if (config.subtitleFontSize) {
+    heroSubtitle.style.fontSize = config.subtitleFontSize + 'px';
+  }
+
+  // Overlay opacity
+  if (config.overlayOpacity !== undefined && heroOverlay) {
+    heroOverlay.style.opacity = config.overlayOpacity / 100;
+  }
+
+  // Top/Bottom bars
+  var heroSection = document.getElementById('section-hero');
+  if (config.topBarHeight && config.topBarHeight > 0) {
+    var topBar = document.createElement('div');
+    topBar.style.cssText = 'position:absolute; top:0; left:0; right:0; height:' + config.topBarHeight + '%; background:#000; z-index:2;';
+    heroSection.appendChild(topBar);
+  }
+  if (config.bottomBarHeight && config.bottomBarHeight > 0) {
+    var bottomBar = document.createElement('div');
+    bottomBar.style.cssText = 'position:absolute; bottom:0; left:0; right:0; height:' + config.bottomBarHeight + '%; background:#000; z-index:2;';
+    heroSection.appendChild(bottomBar);
+  }
 
   // SOBRE
   var sobre = content.sobre || {};
