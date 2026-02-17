@@ -114,7 +114,9 @@ async function switchTab(tabName) {
   if (appState.currentTab !== tabName) return;
 
   const mod = tabModules[tabName];
-  const funcName = 'render' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+  // Converte kebab-case para PascalCase: 'meu-site' → 'MeuSite'
+  const pascalCase = tabName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+  const funcName = 'render' + pascalCase;
   const renderFunc = mod[funcName];
 
   if (!renderFunc) {

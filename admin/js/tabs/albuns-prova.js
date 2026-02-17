@@ -28,7 +28,8 @@ const palette = {
 let albums = [];
 let clients = [];
 
-export async function renderAlbunsProvaTab(tabEl) {
+export async function renderAlbunsProva(container) {
+  const tabEl = container;
   tabEl.innerHTML = '';
   tabEl.style.background = palette.bg;
   tabEl.style.minHeight = '100vh';
