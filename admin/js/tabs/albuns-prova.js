@@ -235,6 +235,18 @@ function showAlbumModal({ tabEl, album = {}, isNew }) {
   inputNome.style.borderRadius = '6px';
   inputNome.required = true;
 
+  const textarea = document.createElement('textarea');
+  textarea.placeholder = 'Mensagem de boas-vindas (opcional)';
+  textarea.value = album.welcomeText || '';
+  textarea.rows = 3;
+  textarea.style.background = palette.input;
+  textarea.style.color = palette.text;
+  textarea.style.border = `1px solid ${palette.border}`;
+  textarea.style.padding = '8px';
+  textarea.style.borderRadius = '6px';
+  textarea.style.fontFamily = 'inherit';
+  textarea.style.resize = 'vertical';
+
   const select = document.createElement('select');
   select.style.background = palette.input;
   select.style.color = palette.text2;
@@ -243,7 +255,7 @@ function showAlbumModal({ tabEl, album = {}, isNew }) {
   select.style.borderRadius = '6px';
   const opt0 = document.createElement('option');
   opt0.value = '';
-  opt0.textContent = 'Selecione a Sessão de Fotos';
+  opt0.textContent = 'Selecione a Sessão de Fotos (opcional)';
   select.appendChild(opt0);
   for (const s of sessions) {
     const opt = document.createElement('option');
@@ -440,6 +452,10 @@ function openLaminasModal(album, tabEl) {
   box.append(title, grid, uploadLabel, btnCopy, btnSend, btnClose);
   modal.appendChild(box);
   document.body.appendChild(modal);
+}
+
+function openEditor(album, tabEl) {
+  openLaminasModal(album, tabEl);
 }
 
 function renderSheetCard(sheet, idx, album, tabEl, modal) {
