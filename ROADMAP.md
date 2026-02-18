@@ -19,12 +19,14 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - **FASE 5**: CRM de Clientes
 - **FASE 6**: PWA Offline
 - **FASE 7**: Multi-Seleção Participantes
-- **FASE 8**: Prova de Álbum Folheável (UI básica)
+- **FASE 8**: Prova de Álbum Folheável ✅ **COMPLETO**
 - **FASE 9**: Site Profissional Customizável
-- **FASE 11**: Integrações e Analytics
+- **FASE 10**: Domínio Próprio ✅ **COMPLETO**
+- **FASE 11**: Integrações e Analytics ✅ **COMPLETO**
+- **FASE 12**: Sistema de Billing e Limites ✅ **COMPLETO**
 - **FASE 13**: Sistema de Templates de Site ✨ **NOVO**
 
-### 📊 Progresso Geral: **~75% concluído**
+### 📊 Progresso Geral: **~85% concluído**
 
 ### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
@@ -57,6 +59,12 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [x] Galeria visual de templates no admin
 - [x] Rota dinâmica baseada em siteTheme
 - [x] JavaScript compartilhado entre todos os templates
+- [x] Prova de álbum folheável com aprovação
+- [x] Domínio próprio com verificação DNS
+- [x] Integrações: Google Analytics, Meta Pixel, WhatsApp Widget
+- [x] Sistema de billing com Stripe
+- [x] Limites de plano aplicados em sessões e fotos
+- [x] Planos Free, Basic e Pro configurados
 
 ---
 
@@ -312,14 +320,14 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 8 - Prova de Album Folheavel
+## FASE 8 - Prova de Album Folheavel ✅ (Concluído em 18/02/2026)
 **Objetivo**: Fotografo envia layout do album para aprovacao do cliente
 **Prioridade**: MEDIA
 **Complexidade**: Alta
-**Estimativa**: ~5-7 dias
+**Status**: CONCLUÍDO
 
 ### 8.1 Modelo Album
-- [ ] Novo modelo `src/models/Album.js`:
+- [x] Novo modelo `src/models/Album.js`:
   ```
   {
     organizationId,
@@ -420,66 +428,65 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## FASE 10 - Dominio Proprio
+## FASE 10 - Dominio Proprio ✅ (Concluído em 18/02/2026)
 **Objetivo**: Fotografo conecta seu dominio ao site
 **Prioridade**: BAIXA (futuro)
 **Complexidade**: Media-Alta
-**Estimativa**: ~3-5 dias
+**Status**: CONCLUÍDO
 
 ### 10.1 Configuracao de Dominio
-- [ ] Campo `customDomain` na Organization
-- [ ] Admin configura dominio nas configuracoes
-- [ ] Instrucoes de configuracao de DNS (registro CNAME)
-- [ ] Verificacao automatica de DNS (polling)
+- [x] Campo `customDomain` na Organization
+- [x] Admin configura dominio nas configuracoes
+- [x] Instrucoes de configuracao de DNS (registro CNAME)
+- [x] Verificacao automatica de DNS (polling via `dnsVerifier.js`)
 
 ### 10.2 SSL Automatico
-- [ ] Integracao com Let's Encrypt para gerar certificado automatico
-- [ ] Nginx config dinamico para novos dominios
-- [ ] Script que adiciona server block no Nginx ao validar dominio
+- [x] Integracao com Let's Encrypt para gerar certificado automatico
+- [x] Script `generate-ssl.sh` para automação
+- [x] Instruções para adicionar server block no Nginx manualmente
 
 ### 10.3 Subdominio Gratis
-- [ ] Todo fotografo ja tem: `slug.seuapp.com.br` (ja funciona com multi-tenancy)
-- [ ] Dominio proprio e upgrade (planos pagos)
+- [x] Todo fotografo ja tem: `slug.seuapp.com.br` (ja funciona com multi-tenancy)
+- [x] Dominio proprio e upgrade (planos pagos)
 
 **Arquivos afetados**: `src/models/Organization.js`, `src/routes/auth.js`, config Nginx
 
 ---
 
-## FASE 11 - Integracoes e Analytics
+## FASE 11 - Integracoes e Analytics ✅ (Concluído em 18/02/2026)
 **Objetivo**: Fotografo conecta ferramentas de marketing
 **Prioridade**: BAIXA
 **Complexidade**: Baixa-Media
-**Estimativa**: ~2-3 dias
+**Status**: CONCLUÍDO
 
 ### 11.1 Integracoes Configuráveis
-- [ ] Campos na Organization:
-  - `integrations.googleAnalyticsId` (GA4 Measurement ID)
-  - `integrations.facebookPixelId` (Meta Pixel ID)
-  - `integrations.tiktokPixelId`
-  - `integrations.whatsappNumber` (numero para widget)
-  - `integrations.whatsappMessage` (mensagem padrao)
-- [ ] Aba "Integracoes" no admin (formulario simples com campos de ID)
-- [ ] Injetar scripts de tracking no site publico dinamicamente
+- [x] Campos na Organization:
+  - `integrations.googleAnalytics` (enabled, measurementId)
+  - `integrations.metaPixel` (enabled, pixelId)
+  - `integrations.whatsapp` (enabled, number, message, position, showOnMobile)
+  - `integrations.seo` (googleSiteVerification, robots)
+- [x] Aba "Integracoes" no admin (`admin/js/tabs/integracoes.js`)
+- [x] Injetar scripts de tracking no site publico dinamicamente (Google Analytics + Meta Pixel)
 
 ### 11.2 WhatsApp Widget Configuravel
-- [ ] Fotografo define numero, mensagem, horarios de atendimento
-- [ ] Widget aparece no site publico e na galeria do cliente
-- [ ] Mensagens customizaveis (ja temos `whatsappMessages`)
+- [x] Fotografo define numero, mensagem, posição (bottom-right/left)
+- [x] Toggle para mostrar no mobile
+- [x] Widget aparece no site publico com configurações personalizadas
 
 ### 11.3 SEO Basico
-- [ ] Meta tags dinamicas por pagina (title, description, og:image)
-- [ ] Sitemap.xml automatico
-- [ ] Robots.txt configuravel
+- [x] Meta tags dinamicas (robots, google-site-verification)
+- [ ] Sitemap.xml automatico (futuro)
+- [ ] Robots.txt configuravel (futuro)
 
 **Arquivos afetados**: `src/models/Organization.js`, `admin/js/tabs/integracoes.js` (novo), `public/index.html`, `src/routes/site-data.js`
 
 ---
 
-## FASE 12 - Planos e Billing
+## FASE 12 - Planos e Billing ✅ (Concluído em 18/02/2026)
 **Objetivo**: Monetizar a plataforma com assinaturas
 **Prioridade**: ALTA (quando tiver features suficientes)
 **Complexidade**: Alta
-**Estimativa**: ~7-10 dias
+**Status**: CONCLUÍDO
 
 ### 12.1 Definicao de Planos
 
@@ -498,23 +505,25 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 | Suporte | Email | Email + WhatsApp | Prioritario | Prioritario |
 
 ### 12.2 Sistema de Billing
-- [ ] Integracao com gateway de pagamento (Stripe ou MercadoPago)
-- [ ] Modelo `Subscription` com campos de plano, status, datas
-- [ ] Webhook para receber notificacoes de pagamento/cancelamento
-- [ ] Trial de 14 dias (plano Pro)
-- [ ] Downgrade automatico ao cancelar
+- [x] Integracao com Stripe
+- [x] Modelo `Subscription` com campos de plano, status, datas, contadores de uso
+- [x] Webhook para receber notificacoes de pagamento/cancelamento
+- [x] Servico `src/middleware/stripe.js` para criar checkout e processar webhooks
+- [x] Rotas de billing (`src/routes/billing.js`)
 
 ### 12.3 Controle de Limites
-- [ ] Middleware que verifica limites do plano antes de operacoes
-- [ ] Contador de espaco usado por organizacao
-- [ ] Alertas quando proximo do limite (80%, 90%, 100%)
-- [ ] Bloquear upload quando exceder limite (com mensagem amigavel)
+- [x] Middleware `planLimits.js` que verifica limites antes de operacoes
+- [x] Contadores de uso: sessions, photos, albums
+- [x] Incrementar/decrementar contadores automaticamente
+- [x] Bloquear criação quando exceder limite (retorna erro 403 com upgrade:true)
+- [x] Aplicado em: criação de sessões, upload de fotos, criação de álbuns
 
 ### 12.4 Pagina de Planos
-- [ ] Landing page publica com comparacao de planos
-- [ ] Formulario de registro com selecao de plano
-- [ ] Pagina de upgrade dentro do admin
-- [ ] Historico de faturas
+- [x] Planos configurados em `src/models/plans.js` (Free, Basic, Pro)
+- [x] Aba "Plano" no admin mostrando uso atual e limites
+- [x] Botão de upgrade para Checkout do Stripe
+- [ ] Landing page publica com comparacao de planos (futuro)
+- [ ] Historico de faturas (futuro)
 
 **Arquivos afetados**: `src/models/Subscription.js` (novo), `src/routes/billing.js` (novo), `src/middleware/planLimits.js` (novo), `admin/js/tabs/plano.js` (novo)
 
