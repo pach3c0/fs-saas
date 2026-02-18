@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="siteTitle">Fotógrafo Profissional</title>
+  <meta name="description" id="siteMeta" content="">
+  <meta property="og:title" id="ogTitle" content="">
+  <meta property="og:description" id="ogDesc" content="">
+  <meta property="og:image" id="ogImage" content="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site/templates/minimalista/css/style.css">
+</head>
+<body class="theme-minimalista">
+
+  <!-- NAV MINIMALISTA (fixo, transparente) -->
+  <nav class="nav-minimal">
+    <div class="nav-content">
+      <a href="#" class="logo" id="navLogo">Estúdio</a>
+      <div class="nav-menu" id="navLinks"></div>
+    </div>
+  </nav>
+
+  <!-- HERO MINIMALISTA (texto centralizado, imagem de fundo sutil) -->
+  <section id="section-hero" class="hero-minimal">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-text">
+      <h1 id="heroTitle">Eternizando Momentos</h1>
+      <p id="heroSubtitle">Fotografia com alma e simplicidade</p>
+      <a href="#section-portfolio" class="btn-minimal">Ver Trabalhos</a>
+    </div>
+  </section>
+
+  <!-- SOBRE (layout 50/50 com espaço em branco) -->
+  <section id="section-sobre" class="section-about">
+    <div class="about-container">
+      <div class="about-text">
+        <h2 id="sobreTitle">Sobre</h2>
+        <p id="sobreText"></p>
+      </div>
+      <div class="about-image">
+        <img id="sobreImage" src="" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO (grid 2 colunas, muito espaço) -->
+  <section id="section-portfolio" class="section-portfolio">
+    <div class="portfolio-container">
+      <h2 class="section-title">Portfólio</h2>
+      <div class="portfolio-grid" id="portfolioGrid"></div>
+    </div>
+  </section>
+
+  <!-- SERVIÇOS (lista simples, sem cards) -->
+  <section id="section-servicos" class="section-services">
+    <div class="services-container">
+      <h2 class="section-title">Serviços</h2>
+      <div class="services-list" id="servicosGrid"></div>
+    </div>
+  </section>
+
+  <!-- DEPOIMENTOS (texto grande, minimalista) -->
+  <section id="section-depoimentos" class="section-testimonials">
+    <div class="testimonials-container">
+      <h2 class="section-title">Depoimentos</h2>
+      <div class="testimonials-slider" id="depoimentosTrack"></div>
+    </div>
+  </section>
+
+  <!-- CONTATO (centralizado, simples) -->
+  <section id="section-contato" class="section-contact">
+    <div class="contact-container">
+      <h2 id="contatoTitle">Contato</h2>
+      <p id="contatoText"></p>
+      <div class="contact-info" id="contatoInfo"></div>
+
+      <form id="contactForm" class="contact-form">
+        <input type="text" name="nome" placeholder="Nome" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <textarea name="mensagem" placeholder="Mensagem" rows="5" required></textarea>
+        <button type="submit">Enviar Mensagem</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER MINIMALISTA -->
+  <footer class="footer-minimal">
+    <div class="footer-content">
+      <p id="footerLogo"></p>
+      <div class="footer-social" id="footerSocial"></div>
+      <p class="footer-copy" id="footerCopy">&copy; 2026. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div id="portfolioLightbox" class="lightbox" style="display:none;">
+    <button id="lbClose" class="lb-close">×</button>
+    <button id="lbPrev" class="lb-arrow lb-prev">‹</button>
+    <img id="lbImage" src="" alt="">
+    <button id="lbNext" class="lb-arrow lb-next">›</button>
+  </div>
+
+  <script src="/site/js/site.js"></script>
+</body>
+</html>
