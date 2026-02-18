@@ -195,6 +195,8 @@ app.use('/api', require('./routes/clients'));
 // Fase 8: registrar rotas de álbuns de prova
 app.use('/api', require('./routes/albums'));
 app.use('/api', require('./routes/site'));
+app.use('/api', require('./routes/domains'));
+app.use('/api', require('./routes/billing'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

@@ -1,296 +1,191 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const crypto = require('crypto');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
-const { createUploader } = require('../utils/multerConfig');
-const { authenticateToken } = require('../middleware/auth');
-const { resolveTenant } = require('../middleware/tenant');
 const Album = require('../models/Album');
-const Client = require('../models/Client');
+const Session = require('../models/Session');
+const Subscription = require('../models/Subscription');
+const { authenticateToken } = require('../middleware/auth');
+const { checkLimit, checkAlbumLimit } = require('../middleware/planLimits');
 
-// Helper para gerar accessCode
-function generateAccessCode() {
-  return crypto.randomBytes(4).toString('hex').toUpperCase();
-}
+// === ROTAS ADMIN (Protegidas) ===
 
-// ADMIN: Listar álbuns da organização
+// Listar álbuns da organização
 router.get('/albums', authenticateToken, async (req, res) => {
   try {
-    const orgId = req.user.organizationId;
-    const albums = await Album.find({ organizationId: orgId }).sort({ createdAt: -1 }).lean();
+    const { clientId, status } = req.query;
+    const query = { organizationId: req.user.organizationId, isActive: true };
+    
+    if (clientId) query.clientId = clientId;
+    if (status) query.status = status;
+
+    const albums = await Album.find(query)
+      .populate('sessionId', 'name date')
+      .sort({ createdAt: -1 });
+      
     res.json({ success: true, albums });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    console.error('Erro ao listar álbuns:', error);
+    res.status(500).json({ success: false, error: 'Erro ao listar álbuns' });
   }
 });
 
-// ADMIN: Criar álbum
-router.post('/albums', authenticateToken, async (req, res) => {
+// Criar novo álbum
+router.post('/albums', authenticateToken, checkLimit, checkAlbumLimit, async (req, res) => {
   try {
-    const orgId = req.user.organizationId;
-    const { name, welcomeText, clientId } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
-    }
-    const accessCode = generateAccessCode();
-    const album = new Album({
-      organizationId: orgId,
-      clientId: clientId || null,
-      name: name.trim(),
-      welcomeText: welcomeText || '',
-      accessCode
+    const { name, sessionId } = req.body;
+
+    // Validar sessão
+    const session = await Session.findOne({
+      _id: sessionId,
+      organizationId: req.user.organizationId
     });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const album = new Album({
+      organizationId: req.user.organizationId,
+      sessionId,
+      clientId: session.clientId, // Vincula ao cliente da sessão se houver
+      name,
+      accessCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      pages: []
+    });
+
     await album.save();
-    res.status(201).json({ success: true, album });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+
+    // Incrementar uso de álbuns na assinatura
+    await Subscription.findOneAndUpdate(
+      { organizationId: req.user.organizationId },
+      { $inc: { 'usage.albums': 1 } }
+    );
+
+    res.json({ success: true, album });
+  } catch (error) {
+    console.error('Erro ao criar álbum:', error);
+    res.status(500).json({ success: false, error: 'Erro ao criar álbum' });
   }
 });
 
-// ADMIN: Editar álbum
+// Obter detalhes do álbum
+router.get('/albums/:id', authenticateToken, async (req, res) => {
+  try {
+    const album = await Album.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
+    }).populate('sessionId');
+
+    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
+
+    res.json({ success: true, album });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar álbum' });
+  }
+});
+
+// Atualizar álbum (páginas, nome, status)
 router.put('/albums/:id', authenticateToken, async (req, res) => {
   try {
-    const orgId = req.user.organizationId;
-    const { name, welcomeText, status } = req.body;
-    const album = await Album.findOneAndUpdate(
-      { _id: req.params.id, organizationId: orgId },
-      { name, welcomeText, status },
-      { new: true, runValidators: true }
-    );
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    res.json({ success: true, album });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ADMIN: Deletar álbum + arquivos
-router.delete('/albums/:id', authenticateToken, async (req, res) => {
-  try {
-    const orgId = req.user.organizationId;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    // Remover arquivos do disco
-    const dir = path.join(__dirname, '../../uploads', orgId.toString(), 'albums');
-    if (fs.existsSync(dir)) {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-    await album.deleteOne();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ADMIN: Upload de lâminas (múltiplos arquivos)
-const uploadSheets = createUploader('albums', { maxFiles: 30, maxSize: 10 * 1024 * 1024 });
-router.post('/albums/:id/sheets', authenticateToken, uploadSheets.array('sheets', 30), async (req, res) => {
-  try {
-    const orgId = req.user.organizationId;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const files = req.files || [];
-    const newSheets = [];
-    for (const file of files) {
-      // Comprimir imagem
-      const destPath = file.path.replace(/\.[^.]+$/, '.jpg');
-      await sharp(file.path).resize({ width: 2000 }).jpeg({ quality: 90 }).toFile(destPath);
-      fs.unlinkSync(file.path); // remove original
-      const url = `/uploads/${orgId}/albums/${path.basename(destPath)}`;
-      newSheets.push({
-        filename: file.originalname,
-        url,
-        order: album.sheets.length + newSheets.length
-      });
-    }
-    album.sheets.push(...newSheets);
-    await album.save();
-    res.json({ success: true, sheets: album.sheets });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ADMIN: Deletar lâmina
-router.delete('/albums/:id/sheets/:sheetId', authenticateToken, async (req, res) => {
-  try {
-    const orgId = req.user.organizationId;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const sheet = album.sheets.id(req.params.sheetId);
-    if (!sheet) return res.status(404).json({ success: false, error: 'Lâmina não encontrada' });
-    // Remover arquivo do disco
-    const filePath = path.join(__dirname, '../../', sheet.url);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    album.sheets.pull({ _id: req.params.sheetId });
-    await album.save();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ADMIN: Reordenar lâminas
-router.put('/albums/:id/sheets/reorder', authenticateToken, async (req, res) => {
-  try {
-    const orgId = req.user.organizationId;
-    const { order } = req.body; // [id1, id2, ...]
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    if (!Array.isArray(order) || order.length !== album.sheets.length) {
-      return res.status(400).json({ success: false, error: 'Ordem inválida' });
-    }
-    // Reordenar
-    album.sheets = order.map((id, idx) => {
-      const s = album.sheets.id(id);
-      if (s) s.order = idx;
-      return s;
+    const { name, status, pages, coverPhoto } = req.body;
+    
+    const album = await Album.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
     });
+
+    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
+
+    if (name) album.name = name;
+    if (status) album.status = status;
+    if (pages) album.pages = pages;
+    if (coverPhoto) album.coverPhoto = coverPhoto;
+
     await album.save();
-    res.json({ success: true, sheets: album.sheets });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, album });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao atualizar álbum' });
   }
 });
 
-// ADMIN: Marcar como enviado
+// Enviar para cliente (mudar status)
 router.post('/albums/:id/send', authenticateToken, async (req, res) => {
   try {
-    const orgId = req.user.organizationId;
     const album = await Album.findOneAndUpdate(
-      { _id: req.params.id, organizationId: orgId },
-      { status: 'sent', sentAt: new Date() },
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { status: 'sent' },
       { new: true }
     );
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
+    if (!album) return res.status(404).json({ error: 'Álbum não encontrado' });
     res.json({ success: true, album });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// ADMIN: Adicionar comentário em lâmina
-router.post('/albums/:id/sheets/:sheetId/comments', authenticateToken, async (req, res) => {
+// Remover álbum (soft delete)
+router.delete('/albums/:id', authenticateToken, async (req, res) => {
   try {
-    const orgId = req.user.organizationId;
-    const { text } = req.body;
-    if (!text || !text.trim()) return res.status(400).json({ success: false, error: 'Comentário obrigatório' });
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
+    const album = await Album.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { isActive: false },
+      { new: true }
+    );
+    
     if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const sheet = album.sheets.id(req.params.sheetId);
-    if (!sheet) return res.status(404).json({ success: false, error: 'Lâmina não encontrada' });
-    sheet.comments.push({ text: text.trim(), author: 'admin' });
-    await album.save();
-    res.json({ success: true, comments: sheet.comments });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    
+    res.json({ success: true, message: 'Álbum removido' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao remover álbum' });
   }
 });
 
-// CLIENT: Middleware para tenant
-router.use('/client/album', resolveTenant);
+// === ROTAS CLIENTE (Públicas com Access Code) ===
 
-// CLIENT: Verificar código de acesso
-router.post('/client/album/verify', async (req, res) => {
+// Verificar código
+router.post('/client/album/verify-code', async (req, res) => {
   try {
     const { accessCode } = req.body;
-    const orgId = req.organizationId;
-    if (!accessCode) return res.status(400).json({ success: false, error: 'Código obrigatório' });
-    const album = await Album.findOne({ accessCode, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    res.json({ success: true, albumId: album._id, name: album.name, totalSheets: album.sheets.length, status: album.status });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const album = await Album.findOne({ accessCode, isActive: true }).populate('sessionId');
+    
+    if (!album) return res.status(404).json({ error: 'Código inválido' });
+
+    res.json({
+      success: true,
+      albumId: album._id,
+      name: album.name,
+      status: album.status,
+      clientName: album.sessionId?.name
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// CLIENT: Carregar dados do álbum
+// Obter dados do álbum (Cliente)
 router.get('/client/album/:id', async (req, res) => {
   try {
-    const orgId = req.organizationId;
     const { code } = req.query;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    if (album.accessCode !== code) return res.status(403).json({ success: false, error: 'Código inválido' });
-    // Ordenar lâminas
-    const sheets = [...album.sheets].sort((a, b) => a.order - b.order);
-    res.json({ success: true, album: { ...album.toObject(), sheets } });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const album = await Album.findOne({ _id: req.params.id, accessCode: code, isActive: true });
+    
+    if (!album) return res.status(403).json({ error: 'Acesso negado' });
+    
+    res.json(album);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// CLIENT: Aprovar lâmina
-router.put('/client/album/:id/sheets/:sid/approve', async (req, res) => {
+// Aprovar álbum
+router.post('/client/album/:id/approve', async (req, res) => {
   try {
-    const orgId = req.organizationId;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const sheet = album.sheets.id(req.params.sid);
-    if (!sheet) return res.status(404).json({ success: false, error: 'Lâmina não encontrada' });
-    sheet.status = 'approved';
-    await album.save();
-    res.json({ success: true, sheet });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// CLIENT: Pedir revisão de lâmina
-router.put('/client/album/:id/sheets/:sid/request-revision', async (req, res) => {
-  try {
-    const orgId = req.organizationId;
-    const { comment } = req.body;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const sheet = album.sheets.id(req.params.sid);
-    if (!sheet) return res.status(404).json({ success: false, error: 'Lâmina não encontrada' });
-    sheet.status = 'revision_requested';
-    if (comment && comment.trim()) {
-      sheet.comments.push({ text: comment.trim(), author: 'client' });
-    }
-    await album.save();
-    res.json({ success: true, sheet });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// CLIENT: Aprovar álbum completo
-router.post('/client/album/:id/approve-all', async (req, res) => {
-  try {
-    const orgId = req.organizationId;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    album.sheets.forEach(sheet => { sheet.status = 'approved'; });
-    album.status = 'approved';
-    album.approvedAt = new Date();
-    await album.save();
-    res.json({ success: true, album });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// CLIENT: Adicionar comentário em lâmina
-router.post('/client/album/:id/sheets/:sid/comments', async (req, res) => {
-  try {
-    const orgId = req.organizationId;
-    const { comment } = req.body;
-    const album = await Album.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
-    const sheet = album.sheets.id(req.params.sid);
-    if (!sheet) return res.status(404).json({ success: false, error: 'Lâmina não encontrada' });
-    if (comment && comment.trim()) {
-      sheet.comments.push({ text: comment.trim(), author: 'client' });
-    }
-    await album.save();
-    res.json({ success: true, comments: sheet.comments });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const { code } = req.body;
+    const album = await Album.findOneAndUpdate(
+      { _id: req.params.id, accessCode: code },
+      { status: 'approved', approvedAt: new Date() },
+      { new: true }
+    );
+    if (!album) return res.status(403).json({ error: 'Acesso negado' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -134,7 +134,8 @@ const OrganizationSchema = new mongoose.Schema({
       googleSiteVerification: { type: String, default: '' },
       robots: { type: String, default: 'index, follow' }
     }
-  }
+  },
+  subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription', default: null }
 }, { timestamps: true });
 
 /**

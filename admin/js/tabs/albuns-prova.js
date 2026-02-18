@@ -26,7 +26,8 @@ const palette = {
 };
 
 let albums = [];
-let clients = [];
+let sessions = [];
+let currentAlbum = null;
 
 export async function renderAlbunsProva(container) {
   const tabEl = container;
@@ -67,7 +68,7 @@ function renderHeader(tabEl) {
 }
 
 async function loadAlbums(tabEl) {
-  const res = await apiGet('/api/albums');
+  const res = await apiGet('/api/albums?status=');
   albums = res.albums || [];
   renderAlbumsList(tabEl);
 }
@@ -112,7 +113,7 @@ function renderAlbumCard(album, tabEl) {
   version.style.fontSize = '0.95rem';
 
   const status = document.createElement('span');
-  const st = palette.status[album.status] || { color: '#888', label: album.status };
+  const st = palette.status[album.status] || { color: '#6b7280', label: album.status };
   status.textContent = st.label;
   status.style.background = st.color;
   status.style.color = '#fff';
@@ -122,31 +123,15 @@ function renderAlbumCard(album, tabEl) {
   status.style.alignSelf = 'flex-start';
 
   const total = document.createElement('div');
-  total.textContent = `Lâminas: ${album.sheets?.length || 0}`;
+  total.textContent = `Páginas: ${album.pages?.length || 0}`;
   total.style.color = palette.text2;
   total.style.fontSize = '0.95rem';
-
-  const aprovadas = document.createElement('div');
-  const aprovadasCount = (album.sheets || []).filter(s => s.status === 'approved').length;
-  aprovadas.textContent = `Aprovadas: ${aprovadasCount}`;
-  aprovadas.style.color = palette.success;
-  aprovadas.style.fontSize = '0.95rem';
 
   // Botões
   const btns = document.createElement('div');
   btns.style.display = 'flex';
   btns.style.gap = '8px';
   btns.style.marginTop = '10px';
-
-  const btnVer = document.createElement('button');
-  btnVer.textContent = 'Ver Lâminas';
-  btnVer.style.background = palette.primary;
-  btnVer.style.color = '#fff';
-  btnVer.style.border = 'none';
-  btnVer.style.padding = '6px 12px';
-  btnVer.style.borderRadius = '5px';
-  btnVer.style.cursor = 'pointer';
-  btnVer.onclick = () => openLaminasModal(album, tabEl);
 
   const btnEdit = document.createElement('button');
   btnEdit.textContent = 'Editar';
@@ -156,7 +141,7 @@ function renderAlbumCard(album, tabEl) {
   btnEdit.style.padding = '6px 12px';
   btnEdit.style.borderRadius = '5px';
   btnEdit.style.cursor = 'pointer';
-  btnEdit.onclick = () => openEditAlbumModal(album, tabEl);
+  btnEdit.onclick = () => openEditor(album, tabEl);
 
   const btnSend = document.createElement('button');
   btnSend.textContent = 'Enviar para Cliente';
@@ -167,8 +152,15 @@ function renderAlbumCard(album, tabEl) {
   btnSend.style.borderRadius = '5px';
   btnSend.style.cursor = 'pointer';
   btnSend.onclick = async () => {
-    await apiPost(`/api/albums/${album._id}/send`);
-    await loadAlbums(tabEl);
+    if (confirm('Enviar álbum para aprovação do cliente?')) {
+      await apiPost(`/api/albums/${album._id}/send`);
+      const url = `${window.location.origin}/album/?code=${album.accessCode}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+        alert(`Álbum enviado! Link copiado: ${url}`);
+      }
+      await loadAlbums(tabEl);
+    }
   };
 
   const btnDel = document.createElement('button');
@@ -185,22 +177,18 @@ function renderAlbumCard(album, tabEl) {
     }
   };
 
-  btns.append(btnVer, btnEdit, btnSend, btnDel);
-  card.append(name, version, status, total, aprovadas, btns);
+  btns.append(btnEdit, btnSend, btnDel);
+  card.append(name, version, status, total, btns);
   return card;
 }
 
 // --- Modais ---
 async function openNovoAlbumModal(tabEl) {
-  if (!clients.length) {
-    const res = await apiGet('/api/clients');
-    clients = res.clients || [];
+  if (!sessions.length) {
+    const res = await apiGet('/api/sessions');
+    sessions = res.sessions || [];
   }
   showAlbumModal({ tabEl, isNew: true });
-}
-
-function openEditAlbumModal(album, tabEl) {
-  showAlbumModal({ tabEl, album, isNew: false });
 }
 
 function showAlbumModal({ tabEl, album = {}, isNew }) {
@@ -247,16 +235,6 @@ function showAlbumModal({ tabEl, album = {}, isNew }) {
   inputNome.style.borderRadius = '6px';
   inputNome.required = true;
 
-  const textarea = document.createElement('textarea');
-  textarea.placeholder = 'Mensagem de boas-vindas (opcional)';
-  textarea.value = album.welcomeText || '';
-  textarea.style.background = palette.input;
-  textarea.style.color = palette.text2;
-  textarea.style.border = `1px solid ${palette.border}`;
-  textarea.style.padding = '8px';
-  textarea.style.borderRadius = '6px';
-  textarea.rows = 3;
-
   const select = document.createElement('select');
   select.style.background = palette.input;
   select.style.color = palette.text2;
@@ -265,13 +243,13 @@ function showAlbumModal({ tabEl, album = {}, isNew }) {
   select.style.borderRadius = '6px';
   const opt0 = document.createElement('option');
   opt0.value = '';
-  opt0.textContent = 'Sem cliente vinculado';
+  opt0.textContent = 'Selecione a Sessão de Fotos';
   select.appendChild(opt0);
-  for (const c of clients) {
+  for (const s of sessions) {
     const opt = document.createElement('option');
-    opt.value = c._id;
-    opt.textContent = c.name;
-    if (album.clientId && c._id === album.clientId) opt.selected = true;
+    opt.value = s._id;
+    opt.textContent = `${s.name} - ${new Date(s.date).toLocaleDateString()}`;
+    if (album.sessionId && s._id === album.sessionId._id) opt.selected = true;
     select.appendChild(opt);
   }
 

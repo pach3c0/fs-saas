@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
+const Subscription = require('../models/Subscription');
 const { authenticateToken } = require('../middleware/auth');
+const { checkLimit, checkSessionLimit, checkPhotoLimit } = require('../middleware/planLimits');
 const { createUploader } = require('../utils/multerConfig');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -400,15 +402,22 @@ router.get('/sessions', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/sessions', authenticateToken, async (req, res) => {
+router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const session = await Session.create({ 
-      ...req.body, 
-      accessCode, 
+    const session = await Session.create({
+      ...req.body,
+      accessCode,
       isActive: true,
       organizationId: req.user.organizationId
     });
+
+    // Incrementar contador de uso
+    await Subscription.findOneAndUpdate(
+      { organizationId: req.user.organizationId },
+      { $inc: { 'usage.sessions': 1 } }
+    );
+
     res.json({ success: true, session });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -431,11 +440,13 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 
 router.delete('/sessions/:id', authenticateToken, async (req, res) => {
   try {
-    const session = await Session.findOne({ 
-      _id: req.params.id, 
-      organizationId: req.user.organizationId 
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
     });
     if (session) {
+      const photoCount = session.photos.length;
+
       // Tentar limpar arquivos (opcional, pode falhar sem erro)
       session.photos.forEach(p => {
         if (p.url.startsWith('/uploads/')) {
@@ -443,6 +454,17 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
         }
       });
       await Session.findByIdAndDelete(req.params.id);
+
+      // Decrementar contadores
+      await Subscription.findOneAndUpdate(
+        { organizationId: req.user.organizationId },
+        {
+          $inc: {
+            'usage.sessions': -1,
+            'usage.photos': -photoCount
+          }
+        }
+      );
     }
     res.json({ success: true });
   } catch (error) {
@@ -450,7 +472,7 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/sessions/:id/photos', authenticateToken, uploadSession.array('photos'), async (req, res) => {
+router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLimit, uploadSession.array('photos'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -483,6 +505,13 @@ router.post('/sessions/:id/photos', authenticateToken, uploadSession.array('phot
 
     session.photos.push(...newPhotos);
     await session.save();
+
+    // Incrementar contador de fotos
+    await Subscription.findOneAndUpdate(
+      { organizationId: req.user.organizationId },
+      { $inc: { 'usage.photos': newPhotos.length } }
+    );
+
     res.json({ success: true, photos: newPhotos });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -515,6 +544,12 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
       }
 
       await session.save();
+
+      // Decrementar contador de fotos
+      await Subscription.findOneAndUpdate(
+        { organizationId: req.user.organizationId },
+        { $inc: { 'usage.photos': -1 } }
+      );
     }
     res.json({ success: true });
   } catch (error) {
