@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="siteTitle">Fotógrafo Profissional</title>
+  <meta name="description" id="siteMeta" content="">
+  <meta property="og:title" id="ogTitle" content="">
+  <meta property="og:description" id="ogDesc" content="">
+  <meta property="og:image" id="ogImage" content="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site/templates/escuro/css/style.css">
+</head>
+<body class="theme-escuro">
+
+  <!-- NAV ESCURO (transparente, fixo) -->
+  <nav class="nav-escuro">
+    <div class="nav-container">
+      <a href="#" class="logo" id="navLogo">Estúdio</a>
+      <div class="nav-menu" id="navLinks"></div>
+    </div>
+  </nav>
+
+  <!-- HERO ESCURO (fullscreen com overlay forte) -->
+  <section id="section-hero" class="hero-escuro">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 id="heroTitle">Eternizando Momentos</h1>
+      <p id="heroSubtitle">Fotografia com alma e simplicidade</p>
+      <a href="#section-portfolio" class="btn-escuro">Ver Trabalhos</a>
+    </div>
+    <div class="scroll-indicator">
+      <span>↓</span>
+    </div>
+  </section>
+
+  <!-- SOBRE (duas colunas com linha dourada) -->
+  <section id="section-sobre" class="section-sobre">
+    <div class="sobre-container">
+      <div class="sobre-image">
+        <img id="sobreImage" src="" alt="">
+        <div class="sobre-frame"></div>
+      </div>
+      <div class="sobre-text">
+        <div class="section-label">Conheça</div>
+        <h2 id="sobreTitle">Sobre</h2>
+        <p id="sobreText"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO (grid com hover dramático) -->
+  <section id="section-portfolio" class="section-portfolio">
+    <div class="portfolio-container">
+      <div class="section-label">Galeria</div>
+      <h2 class="section-title">Portfólio</h2>
+      <div class="portfolio-grid" id="portfolioGrid"></div>
+    </div>
+  </section>
+
+  <!-- SERVIÇOS (lista com ícones dourados) -->
+  <section id="section-servicos" class="section-servicos">
+    <div class="servicos-container">
+      <div class="section-label">O que fazemos</div>
+      <h2 class="section-title">Serviços</h2>
+      <div class="servicos-list" id="servicosGrid"></div>
+    </div>
+  </section>
+
+  <!-- DEPOIMENTOS (slider dark) -->
+  <section id="section-depoimentos" class="section-depoimentos">
+    <div class="depoimentos-container">
+      <div class="section-label">Feedbacks</div>
+      <h2 class="section-title">Depoimentos</h2>
+      <div class="depoimentos-slider" id="depoimentosTrack"></div>
+    </div>
+  </section>
+
+  <!-- CONTATO (centralizado com fundo escuro) -->
+  <section id="section-contato" class="section-contato">
+    <div class="contato-container">
+      <div class="section-label">Fale conosco</div>
+      <h2 id="contatoTitle">Contato</h2>
+      <p id="contatoText"></p>
+      <div class="contact-info" id="contatoInfo"></div>
+
+      <form id="contactForm" class="contact-form">
+        <input type="text" name="nome" placeholder="Nome" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <textarea name="mensagem" placeholder="Mensagem" rows="5" required></textarea>
+        <button type="submit">Enviar Mensagem</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER ESCURO -->
+  <footer class="footer-escuro">
+    <div class="footer-content">
+      <p id="footerLogo"></p>
+      <div class="footer-social" id="footerSocial"></div>
+      <p class="footer-copy" id="footerCopy">&copy; 2026. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div id="portfolioLightbox" class="lightbox" style="display:none;">
+    <button id="lbClose" class="lb-close">×</button>
+    <button id="lbPrev" class="lb-arrow lb-prev">‹</button>
+    <img id="lbImage" src="" alt="">
+    <button id="lbNext" class="lb-arrow lb-next">›</button>
+  </div>
+
+  <script src="/site/js/site.js"></script>
+</body>
+</html>

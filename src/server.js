@@ -36,9 +36,58 @@ app.get('/galeria/:id', (req, res) => {
   res.sendFile(path.join(__dirname, '../cliente/index.html'));
 });
 
-// SPA route for photographer site
-app.get('/site', (req, res) => {
-  res.sendFile(path.join(__dirname, '../site/index.html'));
+// SPA route for photographer site (serves template based on siteTheme)
+app.get('/site', async (req, res) => {
+  try {
+    const Organization = require('./models/Organization');
+
+    // Resolve tenant (same logic as resolveTenant middleware)
+    let orgId = null;
+    const tenant = req.query._tenant || req.headers['x-tenant'];
+
+    if (tenant) {
+      const org = await Organization.findOne({ slug: tenant });
+      if (org) orgId = org._id;
+    } else {
+      // In production, extract subdomain from req.hostname
+      const hostname = req.hostname;
+      const baseDomain = process.env.BASE_DOMAIN || 'fsfotografias.com.br';
+      const subdomain = hostname.replace(`.${baseDomain}`, '');
+      if (subdomain && subdomain !== hostname && subdomain !== 'app') {
+        const org = await Organization.findOne({ slug: subdomain });
+        if (org) orgId = org._id;
+      }
+    }
+
+    // Default to owner org if no tenant found
+    if (!orgId) {
+      const ownerSlug = process.env.OWNER_SLUG || 'fs';
+      const org = await Organization.findOne({ slug: ownerSlug });
+      if (org) orgId = org._id;
+    }
+
+    // Get organization theme
+    let theme = 'elegante'; // default
+    if (orgId) {
+      const org = await Organization.findById(orgId).select('siteTheme');
+      theme = org?.siteTheme || 'elegante';
+    }
+
+    // Map theme to template path
+    const templatePath = path.join(__dirname, `../site/templates/${theme}/index.html`);
+
+    // Check if template exists, fallback to elegante
+    const fs = require('fs');
+    if (!fs.existsSync(templatePath)) {
+      return res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
+    }
+
+    res.sendFile(templatePath);
+  } catch (error) {
+    console.error('Error serving site template:', error);
+    // Fallback to elegante on error
+    res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
+  }
 });
 
 // Preview route (bypasses maintenance curtain)

@@ -61,14 +61,15 @@ export async function renderMeuSite(container) {
         <div id="config-geral" class="sub-tab-content">
             <div style="display:grid; gap:1rem; max-width:600px;">
                 <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Tema</label>
+                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Tema do Site</label>
                     <select id="siteTheme" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                        <option value="elegante">Elegante (Dourado/Serif)</option>
-                        <option value="minimalista">Minimalista (Clean/P&B)</option>
-                        <option value="moderno">Moderno (Azul/Sans)</option>
-                        <option value="escuro">Escuro (Dark Mode)</option>
-                        <option value="colorido">Colorido (Vibrante)</option>
+                        <option value="elegante">Elegante (Clássico/Dourado/Serif)</option>
+                        <option value="minimalista">Minimalista (Clean/P&B/Espaços)</option>
+                        <option value="moderno">Moderno (Azul/Gradientes/Cards)</option>
+                        <option value="escuro">Escuro (Dark Mode/Laranja)</option>
+                        <option value="galeria">Galeria (Masonry/Foco Fotos)</option>
                     </select>
+                    <p style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;">💡 Altere o tema e clique em "Ver Site" para testar cada estilo</p>
                 </div>
                 <div>
                     <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título do Site (SEO)</label>
