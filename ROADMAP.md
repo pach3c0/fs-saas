@@ -10,9 +10,23 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## Status Atual (Fev/2026)
+## Status Atual (18/Fev/2026)
 
-### O que ja temos funcionando:
+### ✅ Fases Concluídas:
+- **FASE 1**: Perfil e Identidade Visual
+- **FASE 2**: Marca D'Água Avançada (parcial - básico completo)
+- **FASE 3**: Melhorias na Seleção (parcial - comentários e filtros)
+- **FASE 5**: CRM de Clientes
+- **FASE 6**: PWA Offline
+- **FASE 7**: Multi-Seleção Participantes
+- **FASE 8**: Prova de Álbum Folheável (UI básica)
+- **FASE 9**: Site Profissional Customizável
+- **FASE 11**: Integrações e Analytics
+- **FASE 13**: Sistema de Templates de Site ✨ **NOVO**
+
+### 📊 Progresso Geral: **~75% concluído**
+
+### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
 - [x] Painel admin com 10 abas (Hero, Sobre, Portfolio, Albuns, Estudio, FAQ, Newsletter, Sessoes, Footer, Manutencao)
 - [x] Galeria do cliente com codigo de acesso
@@ -39,6 +53,10 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [x] Logo dinamico na galeria do cliente
 - [x] Foto de capa por sessao
 - [x] Rota publica de dados da organizacao
+- [x] Sistema de templates de site (5 layouts: Elegante, Minimalista, Moderno, Escuro, Galeria)
+- [x] Galeria visual de templates no admin
+- [x] Rota dinâmica baseada em siteTheme
+- [x] JavaScript compartilhado entre todos os templates
 
 ---
 
@@ -502,6 +520,65 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
+---
+
+## FASE 13 - Sistema de Templates de Site (Concluído em 18/02/2026)
+**Objetivo**: Oferecer múltiplas opções de layout para o site profissional do fotógrafo
+**Prioridade**: MÉDIA
+**Complexidade**: Média
+**Status**: CONCLUÍDO
+
+### 13.1 Criação de Templates Visuais
+- [x] Estrutura de diretórios: `site/templates/{elegante,minimalista,moderno,escuro,galeria}/`
+- [x] Cada template com seu próprio `index.html` e `css/style.css`
+- [x] JavaScript compartilhado: `site/templates/shared-site.js` (funciona com todos os templates)
+- [x] **Template Elegante**: Clássico com dourado, serif (Playfair), grid 3 colunas
+- [x] **Template Minimalista**: Clean, P&B, grid 2 colunas, muito espaço branco, nav transparente
+- [x] **Template Moderno**: Azul/gradientes, assimétrico, floating cards, animações
+- [x] **Template Escuro**: Dark mode completo (#0a0a0a), laranja/dourado (#ff9500), hero fullscreen
+- [x] **Template Galeria**: Masonry grid estilo Pinterest, foco em fotos, minimal text
+
+### 13.2 Rota Dinâmica de Templates
+- [x] Rota `/site` atualizada para servir template baseado em `Organization.siteTheme`
+- [x] Resolve tenant via `?_tenant=slug` ou subdomain
+- [x] Fallback para template "elegante" se tema não existir
+- [x] Static middleware DEPOIS da rota dinâmica (para servir CSS/JS)
+- [x] Cada template usa o mesmo `shared-site.js` (renderização universal)
+
+### 13.3 Galeria Visual no Admin
+- [x] Aba "Meu Site" → "Geral" → Cards visuais de templates
+- [x] Cada card mostra:
+  - Preview colorido (letra inicial + gradiente)
+  - Paleta de cores (3 bolinhas coloridas)
+  - Nome e descrição do template
+  - Badge "✓ Ativo" no template selecionado
+  - Hover effects (borda azul + elevação)
+- [x] Click no card → seleciona template → "Salvar Configurações" → "Ver Site" para testar
+- [x] UX muito mais intuitiva que dropdown tradicional
+
+### 13.4 JavaScript Compartilhado
+- [x] `shared-site.js` carrega dados da API `/api/site/config`
+- [x] Preenche elementos do DOM que existem em cada template
+- [x] Suporta lightbox, navegação, formulário de contato
+- [x] Oculta seções não ativadas (`siteSections`)
+- [x] Renderiza serviços, depoimentos, portfolio dinamicamente
+- [x] WhatsApp widget configurável
+
+**Arquivos criados**: 
+- `site/templates/{elegante,minimalista,moderno,escuro,galeria}/index.html`
+- `site/templates/{elegante,minimalista,moderno,escuro,galeria}/css/style.css`
+- `site/templates/shared-site.js`
+
+**Arquivos modificados**: 
+- `src/server.js` (rota dinâmica `/site`)
+- `admin/js/tabs/meu-site.js` (galeria visual)
+
+**Arquivos removidos**: 
+- `site/index.html` (substituído pelos templates)
+- `site/css/site.css` (substituído pelos templates)
+- `site/js/site.js` (substituído por `shared-site.js`)
+
+
 ## Ordem de Execucao Recomendada
 
 ```
@@ -578,5 +655,5 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-*Ultima atualizacao: 15/02/2026 - Fase 1 concluida*
+*Ultima atualizacao: 18/02/2026 - Fase 13 (Templates) concluída*
 *Referencia competitiva: PicSize (picsize.com.br)*

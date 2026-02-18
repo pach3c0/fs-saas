@@ -65,10 +65,24 @@ Site/
     albums.html             # Pagina de albuns
     js/
       main.js               # JS do site publico (~730 linhas)
-  site/                     # Template do site do fotografo (Fase 9)
-    index.html
-    js/site.js
-    css/site.css
+  site/                     # Sistema de templates do site do fotografo (Fase 9 + 13)
+    templates/              # 5 templates diferentes
+      elegante/
+        index.html          # Template clássico dourado/serif
+        css/style.css
+      minimalista/
+        index.html          # Template clean P&B
+        css/style.css
+      moderno/
+        index.html          # Template azul/gradientes
+        css/style.css
+      escuro/
+        index.html          # Template dark mode
+        css/style.css
+      galeria/
+        index.html          # Template masonry grid
+        css/style.css
+      shared-site.js        # JavaScript compartilhado (renderiza todos os templates)
   cliente/
     index.html              # Galeria privada do cliente (HTML apenas, sem JS inline)
     sw.js                   # Service Worker PWA (cache offline de fotos)
@@ -322,6 +336,99 @@ A galeria do cliente (`cliente/index.html` + `cliente/js/gallery.js`) e uma SPA 
 - Watermark overlay sobre cada foto
 
 ---
+## SISTEMA DE TEMPLATES DE SITE
+
+O site profissional do fotógrafo (`/site`) suporta **5 templates diferentes** que o fotógrafo pode escolher no admin. Cada template tem seu próprio HTML e CSS, mas todos compartilham o mesmo JavaScript.
+
+### Estrutura de Templates
+
+```
+site/templates/
+  elegante/         # Clássico dourado, serif (Playfair), grid 3 colunas
+    index.html
+    css/style.css
+  minimalista/      # Clean P&B, grid 2 colunas, muito espaço
+    index.html
+    css/style.css
+  moderno/          # Azul/gradientes, assimétrico, floating cards
+    index.html
+    css/style.css
+  escuro/           # Dark mode (#0a0a0a), laranja (#ff9500), fullscreen
+    index.html
+    css/style.css
+  galeria/          # Masonry grid Pinterest-style, foco em fotos
+    index.html
+    css/style.css
+  shared-site.js    # JavaScript compartilhado entre TODOS os templates
+```
+
+### Rota Dinâmica (`/site`)
+
+A rota `GET /site` em `src/server.js` resolve qual template servir:
+
+```javascript
+// 1. Resolve tenant (query ?_tenant=slug ou subdomain)
+// 2. Busca Organization.siteTheme no MongoDB
+// 3. Serve /site/templates/{theme}/index.html
+// 4. Fallback para 'elegante' se tema não existir
+```
+
+**IMPORTANTE**: A rota dinâmica `app.get('/site')` **DEVE vir ANTES** do static middleware `app.use('/site', express.static(...))` para funcionar corretamente!
+
+### JavaScript Compartilhado (`shared-site.js`)
+
+Todos os 5 templates usam o mesmo `shared-site.js`:
+
+```javascript
+// 1. Detecta tenant (?_tenant=slug ou subdomain)
+// 2. Chama /api/site/config para buscar dados
+// 3. Preenche elementos do DOM que existem no template
+// 4. Oculta seções não ativadas (via siteSections)
+// 5. Renderiza portfolio, serviços, depoimentos dinamicamente
+// 6. Lightbox, navegação, formulário de contato
+```
+
+**Padrão de IDs esperados** (cada template pode ter ou não):
+- `#heroTitle`, `#heroSubtitle`, `#heroBg` - Hero
+- `#sobreTitle`, `#sobreText`, `#sobreImage` - Sobre
+- `#portfolioGrid` - Grid de fotos
+- `#servicosGrid` - Lista de serviços
+- `#depoimentosTrack` - Depoimentos
+- `#contatoTitle`, `#contatoText`, `#contactForm` - Contato
+
+### Galeria Visual no Admin
+
+Na aba **"Meu Site" → "Geral"**, o fotógrafo vê cards visuais de cada template:
+
+```javascript
+{
+  id: 'elegante',
+  name: 'Elegante',
+  desc: 'Clássico com dourado e serif',
+  colors: ['#c9a962', '#2c2c2c', '#f5f5f5']  // Preview colorido
+}
+```
+
+- Preview com gradiente das cores principais
+- Paleta de 3 bolinhas coloridas
+- Badge "✓ Ativo" no template selecionado
+- Hover effects (borda azul + elevação)
+- Click → seleciona → "Salvar" → "Ver Site" para testar
+
+### Como Adicionar um Novo Template
+
+1. Criar diretório: `site/templates/novo-tema/`
+2. Criar `index.html` com IDs padrão (heroTitle, portfolioGrid, etc.)
+3. Criar `css/style.css` com estilos únicos
+4. Adicionar `<script src="/site/templates/shared-site.js"></script>`
+5. Adicionar no admin (`meu-site.js`):
+   ```javascript
+   { id: 'novo-tema', name: 'Novo Tema', desc: '...', colors: [...] }
+   ```
+6. Adicionar no `Organization.siteTheme` como opção válida
+
+---
+
 
 ## PADRAO DO PHOTO EDITOR MODAL
 
