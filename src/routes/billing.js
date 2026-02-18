@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { createCheckoutSession, handleWebhook } = require('../services/stripe');
+const { createCheckoutSession, handleWebhook } = require('../middleware/stripe');
 const Subscription = require('../models/Subscription');
-const plans = require('../config/plans');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const plans = require('../models/plans');
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 // Listar planos disponíveis
 router.get('/billing/plans', async (req, res) => {

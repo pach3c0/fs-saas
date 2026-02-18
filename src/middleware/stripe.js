@@ -1,8 +1,14 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
+  : null;
 const Subscription = require('../models/Subscription');
-const plans = require('../config/plans');
+const plans = require('../models/plans');
 
 async function createCheckoutSession(organizationId, planName) {
+  if (!stripe) {
+    throw new Error('Stripe não configurado. Adicione STRIPE_SECRET_KEY no .env');
+  }
+
   const plan = plans[planName];
   if (!plan || plan.price === 0) {
     throw new Error('Plano inválido');
