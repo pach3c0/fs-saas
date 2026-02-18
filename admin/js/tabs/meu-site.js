@@ -13,7 +13,6 @@ import { renderFaq } from './faq.js';
 import { renderNewsletter } from './newsletter.js';
 
 export async function renderMeuSite(container) {
-  console.log('renderMeuSite chamado!', container);
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
