@@ -1,5 +1,5 @@
 // admin/js/tabs/albuns-prova.js
-// Aba Prova de Álbuns — ES Module
+// Aba Prova de Álbuns — ES Module (v1.1 - fixed textarea)
 import { appState } from '../state.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 import { copyToClipboard } from '../utils/helpers.js';
