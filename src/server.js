@@ -22,11 +22,12 @@ app.use('/cliente', express.static(path.join(__dirname, '../cliente')));
 app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
 // Fase 8: servir visualizador de álbum de prova
 app.use('/album', express.static(path.join(__dirname, '../album')));
-// Fase 9: servir site do fotógrafo
-app.use('/site', express.static(path.join(__dirname, '../site')));
+
+// ============================================================================
+// DYNAMIC ROUTES (must come BEFORE static middleware for /site)
+// ============================================================================
 
 // Rota de Cadastro (Landing Page)
-app.use('/cadastro', express.static(path.join(__dirname, '../cadastro')));
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '../cadastro/index.html'));
 });
@@ -89,6 +90,10 @@ app.get('/site', async (req, res) => {
     res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
   }
 });
+
+// Static assets for site templates (CSS, JS, fonts) - AFTER dynamic route
+app.use('/site', express.static(path.join(__dirname, '../site')));
+app.use('/cadastro', express.static(path.join(__dirname, '../cadastro')));
 
 // Preview route (bypasses maintenance curtain)
 app.get('/preview', (req, res) => {
