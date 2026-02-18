@@ -59,18 +59,20 @@ export async function renderMeuSite(container) {
       <div id="subTabContent">
         <!-- Geral -->
         <div id="config-geral" class="sub-tab-content">
-            <div style="display:grid; gap:1rem; max-width:600px;">
+            <div style="display:flex; flex-direction:column; gap:2rem;">
                 <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Tema do Site</label>
-                    <select id="siteTheme" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                        <option value="elegante">Elegante (Clássico/Dourado/Serif)</option>
-                        <option value="minimalista">Minimalista (Clean/P&B/Espaços)</option>
-                        <option value="moderno">Moderno (Azul/Gradientes/Cards)</option>
-                        <option value="escuro">Escuro (Dark Mode/Laranja)</option>
-                        <option value="galeria">Galeria (Masonry/Foco Fotos)</option>
-                    </select>
-                    <p style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;">💡 Altere o tema e clique em "Ver Site" para testar cada estilo</p>
+                    <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem;">Escolha o Tema do Seu Site</h3>
+                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Selecione um template e clique em "Ver Site" para visualizar</p>
+
+                    <div id="templateGallery" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:2rem;">
+                        <!-- Templates serão inseridos aqui via JS -->
+                    </div>
+                    <input type="hidden" id="siteTheme">
                 </div>
+
+                <hr style="border-color:#374151; margin:1rem 0;">
+
+                <div style="display:grid; gap:1rem; max-width:600px;">
                 <div>
                     <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título do Site (SEO)</label>
                     <input type="text" id="siteTitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
@@ -181,6 +183,76 @@ export async function renderMeuSite(container) {
 
   // Preencher campos
   const { siteEnabled, siteTheme, siteConfig = {}, siteContent = {} } = configData;
+
+  // Renderizar galeria de templates
+  const templates = [
+    { id: 'elegante', name: 'Elegante', desc: 'Clássico com dourado e serif', colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
+    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco', colors: ['#000000', '#666666', '#ffffff'] },
+    { id: 'moderno', name: 'Moderno', desc: 'Azul com gradientes e cards', colors: ['#3b82f6', '#667eea', '#f8fafc'] },
+    { id: 'escuro', name: 'Escuro', desc: 'Dark mode com laranja', colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
+    { id: 'galeria', name: 'Galeria', desc: 'Masonry grid foco em fotos', colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
+  ];
+
+  const templateGallery = container.querySelector('#templateGallery');
+  templateGallery.innerHTML = templates.map(t => `
+    <div class="template-card" data-theme="${t.id}" style="
+      background:#1f2937;
+      border:2px solid ${siteTheme === t.id ? '#2563eb' : '#374151'};
+      border-radius:0.5rem;
+      padding:1rem;
+      cursor:pointer;
+      transition:all 0.3s;
+      position:relative;
+    ">
+      ${siteTheme === t.id ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; font-size:0.75rem; font-weight:600;">✓ Ativo</div>' : ''}
+
+      <div style="height:120px; background:linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 100%); border-radius:0.375rem; margin-bottom:0.75rem; display:flex; align-items:center; justify-content:center; color:${t.colors[2]}; font-size:2rem; font-weight:bold; opacity:0.8;">
+        ${t.name[0]}
+      </div>
+
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+        <div style="display:flex; gap:0.25rem;">
+          ${t.colors.map(c => `<div style="width:1rem; height:1rem; background:${c}; border-radius:50%;"></div>`).join('')}
+        </div>
+      </div>
+
+      <h4 style="color:#f3f4f6; font-weight:600; font-size:1rem; margin-bottom:0.25rem;">${t.name}</h4>
+      <p style="color:#9ca3af; font-size:0.75rem;">${t.desc}</p>
+    </div>
+  `).join('');
+
+  // Click nos cards de template
+  container.querySelectorAll('.template-card').forEach(card => {
+    card.onclick = () => {
+      const theme = card.dataset.theme;
+      container.querySelector('#siteTheme').value = theme;
+
+      // Atualizar visual dos cards
+      container.querySelectorAll('.template-card').forEach(c => {
+        c.style.borderColor = '#374151';
+        const badge = c.querySelector('div[style*="✓ Ativo"]');
+        if (badge) badge.remove();
+      });
+      card.style.borderColor = '#2563eb';
+      card.insertAdjacentHTML('afterbegin', '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; font-size:0.75rem; font-weight:600;">✓ Ativo</div>');
+    };
+
+    // Hover effect
+    card.onmouseenter = () => {
+      if (card.dataset.theme !== siteTheme) {
+        card.style.borderColor = '#60a5fa';
+        card.style.transform = 'translateY(-2px)';
+      }
+    };
+    card.onmouseleave = () => {
+      if (card.dataset.theme !== siteTheme) {
+        card.style.borderColor = '#374151';
+        card.style.transform = 'translateY(0)';
+      }
+    };
+  });
+
+  container.querySelector('#siteTheme').value = siteTheme || 'elegante';
 
   // Status Toggle
   const toggle = container.querySelector('#siteEnabledToggle');
