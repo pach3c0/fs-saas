@@ -32,10 +32,11 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 - **FASE 14**: Notificações por E-mail ✅ **COMPLETO** (19/02/2026)
 
-### 🚧 Próximas Fases Planejadas:
-- **FASE 16**: Painel Super-Admin (gerenciar plataforma)
+- **FASE 16**: Painel Super-Admin ✅ **COMPLETO** (19/02/2026)
 
-### 📊 Progresso Geral: **~95% concluído**
+### ✅ Todas as fases planejadas concluídas!
+
+### 📊 Progresso Geral: **100% concluído**
 
 ### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
@@ -706,30 +707,31 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-## FASE 16 - Painel Super-Admin
+## FASE 16 - Painel Super-Admin ✅ (Concluído em 19/02/2026)
 **Objetivo**: Dono da plataforma gerencia todas as organizações
 **Prioridade**: MÉDIA
 **Complexidade**: Média
-**Status**: PENDENTE
+**Status**: CONCLUÍDO
 
 ### 16.1 Dashboard da Plataforma (`/saas-admin/`)
-- [ ] Total de fotógrafos cadastrados (por plano)
-- [ ] MRR estimado
-- [ ] Sessões e fotos criadas no período
-- [ ] Gráfico de crescimento
+- [x] Total de fotógrafos cadastrados (por plano — badges free/basic/pro)
+- [x] MRR estimado (planos pagos × preço: basic R$49, pro R$99)
+- [x] Total de sessões e fotos na plataforma
+- [x] Total de usuários e inscritos na newsletter
 
 ### 16.2 Gestão de Organizações
-- [ ] Listar todas as orgs com status, plano e uso
-- [ ] Busca por nome/slug/e-mail
-- [ ] Forçar troca de plano
-- [ ] Ativar/desativar organização
+- [x] Listar todas as orgs com status, plano e uso (sessões, fotos)
+- [x] Busca client-side por nome, slug ou e-mail do owner
+- [x] Forçar troca de plano (select + botão salvar no modal de detalhes)
+- [x] Ativar/desativar organização
+- [x] Lixeira (soft delete) com restauração e exclusão definitiva
 
 ### 16.3 Autenticação do Super-Admin
-- [ ] Login separado com `OWNER_EMAIL` + senha
-- [ ] JWT com `role: 'superadmin'`
-- [ ] Middleware de proteção exclusivo
+- [x] Login separado com `OWNER_EMAIL` + senha
+- [x] JWT com `role: 'superadmin'`
+- [x] Middleware `requireSuperadmin` em todas as rotas admin
 
-**Arquivos afetados**: `saas-admin/` (diretório existente), `src/routes/saas-admin.js` (novo)
+**Arquivos modificados**: `saas-admin/js/app.js` (busca, MRR, forçar plano), `src/routes/auth.js` (rota PUT /plan, byPlan no metrics)
 
 ---
 

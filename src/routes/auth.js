@@ -293,17 +293,21 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
     const Notification = require('../models/Notification');
     const Newsletter = require('../models/Newsletter');
 
-    const [totalOrgs, activeOrgs, totalUsers, totalSessions, totalPhotos, totalNewsletterSubs] = await Promise.all([
+    const [totalOrgs, activeOrgs, totalUsers, totalSessions, totalPhotos, totalNewsletterSubs, planGroups] = await Promise.all([
       Organization.countDocuments(),
       Organization.countDocuments({ isActive: true }),
       User.countDocuments(),
       Session.countDocuments(),
       Session.aggregate([{ $project: { count: { $size: '$photos' } } }, { $group: { _id: null, total: { $sum: '$count' } } }]),
-      Newsletter.countDocuments()
+      Newsletter.countDocuments(),
+      Organization.aggregate([{ $group: { _id: '$plan', count: { $sum: 1 } } }])
     ]);
 
+    const byPlan = {};
+    planGroups.forEach(g => { byPlan[g._id] = g.count; });
+
     res.json({
-      organizations: { total: totalOrgs, active: activeOrgs, pending: totalOrgs - activeOrgs },
+      organizations: { total: totalOrgs, active: activeOrgs, pending: totalOrgs - activeOrgs, byPlan },
       users: totalUsers,
       sessions: totalSessions,
       photos: totalPhotos[0]?.total || 0,
@@ -459,12 +463,44 @@ router.put('/admin/organizations/:id/deactivate', authenticateToken, requireSupe
     org.isActive = false;
     await org.save();
 
-    res.json({ 
-      success: true, 
-      message: `Organização "${org.name}" desativada` 
+    res.json({
+      success: true,
+      message: `Organização "${org.name}" desativada`
     });
   } catch (error) {
     console.error('Erro ao desativar organização:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Forçar troca de plano
+router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { plan } = req.body;
+    const PLAN_LIMITS = {
+      free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
+      basic: { maxSessions: 50,  maxPhotos: 5000, maxAlbums: 10, maxStorage: 10000, customDomain: false },
+      pro:   { maxSessions: -1,  maxPhotos: -1,   maxAlbums: -1, maxStorage: 50000, customDomain: true  }
+    };
+
+    if (!PLAN_LIMITS[plan]) {
+      return res.status(400).json({ error: 'Plano inválido. Use: free, basic ou pro' });
+    }
+
+    const org = await Organization.findById(req.params.id);
+    if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+    org.plan = plan;
+    await org.save();
+
+    await Subscription.findOneAndUpdate(
+      { organizationId: org._id },
+      { plan, limits: PLAN_LIMITS[plan] }
+    );
+
+    res.json({ success: true, message: `Plano de "${org.name}" alterado para ${plan}` });
+  } catch (error) {
+    console.error('Erro ao alterar plano:', error);
     res.status(500).json({ error: error.message });
   }
 });

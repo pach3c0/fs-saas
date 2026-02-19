@@ -96,11 +96,30 @@ async function loadDashboard() {
 async function loadMetrics() {
   try {
     const data = await apiRequest('GET', '/api/admin/saas/metrics');
+
+    // MRR estimado: basic=R$49, pro=R$99 (planos pagos)
+    const PLAN_PRICES = { free: 0, basic: 49, pro: 99 };
+    const byPlan = data.organizations.byPlan || {};
+    const mrr = Object.entries(byPlan).reduce((sum, [plan, count]) => {
+      return sum + (PLAN_PRICES[plan] || 0) * count;
+    }, 0);
+    const mrrLabel = mrr.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const planBadges = Object.entries(byPlan).map(([p, c]) =>
+      `<span style="text-transform:uppercase; font-size:0.625rem; background:#1e3a5f; color:#93c5fd; padding:0.1rem 0.375rem; border-radius:999px; margin-right:0.25rem;">${p}: ${c}</span>`
+    ).join('');
+
     document.getElementById('metricsGrid').innerHTML = `
       <div class="metric-card">
         <div class="metric-label">Organizacoes</div>
         <div class="metric-value">${data.organizations.total}</div>
         <div class="metric-sub">${data.organizations.active} ativas, ${data.organizations.pending} pendentes</div>
+        <div style="margin-top:0.5rem;">${planBadges}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">MRR Estimado</div>
+        <div class="metric-value" style="font-size:1.375rem; color:#34d399;">${mrrLabel}</div>
+        <div class="metric-sub">planos pagos × preco do plano</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Usuarios</div>
@@ -124,45 +143,82 @@ async function loadMetrics() {
   }
 }
 
+// Cache das orgs para filtro client-side
+let allOrgs = [];
+
+function renderOrgsTable(orgs) {
+  const tbody = document.getElementById('orgsTable');
+  if (!orgs.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">Nenhuma organizacao encontrada</td></tr>';
+    return;
+  }
+  tbody.innerHTML = orgs.map(org => {
+    const owner = org.ownerId;
+    const statusClass = org.isActive ? 'badge-active' : (org.plan === 'free' ? 'badge-pending' : 'badge-inactive');
+    const statusText = org.isActive ? 'Ativa' : 'Inativa';
+    const date = new Date(org.createdAt).toLocaleDateString('pt-BR');
+    return `
+      <tr>
+        <td style="font-weight:600;">${esc(org.name)}</td>
+        <td style="color:#94a3b8;">${esc(org.slug)}</td>
+        <td>${owner ? esc(owner.name || owner.email) : '-'}</td>
+        <td><span style="text-transform:uppercase; font-size:0.6875rem; color:#94a3b8;">${org.plan}</span></td>
+        <td>${org.stats?.sessions || 0}</td>
+        <td>${org.stats?.photos || 0}</td>
+        <td><span class="badge ${statusClass}">${statusText}</span></td>
+        <td style="color:#94a3b8; font-size:0.75rem;">${date}</td>
+        <td>
+          <div class="btn-actions">
+            <button class="btn btn-details" onclick="showDetails('${org._id}')">Detalhes</button>
+            ${org.isActive
+              ? `<button class="btn btn-deactivate" onclick="deactivateOrg('${org._id}', '${esc(org.name)}')">Desativar</button>`
+              : `<button class="btn btn-approve" onclick="approveOrg('${org._id}', '${esc(org.name)}')">Aprovar</button>
+                 <button class="btn btn-trash" onclick="trashOrg('${org._id}', '${esc(org.name)}')">Excluir</button>`
+            }
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
 async function loadOrganizations() {
   try {
     const data = await apiRequest('GET', '/api/admin/organizations');
-    const tbody = document.getElementById('orgsTable');
+    allOrgs = data.organizations;
 
-    if (!data.organizations.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="loading">Nenhuma organizacao cadastrada</td></tr>';
-      return;
+    // Adicionar barra de busca acima da tabela (se ainda não existe)
+    let searchBar = document.getElementById('orgsSearchBar');
+    if (!searchBar) {
+      const tabOrgs = document.getElementById('tabOrgs');
+      searchBar = document.createElement('div');
+      searchBar.id = 'orgsSearchBar';
+      searchBar.style.cssText = 'margin-bottom:1rem; display:flex; gap:0.75rem; align-items:center;';
+      searchBar.innerHTML = `
+        <input type="text" id="orgsSearchInput" placeholder="Buscar por nome, slug ou e-mail do owner..."
+          style="flex:1; padding:0.5rem 0.875rem; border:1px solid #334155; border-radius:0.375rem; background:#0f172a; color:#e2e8f0; font-size:0.8125rem; outline:none;">
+        <span id="orgsCount" style="color:#64748b; font-size:0.75rem; white-space:nowrap;"></span>
+      `;
+      tabOrgs.insertBefore(searchBar, tabOrgs.firstChild);
+
+      document.getElementById('orgsSearchInput').oninput = (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        const filtered = q
+          ? allOrgs.filter(org => {
+              const owner = org.ownerId;
+              return org.name.toLowerCase().includes(q)
+                || org.slug.toLowerCase().includes(q)
+                || (owner?.email || '').toLowerCase().includes(q)
+                || (owner?.name || '').toLowerCase().includes(q);
+            })
+          : allOrgs;
+        document.getElementById('orgsCount').textContent = `${filtered.length} de ${allOrgs.length}`;
+        renderOrgsTable(filtered);
+      };
     }
 
-    tbody.innerHTML = data.organizations.map(org => {
-      const owner = org.ownerId;
-      const statusClass = org.isActive ? 'badge-active' : (org.plan === 'free' ? 'badge-pending' : 'badge-inactive');
-      const statusText = org.isActive ? 'Ativa' : 'Inativa';
-      const date = new Date(org.createdAt).toLocaleDateString('pt-BR');
-
-      return `
-        <tr>
-          <td style="font-weight:600;">${esc(org.name)}</td>
-          <td style="color:#94a3b8;">${esc(org.slug)}</td>
-          <td>${owner ? esc(owner.name || owner.email) : '-'}</td>
-          <td><span style="text-transform:uppercase; font-size:0.6875rem; color:#94a3b8;">${org.plan}</span></td>
-          <td>${org.stats?.sessions || 0}</td>
-          <td>${org.stats?.photos || 0}</td>
-          <td><span class="badge ${statusClass}">${statusText}</span></td>
-          <td style="color:#94a3b8; font-size:0.75rem;">${date}</td>
-          <td>
-            <div class="btn-actions">
-              <button class="btn btn-details" onclick="showDetails('${org._id}')">Detalhes</button>
-              ${org.isActive
-                ? `<button class="btn btn-deactivate" onclick="deactivateOrg('${org._id}', '${esc(org.name)}')">Desativar</button>`
-                : `<button class="btn btn-approve" onclick="approveOrg('${org._id}', '${esc(org.name)}')">Aprovar</button>
-                   <button class="btn btn-trash" onclick="trashOrg('${org._id}', '${esc(org.name)}')">Excluir</button>`
-              }
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+    document.getElementById('orgsCount').textContent = `${allOrgs.length} organizacoes`;
+    renderOrgsTable(allOrgs);
   } catch (err) {
     document.getElementById('orgsTable').innerHTML = `<tr><td colspan="9" class="loading" style="color:#f87171;">Erro: ${err.message}</td></tr>`;
   }
@@ -225,6 +281,10 @@ window.showDetails = async (id) => {
       `;
     }).join('') || '<li style="color:#64748b;">Nenhuma sessao</li>';
 
+    const planOptions = ['free', 'basic', 'pro'].map(p =>
+      `<option value="${p}" ${org.plan === p ? 'selected' : ''}>${p.toUpperCase()}</option>`
+    ).join('');
+
     content.innerHTML = `
       <div class="detail-grid">
         <div class="detail-card">
@@ -233,7 +293,12 @@ window.showDetails = async (id) => {
         </div>
         <div class="detail-card">
           <h4>Plano</h4>
-          <div class="val" style="text-transform:uppercase;">${org.plan}</div>
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+            <select id="planSelect" style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.875rem; font-weight:700; text-transform:uppercase; cursor:pointer;">
+              ${planOptions}
+            </select>
+            <button id="savePlanBtn" style="background:#6366f1; color:white; border:none; border-radius:0.25rem; padding:0.25rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer;">Salvar</button>
+          </div>
         </div>
         <div class="detail-card">
           <h4>Sessoes</h4>
@@ -263,6 +328,30 @@ window.showDetails = async (id) => {
         <ul class="detail-list">${sessionsHtml}</ul>
       </div>
     `;
+
+    content.querySelector('#savePlanBtn').onclick = async () => {
+      const newPlan = content.querySelector('#planSelect').value;
+      const btn = content.querySelector('#savePlanBtn');
+      btn.textContent = 'Salvando...';
+      btn.disabled = true;
+      try {
+        await apiRequest('PUT', `/api/admin/organizations/${id}/plan`, { plan: newPlan });
+        btn.textContent = 'Salvo!';
+        btn.style.background = '#065f46';
+        // Atualizar cache local
+        const orgIdx = allOrgs.findIndex(o => o._id === id);
+        if (orgIdx !== -1) allOrgs[orgIdx].plan = newPlan;
+        setTimeout(() => {
+          btn.textContent = 'Salvar';
+          btn.style.background = '#6366f1';
+          btn.disabled = false;
+        }, 2000);
+      } catch (err) {
+        alert('Erro: ' + err.message);
+        btn.textContent = 'Salvar';
+        btn.disabled = false;
+      }
+    };
   } catch (err) {
     content.innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
   }
