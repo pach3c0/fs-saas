@@ -10,23 +10,29 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 
 ---
 
-## Status Atual (18/Fev/2026)
+## Status Atual (19/Fev/2026)
 
 ### ✅ Fases Concluídas:
 - **FASE 1**: Perfil e Identidade Visual
 - **FASE 2**: Marca D'Água Avançada (parcial - básico completo)
-- **FASE 3**: Melhorias na Seleção (parcial - comentários e filtros)
+- **FASE 3**: Melhorias na Seleção
+- **FASE 4**: Entrega Online em Alta Resolução
 - **FASE 5**: CRM de Clientes
-- **FASE 6**: PWA Offline
+- **FASE 6**: PWA Offline (parcial - 6.3 em andamento)
 - **FASE 7**: Multi-Seleção Participantes
-- **FASE 8**: Prova de Álbum Folheável ✅ **COMPLETO**
+- **FASE 8**: Prova de Álbum Folheável ✅ **COMPLETO** (19/02/2026)
 - **FASE 9**: Site Profissional Customizável
 - **FASE 10**: Domínio Próprio ✅ **COMPLETO**
 - **FASE 11**: Integrações e Analytics ✅ **COMPLETO**
 - **FASE 12**: Sistema de Billing e Limites ✅ **COMPLETO**
-- **FASE 13**: Sistema de Templates de Site ✨ **NOVO**
+- **FASE 13**: Sistema de Templates de Site ✅ **COMPLETO**
 
-### 📊 Progresso Geral: **~85% concluído**
+### 🚧 Próximas Fases Planejadas:
+- **FASE 14**: Notificações por E-mail
+- **FASE 15**: Onboarding de Fotógrafos (página de cadastro pública)
+- **FASE 16**: Painel Super-Admin (gerenciar plataforma)
+
+### 📊 Progresso Geral: **~88% concluído**
 
 ### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
@@ -279,8 +285,8 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - [ ] Splash screen com logo do fotografo (futuro)
 - [ ] Notificacao push quando admin entrega (futuro - Fase 6.3)
 
-### 6.3 Melhorias UX (pendente)
-- [ ] Salvar codigo de acesso no `localStorage` — quando o cliente abre o app novamente, ja entra direto na galeria sem precisar digitar o codigo
+### 6.3 Melhorias UX (Concluído em 19/02/2026)
+- [x] Salvar codigo de acesso no `localStorage` — quando o cliente abre o app novamente, ja entra direto na galeria sem precisar digitar o codigo
   - Salvar `{ sessionId, accessCode }` apos login bem-sucedido
   - Ao abrir o app, verificar se ha codigo salvo e tentar login automatico
   - Botao "Trocar galeria" para limpar o codigo salvo
@@ -637,6 +643,81 @@ FASE 11 (Integracoes)  ──┘
 - [ ] Inline styles no admin (sem classes Tailwind)
 - [ ] Testado em mobile e desktop
 - [ ] Documentacao atualizada (CLAUDE.md)
+
+---
+
+## FASE 14 - Notificações por E-mail
+**Objetivo**: Avisar clientes e admin por e-mail sobre eventos importantes
+**Prioridade**: ALTA
+**Complexidade**: Baixa-Média
+**Status**: PENDENTE
+
+### 14.1 E-mails para o Cliente
+- [ ] Álbum enviado para aprovação (link + código de acesso)
+- [ ] Galeria de fotos disponível (link + código de acesso)
+- [ ] Fotos entregues para download
+
+### 14.2 E-mails para o Admin
+- [ ] Cliente finalizou seleção de fotos
+- [ ] Cliente aprovou ou pediu revisão em álbum
+- [ ] Cliente comentou em foto
+
+### 14.3 Infraestrutura
+- [ ] Usar SMTP já configurado (`nodemailer` com Titan/Gmail)
+- [ ] Templates HTML de e-mail (com logo da organização)
+- [ ] Fila de envio simples (sem dependência de filas externas)
+
+**Arquivos afetados**: `src/utils/mailer.js` (novo), `src/routes/albums.js`, `src/routes/sessions.js`
+
+---
+
+## FASE 15 - Onboarding de Fotógrafos
+**Objetivo**: Fotógrafos se cadastram de forma autônoma na plataforma
+**Prioridade**: ALTA (necessário para crescimento)
+**Complexidade**: Média
+**Status**: PENDENTE
+
+### 15.1 Página de Cadastro Pública (`/cadastro`)
+- [ ] Formulário: nome do estúdio, nome, e-mail, senha, slug desejado
+- [ ] Validação de slug único (verificação em tempo real)
+- [ ] Criar `Organization` + `User` automaticamente
+- [ ] Criar `Subscription` no plano Free
+- [ ] Redirecionar para o admin após cadastro
+
+### 15.2 E-mail de Boas-Vindas
+- [ ] Enviar e-mail com link do painel, credenciais e primeiros passos
+
+### 15.3 Checklist de Primeiros Passos no Admin
+- [ ] Banner/widget no admin para fotógrafos novos: "Complete seu perfil", "Crie sua primeira sessão", etc.
+
+**Arquivos afetados**: `public/cadastro.html` (novo), `src/routes/auth.js`
+
+---
+
+## FASE 16 - Painel Super-Admin
+**Objetivo**: Dono da plataforma gerencia todas as organizações
+**Prioridade**: MÉDIA
+**Complexidade**: Média
+**Status**: PENDENTE
+
+### 16.1 Dashboard da Plataforma (`/saas-admin/`)
+- [ ] Total de fotógrafos cadastrados (por plano)
+- [ ] MRR estimado
+- [ ] Sessões e fotos criadas no período
+- [ ] Gráfico de crescimento
+
+### 16.2 Gestão de Organizações
+- [ ] Listar todas as orgs com status, plano e uso
+- [ ] Busca por nome/slug/e-mail
+- [ ] Forçar troca de plano
+- [ ] Ativar/desativar organização
+
+### 16.3 Autenticação do Super-Admin
+- [ ] Login separado com `OWNER_EMAIL` + senha
+- [ ] JWT com `role: 'superadmin'`
+- [ ] Middleware de proteção exclusivo
+
+**Arquivos afetados**: `saas-admin/` (diretório existente), `src/routes/saas-admin.js` (novo)
 
 ---
 

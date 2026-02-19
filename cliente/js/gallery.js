@@ -163,9 +163,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
                     ${deadlineHtml}
                     ${downloadAllBtn}
+                    <button id="switchGalleryBtn"
+                        style="background:none; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); padding:0.3rem 0.7rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer; white-space:nowrap;"
+                        title="Trocar de galeria">
+                        Trocar galeria
+                    </button>
                 </div>
             </div>
         `;
+
+        document.getElementById('switchGalleryBtn').addEventListener('click', () => {
+            clearSessionFromStorage();
+            gallerySection.style.display = 'none';
+            statusScreen.style.display = 'none';
+            loginSection.style.display = 'flex';
+            if (accessCodeInput) accessCodeInput.value = '';
+        });
     }
 
     function renderPhotos() {
@@ -392,6 +405,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Lógica da API e Ações ---
 
+    // --- Auto-login com localStorage ---
+
+    const LS_KEY = 'fs_gallery_session';
+
+    function saveSessionToStorage() {
+        try {
+            localStorage.setItem(LS_KEY, JSON.stringify({
+                accessCode: state.accessCode,
+                sessionId: state.sessionId,
+                isParticipant: state.isParticipant,
+                participantId: state.participantId,
+            }));
+        } catch (e) {}
+    }
+
+    function clearSessionFromStorage() {
+        try { localStorage.removeItem(LS_KEY); } catch (e) {}
+    }
+
+    async function tryAutoLogin() {
+        try {
+            const saved = localStorage.getItem(LS_KEY);
+            if (!saved) return false;
+            const { accessCode, sessionId, isParticipant, participantId } = JSON.parse(saved);
+            if (!accessCode || !sessionId) return false;
+
+            state.accessCode = accessCode;
+            state.sessionId = sessionId;
+            state.isParticipant = isParticipant || false;
+            state.participantId = participantId || null;
+
+            // Tenta carregar a sessão — se falhar (código expirado), limpa o storage
+            await loadSessionData();
+            return true;
+        } catch (e) {
+            clearSessionFromStorage();
+            return false;
+        }
+    }
+
     async function handleLogin(e) {
         if (e) e.preventDefault();
         const code = accessCodeInput.value.trim();
@@ -421,6 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
             state.sessionId = result.sessionId;
             state.isParticipant = result.isParticipant || false;
             state.participantId = result.participantId || null;
+
+            saveSessionToStorage();
             await loadSessionData();
 
         } catch (error) {
@@ -764,6 +819,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
+
+    // Auto-login: tentar restaurar sessão salva no localStorage
+    tryAutoLogin();
 
     photoGrid.addEventListener('click', (e) => {
         const selectBtn = e.target.closest('.photo-heart');
