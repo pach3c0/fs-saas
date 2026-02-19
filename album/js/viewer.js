@@ -4,14 +4,13 @@ const state = {
   accessCode: null,
   albumId: null,
   album: null,
-  sheets: [],
+  pages: [],
   currentIndex: 0,
   pollingInterval: null
 };
 
 const main = document.getElementById('main-container');
 const albumTitle = document.getElementById('album-title');
-const logo = document.getElementById('logo');
 
 function renderLogin(error = '') {
   main.innerHTML = '';
@@ -52,7 +51,7 @@ function renderLogin(error = '') {
 async function tryLogin(code) {
   if (!code) return renderLogin('Informe o código.');
   try {
-    const res = await fetch('/api/client/album/verify', {
+    const res = await fetch('/api/client/album/verify-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessCode: code })
@@ -71,7 +70,7 @@ async function loadAlbum() {
     const res = await fetch(`/api/client/album/${state.albumId}?code=${state.accessCode}`).then(r => r.json());
     if (!res.success) return renderLogin('Acesso negado.');
     state.album = res.album;
-    state.sheets = res.album.sheets || [];
+    state.pages = res.album.pages || [];
     state.currentIndex = 0;
     albumTitle.textContent = state.album.name;
     renderAlbum();
@@ -83,12 +82,18 @@ async function loadAlbum() {
 
 function renderAlbum() {
   main.innerHTML = '';
-  // Header
+
+  // Mensagem de boas-vindas
+  if (state.album.welcomeText) {
+    const welcome = document.createElement('div');
+    welcome.textContent = state.album.welcomeText;
+    welcome.style.cssText = 'font-style:italic;color:#555;text-align:center;margin-bottom:12px;font-size:0.95rem;';
+    main.appendChild(welcome);
+  }
+
+  // Header com progresso
   const header = document.createElement('div');
-  header.style.marginBottom = '18px';
-  header.style.display = 'flex';
-  header.style.flexDirection = 'column';
-  header.style.alignItems = 'center';
+  header.style.cssText = 'margin-bottom:18px;display:flex;flex-direction:column;align-items:center;';
 
   const name = document.createElement('div');
   name.textContent = state.album.name;
@@ -97,11 +102,10 @@ function renderAlbum() {
   name.style.fontSize = '1.2rem';
   header.appendChild(name);
 
-  // Progresso
-  const aprovadas = state.sheets.filter(s => s.status === 'approved').length;
-  const total = state.sheets.length;
+  const aprovadas = state.pages.filter(p => p.status === 'approved').length;
+  const total = state.pages.length;
   const progress = document.createElement('div');
-  progress.textContent = `${aprovadas} de ${total} lâminas aprovadas`;
+  progress.textContent = `${aprovadas} de ${total} página(s) aprovada(s)`;
   progress.style.margin = '8px 0 0 0';
   header.appendChild(progress);
 
@@ -115,21 +119,21 @@ function renderAlbum() {
 
   main.appendChild(header);
 
-  // Carrossel
-  if (!state.sheets.length) {
+  if (!state.pages.length) {
     const empty = document.createElement('div');
-    empty.textContent = 'Nenhuma lâmina enviada.';
+    empty.textContent = 'Nenhuma página disponível ainda. Aguarde o fotógrafo.';
     empty.style.textAlign = 'center';
     main.appendChild(empty);
     return;
   }
+
   renderCarousel();
 }
 
 function renderCarousel() {
-  // ...remove antigo
   let old = document.getElementById('carousel');
   if (old) old.remove();
+
   const carousel = document.createElement('div');
   carousel.id = 'carousel';
   carousel.className = 'carousel';
@@ -137,48 +141,55 @@ function renderCarousel() {
   const btnPrev = document.createElement('button');
   btnPrev.className = 'carousel-btn';
   btnPrev.innerHTML = '⟨';
-  btnPrev.onclick = prevSheet;
+  btnPrev.onclick = prevPage;
+
+  const page = state.pages[state.currentIndex];
+  const photoUrl = page.photos?.[0]?.photoUrl || '';
 
   const img = document.createElement('img');
   img.className = 'carousel-img';
-  img.src = state.sheets[state.currentIndex].url;
-  img.alt = `Lâmina ${state.currentIndex + 1}`;
+  img.src = photoUrl;
+  img.alt = `Página ${state.currentIndex + 1}`;
   img.draggable = false;
   img.oncontextmenu = () => false;
   img.style.pointerEvents = 'none';
   img.style.userSelect = 'none';
 
+  if (!photoUrl) {
+    img.style.cssText += 'background:#f3f4f6;min-width:200px;min-height:150px;';
+    img.alt = 'Sem imagem';
+  }
+
   const btnNext = document.createElement('button');
   btnNext.className = 'carousel-btn';
   btnNext.innerHTML = '⟩';
-  btnNext.onclick = nextSheet;
+  btnNext.onclick = nextPage;
 
   carousel.append(btnPrev, img, btnNext);
 
-  // Swipe no container (não na img, pois img tem pointer-events:none)
+  // Swipe touch
   let touchStartX = 0;
   carousel.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX, { passive: true });
   carousel.addEventListener('touchend', e => {
     const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) diff > 0 ? nextSheet() : prevSheet();
+    if (Math.abs(diff) > 50) diff > 0 ? nextPage() : prevPage();
   });
 
   main.appendChild(carousel);
 
   // Contador
   const count = document.createElement('div');
-  count.textContent = `Lâmina ${state.currentIndex + 1} de ${state.sheets.length}`;
+  count.textContent = `Página ${state.currentIndex + 1} de ${state.pages.length}`;
   count.style.textAlign = 'center';
   main.appendChild(count);
 
-  // Status da lâmina
+  // Status da página
   const status = document.createElement('div');
   status.className = 'sheet-status';
-  status.textContent = statusLabel(state.sheets[state.currentIndex].status);
+  status.textContent = statusLabel(page.status);
   main.appendChild(status);
 
-  // Ações
-  renderSheetActions();
+  renderPageActions();
 }
 
 function statusLabel(status) {
@@ -190,72 +201,83 @@ function statusLabel(status) {
   }
 }
 
-function prevSheet() {
+function prevPage() {
   if (state.currentIndex > 0) {
     state.currentIndex--;
     renderCarousel();
   }
 }
-function nextSheet() {
-  if (state.currentIndex < state.sheets.length - 1) {
+
+function nextPage() {
+  if (state.currentIndex < state.pages.length - 1) {
     state.currentIndex++;
     renderCarousel();
   }
 }
 
-function renderSheetActions() {
-  // Remove antigo
+function renderPageActions() {
   let old = document.getElementById('actions');
   if (old) old.remove();
+
   const actions = document.createElement('div');
   actions.id = 'actions';
   actions.className = 'actions';
 
-  const sheet = state.sheets[state.currentIndex];
-  if (sheet.status === 'approved') {
+  const page = state.pages[state.currentIndex];
+
+  if (page.status === 'approved') {
     const ok = document.createElement('div');
     ok.className = 'success';
-    ok.textContent = 'Lâmina aprovada!';
+    ok.textContent = 'Página aprovada!';
     actions.appendChild(ok);
-  } else if (sheet.status === 'revision_requested') {
+  } else if (page.status === 'revision_requested') {
+    // Mostrar comentário enviado
+    const lastComment = page.comments?.[page.comments.length - 1];
     const rev = document.createElement('div');
     rev.className = 'error';
-    rev.textContent = 'Revisão solicitada.';
+    rev.textContent = lastComment
+      ? `Revisão solicitada: "${lastComment.text}"`
+      : 'Revisão solicitada.';
     actions.appendChild(rev);
   } else {
-    // Aprovar
+    // Aprovar página
     const btnApprove = document.createElement('button');
     btnApprove.className = 'btn btn-approve';
-    btnApprove.textContent = '✓ Aprovar esta lâmina';
+    btnApprove.textContent = '✓ Aprovar esta página';
     btnApprove.onclick = async () => {
-      await fetch(`/api/client/album/${state.albumId}/sheets/${sheet._id}/approve`, {
+      btnApprove.disabled = true;
+      btnApprove.textContent = 'Aprovando...';
+      await fetch(`/api/client/album/${state.albumId}/pages/${page._id}/approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: state.accessCode })
       });
       await loadAlbum();
     };
     actions.appendChild(btnApprove);
+
     // Pedir revisão
     const btnRev = document.createElement('button');
     btnRev.className = 'btn btn-revision';
     btnRev.textContent = '✎ Pedir revisão';
-    btnRev.onclick = () => showCommentBox(sheet);
+    btnRev.onclick = () => showCommentBox(page);
     actions.appendChild(btnRev);
   }
+
   main.appendChild(actions);
   renderApproveAllBtn();
 }
 
-function showCommentBox(sheet) {
-  // Remove antigo
+function showCommentBox(page) {
   let old = document.getElementById('comment-box');
   if (old) old.remove();
+
   const box = document.createElement('div');
   box.id = 'comment-box';
   box.className = 'comment-box';
 
   const textarea = document.createElement('textarea');
-  textarea.placeholder = 'Descreva o que deseja revisar nesta lâmina...';
+  textarea.placeholder = 'Descreva o que deseja revisar nesta página...';
 
   const btnSend = document.createElement('button');
   btnSend.className = 'btn btn-revision';
@@ -265,10 +287,12 @@ function showCommentBox(sheet) {
       textarea.style.border = '2px solid #f87171';
       return;
     }
-    await fetch(`/api/client/album/${state.albumId}/sheets/${sheet._id}/request-revision`, {
+    btnSend.disabled = true;
+    btnSend.textContent = 'Enviando...';
+    await fetch(`/api/client/album/${state.albumId}/pages/${page._id}/request-revision`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ comment: textarea.value })
+      body: JSON.stringify({ code: state.accessCode, comment: textarea.value.trim() })
     });
     await loadAlbum();
   };
@@ -279,32 +303,41 @@ function showCommentBox(sheet) {
 }
 
 function renderApproveAllBtn() {
-  // Remove antigo
   let old = document.getElementById('approve-all');
   if (old) old.remove();
-  const aprovadas = state.sheets.filter(s => s.status === 'approved').length;
-  if (aprovadas === state.sheets.length && state.sheets.length > 0 && state.album.status !== 'approved') {
+
+  const aprovadas = state.pages.filter(p => p.status === 'approved').length;
+  const todasAprovadas = aprovadas === state.pages.length && state.pages.length > 0;
+
+  if (todasAprovadas && state.album.status !== 'approved') {
     const btn = document.createElement('button');
     btn.id = 'approve-all';
     btn.className = 'btn-approve-all';
-    btn.textContent = 'Aprovar Álbum Completo';
+    btn.textContent = '✓ Aprovar Álbum Completo';
     btn.onclick = async () => {
-      await fetch(`/api/client/album/${state.albumId}/approve-all`, { method: 'POST' });
+      btn.disabled = true;
+      btn.textContent = 'Aprovando...';
+      await fetch(`/api/client/album/${state.albumId}/approve-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: state.accessCode })
+      });
       await loadAlbum();
     };
     main.appendChild(btn);
   }
-  // Mensagem de status
+
+  // Mensagem de status final
   if (state.album.status === 'approved') {
     const msg = document.createElement('div');
     msg.className = 'status-message';
-    msg.textContent = 'Álbum Aprovado! Aguarde o fotógrafo.';
+    msg.textContent = 'Álbum Aprovado! Obrigado. Aguarde o contato do fotógrafo.';
     main.appendChild(msg);
   } else if (state.album.status === 'revision_requested') {
     const msg = document.createElement('div');
     msg.className = 'status-message';
     msg.style.color = '#dc2626';
-    msg.textContent = 'Revisão solicitada.';
+    msg.textContent = 'Revisão solicitada. O fotógrafo irá atualizar as páginas em breve.';
     main.appendChild(msg);
   }
 }
@@ -312,13 +345,15 @@ function renderApproveAllBtn() {
 function startPolling() {
   if (state.pollingInterval) clearInterval(state.pollingInterval);
   state.pollingInterval = setInterval(async () => {
-    const res = await fetch(`/api/client/album/${state.albumId}?code=${state.accessCode}`).then(r => r.json());
-    if (res.success && res.album.version !== state.album.version) {
-      state.album = res.album;
-      state.sheets = res.album.sheets || [];
-      state.currentIndex = 0;
-      renderAlbum();
-    }
+    try {
+      const res = await fetch(`/api/client/album/${state.albumId}?code=${state.accessCode}`).then(r => r.json());
+      if (res.success && res.album.version !== state.album.version) {
+        state.album = res.album;
+        state.pages = res.album.pages || [];
+        state.currentIndex = 0;
+        renderAlbum();
+      }
+    } catch (e) {}
   }, 15000);
 }
 

@@ -402,6 +402,20 @@ router.get('/sessions', authenticateToken, async (req, res) => {
   }
 });
 
+// ADMIN: Buscar sessão por ID (com fotos)
+router.get('/sessions/:id', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
+    }).populate('clientId', 'name email phone');
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
