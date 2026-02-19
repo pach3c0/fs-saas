@@ -18,7 +18,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - **FASE 3**: Melhorias na Seleção
 - **FASE 4**: Entrega Online em Alta Resolução
 - **FASE 5**: CRM de Clientes
-- **FASE 6**: PWA Offline (parcial - 6.3 em andamento)
+- **FASE 6**: PWA Offline ✅ **COMPLETO** (6.3 auto-login concluído em 19/02/2026)
 - **FASE 7**: Multi-Seleção Participantes
 - **FASE 8**: Prova de Álbum Folheável ✅ **COMPLETO** (19/02/2026)
 - **FASE 9**: Site Profissional Customizável
@@ -27,12 +27,14 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - **FASE 12**: Sistema de Billing e Limites ✅ **COMPLETO**
 - **FASE 13**: Sistema de Templates de Site ✅ **COMPLETO**
 
+- **FASE 6**: PWA Offline (6.3 auto-login concluído) ✅ **COMPLETO** (19/02/2026)
+- **FASE 15**: Onboarding de Fotógrafos ✅ **COMPLETO** (19/02/2026)
+
 ### 🚧 Próximas Fases Planejadas:
 - **FASE 14**: Notificações por E-mail
-- **FASE 15**: Onboarding de Fotógrafos (página de cadastro pública)
 - **FASE 16**: Painel Super-Admin (gerenciar plataforma)
 
-### 📊 Progresso Geral: **~88% concluído**
+### 📊 Progresso Geral: **~91% concluído**
 
 ### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
@@ -671,26 +673,33 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-## FASE 15 - Onboarding de Fotógrafos
+## FASE 15 - Onboarding de Fotógrafos ✅ (Concluído em 19/02/2026)
 **Objetivo**: Fotógrafos se cadastram de forma autônoma na plataforma
 **Prioridade**: ALTA (necessário para crescimento)
 **Complexidade**: Média
-**Status**: PENDENTE
+**Status**: CONCLUÍDO
 
 ### 15.1 Página de Cadastro Pública (`/cadastro`)
-- [ ] Formulário: nome do estúdio, nome, e-mail, senha, slug desejado
-- [ ] Validação de slug único (verificação em tempo real)
-- [ ] Criar `Organization` + `User` automaticamente
-- [ ] Criar `Subscription` no plano Free
-- [ ] Redirecionar para o admin após cadastro
+- [x] Formulário: nome do estúdio, nome, e-mail, senha, slug desejado
+- [x] Validação de slug único (verificação em tempo real via `/api/auth/check-slug`)
+- [x] Preview do subdomínio em tempo real enquanto digita
+- [x] Criar `Organization` + `User` automaticamente (pendentes de aprovação)
+- [x] Criar `Subscription` no plano Free (**bug corrigido**: faltava no fluxo de registro)
+- [x] FAQ de perguntas frequentes na landing page
+- [x] Tela de sucesso após cadastro com instruções
 
 ### 15.2 E-mail de Boas-Vindas
-- [ ] Enviar e-mail com link do painel, credenciais e primeiros passos
+- [x] Enviar e-mail de boas-vindas ao fotógrafo após cadastro (`sendWelcomeEmail`)
+- [x] E-mail de aprovação quando superadmin aprovar a conta (`sendApprovalEmail`)
 
 ### 15.3 Checklist de Primeiros Passos no Admin
-- [ ] Banner/widget no admin para fotógrafos novos: "Complete seu perfil", "Crie sua primeira sessão", etc.
+- [x] Banner fixo (bottom-right) para fotógrafos sem nenhuma sessão criada
+- [x] Checklist: ✓ Conta criada → ⬜ Complete seu perfil → ⬜ Crie sua primeira sessão → ⬜ Configure seu site
+- [x] Cada item navega para a aba correspondente via `switchTab()`
+- [x] Fechamento com "×" salvo em localStorage (`fs_welcome_banner_dismissed`)
 
-**Arquivos afetados**: `public/cadastro.html` (novo), `src/routes/auth.js`
+**Arquivos criados**: `cadastro/index.html`, `cadastro/js/cadastro.js`
+**Arquivos modificados**: `src/routes/auth.js` (Subscription no registro + rotas de org admin), `admin/js/app.js` (banner de boas-vindas)
 
 ---
 
@@ -745,5 +754,5 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-*Ultima atualizacao: 18/02/2026 - Fase 13 (Templates) concluída*
+*Ultima atualizacao: 19/02/2026 - Fase 15 (Onboarding) concluída*
 *Referencia competitiva: PicSize (picsize.com.br)*

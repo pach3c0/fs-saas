@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
+const Subscription = require('../models/Subscription');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const { sendWelcomeEmail, sendApprovalEmail } = require('../utils/email');
 
@@ -163,6 +164,21 @@ router.post('/auth/register', async (req, res) => {
     // Atualizar ownerId da org
     org.ownerId = user._id;
     await org.save();
+
+    // Criar Subscription no plano Free
+    await Subscription.create({
+      organizationId: org._id,
+      plan: 'free',
+      status: 'active',
+      limits: {
+        maxSessions: 5,
+        maxPhotos: 100,
+        maxAlbums: 1,
+        maxStorage: 500,
+        customDomain: false
+      },
+      usage: { sessions: 0, photos: 0, albums: 0, storage: 0 }
+    });
 
     // Enviar email de boas-vindas (async, nao bloqueia resposta)
     sendWelcomeEmail(user.email, user.name, org.slug).catch(() => {});
