@@ -81,6 +81,10 @@ export async function renderSessoes(container) {
           <input type="text" id="sessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="Ex: Maria Silva">
         </div>
         <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">E-mail do Cliente <span style="color:#6b7280;">(opcional — para notificacoes)</span></label>
+          <input type="email" id="sessionClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="email@cliente.com">
+        </div>
+        <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Tipo</label>
           <select id="sessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
             <option value="Familia">Familia</option>
@@ -170,6 +174,10 @@ export async function renderSessoes(container) {
         <div style="background:#111827; border-radius:0.5rem; padding:0.75rem 1rem;">
           <span id="editSessionName" style="color:#f3f4f6; font-weight:600;"></span>
           <span id="editSessionType" style="color:#9ca3af; font-size:0.875rem; margin-left:0.5rem;"></span>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">E-mail do Cliente <span style="color:#6b7280;">(opcional — para notificacoes)</span></label>
+          <input type="email" id="editClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="email@cliente.com">
         </div>
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Prazo Seleção</label>
@@ -513,6 +521,7 @@ export async function renderSessoes(container) {
 
   container.querySelector('#confirmNewSession').onclick = async () => {
     const name = container.querySelector('#sessionName').value.trim();
+    const clientEmail = container.querySelector('#sessionClientEmail').value.trim();
     const type = container.querySelector('#sessionType').value;
     const date = container.querySelector('#sessionDate').value;
     const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
@@ -532,7 +541,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ name, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto, clientId })
+        body: JSON.stringify({ name, clientEmail, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto, clientId })
       });
 
       if (!response.ok) throw new Error('Erro ao criar');
@@ -692,6 +701,7 @@ export async function renderSessoes(container) {
 
     container.querySelector('#editSessionName').textContent = session.name;
     container.querySelector('#editSessionType').textContent = session.type;
+    container.querySelector('#editClientEmail').value = session.clientEmail || '';
     container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
@@ -710,6 +720,7 @@ export async function renderSessoes(container) {
   container.querySelector('#confirmEditSession').onclick = async () => {
     if (!editingSessionId) return;
     const mode = editModeSelect.value;
+    const clientEmail = container.querySelector('#editClientEmail').value.trim();
     const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
@@ -722,7 +733,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ mode, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
+        body: JSON.stringify({ mode, clientEmail, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');

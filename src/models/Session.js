@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const sessionSchema = new mongoose.Schema({
     name: String,
+    clientEmail: { type: String, default: '' },
     type: String, // Família, Casamento, Evento, etc
     date: Date,
     accessCode: String,

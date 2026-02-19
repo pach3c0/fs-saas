@@ -30,11 +30,12 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - **FASE 6**: PWA Offline (6.3 auto-login concluído) ✅ **COMPLETO** (19/02/2026)
 - **FASE 15**: Onboarding de Fotógrafos ✅ **COMPLETO** (19/02/2026)
 
+- **FASE 14**: Notificações por E-mail ✅ **COMPLETO** (19/02/2026)
+
 ### 🚧 Próximas Fases Planejadas:
-- **FASE 14**: Notificações por E-mail
 - **FASE 16**: Painel Super-Admin (gerenciar plataforma)
 
-### 📊 Progresso Geral: **~91% concluído**
+### 📊 Progresso Geral: **~95% concluído**
 
 ### O que já temos funcionando:
 - [x] Site publico com portfolio, galeria, FAQ, contato
@@ -648,28 +649,30 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-## FASE 14 - Notificações por E-mail
+## FASE 14 - Notificações por E-mail ✅ (Concluído em 19/02/2026)
 **Objetivo**: Avisar clientes e admin por e-mail sobre eventos importantes
 **Prioridade**: ALTA
 **Complexidade**: Baixa-Média
-**Status**: PENDENTE
+**Status**: CONCLUÍDO
 
 ### 14.1 E-mails para o Cliente
-- [ ] Álbum enviado para aprovação (link + código de acesso)
-- [ ] Galeria de fotos disponível (link + código de acesso)
-- [ ] Fotos entregues para download
+- [x] Galeria de fotos disponível (link + código de acesso) — disparado ao criar sessão
+- [x] Fotos entregues para download — disparado ao marcar como "Entregue"
+- [x] Álbum enviado para aprovação (link + código de acesso) — disparado ao enviar álbum
 
-### 14.2 E-mails para o Admin
-- [ ] Cliente finalizou seleção de fotos
-- [ ] Cliente aprovou ou pediu revisão em álbum
-- [ ] Cliente comentou em foto
+### 14.2 E-mails para o Fotógrafo (admin)
+- [x] Cliente finalizou seleção de fotos (nome + quantidade de fotos)
+- [x] Cliente aprovou o álbum completo
+- [x] Cliente pediu revisão em página do álbum (com comentário)
 
 ### 14.3 Infraestrutura
-- [ ] Usar SMTP já configurado (`nodemailer` com Titan/Gmail)
-- [ ] Templates HTML de e-mail (com logo da organização)
-- [ ] Fila de envio simples (sem dependência de filas externas)
+- [x] SMTP já configurado (`nodemailer` com Titan/Email)
+- [x] Templates HTML de e-mail com nome do estúdio dinâmico
+- [x] Todos os disparos assíncronos e não bloqueantes (`.catch(() => {})`)
+- [x] Campo `clientEmail` na sessão (informado no modal de criar/editar sessão no admin)
+- [x] E-mail de álbum usa CRM (`album.clientId → Client.email`)
 
-**Arquivos afetados**: `src/utils/mailer.js` (novo), `src/routes/albums.js`, `src/routes/sessions.js`
+**Arquivos modificados**: `src/utils/email.js` (6 novas funções), `src/models/Session.js` (campo clientEmail), `src/routes/sessions.js` (3 disparos), `src/routes/albums.js` (3 disparos), `admin/js/tabs/sessoes.js` (campo e-mail nos modais)
 
 ---
 
@@ -754,5 +757,5 @@ FASE 11 (Integracoes)  ──┘
 
 ---
 
-*Ultima atualizacao: 19/02/2026 - Fase 15 (Onboarding) concluída*
+*Ultima atualizacao: 19/02/2026 - Fase 14 (E-mails) e Fase 15 (Onboarding) concluídas*
 *Referencia competitiva: PicSize (picsize.com.br)*

@@ -3,8 +3,11 @@ const router = express.Router();
 const Album = require('../models/Album');
 const Session = require('../models/Session');
 const Subscription = require('../models/Subscription');
+const Client = require('../models/Client');
+const Organization = require('../models/Organization');
 const { authenticateToken } = require('../middleware/auth');
 const { checkLimit, checkAlbumLimit } = require('../middleware/planLimits');
+const { sendAlbumAvailableEmail, sendAlbumApprovedEmail, sendAlbumRevisionEmail } = require('../utils/email');
 
 // === ROTAS ADMIN (Protegidas) ===
 
@@ -126,6 +129,18 @@ router.post('/albums/:id/send', authenticateToken, async (req, res) => {
       { new: true }
     );
     if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
+
+    // Notificar cliente por e-mail (via CRM)
+    if (album.clientId) {
+      const [client, org] = await Promise.all([
+        Client.findById(album.clientId).select('email name'),
+        Organization.findById(req.user.organizationId).select('name')
+      ]);
+      if (client?.email) {
+        sendAlbumAvailableEmail(client.email, client.name, album.accessCode, album.name, org?.name || 'Fotógrafo').catch(() => {});
+      }
+    }
+
     res.json({ success: true, album });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -232,6 +247,15 @@ router.put('/client/album/:albumId/pages/:pageId/request-revision', async (req, 
     album.version = (album.version || 1) + 1;
 
     await album.save();
+
+    // Notificar fotografo por e-mail
+    try {
+      const org = await Organization.findById(album.organizationId).select('email slug');
+      if (org?.email) {
+        sendAlbumRevisionEmail(org.email, 'Cliente', album.name, comment || '', org.slug).catch(() => {});
+      }
+    } catch(e){}
+
     res.json({ success: true, album });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -251,6 +275,15 @@ router.post('/client/album/:albumId/approve-all', async (req, res) => {
     album.version = (album.version || 1) + 1;
 
     await album.save();
+
+    // Notificar fotografo por e-mail
+    try {
+      const org = await Organization.findById(album.organizationId).select('email slug');
+      if (org?.email) {
+        sendAlbumApprovedEmail(org.email, 'Cliente', album.name, org.slug).catch(() => {});
+      }
+    } catch(e){}
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

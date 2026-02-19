@@ -13,6 +13,8 @@ const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
+const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail } = require('../utils/email');
+const Organization = require('../models/Organization');
 
 const uploadSession = createUploader('sessions');
 
@@ -295,14 +297,23 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     const selectedCount = participant ? participant.selectedPhotos.length : session.selectedPhotos.length;
 
-    try { 
-      await Notification.create({ 
-        type: 'selection_submitted', 
-        sessionId: session._id, 
-        sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+    try {
+      await Notification.create({
+        type: 'selection_submitted',
+        sessionId: session._id,
+        sessionName: participant ? `${participant.name} (${session.name})` : session.name,
         message: `${participant ? participant.name : session.name} finalizou a seleção (${selectedCount} fotos)`,
         organizationId: session.organizationId
-      }); 
+      });
+    } catch(e){}
+
+    // Notificar fotografo por e-mail
+    try {
+      const org = await Organization.findById(session.organizationId).select('email name slug');
+      if (org?.email) {
+        const clientName = participant ? participant.name : session.name;
+        sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => {});
+      }
     } catch(e){}
 
     res.json({ success: true });
@@ -431,6 +442,12 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
       { organizationId: req.user.organizationId },
       { $inc: { 'usage.sessions': 1 } }
     );
+
+    // Notificar cliente por e-mail (se clientEmail informado)
+    if (session.clientEmail) {
+      const org = await Organization.findById(req.user.organizationId).select('name');
+      sendGalleryAvailableEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo').catch(() => {});
+    }
 
     res.json({ success: true, session });
   } catch (error) {
@@ -585,10 +602,19 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
 
 router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
   try {
-    await Session.findOneAndUpdate(
+    const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
-      { selectionStatus: 'delivered', watermark: false, deliveredAt: new Date() }
+      { selectionStatus: 'delivered', watermark: false, deliveredAt: new Date() },
+      { new: true }
     );
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Notificar cliente por e-mail
+    if (session.clientEmail) {
+      const org = await Organization.findById(session.organizationId).select('name');
+      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo').catch(() => {});
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
