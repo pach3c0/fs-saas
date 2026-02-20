@@ -2,10 +2,13 @@
 
 ## O QUE E ESTE PROJETO
 
-Plataforma de portfolio fotografico com 3 frontends e 1 backend:
+Plataforma de portfolio fotografico com varios frontends e 1 backend:
+- **Landing page** (`landing/index.html`) - Apresentacao do SaaS para novos fotografos (conteudo editavel via saas-admin)
+- **Pagina de cadastro** (`cadastro/index.html`) - Formulario de registro de fotografos
 - **Site publico** (`public/index.html` + `public/js/main.js`) - Portfolio, galeria, FAQ, contato
 - **Painel admin** (`admin/`) - Gerencia todo o conteudo do site
 - **Galeria do cliente** (`cliente/index.html` + `cliente/js/gallery.js`) - Fotos privadas com codigo de acesso
+- **Painel super-admin** (`saas-admin/`) - Gerencia toda a plataforma SaaS (orgs, landing page, metricas)
 - **API backend** (`src/server.js` + `src/routes/`) - Express.js + MongoDB
 
 Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `app.fsfotografias.com.br`
@@ -31,6 +34,16 @@ Path na VPS: `/var/www/fs-saas`
 
 ```
 Site/
+  landing/
+    index.html              # Landing page do SaaS (conteudo dinamico via /api/landing/config)
+  cadastro/
+    index.html              # Pagina de cadastro de fotografos
+    js/
+      cadastro.js           # JS do formulario de cadastro
+  saas-admin/
+    index.html              # Painel super-admin (login + tabs: Organizacoes, Lixeira, Landing Page)
+    js/
+      app.js                # Toda a logica do painel super-admin (dashboard, editor landing, etc)
   admin/
     index.html              # Shell do painel (login + sidebar + container)
     js/
@@ -100,6 +113,7 @@ Site/
       auth.js               # authenticateToken (JWT)
     models/
       SiteData.js           # Documento unico com todo o conteudo do site
+      LandingData.js        # Documento unico com todo o conteudo da landing page do SaaS
       Session.js            # Sessoes de clientes (fotos privadas)
       Client.js             # Clientes do fotografo (CRM)
       Notification.js       # Notificacoes do admin (acessos, selecoes, etc)
@@ -116,6 +130,7 @@ Site/
       notifications.js      # GET /notifications, GET /notifications/unread-count, PUT /notifications/read-all
       organization.js       # GET/PUT /organization/profile, GET /organization/public
       site.js               # GET /site/config, PUT /site/admin/config (Fase 9)
+      landing.js            # GET /landing/config (publico), PUT /admin/landing/config (superadmin)
     utils/
       multerConfig.js       # createUploader(subdir, options) - config compartilhada do multer
       notifications.js      # notify(type, sessionId, sessionName, message) - helper de criacao

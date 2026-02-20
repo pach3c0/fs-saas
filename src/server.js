@@ -22,6 +22,8 @@ app.use('/cliente', express.static(path.join(__dirname, '../cliente')));
 app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
 // Fase 8: servir visualizador de álbum de prova
 app.use('/album', express.static(path.join(__dirname, '../album')));
+// Landing page do SaaS
+app.use('/landing', express.static(path.join(__dirname, '../landing')));
 
 // ============================================================================
 // DYNAMIC ROUTES (must come BEFORE static middleware for /site)
@@ -197,6 +199,7 @@ app.use('/api', require('./routes/albums'));
 app.use('/api', require('./routes/site'));
 app.use('/api', require('./routes/domains'));
 app.use('/api', require('./routes/billing'));
+app.use('/api', require('./routes/landing'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

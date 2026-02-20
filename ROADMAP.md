@@ -33,6 +33,7 @@ Plataforma completa para fotografos profissionais: selecao de fotos, entrega onl
 - **FASE 14**: Notificações por E-mail ✅ **COMPLETO** (19/02/2026)
 
 - **FASE 16**: Painel Super-Admin ✅ **COMPLETO** (19/02/2026)
+- **FASE 17**: Landing Page do SaaS ✅ **COMPLETO** (19/02/2026)
 
 ### ✅ Todas as fases planejadas concluídas!
 
@@ -732,6 +733,47 @@ FASE 11 (Integracoes)  ──┘
 - [x] Middleware `requireSuperadmin` em todas as rotas admin
 
 **Arquivos modificados**: `saas-admin/js/app.js` (busca, MRR, forçar plano), `src/routes/auth.js` (rota PUT /plan, byPlan no metrics)
+
+---
+
+## FASE 17 - Landing Page do SaaS ✅ (Concluído em 19/02/2026)
+**Objetivo**: Página de apresentação da plataforma para novos fotógrafos
+**Prioridade**: ALTA (primeira impressão de novos clientes)
+**Complexidade**: Média
+**Status**: CONCLUÍDO
+
+### 17.1 Landing Page (`/landing`)
+- [x] Hero com headline, subheadline, botão CTA e mockup visual da galeria
+- [x] Seção "Como funciona" com 3 passos
+- [x] Grid de funcionalidades (8 features com ícone, título e descrição)
+- [x] Seção de planos e preços (Free, Basic R$49, Pro R$99) com destaque no mais popular
+- [x] Depoimentos de fotógrafos
+- [x] FAQ com accordion (abrir/fechar)
+- [x] CTA final com botão para cadastro
+- [x] Navbar fixa com links de ancoragem e botão "Começar grátis"
+- [x] Design escuro elegante (fundo `#0f172a`, accent `#6366f1`)
+- [x] Totalmente responsivo (mobile-first)
+- [x] Conteúdo carregado dinamicamente via `GET /api/landing/config`
+
+### 17.2 Editor no Painel Super-Admin (`/saas-admin/` → aba "Landing Page")
+- [x] Aba "Landing Page" no saas-admin com editor visual completo
+- [x] Editar Hero (headline, subheadline, textos dos botões)
+- [x] Editar passos do "Como funciona" (emoji, título, descrição)
+- [x] Editar funcionalidades (emoji, título, descrição, ativar/desativar)
+- [x] Editar planos (nome, preço, período, descrição, features linha por linha, destaque)
+- [x] Editar depoimentos (texto, autor, função, ativar/desativar, adicionar/remover)
+- [x] Editar FAQ (pergunta, resposta, ativar/desativar, adicionar/remover)
+- [x] Editar CTA final e footer
+- [x] Botão "Ver Landing Page ↗" para preview
+- [x] Salvar tudo com `PUT /api/admin/landing/config` (protegido por superadmin)
+
+### 17.3 Backend
+- [x] Modelo `LandingData` (documento único com defaults para todas as seções)
+- [x] `GET /api/landing/config` — público, retorna dados da landing
+- [x] `PUT /api/admin/landing/config` — protegido (superadmin), salva via `$set` com upsert
+
+**Arquivos criados**: `landing/index.html`, `src/models/LandingData.js`, `src/routes/landing.js`
+**Arquivos modificados**: `src/server.js` (static + rota), `saas-admin/index.html` (aba), `saas-admin/js/app.js` (editor e switchTab)
 
 ---
 
