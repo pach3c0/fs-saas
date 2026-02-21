@@ -897,7 +897,7 @@ SSL: Let's Encrypt via Certbot (auto-renovacao)
 | `app.fsfotografias.com.br/admin/` | Painel admin do fotografo |
 | `app.fsfotografias.com.br/saas-admin/` | Painel super-admin do SaaS |
 | `app.fsfotografias.com.br/cliente/` | Galeria do cliente |
-
+app.fsfotografias.com.br/landing
 ---
 
 ## CHECKLIST ANTES DE DEPLOY
