@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FS Fotografias — Plataforma para Fotógrafos Profissionais</title>
-  <meta name="description" content="Galeria de seleção, entrega online, prova de álbum e site profissional. A plataforma completa para fotógrafos.">
+  <meta name="description" content="Site profissional, seleção de fotos e entrega online. Tudo em um só lugar para fotógrafos.">
   <meta property="og:title" content="FS Fotografias - Plataforma para Fotógrafos">
   <meta property="og:description" content="Crie seu portfolio, entregue fotos e gerencie clientes. Comece gratuitamente.">
 
@@ -25,13 +25,25 @@
     .nav-links { display: flex; align-items: center; gap: 2rem; }
     .nav-link { font-size: 0.875rem; color: #555; transition: color 0.2s; font-weight: 500; }
     .nav-link:hover { color: #1a1a1a; }
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-trigger { font-size: 0.875rem; color: #555; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.25rem; background: none; border: none; font-family: inherit; }
+    .nav-dropdown-trigger:hover { color: #1a1a1a; }
+    .nav-dropdown-trigger svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.2s; }
+    .nav-dropdown-menu { position: absolute; top: calc(100% + 0.75rem); left: -1rem; background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 0.5rem; min-width: 220px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: all 0.2s; }
+    .nav-dropdown:hover .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+    .nav-dropdown:hover .nav-dropdown-trigger svg { transform: rotate(180deg); }
+    .nav-dropdown-menu a { display: block; padding: 0.625rem 0.875rem; font-size: 0.8125rem; color: #444; border-radius: 0.375rem; transition: background 0.15s; }
+    .nav-dropdown-menu a:hover { background: #f5f5f5; color: #1a1a1a; }
+    .nav-dropdown-menu a span { display: block; font-size: 0.6875rem; color: #999; margin-top: 0.125rem; }
     .nav-cta { background: #1a1a1a; color: #fff !important; padding: 0.5rem 1.25rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.8125rem; transition: background 0.2s; }
     .nav-cta:hover { background: #333; }
     .nav-mobile-btn { display: none; background: none; border: none; cursor: pointer; padding: 0.25rem; }
     .nav-mobile-btn svg { width: 24px; height: 24px; stroke: #1a1a1a; fill: none; stroke-width: 2; }
 
-    /* ==================== CONTAINER ==================== */
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
+    /* ==================== LOADING ==================== */
+    #loadingScreen { position: fixed; inset: 0; background: #fafafa; display: flex; align-items: center; justify-content: center; z-index: 999; transition: opacity .3s; }
+    .spinner { width: 2rem; height: 2rem; border: 3px solid #eee; border-top-color: #1a1a1a; border-radius: 9999px; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ==================== SECTION COMMONS ==================== */
     .section-label { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 0.75rem; }
@@ -41,23 +53,6 @@
     .section-sub { color: #666; font-size: 1.0625rem; margin-bottom: 3.5rem; line-height: 1.6; }
     .section-sub.centered { text-align: center; max-width: 560px; margin-left: auto; margin-right: auto; }
 
-    /* ==================== LOADING ==================== */
-    #loadingScreen {
-      position: fixed; inset: 0;
-      background: #fafafa;
-      display: flex; align-items: center; justify-content: center;
-      z-index: 999;
-      transition: opacity .3s;
-    }
-    .spinner {
-      width: 2rem; height: 2rem;
-      border: 3px solid #eee;
-      border-top-color: #1a1a1a;
-      border-radius: 9999px;
-      animation: spin .6s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     /* ==================== HERO ==================== */
     .hero { max-width: 1120px; margin: 0 auto; padding: 6rem 1.5rem 5rem; text-align: center; }
     .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: #f0fdf4; color: #16a34a; font-size: 0.75rem; font-weight: 600; padding: 0.375rem 1rem; border-radius: 9999px; margin-bottom: 2rem; letter-spacing: 0.03em; }
@@ -66,12 +61,14 @@
     #heroHeadline em { font-style: italic; color: #555; }
     #heroSubheadline { font-size: 1.125rem; color: #666; line-height: 1.75; max-width: 580px; margin: 0 auto 2.5rem; }
     .hero-actions { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
-    #heroCta { display: inline-flex; align-items: center; gap: 0.5rem; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; transition: background 0.2s, transform 0.15s; }
-    #heroCta:hover { background: #333; transform: translateY(-1px); }
-    #heroCta svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; transition: background 0.2s, transform 0.15s; }
+    .btn-primary:hover { background: #333; transform: translateY(-1px); }
+    .btn-primary svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; color: #1a1a1a; padding: 0.875rem 2rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; border: 1px solid #ddd; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: #1a1a1a; }
     #heroSubtext { font-size: 0.8125rem; color: #999; margin-top: 1.25rem; }
 
-    /* ── Mockup visual ── */
+    /* Mockup */
     .hero-mockup { margin-top: 4rem; background: #fff; border: 1px solid #eee; border-radius: 1rem; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.06); }
     .mockup-bar { background: #f5f5f5; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #eee; }
     .mockup-dot { width: 0.625rem; height: 0.625rem; border-radius: 9999px; }
@@ -90,11 +87,24 @@
     .proof-number { font-size: 2rem; font-weight: 800; color: #1a1a1a; letter-spacing: -0.02em; }
     .proof-label { font-size: 0.8125rem; color: #888; margin-top: 0.125rem; }
 
+    /* ==================== SOLUTIONS ==================== */
+    .solutions { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+    .solutions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .solution-card { background: #fff; border: 1px solid #eee; border-radius: 1rem; padding: 2.25rem 1.75rem; transition: box-shadow 0.3s, transform 0.2s; }
+    .solution-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); transform: translateY(-3px); }
+    .solution-icon { width: 48px; height: 48px; background: #f5f5f5; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .solution-icon svg { width: 24px; height: 24px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .solution-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.625rem; }
+    .solution-card p { font-size: 0.875rem; color: #666; line-height: 1.65; margin-bottom: 1.25rem; }
+    .solution-features { list-style: none; }
+    .solution-features li { font-size: 0.8125rem; color: #555; padding: 0.3125rem 0; display: flex; align-items: center; gap: 0.5rem; }
+    .solution-features li svg { width: 14px; height: 14px; stroke: #16a34a; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+
     /* ==================== HOW IT WORKS ==================== */
     .how-it-works { background: #fff; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
     .how-it-works-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
     #stepsGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 3.5rem; }
-    .step { text-align: center; position: relative; }
+    .step { text-align: center; }
     .step-number { width: 52px; height: 52px; background: #1a1a1a; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin: 0 auto 1.25rem; }
     .step-title { font-size: 1.0625rem; font-weight: 700; margin-bottom: 0.5rem; }
     .step-desc { font-size: 0.875rem; color: #666; line-height: 1.6; max-width: 260px; margin: 0 auto; }
@@ -104,7 +114,7 @@
     #featuresGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-top: 3.5rem; }
     .fd-card { background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 1.75rem; display: flex; gap: 1.25rem; align-items: flex-start; transition: box-shadow 0.2s; }
     .fd-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
-    .fd-icon { width: 40px; height: 40px; background: #f5f5f5; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem; }
+    .fd-icon { width: 40px; height: 40px; background: #f5f5f5; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem; line-height: 1; }
     .fd-icon svg { width: 20px; height: 20px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     .fd-text h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
     .fd-text p { font-size: 0.8125rem; color: #666; line-height: 1.55; }
@@ -116,8 +126,7 @@
     .plan-card { background: #fafafa; border: 1px solid #eee; border-radius: 1rem; padding: 2.25rem 1.75rem; position: relative; transition: box-shadow 0.3s; }
     .plan-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
     .plan-card.featured { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-    .plan-card.featured .plan-period,
-    .plan-card.featured .plan-desc { color: #bbb; }
+    .plan-card.featured .plan-period, .plan-card.featured .plan-desc { color: #bbb; }
     .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; font-size: 0.6875rem; font-weight: 700; padding: 0.25rem 1rem; border-radius: 9999px; letter-spacing: 0.05em; text-transform: uppercase; }
     .plan-card.featured .plan-badge { background: #fff; color: #1a1a1a; }
     .plan-name { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; }
@@ -152,23 +161,50 @@
     /* ==================== FAQ ==================== */
     .faq-section { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
     .faq-inner { max-width: 700px; margin: 0 auto; }
-    #faqList { margin-top: 2.5rem; }
     .faq-item { border-bottom: 1px solid #eee; }
     .faq-question { width: 100%; background: none; border: none; padding: 1.25rem 0; font-size: 1rem; font-weight: 500; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #1a1a1a; font-family: 'Inter', sans-serif; }
     .faq-question svg { width: 20px; height: 20px; stroke: #999; fill: none; stroke-width: 2; transition: transform 0.3s; flex-shrink: 0; margin-left: 1rem; }
-    .faq-item.open .faq-question svg { transform: rotate(180deg); }
+    .faq-question.active svg { transform: rotate(180deg); }
     .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
     .faq-answer p { padding: 0 0 1.25rem; font-size: 0.9375rem; color: #666; line-height: 1.7; }
-    .faq-item.open .faq-answer { max-height: 500px; }
 
-    /* ==================== CTA FINAL ==================== */
-    .cta-final { background: #1a1a1a; color: #fff; }
-    .cta-final-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; text-align: center; }
-    #ctaTitle { font-family: 'Playfair Display', serif; font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
-    #ctaSubtitle { font-size: 1.0625rem; color: #bbb; margin-bottom: 2rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6; }
-    #ctaBtn { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; color: #1a1a1a; padding: 0.875rem 2.5rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 700; transition: background 0.2s, transform 0.15s; }
-    #ctaBtn:hover { background: #f5f5f5; transform: translateY(-1px); }
-    #ctaBtn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+    /* ==================== CTA INTERMEDIÁRIO ==================== */
+    .cta-mid { background: #1a1a1a; color: #fff; }
+    .cta-mid-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; text-align: center; }
+    .cta-mid h2 { font-family: 'Playfair Display', serif; font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .cta-mid p { font-size: 1.0625rem; color: #bbb; margin-bottom: 2rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+    .btn-white { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; color: #1a1a1a; padding: 0.875rem 2.5rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 700; transition: background 0.2s, transform 0.15s; }
+    .btn-white:hover { background: #f5f5f5; transform: translateY(-1px); }
+    .btn-white svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ==================== REGISTER ==================== */
+    .register { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+    .register-card { background: #fff; border: 1px solid #eee; border-radius: 1rem; padding: 2.5rem 2rem; max-width: 480px; margin: 0 auto; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #333; }
+    .form-group input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 0.9375rem; outline: none; font-family: 'Inter', sans-serif; transition: border-color 0.2s; background: #fff; }
+    .form-group input:focus { border-color: #1a1a1a; }
+    .form-group .hint { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
+    .slug-preview { font-size: 0.8125rem; color: #2563eb; margin-top: 0.375rem; font-weight: 500; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-error { font-size: 0.8125rem; color: #dc2626; margin-top: 0.375rem; display: none; }
+    .form-submit { width: 100%; padding: 0.875rem; background: #1a1a1a; color: #fff; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s; margin-top: 0.5rem; }
+    .form-submit:hover { background: #333; }
+    .form-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+    .form-footer-note { text-align: center; margin-top: 1.25rem; font-size: 0.8125rem; color: #999; }
+    .form-footer-note a { color: #1a1a1a; font-weight: 600; }
+    .form-footer-note a:hover { text-decoration: underline; }
+    .plan-selected { display: none; background: #f5f5f5; border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.875rem; }
+    .plan-selected a { color: #1a1a1a; font-weight: 600; margin-left: 0.5rem; font-size: 0.8125rem; text-decoration: underline; cursor: pointer; }
+
+    /* Success */
+    .success-state { text-align: center; padding: 2rem 0; display: none; }
+    .success-icon { width: 64px; height: 64px; background: #f0fdf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+    .success-icon svg { width: 32px; height: 32px; stroke: #16a34a; fill: none; stroke-width: 2; }
+    .success-state h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .success-state p { font-size: 0.9375rem; color: #555; line-height: 1.6; margin-bottom: 0.5rem; }
+    .success-state .slug-url { font-weight: 600; color: #2563eb; }
+    .success-state .back-btn { display: inline-block; margin-top: 1.5rem; padding: 0.75rem 2rem; background: #1a1a1a; color: #fff; border-radius: 0.5rem; font-weight: 600; font-size: 0.9375rem; }
 
     /* ==================== FOOTER ==================== */
     footer { border-top: 1px solid #eee; }
@@ -195,16 +231,20 @@
       #heroSubheadline { font-size: 1rem; }
       .social-proof-inner { flex-wrap: wrap; gap: 2rem; }
       .proof-item { min-width: 100px; }
+      .solutions-grid { grid-template-columns: 1fr; }
       #stepsGrid { grid-template-columns: 1fr; gap: 2rem; }
       #featuresGrid { grid-template-columns: 1fr; }
       #plansGrid { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; }
-      .nav-links .nav-link, .nav-links .nav-cta { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-links .nav-link, .nav-links .nav-dropdown, .nav-links .nav-cta { display: none; }
       .nav-mobile-btn { display: block; }
       .footer-inner { flex-direction: column; gap: 1rem; text-align: center; }
       .section-title { font-size: 1.75rem; }
       .mockup-body { grid-template-columns: repeat(3, 1fr); padding: 1rem; }
     }
     @media (min-width: 769px) and (max-width: 1024px) {
+      .solutions-grid { grid-template-columns: 1fr 1fr; }
+      .solutions-grid > :last-child { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
       #plansGrid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
     }
   </style>
@@ -221,11 +261,11 @@
       <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
   </div>
+  <a href="#solucoes" onclick="document.getElementById('mobileMenu').classList.remove('active')">Soluções</a>
   <a href="#howItWorks" onclick="document.getElementById('mobileMenu').classList.remove('active')">Como funciona</a>
-  <a href="#features" onclick="document.getElementById('mobileMenu').classList.remove('active')">Recursos</a>
   <a href="#plans" onclick="document.getElementById('mobileMenu').classList.remove('active')">Planos</a>
   <a href="#faq" onclick="document.getElementById('mobileMenu').classList.remove('active')">FAQ</a>
-  <a href="/cadastro" class="mobile-cta">Criar Conta Grátis</a>
+  <a href="#cadastro" class="mobile-cta" onclick="document.getElementById('mobileMenu').classList.remove('active')">Criar Conta Grátis</a>
 </div>
 
 <!-- NAV -->
@@ -233,11 +273,21 @@
   <div class="nav-inner">
     <a href="/landing" class="nav-logo">FS FOTOGRAFIAS</a>
     <div class="nav-links">
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">
+          Soluções
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="nav-dropdown-menu">
+          <a href="#solucoes">Portfolio Online <span>Seu trabalho exposto com elegância</span></a>
+          <a href="#solucoes">Seleção de Fotos <span>Clientes selecionam direto no site</span></a>
+          <a href="#solucoes">Entrega Online <span>Download seguro e profissional</span></a>
+        </div>
+      </div>
       <a href="#howItWorks" class="nav-link">Como funciona</a>
-      <a href="#features" class="nav-link">Recursos</a>
       <a href="#plans" class="nav-link">Planos</a>
       <a href="#faq" class="nav-link">FAQ</a>
-      <a href="/cadastro" class="nav-cta" id="navCta">Começar grátis</a>
+      <a href="#cadastro" class="nav-cta" id="navCta">Criar Conta</a>
     </div>
     <button class="nav-mobile-btn" onclick="document.getElementById('mobileMenu').classList.add('active')">
       <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -249,19 +299,19 @@
 <section class="hero">
   <div class="hero-badge">
     <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    PLATAFORMA COMPLETA PARA FOTÓGRAFOS
+    BETA GRATUITO
   </div>
   <h1 id="heroHeadline">Loading...</h1>
   <p id="heroSubheadline"></p>
   <div class="hero-actions">
-    <a href="/cadastro" id="heroCta">
+    <a href="#cadastro" id="heroCta" class="btn-primary">
       Começar Gratuitamente
       <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
     </a>
+    <a href="#solucoes" class="btn-secondary">Conhecer Soluções</a>
   </div>
   <p id="heroSubtext"></p>
 
-  <!-- Mockup visual da galeria -->
   <div class="hero-mockup">
     <div class="mockup-bar">
       <div class="mockup-dot" style="background:#ef4444;"></div>
@@ -304,10 +354,58 @@
   </div>
 </section>
 
+<!-- SOLUÇÕES -->
+<section class="solutions" id="solucoes">
+  <div class="section-label centered">Soluções</div>
+  <h2 class="section-title centered">Tudo que um fotógrafo precisa</h2>
+  <p class="section-sub centered">Ferramentas pensadas para o seu dia a dia, do portfolio à entrega final ao cliente.</p>
+  <div class="solutions-grid">
+    <div class="solution-card">
+      <div class="solution-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+      </div>
+      <h3>Portfolio Online</h3>
+      <p>Seu site profissional com subdomínio exclusivo. Mostre seu trabalho de forma elegante e atraia novos clientes.</p>
+      <ul class="solution-features">
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Galeria responsiva com design moderno</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Subdomínio seu-nome.fsfotografias.com.br</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Seções: Hero, Sobre, Portfolio, Álbuns</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Tudo editável pelo painel admin</li>
+      </ul>
+    </div>
+    <div class="solution-card">
+      <div class="solution-icon">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      </div>
+      <h3>Seleção de Fotos</h3>
+      <p>Seus clientes selecionam as fotos favoritas diretamente no site. Sem WhatsApp, sem confusão.</p>
+      <ul class="solution-features">
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Acesso por código exclusivo</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Limite de fotos por pacote</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Watermark automático nas fotos</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Notificação quando cliente seleciona</li>
+      </ul>
+    </div>
+    <div class="solution-card">
+      <div class="solution-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </div>
+      <h3>Entrega Online</h3>
+      <p>Entregue as fotos finais com download seguro. Profissional e prático para você e seu cliente.</p>
+      <ul class="solution-features">
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Download individual ou em lote</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Fotos sem watermark após aprovação</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Status: pendente, enviado, entregue</li>
+        <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Controle total pelo painel admin</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 <!-- COMO FUNCIONA -->
 <section class="how-it-works" id="howItWorks">
   <div class="how-it-works-inner">
-    <div class="section-label centered" id="howLabel">Como funciona</div>
+    <div class="section-label centered">Como funciona</div>
     <h2 class="section-title centered" id="howTitle">Como funciona</h2>
     <p class="section-sub centered" id="howSub"></p>
     <div id="stepsGrid"></div>
@@ -347,19 +445,75 @@
   <div class="faq-inner">
     <div class="section-label centered">Dúvidas</div>
     <h2 class="section-title centered" id="faqTitle">Perguntas frequentes</h2>
-    <div id="faqList"></div>
+    <div id="faqList" style="margin-top:2.5rem;"></div>
   </div>
 </section>
 
-<!-- CTA FINAL -->
-<section class="cta-final">
-  <div class="cta-final-inner">
-    <h2 id="ctaTitle"></h2>
-    <p id="ctaSubtitle"></p>
-    <a href="/cadastro" id="ctaBtn">
+<!-- CTA INTERMEDIÁRIO -->
+<section class="cta-mid">
+  <div class="cta-mid-inner">
+    <h2 id="ctaTitle">Pronto para profissionalizar suas entregas?</h2>
+    <p id="ctaSubtitle">Crie seu portfolio, organize suas sessões e impressione seus clientes. Comece grátis.</p>
+    <a href="#cadastro" id="ctaBtn" class="btn-white">
       Criar Minha Conta
       <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
     </a>
+  </div>
+</section>
+
+<!-- CADASTRO -->
+<section class="register" id="cadastro">
+  <div class="section-label centered">Cadastro</div>
+  <h2 class="section-title centered">Crie sua conta</h2>
+  <p class="section-sub centered">Preencha os dados abaixo para criar seu portfolio profissional</p>
+  <div class="register-card">
+    <div class="plan-selected" id="planSelected">
+      Plano selecionado: <strong id="planSelectedName"></strong>
+      <a onclick="clearPlan()">alterar</a>
+    </div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="name">Nome completo</label>
+        <input type="text" id="name" placeholder="Seu nome" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="seu@email.com" required>
+      </div>
+      <div class="form-group">
+        <label for="orgName">Nome do estúdio</label>
+        <input type="text" id="orgName" placeholder="Ex: Maria Fotografias" required>
+      </div>
+      <div class="form-group">
+        <label for="slug">URL do seu site</label>
+        <input type="text" id="slug" placeholder="meu-estudio" required>
+        <div class="slug-preview" id="slugPreview">seu-estudio.fsfotografias.com.br</div>
+        <div class="hint">Apenas letras minúsculas, números e hifens</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Mín. 6 caracteres" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirmar senha</label>
+          <input type="password" id="confirmPassword" placeholder="Repita a senha" required>
+        </div>
+      </div>
+      <div class="form-error" id="formError"></div>
+      <button type="submit" class="form-submit" id="submitBtn">Criar Minha Conta</button>
+    </form>
+    <div class="form-footer-note">Já tem uma conta? <a href="/admin">Faça login</a></div>
+
+    <div class="success-state" id="successState">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h3>Cadastro realizado com sucesso!</h3>
+      <p>Seu estúdio <span class="slug-url" id="successSlug"></span> foi reservado.</p>
+      <p style="color:#999; font-size:0.8125rem;">Você receberá um email quando sua conta for aprovada. A aprovação leva até 24 horas úteis.</p>
+      <a href="/landing" class="back-btn">Voltar ao Início</a>
+    </div>
   </div>
 </section>
 
@@ -368,16 +522,17 @@
   <div class="footer-inner">
     <div class="footer-logo">FS FOTOGRAFIAS</div>
     <div class="footer-links">
-      <a href="#howItWorks">Como funciona</a>
+      <a href="#solucoes">Soluções</a>
       <a href="#plans">Planos</a>
       <a href="#faq">FAQ</a>
-      <a href="/cadastro">Cadastro</a>
+      <a href="/admin">Admin</a>
     </div>
-    <p id="footerText"></p>
+    <p id="footerText">&copy; 2026 FS Fotografias</p>
   </div>
 </footer>
 
 <script>
+// ── LANDING DATA ──────────────────────────────────────────────────────────────
 async function loadLanding() {
   try {
     const res = await fetch('/api/landing/config');
@@ -388,14 +543,12 @@ async function loadLanding() {
     document.getElementById('heroHeadline').innerHTML = h.headline
       .replace(/fotógrafos profissionais/i, '<em>fotógrafos profissionais</em>');
     document.getElementById('heroSubheadline').textContent = h.subheadline;
-    document.getElementById('heroCta').childNodes[0].textContent = h.ctaText + ' ';
     document.getElementById('heroSubtext').textContent = h.ctaSubtext;
-    document.getElementById('navCta').textContent = h.ctaText;
+    document.getElementById('navCta').textContent = 'Criar Conta';
 
     // HOW IT WORKS
-    const how = data.howItWorks;
-    document.getElementById('howTitle').textContent = how.title;
-    document.getElementById('stepsGrid').innerHTML = how.steps.map((s, i) => `
+    document.getElementById('howTitle').textContent = data.howItWorks.title;
+    document.getElementById('stepsGrid').innerHTML = data.howItWorks.steps.map((s, i) => `
       <div class="step">
         <div class="step-number">${i + 1}</div>
         <div class="step-title">${s.title}</div>
@@ -420,33 +573,32 @@ async function loadLanding() {
     // PLANS
     document.getElementById('plansTitle').textContent = data.plans.title;
     document.getElementById('plansSub').textContent = data.plans.subtitle;
-    document.getElementById('plansGrid').innerHTML = data.plans.items.map((p, i) => {
-      const isFirst = i === 0;
-      const isLast = i === data.plans.items.length - 1;
-      return `
-        <div class="plan-card ${p.highlighted ? 'featured' : ''}">
-          ${p.highlighted ? '<div class="plan-badge">Popular</div>' : ''}
-          <div class="plan-name">${p.name}</div>
-          <div class="plan-desc">${p.description}</div>
-          <div class="plan-price-wrap">
-            <span class="plan-price">${p.price}</span>
-            <span class="plan-period">${p.period}</span>
-          </div>
-          <hr class="plan-divider">
-          <ul class="plan-features">
-            ${p.features.map(f => `
-              <li class="plan-feature">
-                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                ${f}
-              </li>
-            `).join('')}
-          </ul>
-          <a href="/cadastro" class="plan-cta ${!p.highlighted ? 'outline' : ''}">
-            Começar ${p.name === 'Free' ? 'grátis' : 'agora'}
-          </a>
+    document.getElementById('plansGrid').innerHTML = data.plans.items.map(p => `
+      <div class="plan-card ${p.highlighted ? 'featured' : ''}">
+        ${p.highlighted ? '<div class="plan-badge">Popular</div>' : ''}
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-desc">${p.description}</div>
+        <div class="plan-price-wrap">
+          <span class="plan-price">${p.price}</span>
+          <span class="plan-period">${p.period}</span>
         </div>
-      `;
-    }).join('');
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          ${p.features.map(f => `
+            <li class="plan-feature">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              ${f}
+            </li>
+          `).join('')}
+        </ul>
+        <a href="#cadastro" class="plan-cta ${!p.highlighted ? 'outline' : ''}" data-plan="${p.name.toLowerCase()}">
+          Começar ${p.name === 'Free' ? 'grátis' : 'agora'}
+        </a>
+      </div>
+    `).join('');
+
+    // Reativar seleção de plano após render dinâmico
+    setupPlanSelection();
 
     // TESTIMONIALS
     document.getElementById('testimonialsTitle').textContent = data.testimonials.title;
@@ -465,8 +617,8 @@ async function loadLanding() {
     document.getElementById('faqList').innerHTML = data.faq.items
       .filter(f => f.active !== false)
       .map((f, i) => `
-        <div class="faq-item" id="faq${i}">
-          <button class="faq-question" onclick="toggleFaq(${i})">
+        <div class="faq-item">
+          <button class="faq-question">
             <span>${f.question}</span>
             <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
@@ -474,10 +626,11 @@ async function loadLanding() {
         </div>
       `).join('');
 
+    setupFaq();
+
     // CTA FINAL
     document.getElementById('ctaTitle').textContent = data.cta.title;
     document.getElementById('ctaSubtitle').textContent = data.cta.subtitle;
-    document.getElementById('ctaBtn').childNodes[0].textContent = data.cta.buttonText + ' ';
 
     // FOOTER
     document.getElementById('footerText').textContent = data.footer.text;
@@ -493,16 +646,126 @@ async function loadLanding() {
   }
 }
 
-function toggleFaq(i) {
-  const item = document.getElementById('faq' + i);
-  item.classList.toggle('open');
+// ── PLAN SELECTION ────────────────────────────────────────────────────────────
+var selectedPlan = 'free';
+
+function setupPlanSelection() {
+  document.querySelectorAll('[data-plan]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var plan = this.getAttribute('data-plan');
+      if (plan) {
+        selectedPlan = plan;
+        var names = { free: 'Free', basic: 'Basic', pro: 'Pro' };
+        document.getElementById('planSelectedName').textContent = names[plan] || plan;
+        document.getElementById('planSelected').style.display = 'block';
+      }
+    });
+  });
 }
 
-// Scroll suave
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    e.preventDefault();
-    document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+window.clearPlan = function() {
+  selectedPlan = 'free';
+  document.getElementById('planSelected').style.display = 'none';
+};
+
+// ── SLUG ──────────────────────────────────────────────────────────────────────
+document.getElementById('slug').addEventListener('input', function() {
+  var value = this.value
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-{2,}/g, '-');
+  this.value = value;
+  var preview = document.getElementById('slugPreview');
+  if (value && value.length >= 2) {
+    preview.textContent = value + '.fsfotografias.com.br';
+    preview.style.color = '#2563eb';
+  } else {
+    preview.textContent = 'seu-estudio.fsfotografias.com.br';
+    preview.style.color = '#999';
+  }
+});
+
+// ── FORM ──────────────────────────────────────────────────────────────────────
+var formError = document.getElementById('formError');
+
+function showError(msg) { formError.textContent = msg; formError.style.display = 'block'; }
+function hideError() { formError.style.display = 'none'; }
+
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideError();
+
+  var name = document.getElementById('name').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var orgName = document.getElementById('orgName').value.trim();
+  var slug = document.getElementById('slug').value.trim();
+  var password = document.getElementById('password').value;
+  var confirmPassword = document.getElementById('confirmPassword').value;
+  var submitBtn = document.getElementById('submitBtn');
+
+  if (!name || !email || !orgName || !slug || !password) { showError('Preencha todos os campos.'); return; }
+  if (slug.length < 3) { showError('A URL deve ter pelo menos 3 caracteres.'); return; }
+  if (!/^[a-z0-9-]+$/.test(slug)) { showError('A URL deve conter apenas letras minúsculas, números e hifens.'); return; }
+  if (password.length < 6) { showError('A senha deve ter pelo menos 6 caracteres.'); return; }
+  if (password !== confirmPassword) { showError('As senhas não conferem.'); return; }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Criando conta...';
+
+  try {
+    var res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, orgName, slug })
+    });
+    var data = await res.json();
+    if (res.ok && data.success) {
+      document.getElementById('registerForm').style.display = 'none';
+      document.querySelector('.form-footer-note').style.display = 'none';
+      document.getElementById('planSelected').style.display = 'none';
+      document.getElementById('successSlug').textContent = data.organizationSlug + '.fsfotografias.com.br';
+      document.getElementById('successState').style.display = 'block';
+    } else {
+      showError(data.error || 'Erro ao criar cadastro. Tente novamente.');
+    }
+  } catch (err) {
+    showError('Erro de conexão. Verifique sua internet e tente novamente.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Criar Minha Conta';
+  }
+});
+
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+function setupFaq() {
+  document.querySelectorAll('.faq-question').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var answer = this.nextElementSibling;
+      var isOpen = this.classList.contains('active');
+      document.querySelectorAll('.faq-question').forEach(function(b) {
+        b.classList.remove('active');
+        b.nextElementSibling.style.maxHeight = null;
+      });
+      if (!isOpen) {
+        this.classList.add('active');
+        answer.style.maxHeight = answer.scrollHeight + 'px';
+      }
+    });
+  });
+}
+
+// ── NAV SHADOW ────────────────────────────────────────────────────────────────
+var nav = document.querySelector('.nav');
+window.addEventListener('scroll', function() {
+  nav.style.boxShadow = window.scrollY > 10 ? '0 1px 8px rgba(0,0,0,0.06)' : 'none';
+});
+
+// ── SMOOTH SCROLL ─────────────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
 });
 
