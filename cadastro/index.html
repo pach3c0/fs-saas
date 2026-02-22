@@ -1,12 +1,686 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/landing#cadastro">
-  <title>Redirecionando...</title>
-  <script>window.location.replace('/landing#cadastro');</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS Fotografias | Plataforma para Fotografos</title>
+    <meta name="description" content="Site profissional, selecao de fotos e entrega online. Tudo em um so lugar para fotografos.">
+    <meta property="og:title" content="FS Fotografias - Plataforma para Fotografos">
+    <meta property="og:description" content="Crie seu portfolio, entregue fotos e gerencie clientes. Comece gratuitamente.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background: #fafafa; color: #1a1a1a; -webkit-font-smoothing: antialiased; }
+
+        /* ==================== NAV ==================== */
+        .nav { background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 50; }
+        .nav-inner { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-logo { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1a1a1a; text-decoration: none; letter-spacing: 0.02em; }
+        .nav-links { display: flex; align-items: center; gap: 2rem; }
+        .nav-link { font-size: 0.875rem; color: #555; text-decoration: none; transition: color 0.2s; font-weight: 500; }
+        .nav-link:hover { color: #1a1a1a; }
+        .nav-dropdown { position: relative; }
+        .nav-dropdown-trigger { font-size: 0.875rem; color: #555; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.25rem; background: none; border: none; font-family: inherit; }
+        .nav-dropdown-trigger:hover { color: #1a1a1a; }
+        .nav-dropdown-trigger svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.2s; }
+        .nav-dropdown-menu { position: absolute; top: calc(100% + 0.75rem); left: -1rem; background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 0.5rem; min-width: 220px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: all 0.2s; }
+        .nav-dropdown:hover .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+        .nav-dropdown:hover .nav-dropdown-trigger svg { transform: rotate(180deg); }
+        .nav-dropdown-menu a { display: block; padding: 0.625rem 0.875rem; font-size: 0.8125rem; color: #444; text-decoration: none; border-radius: 0.375rem; transition: background 0.15s; }
+        .nav-dropdown-menu a:hover { background: #f5f5f5; color: #1a1a1a; }
+        .nav-dropdown-menu a span { display: block; font-size: 0.6875rem; color: #999; margin-top: 0.125rem; }
+        .nav-cta { background: #1a1a1a; color: #fff !important; padding: 0.5rem 1.25rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.8125rem; text-decoration: none; transition: background 0.2s; }
+        .nav-cta:hover { background: #333; }
+        .nav-mobile-btn { display: none; background: none; border: none; cursor: pointer; padding: 0.25rem; }
+        .nav-mobile-btn svg { width: 24px; height: 24px; stroke: #1a1a1a; fill: none; stroke-width: 2; }
+
+        /* ==================== HERO ==================== */
+        .hero { max-width: 1120px; margin: 0 auto; padding: 6rem 1.5rem 5rem; text-align: center; }
+        .hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: #f0fdf4; color: #16a34a; font-size: 0.75rem; font-weight: 600; padding: 0.375rem 1rem; border-radius: 9999px; margin-bottom: 2rem; letter-spacing: 0.03em; }
+        .hero-badge svg { width: 14px; height: 14px; stroke: #16a34a; fill: none; stroke-width: 2; }
+        .hero h1 { font-family: 'Playfair Display', serif; font-size: 3.5rem; font-weight: 700; line-height: 1.12; margin-bottom: 1.5rem; max-width: 780px; margin-left: auto; margin-right: auto; }
+        .hero h1 em { font-style: italic; color: #555; }
+        .hero p { font-size: 1.125rem; color: #666; line-height: 1.75; max-width: 580px; margin: 0 auto 2.5rem; }
+        .hero-actions { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+        .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; text-decoration: none; transition: background 0.2s, transform 0.15s; border: none; cursor: pointer; font-family: inherit; }
+        .btn-primary:hover { background: #333; transform: translateY(-1px); }
+        .btn-primary svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .btn-secondary { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; color: #1a1a1a; padding: 0.875rem 2rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 600; text-decoration: none; border: 1px solid #ddd; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: #1a1a1a; }
+        .btn-secondary svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .hero-note { font-size: 0.8125rem; color: #999; margin-top: 1.25rem; }
+
+        /* ==================== SOCIAL PROOF ==================== */
+        .social-proof { border-top: 1px solid #eee; border-bottom: 1px solid #eee; background: #fff; }
+        .social-proof-inner { max-width: 1120px; margin: 0 auto; padding: 3rem 1.5rem; display: flex; align-items: center; justify-content: center; gap: 4rem; }
+        .proof-item { text-align: center; }
+        .proof-number { font-size: 2rem; font-weight: 800; color: #1a1a1a; letter-spacing: -0.02em; }
+        .proof-label { font-size: 0.8125rem; color: #888; margin-top: 0.125rem; }
+
+        /* ==================== SOLUTIONS ==================== */
+        .solutions { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .section-label { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 0.75rem; text-align: center; }
+        .section-title { font-family: 'Playfair Display', serif; font-size: 2.25rem; font-weight: 700; text-align: center; margin-bottom: 0.75rem; line-height: 1.2; }
+        .section-sub { text-align: center; color: #666; font-size: 1.0625rem; margin-bottom: 3.5rem; max-width: 560px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+        .solutions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .solution-card { background: #fff; border: 1px solid #eee; border-radius: 1rem; padding: 2.25rem 1.75rem; transition: box-shadow 0.3s, transform 0.2s; }
+        .solution-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); transform: translateY(-3px); }
+        .solution-icon { width: 48px; height: 48px; background: #f5f5f5; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+        .solution-icon svg { width: 24px; height: 24px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+        .solution-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.625rem; }
+        .solution-card p { font-size: 0.875rem; color: #666; line-height: 1.65; margin-bottom: 1.25rem; }
+        .solution-features { list-style: none; }
+        .solution-features li { font-size: 0.8125rem; color: #555; padding: 0.3125rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .solution-features li svg { width: 14px; height: 14px; stroke: #16a34a; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+
+        /* ==================== HOW IT WORKS ==================== */
+        .how-it-works { background: #fff; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+        .how-it-works-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 3.5rem; }
+        .step { text-align: center; position: relative; }
+        .step-number { width: 52px; height: 52px; background: #1a1a1a; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin: 0 auto 1.25rem; }
+        .step h3 { font-size: 1.0625rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .step p { font-size: 0.875rem; color: #666; line-height: 1.6; max-width: 260px; margin: 0 auto; }
+
+        /* ==================== FEATURES DETAIL ==================== */
+        .features-detail { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .features-detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-top: 3.5rem; }
+        .fd-card { background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 1.75rem; display: flex; gap: 1.25rem; align-items: flex-start; transition: box-shadow 0.2s; }
+        .fd-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+        .fd-icon { width: 40px; height: 40px; background: #f5f5f5; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .fd-icon svg { width: 20px; height: 20px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+        .fd-text h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .fd-text p { font-size: 0.8125rem; color: #666; line-height: 1.55; }
+
+        /* ==================== PRICING ==================== */
+        .pricing { background: #fff; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+        .pricing-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3.5rem; }
+        .plan-card { background: #fafafa; border: 1px solid #eee; border-radius: 1rem; padding: 2.25rem 1.75rem; position: relative; transition: box-shadow 0.3s; }
+        .plan-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+        .plan-card.featured { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+        .plan-card.featured .plan-price-period, .plan-card.featured .plan-feature { color: #bbb; }
+        .plan-card.featured .plan-feature svg { stroke: #6ee7b7; }
+        .plan-card.featured .plan-cta { background: #fff; color: #1a1a1a; }
+        .plan-card.featured .plan-cta:hover { background: #f5f5f5; }
+        .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; font-size: 0.6875rem; font-weight: 700; padding: 0.25rem 1rem; border-radius: 9999px; letter-spacing: 0.05em; text-transform: uppercase; }
+        .plan-card.featured .plan-badge { background: #fff; color: #1a1a1a; }
+        .plan-name { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .plan-desc { font-size: 0.8125rem; color: #888; margin-bottom: 1.25rem; line-height: 1.5; }
+        .plan-card.featured .plan-desc { color: #999; }
+        .plan-price { display: flex; align-items: baseline; gap: 0.25rem; margin-bottom: 0.25rem; }
+        .plan-price-value { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; }
+        .plan-price-period { font-size: 0.8125rem; color: #888; }
+        .plan-divider { border: none; border-top: 1px solid #eee; margin: 1.25rem 0; }
+        .plan-card.featured .plan-divider { border-color: #333; }
+        .plan-features { list-style: none; margin-bottom: 1.75rem; }
+        .plan-feature { font-size: 0.8125rem; color: #555; padding: 0.375rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .plan-feature svg { width: 16px; height: 16px; stroke: #16a34a; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+        .plan-feature.disabled { color: #bbb; }
+        .plan-feature.disabled svg { stroke: #ddd; }
+        .plan-card.featured .plan-feature.disabled { color: #555; }
+        .plan-card.featured .plan-feature.disabled svg { stroke: #555; }
+        .plan-cta { display: block; width: 100%; padding: 0.75rem; background: #1a1a1a; color: #fff; border: none; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; font-family: inherit; transition: background 0.2s; }
+        .plan-cta:hover { background: #333; }
+        .plan-cta.outline { background: transparent; border: 1px solid #ddd; color: #1a1a1a; }
+        .plan-cta.outline:hover { border-color: #1a1a1a; }
+
+        /* ==================== REGISTER ==================== */
+        .register { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .register-card { background: #fff; border: 1px solid #eee; border-radius: 1rem; padding: 2.5rem 2rem; max-width: 480px; margin: 0 auto; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: #333; }
+        .form-group input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 0.9375rem; outline: none; font-family: 'Inter', sans-serif; transition: border-color 0.2s; background: #fff; }
+        .form-group input:focus { border-color: #1a1a1a; }
+        .form-group .hint { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
+        .slug-preview { font-size: 0.8125rem; color: #2563eb; margin-top: 0.375rem; font-weight: 500; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-error { font-size: 0.8125rem; color: #dc2626; margin-top: 0.375rem; display: none; }
+        .form-submit { width: 100%; padding: 0.875rem; background: #1a1a1a; color: #fff; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s; margin-top: 0.5rem; }
+        .form-submit:hover { background: #333; }
+        .form-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+        .form-footer { text-align: center; margin-top: 1.25rem; font-size: 0.8125rem; color: #999; }
+        .form-footer a { color: #1a1a1a; text-decoration: none; font-weight: 600; }
+        .form-footer a:hover { text-decoration: underline; }
+
+        /* Success */
+        .success-state { text-align: center; padding: 2rem 0; display: none; }
+        .success-icon { width: 64px; height: 64px; background: #f0fdf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+        .success-icon svg { width: 32px; height: 32px; stroke: #16a34a; fill: none; stroke-width: 2; }
+        .success-state h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .success-state p { font-size: 0.9375rem; color: #555; line-height: 1.6; margin-bottom: 0.5rem; }
+        .success-state .slug-url { font-weight: 600; color: #2563eb; }
+        .success-state .back-btn { display: inline-block; margin-top: 1.5rem; padding: 0.75rem 2rem; background: #1a1a1a; color: #fff; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.9375rem; }
+
+        /* Plan selection in form */
+        .plan-selected { display: none; background: #f5f5f5; border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.875rem; }
+        .plan-selected strong { font-weight: 600; }
+        .plan-selected a { color: #1a1a1a; font-weight: 600; margin-left: 0.5rem; font-size: 0.8125rem; text-decoration: underline; cursor: pointer; }
+
+        /* ==================== FAQ ==================== */
+        .faq { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
+        .faq-inner { max-width: 700px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid #eee; }
+        .faq-question { width: 100%; background: none; border: none; padding: 1.25rem 0; font-size: 1rem; font-weight: 500; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #1a1a1a; font-family: 'Inter', sans-serif; }
+        .faq-question svg { width: 20px; height: 20px; stroke: #999; fill: none; stroke-width: 2; transition: transform 0.3s; flex-shrink: 0; margin-left: 1rem; }
+        .faq-question.active svg { transform: rotate(180deg); }
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .faq-answer p { padding: 0 0 1.25rem; font-size: 0.9375rem; color: #666; line-height: 1.7; }
+
+        /* ==================== CTA FINAL ==================== */
+        .cta-final { background: #1a1a1a; color: #fff; }
+        .cta-final-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; text-align: center; }
+        .cta-final h2 { font-family: 'Playfair Display', serif; font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+        .cta-final p { font-size: 1.0625rem; color: #bbb; margin-bottom: 2rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+        .cta-final .btn-white { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; color: #1a1a1a; padding: 0.875rem 2.5rem; border-radius: 0.5rem; font-size: 0.9375rem; font-weight: 700; text-decoration: none; transition: background 0.2s, transform 0.15s; }
+        .cta-final .btn-white:hover { background: #f5f5f5; transform: translateY(-1px); }
+
+        /* ==================== FOOTER ==================== */
+        .footer { border-top: 1px solid #eee; }
+        .footer-inner { max-width: 1120px; margin: 0 auto; padding: 3rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+        .footer-logo { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: #1a1a1a; }
+        .footer-links { display: flex; gap: 1.5rem; }
+        .footer-links a { font-size: 0.8125rem; color: #888; text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: #1a1a1a; }
+        .footer-copy { font-size: 0.75rem; color: #bbb; }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .hero { padding: 4rem 1.5rem 3rem; }
+            .hero h1 { font-size: 2.25rem; }
+            .hero p { font-size: 1rem; }
+            .social-proof-inner { flex-wrap: wrap; gap: 2rem; }
+            .proof-item { min-width: 100px; }
+            .solutions-grid { grid-template-columns: 1fr; }
+            .steps-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .features-detail-grid { grid-template-columns: 1fr; }
+            .pricing-grid { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; }
+            .form-row { grid-template-columns: 1fr; }
+            .nav-links .nav-link, .nav-links .nav-dropdown { display: none; }
+            .nav-mobile-btn { display: block; }
+            .footer-inner { flex-direction: column; gap: 1rem; text-align: center; }
+            .section-title { font-size: 1.75rem; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .solutions-grid { grid-template-columns: 1fr 1fr; }
+            .solutions-grid > :last-child { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+            .pricing-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        }
+
+        /* ==================== MOBILE MENU ==================== */
+        .mobile-menu { display: none; position: fixed; inset: 0; background: #fff; z-index: 100; padding: 1.5rem; flex-direction: column; }
+        .mobile-menu.active { display: flex; }
+        .mobile-menu-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+        .mobile-menu-close { background: none; border: none; cursor: pointer; }
+        .mobile-menu-close svg { width: 24px; height: 24px; stroke: #1a1a1a; fill: none; stroke-width: 2; }
+        .mobile-menu a { display: block; padding: 0.875rem 0; font-size: 1.0625rem; font-weight: 500; color: #1a1a1a; text-decoration: none; border-bottom: 1px solid #eee; }
+        .mobile-menu .mobile-cta { display: block; margin-top: 1.5rem; background: #1a1a1a; color: #fff; padding: 0.875rem; border-radius: 0.5rem; text-align: center; font-weight: 600; font-size: 1rem; text-decoration: none; }
+    </style>
 </head>
 <body>
-  <p>Redirecionando para <a href="/landing#cadastro">/landing#cadastro</a>...</p>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <span style="font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:700;">FS FOTOGRAFIAS</span>
+            <button class="mobile-menu-close" onclick="document.getElementById('mobileMenu').classList.remove('active')">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <a href="#solucoes" onclick="document.getElementById('mobileMenu').classList.remove('active')">Solucoes</a>
+        <a href="#planos" onclick="document.getElementById('mobileMenu').classList.remove('active')">Planos</a>
+        <a href="#faq-section" onclick="document.getElementById('mobileMenu').classList.remove('active')">FAQ</a>
+        <a href="/">Portfolio FS</a>
+        <a href="#cadastro" class="mobile-cta" onclick="document.getElementById('mobileMenu').classList.remove('active')">Criar Conta Gratis</a>
+    </div>
+
+    <!-- NAV -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/cadastro" class="nav-logo">FS FOTOGRAFIAS</a>
+            <div class="nav-links">
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-trigger">
+                        Solucoes
+                        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div class="nav-dropdown-menu">
+                        <a href="#solucoes">Portfolio Online <span>Seu trabalho exposto com elegancia</span></a>
+                        <a href="#solucoes">Selecao de Fotos <span>Clientes selecionam direto no site</span></a>
+                        <a href="#solucoes">Entrega Online <span>Download seguro e profissional</span></a>
+                    </div>
+                </div>
+                <a href="#planos" class="nav-link">Planos</a>
+                <a href="#faq-section" class="nav-link">FAQ</a>
+                <a href="#cadastro" class="nav-cta">Criar Conta</a>
+            </div>
+            <button class="nav-mobile-btn" onclick="document.getElementById('mobileMenu').classList.add('active')">
+                <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            BETA GRATUITO
+        </div>
+        <h1>Site, Selecao de Fotos e Entrega Online. <em>Tudo em 1 so lugar.</em></h1>
+        <p>A plataforma completa para fotografos que querem profissionalizar a entrega de trabalhos e ter presenca online.</p>
+        <div class="hero-actions">
+            <a href="#cadastro" class="btn-primary">
+                Comecar Gratuitamente
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+            <a href="#solucoes" class="btn-secondary">
+                Conhecer Solucoes
+            </a>
+        </div>
+        <div class="hero-note">Sem cartao de credito. Cadastro em 2 minutos.</div>
+    </section>
+
+    <!-- SOCIAL PROOF -->
+    <section class="social-proof">
+        <div class="social-proof-inner">
+            <div class="proof-item">
+                <div class="proof-number">100%</div>
+                <div class="proof-label">Gratuito no beta</div>
+            </div>
+            <div class="proof-item">
+                <div class="proof-number">2 min</div>
+                <div class="proof-label">Para criar sua conta</div>
+            </div>
+            <div class="proof-item">
+                <div class="proof-number">24h</div>
+                <div class="proof-label">Aprovacao em horas uteis</div>
+            </div>
+            <div class="proof-item">
+                <div class="proof-number">0</div>
+                <div class="proof-label">Codigo necessario</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SOLUTIONS -->
+    <section class="solutions" id="solucoes">
+        <div class="section-label">Solucoes</div>
+        <h2 class="section-title">Tudo que um fotografo precisa</h2>
+        <p class="section-sub">Ferramentas pensadas para o seu dia a dia, do portfolio a entrega final ao cliente.</p>
+
+        <div class="solutions-grid">
+            <!-- Portfolio -->
+            <div class="solution-card">
+                <div class="solution-icon">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </div>
+                <h3>Portfolio Online</h3>
+                <p>Seu site profissional com subdominio exclusivo. Mostre seu trabalho de forma elegante e atraia novos clientes.</p>
+                <ul class="solution-features">
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Galeria responsiva com design moderno</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Subdominio seu-nome.fsfotografias.com.br</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Secoes: Hero, Sobre, Portfolio, Albuns</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Tudo editavel pelo painel admin</li>
+                </ul>
+            </div>
+
+            <!-- Selecao de Fotos -->
+            <div class="solution-card">
+                <div class="solution-icon">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </div>
+                <h3>Selecao de Fotos</h3>
+                <p>Seus clientes selecionam as fotos favoritas diretamente no site. Sem WhatsApp, sem confusao.</p>
+                <ul class="solution-features">
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Acesso por codigo exclusivo</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Limite de fotos por pacote</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Watermark automatico nas fotos</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Notificacao quando cliente seleciona</li>
+                </ul>
+            </div>
+
+            <!-- Entrega Online -->
+            <div class="solution-card">
+                <div class="solution-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <h3>Entrega Online</h3>
+                <p>Entregue as fotos finais com download seguro. Profissional e pratico para voce e seu cliente.</p>
+                <ul class="solution-features">
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Download individual ou em lote</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Fotos sem watermark apos aprovacao</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Status: pendente, enviado, entregue</li>
+                    <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Controle total pelo painel admin</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works">
+        <div class="how-it-works-inner">
+            <div class="section-label">Como funciona</div>
+            <h2 class="section-title">Comece em 3 passos simples</h2>
+            <p class="section-sub">Sem complicacao. Crie sua conta e comece a usar em minutos.</p>
+
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Crie sua conta</h3>
+                    <p>Preencha seus dados e escolha a URL do seu site. Leva menos de 2 minutos.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Aguarde a aprovacao</h3>
+                    <p>Analisamos seu perfil em ate 24 horas uteis. Voce recebe um email quando estiver pronto.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Configure e publique</h3>
+                    <p>Acesse o painel, configure seu portfolio e comece a receber clientes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES DETAIL -->
+    <section class="features-detail">
+        <div class="section-label">Recursos</div>
+        <h2 class="section-title">Projetado para fotografos</h2>
+        <p class="section-sub">Cada recurso foi pensado para facilitar seu trabalho e impressionar seus clientes.</p>
+
+        <div class="features-detail-grid">
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>Painel Administrativo</h4>
+                    <p>Gerencie todo o conteudo do seu site, albuns, sessoes e notificacoes em um so lugar.</p>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>Subdominio Exclusivo</h4>
+                    <p>Seu nome na URL: seudominio.fsfotografias.com.br. Profissional e facil de compartilhar.</p>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>Notificacoes em Tempo Real</h4>
+                    <p>Saiba quando clientes acessam galerias, selecionam fotos ou finalizam selecoes.</p>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>100% Responsivo</h4>
+                    <p>Seu site e a galeria do cliente funcionam perfeitamente em celular, tablet e desktop.</p>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>Newsletter Integrada</h4>
+                    <p>Capture leads no seu site com formulario de newsletter e gerencie inscritos pelo painel.</p>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                </div>
+                <div class="fd-text">
+                    <h4>Zero Codigo</h4>
+                    <p>Tudo configuravel pelo painel. Atualize fotos, textos e cores sem precisar programar.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="pricing" id="planos">
+        <div class="pricing-inner">
+            <div class="section-label">Planos</div>
+            <h2 class="section-title">Escolha o plano ideal para voce</h2>
+            <p class="section-sub">Comece gratis e evolua conforme sua necessidade. Sem surpresas.</p>
+
+            <div class="pricing-grid">
+                <!-- FREE -->
+                <div class="plan-card">
+                    <div class="plan-name">Free</div>
+                    <div class="plan-desc">Para comecar e experimentar a plataforma.</div>
+                    <div class="plan-price">
+                        <span class="plan-price-value">R$ 0</span>
+                        <span class="plan-price-period">/mes</span>
+                    </div>
+                    <hr class="plan-divider">
+                    <ul class="plan-features">
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Portfolio com ate 20 fotos</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> 3 sessoes de clientes</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Subdominio exclusivo</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Galeria de selecao</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Painel administrativo</li>
+                        <li class="plan-feature disabled"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Albuns ilimitados</li>
+                        <li class="plan-feature disabled"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Newsletter</li>
+                    </ul>
+                    <a href="#cadastro" class="plan-cta outline" data-plan="free">Comecar Gratis</a>
+                </div>
+
+                <!-- BASIC -->
+                <div class="plan-card featured">
+                    <div class="plan-badge">Popular</div>
+                    <div class="plan-name">Basic</div>
+                    <div class="plan-desc">Para fotografos que querem crescer.</div>
+                    <div class="plan-price">
+                        <span class="plan-price-value">R$ 49</span>
+                        <span class="plan-price-period">/mes</span>
+                    </div>
+                    <hr class="plan-divider">
+                    <ul class="plan-features">
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Portfolio com ate 100 fotos</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> 20 sessoes de clientes</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Subdominio exclusivo</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Galeria de selecao</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Painel administrativo</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Albuns ilimitados</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Newsletter integrada</li>
+                    </ul>
+                    <a href="#cadastro" class="plan-cta" data-plan="basic">Assinar Basic</a>
+                </div>
+
+                <!-- PRO -->
+                <div class="plan-card">
+                    <div class="plan-name">Pro</div>
+                    <div class="plan-desc">Para estudio com alta demanda.</div>
+                    <div class="plan-price">
+                        <span class="plan-price-value">R$ 99</span>
+                        <span class="plan-price-period">/mes</span>
+                    </div>
+                    <hr class="plan-divider">
+                    <ul class="plan-features">
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Fotos ilimitadas no portfolio</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Sessoes ilimitadas</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Subdominio exclusivo</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Galeria de selecao</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Painel administrativo</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Albuns ilimitados</li>
+                        <li class="plan-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Newsletter + Suporte prioritario</li>
+                    </ul>
+                    <a href="#cadastro" class="plan-cta outline" data-plan="pro">Assinar Pro</a>
+                </div>
+            </div>
+
+            <p style="text-align:center; font-size:0.8125rem; color:#999; margin-top:1.5rem;">
+                Durante o beta, todas as funcionalidades estao disponiveis gratuitamente.
+            </p>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq-section">
+        <div class="faq-inner">
+            <div class="section-label">Duvidas</div>
+            <h2 class="section-title" style="margin-bottom:2.5rem;">Perguntas frequentes</h2>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Quanto custa a plataforma?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Atualmente estamos em beta e todas as funcionalidades estao disponiveis gratuitamente. Quando lancado, o plano Free continuara gratuito com recursos essenciais.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Quanto tempo demora a aprovacao?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Analisamos novos cadastros em ate 24 horas uteis. Voce recebera um email assim que sua conta for aprovada e podera comecar a configurar seu site imediatamente.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Posso usar meu dominio proprio?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>No momento, voce recebe um subdominio exclusivo (seudominio.fsfotografias.com.br). Dominios proprios serao suportados em uma atualizacao futura.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Como funciona a selecao de fotos?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Voce cria uma sessao no painel, faz upload das fotos e define um codigo de acesso. Seu cliente acessa a galeria privada, seleciona as fotos favoritas (com limite de pacote) e finaliza. Voce recebe uma notificacao e pode revisar, reabrir ou entregar.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Preciso saber programar?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Nao! Tudo e configuravel pelo painel administrativo. Voce atualiza fotos, textos, cores e conteudo sem precisar escrever nenhuma linha de codigo.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Meus dados estao seguros?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Sim. Cada fotografo tem seus dados completamente isolados. Utilizamos HTTPS em todas as conexoes e as fotos dos clientes sao protegidas por codigo de acesso exclusivo.</p></div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question">
+                    Posso cancelar a qualquer momento?
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer"><p>Sim, sem fidelidade. Voce pode fazer downgrade para o plano Free ou encerrar sua conta quando quiser. Seus dados ficam disponiveis por 30 dias apos o cancelamento.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="cta-final">
+        <div class="cta-final-inner">
+            <h2>Pronto para profissionalizar suas entregas?</h2>
+            <p>Crie seu portfolio, organize suas sessoes e impressione seus clientes. Comece gratis.</p>
+            <a href="#cadastro" class="btn-white">
+                Criar Minha Conta
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- REGISTER -->
+    <section class="register" id="cadastro">
+        <div class="section-label">Cadastro</div>
+        <h2 class="section-title">Crie sua conta</h2>
+        <p class="section-sub">Preencha os dados abaixo para criar seu portfolio profissional</p>
+        <div class="register-card">
+            <!-- PLAN SELECTED -->
+            <div class="plan-selected" id="planSelected">
+                Plano selecionado: <strong id="planSelectedName"></strong>
+                <a onclick="clearPlan()">alterar</a>
+            </div>
+
+            <!-- FORM -->
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="name">Nome completo</label>
+                    <input type="text" id="name" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="orgName">Nome do estudio</label>
+                    <input type="text" id="orgName" placeholder="Ex: Maria Fotografias" required>
+                </div>
+                <div class="form-group">
+                    <label for="slug">URL do seu site</label>
+                    <input type="text" id="slug" placeholder="meu-estudio" required>
+                    <div class="slug-preview" id="slugPreview">seu-estudio.fsfotografias.com.br</div>
+                    <div class="hint">Apenas letras minusculas, numeros e hifens</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" placeholder="Min. 6 caracteres" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirmar senha</label>
+                        <input type="password" id="confirmPassword" placeholder="Repita a senha" required>
+                    </div>
+                </div>
+                <div class="form-error" id="formError"></div>
+                <button type="submit" class="form-submit" id="submitBtn">Criar Minha Conta</button>
+            </form>
+            <div class="form-footer">Ja tem uma conta? <a href="/admin">Faca login</a></div>
+
+            <!-- SUCCESS STATE -->
+            <div class="success-state" id="successState">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3>Cadastro realizado com sucesso!</h3>
+                <p>Seu estudio <span class="slug-url" id="successSlug"></span> foi reservado.</p>
+                <p style="color:#999; font-size:0.8125rem;">Voce recebera um email quando sua conta for aprovada. A aprovacao leva ate 24 horas uteis.</p>
+                <a href="/" class="back-btn">Voltar ao Inicio</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-logo">FS FOTOGRAFIAS</div>
+            <div class="footer-links">
+                <a href="#solucoes">Solucoes</a>
+                <a href="#planos">Planos</a>
+                <a href="#faq-section">FAQ</a>
+                <a href="/">Portfolio</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 FS Fotografias</div>
+        </div>
+    </footer>
+
+    <script src="/cadastro/js/cadastro.js"></script>
 </body>
 </html>
