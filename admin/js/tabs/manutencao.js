@@ -88,7 +88,7 @@ export async function renderManutencao(container) {
       <!-- Preview da cortina -->
       <div style="border:1px solid #374151; border-radius:0.75rem; overflow:hidden; position:relative; background:#000;">
         <div style="padding:2rem; display:flex; flex-direction:column; align-items:center; text-align:center;">
-          <h1 style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:bold; color:white; margin-bottom:0.5rem;">FS FOTOGRAFIAS</h1>
+          <h1 style="font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:bold; color:white; margin-bottom:0.5rem;">CliqueZoom</h1>
           <div style="width:3rem; height:1px; background:#374151; margin:1rem 0;"></div>
           <h2 id="previewTitle" style="font-size:1.25rem; color:#f3f4f6; margin-bottom:0.5rem;">${maintenance.title || 'Site em Manutencao'}</h2>
           <p id="previewMessage" style="color:#9ca3af; font-size:0.875rem;">${maintenance.message || 'Estamos realizando manutencao. Volte em breve!'}</p>

@@ -54,7 +54,7 @@ app.get('/site', async (req, res) => {
     } else {
       // In production, extract subdomain from req.hostname
       const hostname = req.hostname;
-      const baseDomain = process.env.BASE_DOMAIN || 'fsfotografias.com.br';
+      const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
       const subdomain = hostname.replace(`.${baseDomain}`, '');
       if (subdomain && subdomain !== hostname && subdomain !== 'app') {
         const org = await Organization.findOne({ slug: subdomain });
@@ -106,7 +106,7 @@ app.get('/preview', (req, res) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // MongoDB connection
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fsfotografias';
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cliquezoom';
 let isConnected = false;
 
 const connectWithRetry = async () => {

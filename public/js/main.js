@@ -15,7 +15,7 @@ function processRemoteData(remote) {
         return {
             logo: {
                 type: remote.logo?.type ?? 'text',
-                text: remote.logo?.text ?? 'FS FOTOGRAFIAS',
+                text: remote.logo?.text ?? 'CliqueZoom',
                 image: remote.logo?.image ?? ''
             },
             hero: {
@@ -784,7 +784,7 @@ function showMaintenanceScreen(maintenance) {
     document.body.innerHTML = `
         <div style="position:fixed; inset:0; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; z-index:9999; overflow-y:auto;">
             <div style="flex-shrink:0;">
-                <h1 style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:bold; color:white; margin-bottom:0.5rem;">FS FOTOGRAFIAS</h1>
+                <h1 style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:bold; color:white; margin-bottom:0.5rem;">CliqueZoom</h1>
                 <div style="width:3rem; height:1px; background:#374151; margin:1.5rem auto;"></div>
                 <h2 style="font-size:1.5rem; color:#f3f4f6; margin-bottom:1rem;">${maintenance.title || 'Site em Manutencao'}</h2>
                 <p style="color:#9ca3af; font-size:1rem; max-width:30rem; line-height:1.6; margin:0 auto;">${maintenance.message || 'Estamos realizando manutencao. Volte em breve!'}</p>
@@ -845,18 +845,18 @@ function showMaintenanceScreen(maintenance) {
 // ========== COMPARTILHAMENTO ==========
 const SHARE_CONFIG = {
     portfolio: {
-        title: 'Galeria | FS FOTOGRAFIAS',
+        title: 'Galeria | CliqueZoom',
         text: 'Confira essa galeria de fotos incrivel!',
         hash: '#portfolio'
     },
     albums: {
-        title: 'Albuns | FS FOTOGRAFIAS',
-        text: 'Veja os albuns de fotos da FS FOTOGRAFIAS!',
+        title: 'Albuns | CliqueZoom',
+        text: 'Veja os albuns de fotos da CliqueZoom!',
         hash: '#albums'
     },
     estudio: {
-        title: 'Estudio | FS FOTOGRAFIAS',
-        text: 'Conheca o estudio da FS FOTOGRAFIAS!',
+        title: 'Estudio | CliqueZoom',
+        text: 'Conheca o estudio da CliqueZoom!',
         hash: '#estudio'
     }
 };
@@ -874,8 +874,8 @@ function shareAlbum() {
     const albumTitle = titleEl ? titleEl.textContent : 'Album';
     const url = window.location.origin + '/#albums';
     doShare(
-        `${albumTitle} | FS FOTOGRAFIAS`,
-        `Veja o album "${albumTitle}" da FS FOTOGRAFIAS!`,
+        `${albumTitle} | CliqueZoom`,
+        `Veja o album "${albumTitle}" da CliqueZoom!`,
         url
     );
 }

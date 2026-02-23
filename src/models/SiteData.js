@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const SiteDataSchema = new mongoose.Schema({
   logo: {
     type: { type: String, default: 'text' },
-    text: { type: String, default: 'FS FOTOGRAFIAS' },
+    text: { type: String, default: 'CliqueZoom' },
     image: { type: String, default: '' }
   },
   hero: {

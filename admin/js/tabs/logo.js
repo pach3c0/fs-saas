@@ -7,7 +7,7 @@ import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
 
 export async function renderLogo(container) {
-  const logo = appState.appData.logo || { type: 'text', text: 'FS FOTOGRAFIAS', image: '' };
+  const logo = appState.appData.logo || { type: 'text', text: 'CliqueZoom', image: '' };
 
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
@@ -31,7 +31,7 @@ export async function renderLogo(container) {
       <div id="logoTextConfig" style="border:1px solid #374151; border-radius:0.75rem; background:#1f2937; padding:1.5rem; display:${logo.type !== 'image' ? 'flex' : 'none'}; flex-direction:column; gap:1rem;">
         <h3 style="font-size:1rem; font-weight:600; color:#d1d5db;">Texto do Logo</h3>
         <input type="text" id="logoTextInput" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;"
-          value="${logo.text || 'FS FOTOGRAFIAS'}" placeholder="Ex: FS FOTOGRAFIAS">
+          value="${logo.text || 'CliqueZoom'}" placeholder="Ex: CliqueZoom">
       </div>
 
       <!-- Config Imagem -->

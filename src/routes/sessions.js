@@ -655,7 +655,7 @@ router.get('/sessions/:sessionId/export', (req, res) => {
   const token = req.query.token || (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
   if (!token) return res.status(401).json({ error: 'Token não fornecido' });
 
-  const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+  const secret = process.env.JWT_SECRET || 'cliquezoom-secret-key';
   let user;
   try { 
     user = jwt.verify(token, secret); 

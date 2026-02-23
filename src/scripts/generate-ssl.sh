@@ -2,7 +2,7 @@
 # Gera certificado SSL para domínio customizado
 
 DOMAIN=$1
-ADMIN_EMAIL=${2:-"admin@fsfotografias.com.br"}
+ADMIN_EMAIL=${2:-"admin@cliquezoom.com.br"}
 
 if [ -z "$DOMAIN" ]; then
   echo "Uso: ./generate-ssl.sh dominio.com [email]"

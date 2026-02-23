@@ -1,5 +1,5 @@
 {
-  "name": "fs-saas",
+  "name": "cliquezoom",
   "version": "1.0.0",
   "description": "Plataforma SaaS para fotografos: portfolio, selecao de fotos e entrega online",
   "main": "src/server.js",
@@ -34,7 +34,7 @@
     "admin",
     "galeria"
   ],
-  "author": "FS FOTOGRAFIAS",
+  "author": "CliqueZoom",
   "license": "MIT",
   "type": "commonjs",
   "engines": {

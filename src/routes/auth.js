@@ -12,7 +12,7 @@ const { sendWelcomeEmail, sendApprovalEmail } = require('../utils/email');
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+    const secret = process.env.JWT_SECRET || 'cliquezoom-secret-key';
 
     // Novo fluxo: login por email
     if (email) {
@@ -198,7 +198,7 @@ router.post('/auth/register', async (req, res) => {
 router.post('/auth/verify', (req, res) => {
   const { token } = req.body;
   if (!token) return res.json({ valid: false });
-  const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+  const secret = process.env.JWT_SECRET || 'cliquezoom-secret-key';
   jwt.verify(token, secret, (err) => {
     if (err) return res.json({ valid: false });
     res.json({ valid: true });

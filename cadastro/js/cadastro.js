@@ -42,10 +42,10 @@ slugInput.addEventListener('input', function () {
   this.value = value;
 
   if (value && value.length >= 2) {
-    slugPreview.textContent = value + '.fsfotografias.com.br';
+    slugPreview.textContent = value + '.cliquezoom.com.br';
     slugPreview.style.color = '#2563eb';
   } else {
-    slugPreview.textContent = 'seu-estudio.fsfotografias.com.br';
+    slugPreview.textContent = 'seu-estudio.cliquezoom.com.br';
     slugPreview.style.color = '#999';
   }
 });
@@ -122,7 +122,7 @@ form.addEventListener('submit', async function (e) {
       form.style.display = 'none';
       form.nextElementSibling.style.display = 'none'; // form-footer
       document.getElementById('planSelected').style.display = 'none';
-      successSlug.textContent = data.organizationSlug + '.fsfotografias.com.br';
+      successSlug.textContent = data.organizationSlug + '.cliquezoom.com.br';
       successState.style.display = 'block';
     } else {
       showError(data.error || 'Erro ao criar cadastro. Tente novamente.');

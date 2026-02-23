@@ -1,4 +1,4 @@
-# FS FOTOGRAFIAS - Instrucoes para o Assistente de IA
+# CLIQUEZOOM - Instrucoes para o Assistente de IA
 
 ## O QUE E ESTE PROJETO
 
@@ -11,7 +11,7 @@ Plataforma de portfolio fotografico com varios frontends e 1 backend:
 - **Painel super-admin** (`saas-admin/`) - Gerencia toda a plataforma SaaS (orgs, landing page, metricas)
 - **API backend** (`src/server.js` + `src/routes/`) - Express.js + MongoDB
 
-Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `app.fsfotografias.com.br`
+Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `cliquezoom.com.br`
 Path na VPS: `/var/www/fs-saas`
 
 ---
@@ -334,7 +334,7 @@ A galeria do cliente (`cliente/index.html` + `cliente/js/gallery.js`) e uma SPA 
 ### Funcionalidades:
 - **Login**: campo de codigo de acesso, validado via API
 - **Grid de fotos**: 2 colunas mobile, 3 tablet, 4 desktop
-- **Watermark**: overlay "FS FOTOGRAFIAS" sobre cada foto (removido quando entregue)
+- **Watermark**: overlay "CliqueZoom" sobre cada foto (removido quando entregue)
 - **Selecao**: coracao no canto de cada foto, contador no topo e barra inferior fixa
 - **Fotos extras**: acima do limite do pacote mostra valor adicional (R$ X,XX)
 - **Lightbox**: visualizacao em tela cheia com navegacao por setas e swipe touch
@@ -817,7 +817,7 @@ PORT=3051                                         # Porta do Express (Nginx faz 
 JWT_SECRET=...                                    # Secret para assinar tokens
 ADMIN_PASSWORD_HASH=...                           # Hash bcrypt da senha
 OWNER_EMAIL=...                                   # Email do dono da plataforma
-BASE_DOMAIN=app.fsfotografias.com.br              # Dominio base do SaaS
+BASE_DOMAIN=cliquezoom.com.br              # Dominio base do SaaS
 OWNER_SLUG=fs                                     # Slug da organizacao principal
 SMTP_HOST=smtp.titan.email                        # Servidor SMTP
 SMTP_PORT=465                                     # Porta SMTP
@@ -831,12 +831,12 @@ PORT=3051
 NODE_ENV=development
 MONGODB_URI=mongodb+srv://...                     # MongoDB Atlas (dev)
 JWT_SECRET=...
-BASE_DOMAIN=fsfotografias.com.br
+BASE_DOMAIN=cliquezoom.com.br
 OWNER_SLUG=fs
 OWNER_EMAIL=...
 ```
 
-**IMPORTANTE**: Na VPS o MongoDB e local (`mongodb://localhost:27017/fsfotografias`), configurado diretamente no `src/server.js` como fallback quando `MONGODB_URI` nao esta definido.
+**IMPORTANTE**: Na VPS o MongoDB e local (`mongodb://localhost:27017/cliquezoom`), configurado diretamente no `src/server.js` como fallback quando `MONGODB_URI` nao esta definido.
 
 ---
 
@@ -855,9 +855,8 @@ npm start            # Iniciar servidor (producao)
 O app SaaS roda na VPS Contabo com Nginx como reverse proxy e PM2 como process manager.
 Path: `/var/www/fs-saas`
 
-**ATENCAO**: Na VPS existem DOIS apps separados:
-- `/var/www/fs-fotografias` → Site original (single-tenant) em `fsfotografias.com.br` (porta 3002)
-- `/var/www/fs-saas` → App SaaS (multi-tenant) em `app.fsfotografias.com.br` (porta 3051)
+**ATENCAO**: O app SaaS CliqueZoom roda em `/var/www/fs-saas` na porta 3051, com dominio `cliquezoom.com.br`.
+O site antigo (`/var/www/fs-fotografias`, porta 3002) foi removido para liberar o dominio.
 
 ### Deploy de atualizacoes:
 ```bash
@@ -873,7 +872,7 @@ cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas
 Nginx (porta 80/443)
 
   Config: /etc/nginx/sites-enabled/fs-saas
-  Server name: app.fsfotografias.com.br
+  Server name: cliquezoom.com.br
   ├── /uploads/     → /var/www/fs-saas/uploads/ (static)
   ├── /assets/      → /var/www/fs-saas/assets/ (static)
   ├── /admin/js/    → /var/www/fs-saas/admin/js/ (static, ESM)
@@ -891,13 +890,13 @@ SSL: Let's Encrypt via Certbot (auto-renovacao)
 ### URLs atuais (temporario ate dominio proprio):
 | URL | Destino |
 |-----|---------|
-| `fsfotografias.com.br` | Site original do fotografo |
-| `app.fsfotografias.com.br` | App SaaS (redireciona para o site pois o Nginx do site original tambem responde) |
-| `app.fsfotografias.com.br/cadastro` | Landing page do SaaS (cadastro de fotografos) |
-| `app.fsfotografias.com.br/admin/` | Painel admin do fotografo |
-| `app.fsfotografias.com.br/saas-admin/` | Painel super-admin do SaaS |
-| `app.fsfotografias.com.br/cliente/` | Galeria do cliente |
-app.fsfotografias.com.br/landing
+| `cliquezoom.com.br` | Site original do fotografo |
+| `cliquezoom.com.br` | App SaaS (redireciona para o site pois o Nginx do site original tambem responde) |
+| `cliquezoom.com.br/cadastro` | Landing page do SaaS (cadastro de fotografos) |
+| `cliquezoom.com.br/admin/` | Painel admin do fotografo |
+| `cliquezoom.com.br/saas-admin/` | Painel super-admin do SaaS |
+| `cliquezoom.com.br/cliente/` | Galeria do cliente |
+cliquezoom.com.br/landing
 ---
 
 ## CHECKLIST ANTES DE DEPLOY
@@ -1157,7 +1156,7 @@ Armazena dados do estudio/fotografo, identidade visual e configuracoes de waterm
 - Campos: nome, telefone, whatsapp, email, website, endereco, cidade, estado, bio
 - Identidade visual: cor primaria (color picker)
 - Watermark: tipo (texto/logo), texto, opacidade (slider com preview ao vivo)
-- Link do painel (slug.fsfotografias.com.br) com botao copiar
+- Link do painel (slug.cliquezoom.com.br) com botao copiar
 
 ---
 
@@ -1200,7 +1199,7 @@ Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS c
 
 9. **DNS e SSL:**
    - DNS gerenciado na Hostinger (nao no Contabo)
-   - `app.fsfotografias.com.br` → A record para `5.189.174.18`
+   - `cliquezoom.com.br` → A record para `5.189.174.18`
    - SSL via Let's Encrypt/Certbot (auto-renovacao)
    - Certificados em `/etc/letsencrypt/live/`
 
@@ -1208,7 +1207,7 @@ Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS c
     - Porta: `3051` (mesma da producao)
     - MongoDB: Atlas (cloud) no dev, local na VPS
     - Tenant em dev: `?_tenant=slug` (query parameter)
-    - Tenant em prod: subdomain (`slug.app.fsfotografias.com.br` - futuro)
+    - Tenant em prod: subdomain (`slug.cliquezoom.com.br` - futuro)
 
 ### Arquivos de configuracao na VPS (referencia, NAO editar sem pedir):
 | Arquivo | Funcao |

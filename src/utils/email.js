@@ -67,7 +67,7 @@ async function sendWelcomeEmail(email, name, slug) {
         Recebemos seu cadastro com sucesso. Sua URL reservada e:
       </p>
       <p style="background: #f5f5f5; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 600; color: #2563eb; font-size: 0.9375rem;">
-        ${slug}.fsfotografias.com.br
+        ${slug}.cliquezoom.com.br
       </p>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
         Sua conta esta em analise e sera aprovada em ate <strong>24 horas uteis</strong>.
@@ -86,7 +86,7 @@ async function sendWelcomeEmail(email, name, slug) {
  * Email de aprovacao (conta ativada)
  */
 async function sendApprovalEmail(email, name, slug) {
-  const loginUrl = `https://${slug}.fsfotografias.com.br/admin`;
+  const loginUrl = `https://${slug}.cliquezoom.com.br/admin`;
   const subject = 'Conta aprovada! - FS Fotografias';
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
@@ -100,7 +100,7 @@ async function sendApprovalEmail(email, name, slug) {
       </p>
 
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        <strong>Seu site:</strong> <a href="https://${slug}.fsfotografias.com.br" style="color: #2563eb;">${slug}.fsfotografias.com.br</a><br>
+        <strong>Seu site:</strong> <a href="https://${slug}.cliquezoom.com.br" style="color: #2563eb;">${slug}.cliquezoom.com.br</a><br>
         <strong>Painel admin:</strong> <a href="${loginUrl}" style="color: #2563eb;">${loginUrl}</a>
       </p>
 
@@ -150,7 +150,7 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
       </div>
 
       <div style="text-align: center; margin: 1.5rem 0;">
-        <a href="${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+        <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
           Acessar Minha Galeria
         </a>
       </div>
@@ -185,7 +185,7 @@ async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, org
       </div>
 
       <div style="text-align: center; margin: 1.5rem 0;">
-        <a href="${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+        <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
           Baixar Minhas Fotos
         </a>
       </div>
@@ -220,7 +220,7 @@ async function sendAlbumAvailableEmail(clientEmail, clientName, accessCode, albu
       </div>
 
       <div style="text-align: center; margin: 1.5rem 0;">
-        <a href="${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/album" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+        <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/album" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
           Ver Prova de Album
         </a>
       </div>
@@ -237,7 +237,7 @@ async function sendAlbumAvailableEmail(clientEmail, clientName, accessCode, albu
  * E-mail para o fotografo: cliente finalizou selecao de fotos
  */
 async function sendSelectionSubmittedEmail(adminEmail, clientName, photoCount, sessionId, orgSlug) {
-  const adminUrl = `${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/admin/`;
+  const adminUrl = `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/admin/`;
   const subject = `${clientName} finalizou a selecao de fotos`;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
@@ -271,7 +271,7 @@ async function sendSelectionSubmittedEmail(adminEmail, clientName, photoCount, s
  * E-mail para o fotografo: cliente aprovou o album completo
  */
 async function sendAlbumApprovedEmail(adminEmail, clientName, albumName, orgSlug) {
-  const adminUrl = `${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/admin/`;
+  const adminUrl = `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/admin/`;
   const subject = `Album aprovado por ${clientName}!`;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
@@ -303,7 +303,7 @@ async function sendAlbumApprovedEmail(adminEmail, clientName, albumName, orgSlug
  * E-mail para o fotografo: cliente pediu revisao em pagina do album
  */
 async function sendAlbumRevisionEmail(adminEmail, clientName, albumName, comment, orgSlug) {
-  const adminUrl = `${process.env.BASE_URL || 'https://app.fsfotografias.com.br'}/admin/`;
+  const adminUrl = `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/admin/`;
   const subject = `${clientName} pediu revisao no album`;
   const commentHtml = comment
     ? `<div style="background: #f5f5f5; border-left: 3px solid #dc2626; padding: 0.75rem 1rem; border-radius: 0 0.375rem 0.375rem 0; margin: 1rem 0; color: #555; font-size: 0.9375rem; font-style: italic;">"${comment}"</div>`

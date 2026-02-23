@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             watermarkSize: size = 'medium'
         } = watermark;
 
-        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const orgName = (state.session.organization && state.session.organization.name) || 'CliqueZoom';
         // logo já é uma URL relativa como /uploads/{orgId}/filename.jpg
         const logoUrl = (state.session.organization && state.session.organization.logo) || '';
 
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderHeader() {
         // Fallback seguro se organization não vier populado
-        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const orgName = (state.session.organization && state.session.organization.name) || 'CliqueZoom';
         const orgLogo = (state.session.organization && state.session.organization.logo) || null;
 
         let logoHtml = '';
