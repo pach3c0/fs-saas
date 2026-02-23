@@ -16,23 +16,30 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/sessions', express.static(path.join(__dirname, '../uploads/sessions')));
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
-app.use(express.static(path.join(__dirname, '../public')));
 app.use('/admin', express.static(path.join(__dirname, '../admin')));
 app.use('/cliente', express.static(path.join(__dirname, '../cliente')));
 app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
 // Fase 8: servir visualizador de álbum de prova
 app.use('/album', express.static(path.join(__dirname, '../album')));
-// Landing page do SaaS
+// Landing page do SaaS (assets CSS/JS da landing)
 app.use('/landing', express.static(path.join(__dirname, '../landing')));
 
 // ============================================================================
-// DYNAMIC ROUTES (must come BEFORE static middleware for /site)
+// DYNAMIC ROUTES (must come BEFORE static middleware for /site and /public)
 // ============================================================================
 
-// Rota de Cadastro (Landing Page)
+// Raiz do SaaS: serve a landing page como homepage
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../landing/index.html'));
+});
+
+// Rota de Cadastro
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '../cadastro/index.html'));
 });
+
+// Site público do fotógrafo em /public (APÓS a rota raiz para não conflitar)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // SPA route for client gallery
 app.get('/galeria/:id', (req, res) => {
