@@ -139,12 +139,8 @@ const OrganizationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 /**
- * Garante que o slug seja unico por organização.
- */
-OrganizationSchema.index({ slug: 1 });
-
-/**
  * Indice para otimizar buscas de organizações ativas.
+ * Nota: slug já tem índice via unique:true no campo, não precisa de index() explícito.
  */
 OrganizationSchema.index({ isActive: 1 });
 
