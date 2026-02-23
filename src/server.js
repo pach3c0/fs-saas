@@ -28,13 +28,8 @@ app.use('/landing', express.static(path.join(__dirname, '../landing')));
 // DYNAMIC ROUTES (must come BEFORE static middleware for /site and /public)
 // ============================================================================
 
-// Raiz do SaaS: serve a landing page como homepage
+// Raiz do SaaS: serve a página de cadastro como homepage
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../landing/index.html'));
-});
-
-// Rota de Cadastro
-app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '../cadastro/index.html'));
 });
 
