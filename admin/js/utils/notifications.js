@@ -34,6 +34,14 @@ async function loadNotifications() {
     const res = await fetch('/api/notifications/unread-count', {
       headers: { 'Authorization': `Bearer ${appState.authToken}` }
     });
+    if (res.status === 401 || res.status === 403) {
+      // Token inválido ou expirado — parar polling e forçar logout
+      stopNotificationPolling();
+      if (typeof window.logout === 'function') {
+        window.logout();
+      }
+      return;
+    }
     if (!res.ok) return;
     const data = await res.json();
     updateBadge(data.count || 0);
