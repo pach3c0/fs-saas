@@ -27,7 +27,7 @@ app.use('/album', express.static(path.join(__dirname, '../album')));
 // DYNAMIC ROUTES (must come BEFORE static middleware for /site)
 // ============================================================================
 
-// Home (landing page de cadastro da plataforma CliquZoom)
+// Home (landing page de cadastro da plataforma CliqueZoom)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../home/index.html'));
 });

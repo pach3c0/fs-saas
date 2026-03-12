@@ -1,5 +1,5 @@
 /**
- * Aplicacao Admin CliquZoom
+ * Aplicacao Admin CliqueZoom
  */
 
 import { appState, loadAppData, saveAppData } from './state.js';

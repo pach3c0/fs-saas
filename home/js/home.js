@@ -1,5 +1,5 @@
 /**
- * Cadastro - CliquZoom
+ * Cadastro - CliqueZoom
  * Logica do formulario de registro, FAQ, planos e navegacao
  */
 

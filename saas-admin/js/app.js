@@ -1,5 +1,5 @@
 /**
- * SaaS Admin Panel - CliquZoom
+ * SaaS Admin Panel - CliqueZoom
  * Painel de gerenciamento de organizações (superadmin only)
  */
 

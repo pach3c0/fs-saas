@@ -125,12 +125,12 @@ const LandingDataSchema = new mongoose.Schema({
 
   cta: {
     title: { type: String, default: 'Pronto para transformar sua entrega de fotos?' },
-    subtitle: { type: String, default: 'Junte-se a fotógrafos profissionais que já usam a CliquZoom.' },
+    subtitle: { type: String, default: 'Junte-se a fotógrafos profissionais que já usam a CliqueZoom.' },
     buttonText: { type: String, default: 'Criar conta grátis' }
   },
 
   footer: {
-    text: { type: String, default: '© 2026 CliquZoom. Todos os direitos reservados.' }
+    text: { type: String, default: '© 2026 CliqueZoom. Todos os direitos reservados.' }
   }
 
 }, { timestamps: true });

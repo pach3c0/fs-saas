@@ -38,7 +38,7 @@ async function sendEmail(to, subject, html) {
 
   try {
     await t.sendMail({
-      from: `"CliquZoom" <${process.env.SMTP_USER}>`,
+      from: `"CliqueZoom" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html
@@ -55,7 +55,7 @@ async function sendEmail(to, subject, html) {
  * Email de boas-vindas apos registro (conta pendente)
  */
 async function sendWelcomeEmail(email, name, slug) {
-  const subject = 'Cadastro recebido - CliquZoom';
+  const subject = 'Cadastro recebido - CliqueZoom';
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
@@ -75,7 +75,7 @@ async function sendWelcomeEmail(email, name, slug) {
       </p>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
-        <p>CliquZoom - Plataforma para fotógrafos</p>
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
       </div>
     </div>
   `;
@@ -87,7 +87,7 @@ async function sendWelcomeEmail(email, name, slug) {
  */
 async function sendApprovalEmail(email, name, slug) {
   const loginUrl = `https://${slug}.cliquezoom.com.br/admin`;
-  const subject = 'Conta aprovada! - CliquZoom';
+  const subject = 'Conta aprovada! - CliqueZoom';
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
@@ -121,7 +121,7 @@ async function sendApprovalEmail(email, name, slug) {
       </ul>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
-        <p>CliquZoom - Plataforma para fotógrafos</p>
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
       </div>
     </div>
   `;
@@ -260,7 +260,7 @@ async function sendSelectionSubmittedEmail(adminEmail, clientName, photoCount, s
       </div>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
-        <p>CliquZoom - Plataforma para fotógrafos</p>
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
       </div>
     </div>
   `;
@@ -292,7 +292,7 @@ async function sendAlbumApprovedEmail(adminEmail, clientName, albumName, orgSlug
       </div>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
-        <p>CliquZoom - Plataforma para fotógrafos</p>
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
       </div>
     </div>
   `;
@@ -330,7 +330,7 @@ async function sendAlbumRevisionEmail(adminEmail, clientName, albumName, comment
       </div>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
-        <p>CliquZoom - Plataforma para fotógrafos</p>
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
       </div>
     </div>
   `;
