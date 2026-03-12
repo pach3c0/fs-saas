@@ -125,12 +125,12 @@ const LandingDataSchema = new mongoose.Schema({
 
   cta: {
     title: { type: String, default: 'Pronto para transformar sua entrega de fotos?' },
-    subtitle: { type: String, default: 'Junte-se a fotógrafos profissionais que já usam a FS Fotografias.' },
+    subtitle: { type: String, default: 'Junte-se a fotógrafos profissionais que já usam a CliquZoom.' },
     buttonText: { type: String, default: 'Criar conta grátis' }
   },
 
   footer: {
-    text: { type: String, default: '© 2026 FS Fotografias. Todos os direitos reservados.' }
+    text: { type: String, default: '© 2026 CliquZoom. Todos os direitos reservados.' }
   }
 
 }, { timestamps: true });

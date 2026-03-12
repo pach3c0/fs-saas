@@ -16,22 +16,20 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/sessions', express.static(path.join(__dirname, '../uploads/sessions')));
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
-app.use(express.static(path.join(__dirname, '../public')));
 app.use('/admin', express.static(path.join(__dirname, '../admin')));
 app.use('/cliente', express.static(path.join(__dirname, '../cliente')));
 app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
+app.use('/home', express.static(path.join(__dirname, '../home')));
 // Fase 8: servir visualizador de álbum de prova
 app.use('/album', express.static(path.join(__dirname, '../album')));
-// Landing page do SaaS
-app.use('/landing', express.static(path.join(__dirname, '../landing')));
 
 // ============================================================================
 // DYNAMIC ROUTES (must come BEFORE static middleware for /site)
 // ============================================================================
 
-// Rota de Cadastro (Landing Page)
-app.get('/cadastro', (req, res) => {
-  res.sendFile(path.join(__dirname, '../cadastro/index.html'));
+// Home (landing page de cadastro da plataforma CliquZoom)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../home/index.html'));
 });
 
 // SPA route for client gallery
@@ -54,7 +52,7 @@ app.get('/site', async (req, res) => {
     } else {
       // In production, extract subdomain from req.hostname
       const hostname = req.hostname;
-      const baseDomain = process.env.BASE_DOMAIN || 'fsfotografias.com.br';
+      const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
       const subdomain = hostname.replace(`.${baseDomain}`, '');
       if (subdomain && subdomain !== hostname && subdomain !== 'app') {
         const org = await Organization.findOne({ slug: subdomain });
@@ -95,7 +93,6 @@ app.get('/site', async (req, res) => {
 
 // Static assets for site templates (CSS, JS, fonts) - AFTER dynamic route
 app.use('/site', express.static(path.join(__dirname, '../site')));
-app.use('/cadastro', express.static(path.join(__dirname, '../cadastro')));
 
 // Preview route (bypasses maintenance curtain)
 app.get('/preview', (req, res) => {

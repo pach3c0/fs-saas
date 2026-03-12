@@ -1,5 +1,5 @@
 /**
- * Aplicacao Admin FS FOTOGRAFIAS
+ * Aplicacao Admin CliquZoom
  */
 
 import { appState, loadAppData, saveAppData } from './state.js';

@@ -1,5 +1,5 @@
 /**
- * SaaS Admin Panel - FS Fotografias
+ * SaaS Admin Panel - CliquZoom
  * Painel de gerenciamento de organizações (superadmin only)
  */
 
@@ -289,7 +289,7 @@ window.showDetails = async (id) => {
       <div class="detail-grid">
         <div class="detail-card">
           <h4>Slug / URL</h4>
-          <div class="val" style="font-size:1rem;">${esc(org.slug)}.fsfotografias.com.br</div>
+          <div class="val" style="font-size:1rem;">${esc(org.slug)}.cliquezoom.com.br</div>
         </div>
         <div class="detail-card">
           <h4>Plano</h4>

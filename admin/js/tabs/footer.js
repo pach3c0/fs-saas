@@ -32,7 +32,7 @@ export async function renderFooter(container) {
       <div style="border:1px solid #374151; border-radius:0.75rem; background:#1f2937; padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
         <h3 style="font-size:1rem; font-weight:600; color:#d1d5db;">Copyright</h3>
         <input type="text" id="footerCopyright" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;"
-          value="${footer.copyright || ''}" placeholder="Ex: © 2026 FS FOTOGRAFIAS. Todos os direitos reservados.">
+          value="${footer.copyright || ''}" placeholder="Ex: © 2026 CliquZoom. Todos os direitos reservados.">
       </div>
 
       <!-- Redes Sociais -->

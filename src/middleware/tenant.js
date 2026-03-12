@@ -20,7 +20,7 @@ setInterval(clearExpiredCache, 60 * 1000);
 async function resolveTenant(req, res, next) {
   try {
     const host = req.get('host') || '';
-    const baseDomain = process.env.BASE_DOMAIN || 'fsfotografias.com.br';
+    const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
     const ownerSlug = process.env.OWNER_SLUG || 'fs';
 
     let slug = null;
@@ -30,8 +30,8 @@ async function resolveTenant(req, res, next) {
       slug = req.query._tenant || ownerSlug;
     } else {
       // Produção: extrair do subdomínio
-      // joao.fsfotografias.com.br → slug = 'joao'
-      // fsfotografias.com.br → slug = ownerSlug (domínio principal)
+      // joao.cliquezoom.com.br → slug = 'joao'
+      // cliquezoom.com.br → slug = ownerSlug (domínio principal)
       
       // Remover porta se existir
       const hostWithoutPort = host.split(':')[0];

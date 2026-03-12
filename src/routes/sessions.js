@@ -109,7 +109,7 @@ router.get('/client/manifest/:sessionId', async (req, res) => {
 
     const org = session.organizationId;
     const themeColor = org && org.primaryColor ? org.primaryColor : '#1a1a1a';
-    const orgName = org ? org.name : 'FS Fotografias';
+    const orgName = org ? org.name : 'CliquZoom';
 
     // Ícones padrão (o usuário deve garantir que estes arquivos existam em /cliente/icons/)
     const icons = [
