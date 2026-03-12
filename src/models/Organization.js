@@ -138,14 +138,6 @@ const OrganizationSchema = new mongoose.Schema({
   subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription', default: null }
 }, { timestamps: true });
 
-/**
- * Garante que o slug seja unico por organização.
- */
-OrganizationSchema.index({ slug: 1 });
-
-/**
- * Indice para otimizar buscas de organizações ativas.
- */
 OrganizationSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('Organization', OrganizationSchema);
