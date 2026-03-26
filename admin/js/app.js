@@ -43,31 +43,68 @@ function showSkeleton(container) {
   `;
 }
 
-// ── Preview panel ─────────────────────────────────────────────────────────
-window.toggleSitePreview = function() {
-  const panel = document.getElementById('preview-panel');
-  const btn = document.getElementById('previewToggleBtn');
-  const refreshBtn = document.getElementById('refreshPreviewBtn');
+// ── Preview Modal ─────────────────────────────────────────────────────────
+const PREVIEW_DEVICES = {
+  desktop: { w: 1280, h: 900,  label: 'Desktop',  frameClass: '' },
+  tablet:  { w: 768,  h: 1024, label: 'Tablet',   frameClass: '' },
+  mobile:  { w: 390,  h: 844,  label: 'Mobile',   frameClass: 'mobile' },
+};
+
+function getSiteUrl() {
+  const slug = appState.orgSlug;
+  return slug ? `/site?_tenant=${slug}` : '/site';
+}
+
+function applyDeviceFrame(device) {
+  const cfg = PREVIEW_DEVICES[device] || PREVIEW_DEVICES.desktop;
+  const body = document.getElementById('preview-body');
+  const frame = document.getElementById('pv-frame');
   const iframe = document.getElementById('preview-iframe');
+  if (!frame || !body) return;
+
+  // Available space
+  const bw = body.clientWidth  - 32;
+  const bh = body.clientHeight - 32;
+
+  let targetW = cfg.w;
+  let targetH = cfg.h;
+
+  // Scale down if doesn't fit
+  const scaleX = bw / targetW;
+  const scaleY = bh / targetH;
+  const scale  = Math.min(1, scaleX, scaleY);
+
+  // iframe renders at native size, frame is scaled with CSS transform
+  iframe.style.width  = targetW + 'px';
+  iframe.style.height = targetH + 'px';
+  frame.style.width  = targetW + 'px';
+  frame.style.height = targetH + 'px';
+  frame.style.transform = `scale(${scale})`;
+  frame.style.transformOrigin = 'top center';
+  frame.className = 'pv-frame ' + (cfg.frameClass || '');
+
+  // Adjust body height to show scaled frame correctly
+  body.style.paddingBottom = (targetH * scale > bh ? '1rem' : '') ;
+}
+
+window.toggleSitePreview = function() {
+  const modal = document.getElementById('preview-modal');
+  const btn   = document.getElementById('previewToggleBtn');
+  if (!modal) return;
 
   previewOpen = !previewOpen;
 
   if (previewOpen) {
-    panel.classList.add('open');
-    btn.style.background = 'rgba(47,129,247,0.15)';
-    btn.style.color = '#2f81f7';
-    btn.style.borderColor = 'rgba(47,129,247,0.4)';
-    refreshBtn.style.display = 'flex';
-
-    if (!iframe.src || iframe.src === window.location.href || iframe.src === 'about:blank') {
-      loadSitePreview();
+    modal.classList.add('open');
+    if (btn) {
+      btn.style.background = 'rgba(47,129,247,0.15)';
+      btn.style.color = '#2f81f7';
+      btn.style.borderColor = 'rgba(47,129,247,0.4)';
     }
+    loadSitePreview();
   } else {
-    panel.classList.remove('open');
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.borderColor = '';
-    refreshBtn.style.display = 'none';
+    modal.classList.remove('open');
+    if (btn) { btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
   }
 };
 
@@ -76,37 +113,38 @@ window.refreshSitePreview = function() {
 };
 
 function loadSitePreview() {
-  const iframe = document.getElementById('preview-iframe');
-  const slug = appState.orgSlug;
-  const siteUrl = slug ? `/site?_tenant=${slug}` : '/site';
-  iframe.src = siteUrl;
-  window.setPreviewDevice(previewDevice);
+  const iframe  = document.getElementById('preview-iframe');
+  const loading = document.getElementById('preview-loading');
+  const urlBar  = document.getElementById('preview-url-bar');
+  const newTabA = document.getElementById('openSiteNewTab');
+  if (!iframe) return;
+
+  const siteUrl = getSiteUrl();
+
+  if (urlBar) urlBar.value = window.location.origin + siteUrl;
+  if (newTabA) newTabA.href = siteUrl;
+
+  // Show loading overlay
+  if (loading) loading.classList.remove('hidden');
+
+  iframe.src = '';
+  requestAnimationFrame(() => {
+    iframe.src = siteUrl;
+    iframe.onload = () => {
+      if (loading) loading.classList.add('hidden');
+    };
+  });
+
+  // Apply device frame after a tick (DOM needs to be visible)
+  requestAnimationFrame(() => applyDeviceFrame(previewDevice));
 }
 
 window.setPreviewDevice = function(device) {
   previewDevice = device;
-  const iframe = document.getElementById('preview-iframe');
-  const wrap = document.getElementById('preview-iframe-wrap');
-
-  document.querySelectorAll('.preview-device-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.preview-device-btn[onclick*="${device}"]`)?.classList.add('active');
-
-  const sizes = {
-    desktop: { w: '100%', h: '100%' },
-    tablet: { w: '768px', h: '1024px' },
-    mobile: { w: '390px', h: '844px' },
-  };
-  const s = sizes[device] || sizes.desktop;
-  iframe.style.width = s.w;
-  iframe.style.height = s.h;
-
-  if (device === 'desktop') {
-    wrap.style.alignItems = 'flex-start';
-    iframe.style.minHeight = '100%';
-  } else {
-    wrap.style.alignItems = 'flex-start';
-    iframe.style.minHeight = '';
-  }
+  document.querySelectorAll('.pv-device-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.device === device);
+  });
+  applyDeviceFrame(device);
 };
 
 // withSaveLoading: wrapper para botões de salvar com loading state
@@ -130,26 +168,45 @@ function setupNavigation() {
   });
 }
 
-// Ctrl+S global para salvar a aba atual
+// Atalhos de teclado globais
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
+    // Ctrl+S — salvar aba atual
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      // Disparar clique no botão salvar da aba atual
       const saveBtn = document.querySelector('#tabContent [data-save-btn], #tabContent .btn-save, #tabContent button[id*="save"], #tabContent button[id*="Save"]');
       if (saveBtn) {
         saveBtn.click();
         showToast('Salvando...', 'info', 1500);
       }
     }
-    // P para toggle preview
-    if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const active = document.activeElement;
-      const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
-      if (!isInput) {
-        window.toggleSitePreview();
-      }
+
+    const active = document.activeElement;
+    const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+
+    // Escape — fechar preview se aberto
+    if (e.key === 'Escape' && previewOpen) {
+      e.preventDefault();
+      window.toggleSitePreview();
+      return;
     }
+
+    if (isInput) return;
+
+    // P — toggle preview
+    if (e.key === 'p' || e.key === 'P') {
+      window.toggleSitePreview();
+    }
+
+    // R — recarregar preview (só se aberto)
+    if ((e.key === 'r' || e.key === 'R') && previewOpen) {
+      window.refreshSitePreview();
+    }
+  });
+
+  // Redimensionar frame ao mudar tamanho da janela
+  window.addEventListener('resize', () => {
+    if (previewOpen) applyDeviceFrame(previewDevice);
   });
 }
 
@@ -189,9 +246,11 @@ async function loadOrgSlug() {
       if (data.slug) {
         appState.orgSlug = data.slug;
         localStorage.setItem('orgSlug', data.slug);
-        // Atualizar link "Ver Site"
-        const siteBtn = document.getElementById('openSiteBtn');
-        if (siteBtn) siteBtn.href = `/site?_tenant=${data.slug}`;
+        // Atualizar link "Abrir" dentro do modal de preview
+        const newTabA = document.getElementById('openSiteNewTab');
+        if (newTabA) newTabA.href = `/site?_tenant=${data.slug}`;
+        const urlBar = document.getElementById('preview-url-bar');
+        if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${data.slug}`;
       }
     }
   } catch (e) { /* silencioso */ }
