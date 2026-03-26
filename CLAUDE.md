@@ -408,6 +408,51 @@ Todos os 5 templates usam o mesmo `shared-site.js`:
 - `#depoimentosTrack` - Depoimentos
 - `#contatoTitle`, `#contatoText`, `#contactForm` - Contato
 
+### CSS do Formulário de Depoimento
+
+Todos os templates incluem estilos consistentes para o formulário de depoimento público (`.depoimento-form-public`):
+
+```css
+.depoimento-form-public form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.depoimento-form-public input,
+.depoimento-form-public textarea,
+.depoimento-form-public select {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-body);
+  background: var(--bg-alt);
+  color: var(--text);
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.depoimento-form-public textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+```
+
+### Reordenação de Seções
+
+O `shared-site.js` implementa reordenação dinâmica das seções baseado na ordem definida no admin:
+
+```javascript
+// Após processar todas as seções, reordenar DOM
+const mainContent = document.querySelector('main') || document.body;
+const sectionElements = sections.map(s => document.getElementById('section-' + s)).filter(el => el);
+
+// Remover todas as seções do DOM
+sectionElements.forEach(el => el.parentNode.removeChild(el));
+
+// Re-inserir na ordem correta
+sectionElements.forEach(el => mainContent.appendChild(el));
+```
+
 ### Galeria Visual no Admin
 
 Na aba **"Meu Site" → "Geral"**, o fotógrafo vê cards visuais de cada template:

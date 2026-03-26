@@ -164,11 +164,45 @@ window.withSaveLoading = async function(btn, asyncFn) {
 // ── Builder Mode (Meu Site editor) ───────────────────────────────────────
 let builderDevice = 'desktop';
 let builderRefreshTimer = null;
+let builderIframeReady = false;
+let builderPendingData = null;
 
 function getSiteUrlBuilder() {
   const slug = appState.orgSlug;
-  return slug ? `/site?_tenant=${slug}` : '/site';
+  // _preview=1 evita que o site saia em modo manutenção e sinaliza que
+  // está em iframe do builder (shared-site.js usa isso futuramente)
+  const base = slug ? `/site?_tenant=${slug}` : '/site';
+  return base + (base.includes('?') ? '&' : '?') + '_preview=1';
 }
+
+// Enviar dados ao iframe via postMessage (sem reload)
+window.builderPostPreview = function(data) {
+  const iframe = document.getElementById('builder-iframe');
+  if (!iframe || !iframe.contentWindow) return;
+
+  if (!builderIframeReady) {
+    // Guardar para enviar quando o iframe avisar que está pronto
+    builderPendingData = data;
+    return;
+  }
+
+  iframe.contentWindow.postMessage({ type: 'cz_preview', data }, window.location.origin);
+  builderPendingData = null;
+};
+
+// Escutar resposta do iframe
+window.addEventListener('message', (e) => {
+  if (e.origin !== window.location.origin) return;
+  if (e.data?.type === 'cz_preview_ready') {
+    builderIframeReady = true;
+    // Se havia dados pendentes, enviar agora
+    if (builderPendingData) {
+      const d = builderPendingData;
+      builderPendingData = null;
+      setTimeout(() => window.builderPostPreview(d), 50);
+    }
+  }
+});
 
 window.enterBuilderMode = function() {
   const panel = document.getElementById('adminPanel');
@@ -241,12 +275,15 @@ function builderLoadPreview() {
 
   if (loading) loading.classList.remove('hidden');
 
+  builderIframeReady = false;
   iframe.src = '';
   requestAnimationFrame(() => {
     iframe.src = siteUrl;
     iframe.onload = () => {
       if (loading) loading.classList.add('hidden');
       builderApplyDevice(builderDevice);
+      // Se o site não enviou cz_preview_ready em 2s, marcar como pronto mesmo assim
+      setTimeout(() => { builderIframeReady = true; }, 2000);
     };
   });
 

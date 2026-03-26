@@ -287,7 +287,107 @@ async function renderSiteContent(container, builderTabsEl) {
     window.showToast?.('Link copiado!', 'success');
   };
 
-  // Navegação de Abas
+  // ── Preview em tempo real ─────────────────────────────────────────────
+  // Variável compartilhada entre postPreviewData e o closure do heroStudio
+  let _heroImageUrlForPreview = '';
+
+  // Monta snapshot dos dados atuais (campos do form + configData) e envia
+  // via postMessage ao iframe do builder — sem reload, sem salvar no banco.
+  function postPreviewData() {
+    if (!window.builderPostPreview) return;
+
+    // Base: dados carregados do servidor
+    const snap = {
+      name: configData.name || '',
+      logo: configData.logo || '',
+      email: configData.email || '',
+      primaryColor: configData.primaryColor || '',
+      siteEnabled: true, // sempre mostrar no preview
+      siteTheme: container.querySelector('#siteTheme')?.value || configData.siteTheme || 'elegante',
+      siteSections: configData.siteSections || [],
+      siteStyle: { ...(configData.siteStyle || {}) },
+      siteConfig: { ...(configData.siteConfig || {}) },
+      siteContent: {
+        sobre: { ...(configData.siteContent?.sobre || {}) },
+        servicos: configData.siteContent?.servicos || [],
+        depoimentos: configData.siteContent?.depoimentos || [],
+        portfolio: configData.siteContent?.portfolio || { photos: [] },
+        contato: { ...(configData.siteContent?.contato || {}) },
+        faq: configData.siteContent?.faq || [],
+        customSections: configData.siteContent?.customSections || [],
+      },
+      integrations: configData.integrations || {},
+    };
+
+    // Sobrescrever com valores atuais dos campos visíveis
+
+    // Sobre
+    const sobreTitle = container.querySelector('#sobreTitle');
+    const sobreText = container.querySelector('#sobreText');
+    const sobreImage = container.querySelector('#sobreImage');
+    if (sobreTitle) snap.siteContent.sobre.title = sobreTitle.value;
+    if (sobreText)  snap.siteContent.sobre.text  = sobreText.value;
+    if (sobreImage) snap.siteContent.sobre.image = sobreImage.value;
+
+    // Hero Studio (se aberto)
+    const heroTitle = container.querySelector('#heroStudioTitle');
+    const heroSubtitle = container.querySelector('#heroStudioSubtitle');
+    const heroScale = container.querySelector('#heroStudioScale');
+    const heroPosX = container.querySelector('#heroStudioPosX');
+    const heroPosY = container.querySelector('#heroStudioPosY');
+    const heroTitlePosX = container.querySelector('#heroStudioTitlePosX');
+    const heroTitlePosY = container.querySelector('#heroStudioTitlePosY');
+    const heroTitleFS = container.querySelector('#heroStudioTitleFontSize');
+    const heroSubPosX = container.querySelector('#heroStudioSubtitlePosX');
+    const heroSubPosY = container.querySelector('#heroStudioSubtitlePosY');
+    const heroSubFS = container.querySelector('#heroStudioSubtitleFontSize');
+    const heroOverlay = container.querySelector('#heroStudioOverlayOpacity');
+    const heroTopBar = container.querySelector('#heroStudioTopBarHeight');
+    const heroBottomBar = container.querySelector('#heroStudioBottomBarHeight');
+    if (heroTitle)     snap.siteConfig.heroTitle     = heroTitle.value;
+    if (heroSubtitle)  snap.siteConfig.heroSubtitle  = heroSubtitle.value;
+    if (heroScale)     snap.siteConfig.heroScale     = parseFloat(heroScale.value);
+    if (heroPosX)      snap.siteConfig.heroPosX      = parseInt(heroPosX.value);
+    if (heroPosY)      snap.siteConfig.heroPosY      = parseInt(heroPosY.value);
+    if (heroTitlePosX) snap.siteConfig.titlePosX     = parseInt(heroTitlePosX.value);
+    if (heroTitlePosY) snap.siteConfig.titlePosY     = parseInt(heroTitlePosY.value);
+    if (heroTitleFS)   snap.siteConfig.titleFontSize = parseInt(heroTitleFS.value);
+    if (heroSubPosX)   snap.siteConfig.subtitlePosX  = parseInt(heroSubPosX.value);
+    if (heroSubPosY)   snap.siteConfig.subtitlePosY  = parseInt(heroSubPosY.value);
+    if (heroSubFS)     snap.siteConfig.subtitleFontSize = parseInt(heroSubFS.value);
+    if (heroOverlay)   snap.siteConfig.overlayOpacity = parseInt(heroOverlay.value);
+    if (heroTopBar)    snap.siteConfig.topBarHeight  = parseInt(heroTopBar.value);
+    if (heroBottomBar) snap.siteConfig.bottomBarHeight = parseInt(heroBottomBar.value);
+    // Imagem do hero (sincronizada pelo heroStudio via _heroImageUrlForPreview)
+    if (_heroImageUrlForPreview) {
+      snap.siteConfig.heroImage = _heroImageUrlForPreview;
+    }
+
+    // Contato
+    const contatoTitle = container.querySelector('#contatoTitle');
+    const contatoText = container.querySelector('#contatoText');
+    const contatoAddress = container.querySelector('#contatoAddress');
+    if (contatoTitle)   snap.siteContent.contato.title   = contatoTitle.value;
+    if (contatoText)    snap.siteContent.contato.text    = contatoText.value;
+    if (contatoAddress) snap.siteContent.contato.address = contatoAddress.value;
+
+    // Estilo visual (Personalizar)
+    const accentColor = container.querySelector('#styleAccentColor');
+    const bgColor = container.querySelector('#styleBgColor');
+    const textColor = container.querySelector('#styleTextColor');
+    const fontFamily = container.querySelector('#styleFontFamily');
+    if (accentColor) snap.siteStyle.accentColor = accentColor.value;
+    if (bgColor)     snap.siteStyle.bgColor     = bgColor.value;
+    if (textColor)   snap.siteStyle.textColor   = textColor.value;
+    if (fontFamily)  snap.siteStyle.fontFamily  = fontFamily.value;
+
+    window.builderPostPreview(snap);
+  }
+
+  // Expor globalmente para que sub-funções (heroStudio, etc.) chamem
+  window._meuSitePostPreview = postPreviewData;
+
+  // ── Navegação de Abas
   const tabs = container.querySelectorAll('.sub-tab-btn');
   const contents = container.querySelectorAll('.sub-tab-content');
   tabs.forEach(btn => {
@@ -370,13 +470,18 @@ async function renderSiteContent(container, builderTabsEl) {
   container.querySelector('#sobreText').value = sobre.text || '';
   container.querySelector('#sobreImage').value = sobre.image || '';
   if(sobre.image) container.querySelector('#sobrePreview').src = resolveImagePath(sobre.image);
-  
+
+  // Preview em tempo real
+  container.querySelector('#sobreTitle').oninput = postPreviewData;
+  container.querySelector('#sobreText').oninput  = postPreviewData;
+
   container.querySelector('#sobreUpload').onchange = async (e) => {
       const file = e.target.files[0];
       if(!file) return;
       const res = await uploadImage(file, appState.authToken);
       container.querySelector('#sobreImage').value = res.url;
       container.querySelector('#sobrePreview').src = resolveImagePath(res.url);
+      postPreviewData();
   };
 
   container.querySelector('#saveSobreBtn').onclick = async () => {
@@ -556,6 +661,7 @@ async function renderSiteContent(container, builderTabsEl) {
     const btnMobile = heroContainer.querySelector('#heroPreviewMobile');
     let previewMode = 'desktop';
     let heroImageUrl = cfg.heroImage || '';
+    _heroImageUrlForPreview = heroImageUrl; // sync com postPreviewData
 
     btnDesktop.onclick = () => {
       previewMode = 'desktop';
@@ -627,6 +733,7 @@ async function renderSiteContent(container, builderTabsEl) {
           showUploadProgress('heroStudioUploadProgress', percent);
         });
         heroImageUrl = result.url;
+        _heroImageUrlForPreview = heroImageUrl;
         updateHeroPreview();
         e.target.value = '';
       } catch (error) {
@@ -693,6 +800,9 @@ async function renderSiteContent(container, builderTabsEl) {
         <h1 data-type="title" style="position:absolute; left:${tpx}%; top:${tpy}%; transform:translate(-50%,-50%); color:white; font-family:'Playfair Display',serif; font-size:clamp(${titleMinCqw}cqw, 6cqw, ${titleFontSizeCqw}cqw); font-weight:bold; text-align:center; text-shadow:2px 2px 4px rgba(0,0,0,0.7); z-index:3; line-height:1.15; width:100%; max-width:min(90cqw, ${titleMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${titleInput.value || ''}</h1>
         <p data-type="subtitle" style="position:absolute; left:${spx}%; top:${spy}%; transform:translate(-50%,-50%); color:#e5e7eb; font-size:clamp(${subMinCqw}cqw, 3.5cqw, ${subFontSizeCqw}cqw); text-align:center; text-shadow:1px 1px 2px rgba(0,0,0,0.7); z-index:3; line-height:1.6; width:100%; max-width:min(90cqw, ${subMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${subtitleInput.value || ''}</p>
       `;
+
+      // Enviar ao preview do builder em tempo real
+      window._meuSitePostPreview?.();
     }
 
     const handleHeroResize = () => {
@@ -1335,9 +1445,11 @@ async function renderSiteContent(container, builderTabsEl) {
         personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
       }
 
-      if (accentInput) accentInput.oninput = updatePalettePreview;
-      if (bgInput) bgInput.oninput = updatePalettePreview;
-      if (textInput) textInput.oninput = updatePalettePreview;
+      if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
+      if (fontFamilyInput) fontFamilyInput.onchange = () => window._meuSitePostPreview?.();
 
       // Salvar estilo
       const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
@@ -1470,6 +1582,11 @@ async function renderSiteContent(container, builderTabsEl) {
         </div>
       </div>
     `;
+
+    // Preview em tempo real
+    contatoContainer.querySelector('#contatoTitle').oninput   = () => window._meuSitePostPreview?.();
+    contatoContainer.querySelector('#contatoText').oninput    = () => window._meuSitePostPreview?.();
+    contatoContainer.querySelector('#contatoAddress').oninput = () => window._meuSitePostPreview?.();
 
     contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
       const newContato = {

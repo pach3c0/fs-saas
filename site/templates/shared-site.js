@@ -731,6 +731,31 @@ function initNavBehavior() {
   }
 }
 
+// ── Preview em tempo real via postMessage ────────────────────────────────
+// O admin envia { type: 'cz_preview', data: {...} } para atualizar o site
+// sem recarregar a página — zero latência, sem flash.
+window.addEventListener('message', (e) => {
+  // Aceitar apenas mensagens da mesma origem
+  if (e.origin !== window.location.origin) return;
+  if (!e.data || e.data.type !== 'cz_preview') return;
+
+  const data = e.data.data;
+  if (!data) return;
+
+  try {
+    renderSite(data);
+  } catch (err) {
+    console.warn('[preview] Erro ao aplicar dados:', err);
+  }
+});
+
+// Sinalizar ao admin que está pronto para receber mensagens
+window.addEventListener('load', () => {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'cz_preview_ready' }, window.location.origin);
+  }
+});
+
 // Iniciar quando DOM carregar
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => { loadAndRenderSite(); initNavBehavior(); });
