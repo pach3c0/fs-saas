@@ -62,57 +62,15 @@ export async function renderMeuSite(container) {
             <div style="display:flex; flex-direction:column; gap:2rem;">
                 <div>
                     <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem;">Escolha o Tema do Seu Site</h3>
-                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Selecione um template e clique em "Ver Site" para visualizar</p>
-
+                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Clique em <strong style="color:#d1d5db;">👁️ Visualizar</strong> para ver como seu site ficará com cada tema. Quando decidir, clique no card e salve.</p>
                     <div id="templateGallery" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:2rem;">
-                        <!-- Templates serão inseridos aqui via JS -->
+                        <!-- Templates inseridos via JS -->
                     </div>
                     <input type="hidden" id="siteTheme">
                 </div>
-
-                <hr style="border-color:#374151; margin:1rem 0;">
-
-                <div style="display:grid; gap:1rem; max-width:600px;">
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título do Site (SEO)</label>
-                    <input type="text" id="siteTitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
+                <div style="max-width:300px;">
+                    <button id="saveGeralBtn" style="width:100%; background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Tema</button>
                 </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Descrição (Meta Description)</label>
-                    <textarea id="siteDesc" rows="2" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;"></textarea>
-                </div>
-                <hr style="border-color:#374151; margin:1rem 0;">
-                <h4 style="color:#f3f4f6; font-weight:600;">Hero (Topo)</h4>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título Principal</label>
-                    <input type="text" id="heroTitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Subtítulo</label>
-                    <input type="text" id="heroSubtitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Imagem de Fundo</label>
-                    <div style="display:flex; gap:1rem; align-items:center;">
-                        <img id="heroPreview" src="" style="width:100px; height:60px; object-fit:cover; background:#374151; border-radius:0.25rem;">
-                        <label style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem;">
-                            Upload
-                            <input type="file" id="heroUpload" accept="image/*" style="display:none;">
-                        </label>
-                    </div>
-                    <input type="hidden" id="heroImage">
-                </div>
-                <hr style="border-color:#374151; margin:1rem 0;">
-                <h4 style="color:#f3f4f6; font-weight:600;">Contato & Redes</h4>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">WhatsApp (com DDD)</label>
-                    <input type="text" id="siteWhatsapp" placeholder="+55 11 99999-9999" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Instagram URL</label>
-                    <input type="text" id="siteInsta" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <button id="saveGeralBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem;">Salvar Configurações</button>
             </div>
         </div>
 
@@ -335,44 +293,13 @@ export async function renderMeuSite(container) {
   });
 
   // --- GERAL ---
-  container.querySelector('#siteTitle').value = siteConfig.title || '';
-  container.querySelector('#siteDesc').value = siteConfig.description || '';
-  container.querySelector('#heroTitle').value = siteConfig.heroTitle || '';
-  container.querySelector('#heroSubtitle').value = siteConfig.heroSubtitle || '';
-  container.querySelector('#heroImage').value = siteConfig.heroImage || '';
-  if(siteConfig.heroImage) container.querySelector('#heroPreview').src = resolveImagePath(siteConfig.heroImage);
-  container.querySelector('#siteWhatsapp').value = siteConfig.whatsapp || '';
-  container.querySelector('#siteInsta').value = siteConfig.instagramUrl || '';
-
-  container.querySelector('#heroUpload').onchange = async (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const res = await uploadImage(file, appState.authToken); // Reusing generic upload for hero
-    container.querySelector('#heroImage').value = res.url;
-    container.querySelector('#heroPreview').src = resolveImagePath(res.url);
-  };
-
   container.querySelector('#saveGeralBtn').onclick = async () => {
     const newTheme = container.querySelector('#siteTheme').value;
-    const payload = {
-        siteTheme: newTheme,
-        siteConfig: {
-            ...siteConfig,
-            title: container.querySelector('#siteTitle').value,
-            description: container.querySelector('#siteDesc').value,
-            heroTitle: container.querySelector('#heroTitle').value,
-            heroSubtitle: container.querySelector('#heroSubtitle').value,
-            heroImage: container.querySelector('#heroImage').value,
-            whatsapp: container.querySelector('#siteWhatsapp').value,
-            instagramUrl: container.querySelector('#siteInsta').value
-        }
-    };
-    await apiPut('/api/site/admin/config', payload);
-    // Atualiza siteTheme local para badge "✓ Ativo" ficar correto
+    await apiPut('/api/site/admin/config', { siteTheme: newTheme });
     configData.siteTheme = newTheme;
     selectedTheme = newTheme;
     renderTemplateCards();
-    alert('Configurações salvas!');
+    alert('Tema salvo!');
   };
 
   // --- SOBRE ---

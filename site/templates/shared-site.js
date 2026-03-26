@@ -84,7 +84,36 @@ function renderSite(data) {
 
   const heroBg = document.getElementById('heroBg');
   if (heroBg && config.heroImage) {
+    const scale = config.heroScale || 1;
+    const posX = config.heroPosX ?? 50;
+    const posY = config.heroPosY ?? 50;
     heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
+    heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
+    heroBg.style.backgroundSize = `${scale * 100}%`;
+  }
+
+  // Overlay e barras decorativas
+  const heroOverlay = document.getElementById('heroOverlay');
+  if (heroOverlay) {
+    heroOverlay.style.background = `rgba(0,0,0,${(config.overlayOpacity ?? 30) / 100})`;
+  }
+  const heroTopBar = document.getElementById('heroTopBar');
+  if (heroTopBar) {
+    heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
+  }
+  const heroBottomBar = document.getElementById('heroBottomBar');
+  if (heroBottomBar) {
+    heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
+  }
+
+  // Tamanho de fonte do título e subtítulo
+  const heroTitleEl = document.getElementById('heroTitle');
+  if (heroTitleEl && config.titleFontSize) {
+    heroTitleEl.style.fontSize = `clamp(1rem, ${config.titleFontSize / window.innerWidth * 100}vw, ${config.titleFontSize}px)`;
+  }
+  const heroSubtitleEl = document.getElementById('heroSubtitle');
+  if (heroSubtitleEl && config.subtitleFontSize) {
+    heroSubtitleEl.style.fontSize = `clamp(0.875rem, ${config.subtitleFontSize / window.innerWidth * 100}vw, ${config.subtitleFontSize}px)`;
   }
 
   // Preencher Sobre
