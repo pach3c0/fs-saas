@@ -187,8 +187,9 @@ function renderSite(data) {
   // Preencher Álbuns
   const albumsSection = document.getElementById('section-albuns');
   const albumsGrid = document.getElementById('albumsGrid');
-  if (albumsGrid && content.albums && content.albums.length > 0) {
-    if (albumsSection) albumsSection.style.display = '';
+  if (albumsGrid) {
+    if (albumsSection && sections.includes('albuns')) albumsSection.style.display = '';
+    if (content.albums && content.albums.length > 0) {
     albumsGrid.innerHTML = content.albums.map(a => {
       const cover = a.cover || (a.photos && a.photos[0]) || '';
       return `
@@ -207,6 +208,9 @@ function renderSite(data) {
         </div>
       `;
     }).join('');
+    } else {
+      albumsGrid.innerHTML = '<p style="color:#666; text-align:center; padding:2rem;">Nenhum álbum cadastrado ainda.</p>';
+    }
   }
 
   // Preencher Estúdio
@@ -215,11 +219,9 @@ function renderSite(data) {
   const studioInfo = document.getElementById('studioInfo');
   const studioTitle = document.getElementById('studioTitle');
   const studioDesc = document.getElementById('studioDesc');
+  if (studioSection && sections.includes('estudio')) studioSection.style.display = '';
   if (content.studio) {
     const studio = content.studio;
-    if (studioSection && (studio.photos?.length > 0 || studio.address || studio.hours || studio.whatsapp)) {
-      studioSection.style.display = '';
-    }
     if (studioTitle && studio.title) studioTitle.textContent = studio.title;
     if (studioDesc && studio.description) studioDesc.textContent = studio.description;
     if (studioPhotosGrid && studio.photos && studio.photos.length > 0) {

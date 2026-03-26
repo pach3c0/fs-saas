@@ -110,6 +110,28 @@ const OrganizationSchema = new mongoose.Schema({
       text: { type: String, default: '' },
       address: { type: String, default: '' },
       mapEmbed: { type: String, default: '' }
+    },
+    albums: [{
+      id: String,
+      title: String,
+      subtitle: String,
+      cover: String,
+      photos: [String],
+      createdAt: String
+    }],
+    studio: {
+      title: { type: String, default: '' },
+      description: { type: String, default: '' },
+      address: { type: String, default: '' },
+      hours: { type: String, default: '' },
+      whatsapp: { type: String, default: '' },
+      videoUrl: { type: String, default: '' },
+      photos: [{
+        image: String,
+        posX: Number,
+        posY: Number,
+        scale: Number
+      }]
     }
   },
   // Integrações de marketing e analytics
