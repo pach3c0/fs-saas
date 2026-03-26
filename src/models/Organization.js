@@ -154,7 +154,27 @@ const OrganizationSchema = new mongoose.Schema({
     newsletter: {
       title: { type: String, default: 'Fique por dentro' },
       description: { type: String, default: '' }
-    }
+    },
+    // Seções customizadas criadas pelo fotógrafo
+    customSections: [{
+      id: String,
+      title: String,
+      type: { type: String, enum: ['texto', 'texto-imagem', 'galeria', 'chamada', 'lista'], default: 'texto' },
+      content: String,
+      imageUrl: { type: String, default: '' },
+      items: [{ text: String }],
+      bgColor: { type: String, default: '' },
+      textColor: { type: String, default: '' },
+      order: { type: Number, default: 0 }
+    }]
+  },
+  // Estilo personalizado do site
+  siteStyle: {
+    accentColor: { type: String, default: '' },
+    bgColor: { type: String, default: '' },
+    textColor: { type: String, default: '' },
+    fontFamily: { type: String, default: '' },
+    borderRadius: { type: String, default: '' }
   },
   // Integrações de marketing e analytics
   integrations: {

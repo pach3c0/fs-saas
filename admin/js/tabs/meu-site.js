@@ -53,6 +53,7 @@ export async function renderMeuSite(container) {
         <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Contato</button>
         <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
         <button class="sub-tab-btn" data-target="config-newsletter" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Newsletter</button>
+        <button class="sub-tab-btn" data-target="config-personalizar" style="background:none; border:none; color:#c084fc; padding:0.5rem 1rem; cursor:pointer; font-weight:600;">✦ Personalizar</button>
       </div>
 
       <!-- Conteúdo das Abas -->
@@ -129,6 +130,9 @@ export async function renderMeuSite(container) {
 
         <!-- Newsletter (renderizado pelo newsletter.js) -->
         <div id="config-newsletter" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Personalizar -->
+        <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
       </div>
     </div>
   `;
@@ -288,6 +292,8 @@ export async function renderMeuSite(container) {
           renderFaq(targetContainer);
         } else if (btn.dataset.target === 'config-newsletter') {
           renderNewsletter(targetContainer);
+        } else if (btn.dataset.target === 'config-personalizar') {
+          renderPersonalizar();
         }
     };
   });
@@ -1086,6 +1092,289 @@ export async function renderMeuSite(container) {
     };
 
     renderList();
+  };
+
+  // --- PERSONALIZAR ---
+  const renderPersonalizar = () => {
+    const personalizarContainer = container.querySelector('#config-personalizar');
+    const style = configData.siteStyle || {};
+    const customSections = configData.siteContent?.customSections || [];
+
+    const FONTS = [
+      { value: '', label: 'Padrão do Tema' },
+      { value: "'Inter', sans-serif", label: 'Inter (Moderno)' },
+      { value: "'Poppins', sans-serif", label: 'Poppins (Elegante)' },
+      { value: "'Playfair Display', serif", label: 'Playfair Display (Clássico)' },
+      { value: "'Lato', sans-serif", label: 'Lato (Clean)' },
+      { value: "'Montserrat', sans-serif", label: 'Montserrat (Bold)' },
+      { value: "'Raleway', sans-serif", label: 'Raleway (Sofisticado)' },
+      { value: "Georgia, serif", label: 'Georgia (Serif)' },
+    ];
+
+    const SECTION_TYPES = [
+      { value: 'texto', label: '📄 Texto Simples' },
+      { value: 'texto-imagem', label: '🖼️ Texto + Imagem' },
+      { value: 'galeria', label: '📷 Mini Galeria' },
+      { value: 'chamada', label: '🎯 Chamada para Ação' },
+      { value: 'lista', label: '📋 Lista de Itens' },
+    ];
+
+    const renderCustomList = () => {
+      const list = customSections.map((sec, idx) => `
+        <div style="background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#c084fc; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">${SECTION_TYPES.find(t => t.value === sec.type)?.label || '📄 Seção'}</span>
+            <button onclick="deleteCustomSection(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem;" title="Remover">🗑️</button>
+          </div>
+          <div>
+            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Título da Seção</label>
+            <input type="text" value="${sec.title || ''}" data-cs-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
+          </div>
+          ${sec.type === 'texto' || sec.type === 'chamada' ? `
+          <div>
+            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Conteúdo (texto)</label>
+            <textarea rows="4" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;">${sec.content || ''}</textarea>
+          </div>` : ''}
+          ${sec.type === 'texto-imagem' ? `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Conteúdo</label>
+              <textarea rows="4" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;">${sec.content || ''}</textarea>
+            </div>
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Imagem</label>
+              ${sec.imageUrl ? `<img src="${sec.imageUrl}" style="width:100%; height:80px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
+              <label style="display:inline-flex; align-items:center; gap:0.25rem; background:#374151; color:#d1d5db; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">
+                Upload <input type="file" accept="image/*" data-cs-img-upload="${idx}" style="display:none;">
+              </label>
+              <input type="hidden" data-cs-img="${idx}" value="${sec.imageUrl || ''}">
+            </div>
+          </div>` : ''}
+          ${sec.type === 'lista' ? `
+          <div>
+            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Itens da lista (um por linha)</label>
+            <textarea rows="5" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;" placeholder="Item 1&#10;Item 2&#10;Item 3">${(sec.items || []).map(i => i.text).join('\n')}</textarea>
+          </div>` : ''}
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Cor de fundo (opcional)</label>
+              <input type="color" value="${sec.bgColor || '#1f2937'}" data-cs-bg="${idx}" style="width:100%; height:2rem; border:1px solid #374151; border-radius:0.375rem; background:none; cursor:pointer;">
+            </div>
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Cor do texto (opcional)</label>
+              <input type="color" value="${sec.textColor || '#f3f4f6'}" data-cs-text="${idx}" style="width:100%; height:2rem; border:1px solid #374151; border-radius:0.375rem; background:none; cursor:pointer;">
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      personalizarContainer.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:2rem; max-width:720px;">
+
+          <!-- Estilo Global -->
+          <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem;">
+            <h3 style="font-size:1rem; font-weight:700; color:#c084fc; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+              ✦ Estilo Visual do Site
+            </h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor Principal (Accent)</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input type="color" id="styleAccentColor" value="${style.accentColor || '#c9a96e'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
+                  <span id="styleAccentColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.accentColor || '#c9a96e'}</span>
+                </div>
+              </div>
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor de Fundo</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input type="color" id="styleBgColor" value="${style.bgColor || '#fafafa'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
+                  <span id="styleBgColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.bgColor || '#fafafa'}</span>
+                </div>
+              </div>
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor do Texto</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <input type="color" id="styleTextColor" value="${style.textColor || '#111827'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
+                  <span id="styleTextColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.textColor || '#111827'}</span>
+                </div>
+              </div>
+              <div>
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Fonte do Site</label>
+                <select id="styleFontFamily" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
+                  ${FONTS.map(f => `<option value="${f.value}" ${style.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <!-- Preview da paleta -->
+            <div id="stylePalettePreview" style="border-radius:0.5rem; overflow:hidden; margin-bottom:1.25rem;">
+              <div style="background:${style.accentColor || '#c9a96e'}; padding:0.75rem 1rem;">
+                <span style="color:white; font-weight:700; font-size:0.9rem;">Cor Principal</span>
+              </div>
+              <div style="background:${style.bgColor || '#fafafa'}; padding:0.75rem 1rem; border:1px solid #e5e7eb;">
+                <span style="color:${style.textColor || '#111827'}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
+              </div>
+            </div>
+            <button id="saveStyleBtn" style="background:#c084fc; color:white; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer;">Salvar Estilo</button>
+            <button id="resetStyleBtn" style="background:none; border:1px solid #374151; color:#9ca3af; padding:0.625rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-left:0.5rem;">Resetar Padrão</button>
+          </div>
+
+          <!-- Seções Customizadas -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <div>
+                <h3 style="font-size:1rem; font-weight:700; color:#c084fc; display:flex; align-items:center; gap:0.5rem;">
+                  ✦ Seções Extras
+                </h3>
+                <p style="color:#6b7280; font-size:0.8rem; margin-top:0.25rem;">Crie seções adicionais para o seu site além das padrão</p>
+              </div>
+              <div style="position:relative;">
+                <button id="addCustomSecBtn" style="background:#c084fc; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer; font-size:0.875rem;">+ Nova Seção</button>
+                <div id="addCustomSecDropdown" style="display:none; position:absolute; right:0; top:110%; background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:0.5rem; z-index:100; min-width:200px; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                  ${SECTION_TYPES.map(t => `
+                    <button onclick="addCustomSection('${t.value}')" style="display:block; width:100%; text-align:left; padding:0.5rem 0.75rem; background:none; border:none; color:#d1d5db; cursor:pointer; border-radius:0.25rem; font-size:0.875rem;" onmouseenter="this.style.background='#374151'" onmouseleave="this.style.background='none'">${t.label}</button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <div id="customSectionsList" style="display:flex; flex-direction:column; gap:1rem;">
+              ${list || `<div style="border:2px dashed #374151; border-radius:0.75rem; padding:3rem; text-align:center; color:#6b7280;">
+                <p style="font-size:1.5rem; margin-bottom:0.5rem;">✦</p>
+                <p style="font-weight:600; margin-bottom:0.25rem;">Nenhuma seção extra</p>
+                <p style="font-size:0.875rem;">Clique em "+ Nova Seção" para adicionar</p>
+              </div>`}
+            </div>
+
+            ${customSections.length > 0 ? `
+              <button id="saveCustomSectionsBtn" style="background:#16a34a; color:white; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer; margin-top:1rem;">Salvar Seções Extras</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      // Live preview da paleta
+      const accentInput = personalizarContainer.querySelector('#styleAccentColor');
+      const bgInput = personalizarContainer.querySelector('#styleBgColor');
+      const textInput = personalizarContainer.querySelector('#styleTextColor');
+
+      function updatePalettePreview() {
+        const preview = personalizarContainer.querySelector('#stylePalettePreview');
+        if (preview) {
+          preview.innerHTML = `
+            <div style="background:${accentInput.value}; padding:0.75rem 1rem; border-radius:0.5rem 0.5rem 0 0;">
+              <span style="color:white; font-weight:700; font-size:0.9rem;">Cor Principal</span>
+            </div>
+            <div style="background:${bgInput.value}; padding:0.75rem 1rem; border:1px solid #e5e7eb; border-radius:0 0 0.5rem 0.5rem;">
+              <span style="color:${textInput.value}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
+            </div>
+          `;
+        }
+        personalizarContainer.querySelector('#styleAccentColorText').textContent = accentInput.value;
+        personalizarContainer.querySelector('#styleBgColorText').textContent = bgInput.value;
+        personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
+      }
+
+      if (accentInput) accentInput.oninput = updatePalettePreview;
+      if (bgInput) bgInput.oninput = updatePalettePreview;
+      if (textInput) textInput.oninput = updatePalettePreview;
+
+      // Salvar estilo
+      const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
+      if (saveStyleBtn) {
+        saveStyleBtn.onclick = async () => {
+          const newStyle = {
+            accentColor: accentInput?.value || '',
+            bgColor: bgInput?.value || '',
+            textColor: textInput?.value || '',
+            fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
+          };
+          await apiPut('/api/site/admin/config', { siteStyle: newStyle });
+          configData.siteStyle = newStyle;
+          saveStyleBtn.textContent = '✓ Salvo!';
+          setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
+        };
+      }
+
+      // Resetar estilo
+      const resetStyleBtn = personalizarContainer.querySelector('#resetStyleBtn');
+      if (resetStyleBtn) {
+        resetStyleBtn.onclick = async () => {
+          if (!confirm('Resetar para o estilo padrão do tema?')) return;
+          await apiPut('/api/site/admin/config', { siteStyle: {} });
+          configData.siteStyle = {};
+          renderCustomList();
+        };
+      }
+
+      // Dropdown de novo tipo
+      const addBtn = personalizarContainer.querySelector('#addCustomSecBtn');
+      const dropdown = personalizarContainer.querySelector('#addCustomSecDropdown');
+      if (addBtn && dropdown) {
+        addBtn.onclick = (e) => {
+          e.stopPropagation();
+          dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        };
+        document.addEventListener('click', () => { dropdown.style.display = 'none'; }, { once: false });
+      }
+
+      window.addCustomSection = (type) => {
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        customSections.push({ id, type, title: 'Nova Seção', content: '', imageUrl: '', items: [], bgColor: '', textColor: '', order: customSections.length });
+        renderCustomList();
+      };
+
+      window.deleteCustomSection = (idx) => {
+        if (!confirm('Remover esta seção?')) return;
+        customSections.splice(idx, 1);
+        renderCustomList();
+      };
+
+      // Upload de imagem para seção texto-imagem
+      personalizarContainer.querySelectorAll('[data-cs-img-upload]').forEach(input => {
+        input.onchange = async (e) => {
+          const idx = parseInt(input.dataset.csImgUpload);
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+            const result = await uploadImage(file, appState.authToken);
+            customSections[idx].imageUrl = result.url;
+            renderCustomList();
+          } catch (err) { alert('Erro no upload: ' + err.message); }
+        };
+      });
+
+      // Salvar seções customizadas
+      const saveCSBtn = personalizarContainer.querySelector('#saveCustomSectionsBtn');
+      if (saveCSBtn) {
+        saveCSBtn.onclick = async () => {
+          const updated = customSections.map((sec, idx) => {
+            const titleEl = personalizarContainer.querySelector(`[data-cs-title="${idx}"]`);
+            const contentEl = personalizarContainer.querySelector(`[data-cs-content="${idx}"]`);
+            const imgEl = personalizarContainer.querySelector(`[data-cs-img="${idx}"]`);
+            const bgEl = personalizarContainer.querySelector(`[data-cs-bg="${idx}"]`);
+            const textEl = personalizarContainer.querySelector(`[data-cs-text="${idx}"]`);
+            const content = contentEl?.value || sec.content || '';
+            const items = sec.type === 'lista' ? content.split('\n').filter(l => l.trim()).map(t => ({ text: t })) : sec.items;
+            return {
+              ...sec,
+              title: titleEl?.value || sec.title,
+              content,
+              imageUrl: imgEl?.value || sec.imageUrl,
+              bgColor: bgEl?.value || sec.bgColor,
+              textColor: textEl?.value || sec.textColor,
+              items
+            };
+          });
+          await apiPut('/api/site/admin/config', { siteContent: { customSections: updated } });
+          configData.siteContent = configData.siteContent || {};
+          configData.siteContent.customSections = updated;
+          saveCSBtn.textContent = '✓ Salvo!';
+          setTimeout(() => { saveCSBtn.textContent = 'Salvar Seções Extras'; }, 2000);
+        };
+      }
+    };
+
+    renderCustomList();
   };
 
   // --- CONTATO ---

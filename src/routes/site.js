@@ -18,7 +18,7 @@ router.get('/site/config', async (req, res) => {
     }
 
     const org = await Organization.findById(req.organizationId)
-      .select('name logo primaryColor siteEnabled siteTheme siteConfig siteSections siteContent email integrations');
+      .select('name logo primaryColor siteEnabled siteTheme siteConfig siteSections siteContent siteStyle email integrations');
 
     if (!org) {
       return res.status(404).json({ error: 'Organização não encontrada' });
@@ -34,7 +34,7 @@ router.get('/site/config', async (req, res) => {
 router.get('/site/admin/config', authenticateToken, async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId)
-      .select('siteEnabled siteTheme siteConfig siteSections siteContent');
+      .select('siteEnabled siteTheme siteConfig siteSections siteContent siteStyle');
     res.json(org);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -45,7 +45,7 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
 router.put('/site/admin/config', authenticateToken, async (req, res) => {
   try {
     const updateData = {};
-    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteConfig', 'siteSections'];
+    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteConfig', 'siteSections', 'siteStyle'];
 
     allowedKeys.forEach(key => {
       if (req.body[key] !== undefined) {
@@ -61,6 +61,8 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
           updateData['siteContent.portfolio.photos'] = value.photos;
           if (value.title !== undefined) updateData['siteContent.portfolio.title'] = value.title;
           if (value.subtitle !== undefined) updateData['siteContent.portfolio.subtitle'] = value.subtitle;
+        } else if (key === 'customSections') {
+          updateData['siteContent.customSections'] = value;
         } else {
           updateData[`siteContent.${key}`] = value;
         }

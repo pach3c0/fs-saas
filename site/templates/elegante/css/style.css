@@ -628,3 +628,99 @@ section { scroll-margin-top: 5rem; }
 .whatsapp-float { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; background:#25d366; border-radius:50%; width:3.5rem; height:3.5rem; display:none; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(37,211,102,0.4); transition:transform 0.2s; }
 .whatsapp-float:hover { transform:scale(1.1); }
 @keyframes fadeInUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ============================================
+   SEÇÕES CUSTOMIZADAS DO FOTÓGRAFO
+   ============================================ */
+.section-custom { background: var(--bg); }
+.section-custom .section-title { margin-bottom: 1.5rem; }
+.section-custom .section-text { font-size: 1.0625rem; line-height: 1.85; color: var(--text-muted); }
+.section-custom ul li { font-size: 1rem; line-height: 1.7; color: var(--text-muted); }
+.section-custom .btn-primary { margin-top: 0; }
+
+@media (max-width: 768px) {
+  .section-custom [style*="grid-template-columns: 1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+/* ============================================
+   MELHORIAS GERAIS DE FORMATAÇÃO
+   ============================================ */
+
+/* FAQ melhorado */
+.faq-list { display: flex; flex-direction: column; gap: 0; }
+.faq-item {
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding: 0;
+}
+body.theme-escuro .faq-item { border-bottom-color: rgba(255,255,255,0.08); }
+.faq-question {
+  padding: 1.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.faq-question:hover { color: var(--accent); }
+
+/* Newsletter melhorada */
+.section-newsletter { background: var(--bg-alt); }
+.newsletter-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+.newsletter-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+.newsletter-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 9999px;
+  font-size: 0.9375rem;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+}
+body.theme-escuro .newsletter-form input { border-color: rgba(255,255,255,0.12); }
+.newsletter-form .btn-primary { border-radius: 9999px; white-space: nowrap; }
+
+/* Seção depoimento-form */
+.section-depoimento-form { background: var(--bg); }
+
+/* Melhor espaçamento entre seções irmãs */
+.section-portfolio + .section-sobre,
+.section-sobre + .section-portfolio { border-top: none; }
+
+/* Portfólio: borda sutil entre items */
+.portfolio-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+  pointer-events: none;
+}
+
+/* Serviços melhorado */
+.servico-card .servico-title { font-size: 1.125rem; margin-bottom: 0.5rem; }
+
+/* Navbar scroll effect */
+nav#siteNav.scrolled {
+  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+}
+
+/* Botão hero responsivo */
+@media (max-width: 480px) {
+  .btn-primary, .btn-secondary {
+    padding: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+  }
+}
