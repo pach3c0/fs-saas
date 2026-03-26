@@ -3,6 +3,11 @@
  */
 
 import { appState, saveAppData } from '../state.js';
+import { apiPut } from '../utils/api.js';
+
+async function syncEstudioToSite(studio) {
+  await apiPut('/api/site/admin/config', { siteContent: { studio } });
+}
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, uploadVideo, showUploadProgress } from '../utils/upload.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
@@ -218,6 +223,7 @@ export async function renderEstudio(container) {
       const currentData = getCurrentStudio();
       appState.appData.studio = currentData;
       await saveAppData('studio', currentData, true);
+      await syncEstudioToSite(currentData);
       renderEstudio(container);
     } catch (error) {
       alert('Erro no upload do video: ' + error.message);
@@ -233,6 +239,7 @@ export async function renderEstudio(container) {
       const currentData = getCurrentStudio();
       appState.appData.studio = currentData;
       await saveAppData('studio', currentData, true);
+      await syncEstudioToSite(currentData);
       renderEstudio(container);
     };
   }
@@ -257,6 +264,7 @@ export async function renderEstudio(container) {
     const currentData = getCurrentStudio();
     appState.appData.studio = currentData;
     await saveAppData('studio', currentData, true);
+    await syncEstudioToSite(currentData);
     renderEstudio(container);
   };
 
@@ -267,6 +275,7 @@ export async function renderEstudio(container) {
     const currentData = getCurrentStudio();
     appState.appData.studio = currentData;
     await saveAppData('studio', currentData, true);
+    await syncEstudioToSite(currentData);
     renderEstudio(container);
   };
 
@@ -280,6 +289,7 @@ export async function renderEstudio(container) {
         const currentData = getCurrentStudio();
         appState.appData.studio = currentData;
         await saveAppData('studio', currentData, true);
+        await syncEstudioToSite(currentData);
         renderEstudio(container);
       }
     );
@@ -298,6 +308,7 @@ export async function renderEstudio(container) {
     const currentData = getCurrentStudio();
     appState.appData.studio = currentData;
     await saveAppData('studio', currentData, true);
+    await syncEstudioToSite(currentData);
     renderEstudio(container);
   };
 
@@ -324,5 +335,6 @@ export async function renderEstudio(container) {
 
     appState.appData.studio = newStudio;
     await saveAppData('studio', newStudio);
+    await syncEstudioToSite(newStudio);
   };
 }

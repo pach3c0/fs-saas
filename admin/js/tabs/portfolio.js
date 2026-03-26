@@ -6,6 +6,16 @@ import { appState, saveAppData } from '../state.js';
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
+import { apiPut } from '../utils/api.js';
+
+// Sincroniza o portfólio com siteContent.portfolio.photos na Organization
+// (que é de onde o site público lê os dados)
+async function syncPortfolioToSite(portfolio) {
+  const photos = portfolio.map(p => ({ url: p.image }));
+  await apiPut('/api/site/admin/config', {
+    siteContent: { portfolio: { photos } }
+  });
+}
 
 let draggedIndex = null;
 
@@ -97,6 +107,7 @@ export async function renderPortfolio(container) {
     if (addedCount > 0) {
       appState.appData.portfolio = portfolio;
       await saveAppData('portfolio', portfolio, true);
+      await syncPortfolioToSite(portfolio);
       renderPortfolio(container);
     }
 
@@ -133,6 +144,7 @@ export async function renderPortfolio(container) {
 
     appState.appData.portfolio = portfolio;
     await saveAppData('portfolio', portfolio, true);
+    await syncPortfolioToSite(portfolio);
     renderPortfolio(container);
   });
 
@@ -147,6 +159,7 @@ export async function renderPortfolio(container) {
     portfolio.splice(idx, 1);
     appState.appData.portfolio = portfolio;
     await saveAppData('portfolio', portfolio, true);
+    await syncPortfolioToSite(portfolio);
     renderPortfolio(container);
   };
 
@@ -159,6 +172,7 @@ export async function renderPortfolio(container) {
         portfolio[idx] = { ...portfolio[idx], ...pos };
         appState.appData.portfolio = portfolio;
         await saveAppData('portfolio', portfolio, true);
+        await syncPortfolioToSite(portfolio);
         renderPortfolio(container);
       }
     );

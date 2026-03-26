@@ -45,13 +45,20 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
 router.put('/site/admin/config', authenticateToken, async (req, res) => {
   try {
     const updateData = {};
-    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteConfig', 'siteSections', 'siteContent'];
-    
+    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteConfig', 'siteSections'];
+
     allowedKeys.forEach(key => {
       if (req.body[key] !== undefined) {
         updateData[key] = req.body[key];
       }
     });
+
+    // siteContent: merge por sub-chave para não apagar outros campos (sobre, servicos, etc)
+    if (req.body.siteContent !== undefined) {
+      Object.entries(req.body.siteContent).forEach(([key, value]) => {
+        updateData[`siteContent.${key}`] = value;
+      });
+    }
 
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,

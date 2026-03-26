@@ -184,6 +184,64 @@ function renderSite(data) {
     `).join('');
   }
 
+  // Preencher Álbuns
+  const albumsSection = document.getElementById('section-albuns');
+  const albumsGrid = document.getElementById('albumsGrid');
+  if (albumsGrid && content.albums && content.albums.length > 0) {
+    if (albumsSection) albumsSection.style.display = '';
+    albumsGrid.innerHTML = content.albums.map(a => {
+      const cover = a.cover || (a.photos && a.photos[0]) || '';
+      return `
+        <div class="album-card" style="cursor:pointer; border-radius:0.75rem; overflow:hidden; background:#1a1a1a;">
+          <div style="aspect-ratio:3/4; overflow:hidden; position:relative;">
+            ${cover
+              ? `<img src="${resolvePath(cover)}" alt="${esc(a.title)}" style="width:100%; height:100%; object-fit:cover;">`
+              : `<div style="width:100%; height:100%; background:#2a2a2a; display:flex; align-items:center; justify-content:center;"><span style="font-size:3rem; opacity:0.3;">📷</span></div>`
+            }
+            <div style="position:absolute; bottom:0; left:0; right:0; padding:1rem; background:linear-gradient(transparent,rgba(0,0,0,0.8));">
+              <p style="color:white; font-weight:600; margin:0;">${esc(a.title)}</p>
+              ${a.subtitle ? `<p style="color:rgba(255,255,255,0.7); font-size:0.875rem; margin:0.25rem 0 0;">${esc(a.subtitle)}</p>` : ''}
+              ${a.photos ? `<p style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin:0.25rem 0 0;">${a.photos.length} foto${a.photos.length !== 1 ? 's' : ''}</p>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Preencher Estúdio
+  const studioSection = document.getElementById('section-estudio');
+  const studioPhotosGrid = document.getElementById('studioPhotosGrid');
+  const studioInfo = document.getElementById('studioInfo');
+  const studioTitle = document.getElementById('studioTitle');
+  const studioDesc = document.getElementById('studioDesc');
+  if (content.studio) {
+    const studio = content.studio;
+    if (studioSection && (studio.photos?.length > 0 || studio.address || studio.hours || studio.whatsapp)) {
+      studioSection.style.display = '';
+    }
+    if (studioTitle && studio.title) studioTitle.textContent = studio.title;
+    if (studioDesc && studio.description) studioDesc.textContent = studio.description;
+    if (studioPhotosGrid && studio.photos && studio.photos.length > 0) {
+      studioPhotosGrid.innerHTML = studio.photos.map((p, i) => {
+        const url = typeof p === 'string' ? p : p.image;
+        const posX = p.posX ?? 50;
+        const posY = p.posY ?? 50;
+        return `<div style="aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
+          <img src="${resolvePath(url)}" alt="Estúdio ${i+1}" loading="lazy"
+            style="width:100%; height:100%; object-fit:cover; object-position:${posX}% ${posY}%;">
+        </div>`;
+      }).join('');
+    }
+    if (studioInfo) {
+      let html = '';
+      if (studio.address) html += `<div class="studio-info-item">📍 ${esc(studio.address)}</div>`;
+      if (studio.hours) html += `<div class="studio-info-item">🕐 ${esc(studio.hours)}</div>`;
+      if (studio.whatsapp) html += `<div class="studio-info-item">📱 <a href="https://wa.me/${studio.whatsapp.replace(/\D/g,'')}" target="_blank">${esc(studio.whatsapp)}</a></div>`;
+      studioInfo.innerHTML = html;
+    }
+  }
+
   // Preencher Contato
   const contatoTitle = document.getElementById('contatoTitle');
   if (contatoTitle) contatoTitle.textContent = content.contato?.title || 'Contato';
@@ -213,7 +271,7 @@ function renderSite(data) {
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'contato'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el && !sections.includes(s)) {

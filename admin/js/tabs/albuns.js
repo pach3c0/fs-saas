@@ -3,6 +3,11 @@
  */
 
 import { appState, saveAppData } from '../state.js';
+import { apiPut } from '../utils/api.js';
+
+async function syncAlbunsToSite(albums) {
+  await apiPut('/api/site/admin/config', { siteContent: { albums } });
+}
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
@@ -124,6 +129,7 @@ export async function renderAlbuns(container) {
       showUploadProgress(`albumUploadProgress${albumIdx}`, 100);
       appState.appData.albums = albums;
       await saveAppData('albums', albums, true);
+      await syncAlbunsToSite(albums);
       renderAlbuns(container);
     };
   });
@@ -152,6 +158,7 @@ export async function renderAlbuns(container) {
     });
     appState.appData.albums = albums;
     await saveAppData('albums', albums);
+    await syncAlbunsToSite(albums);
   };
 
   // Remover album
@@ -160,6 +167,7 @@ export async function renderAlbuns(container) {
     albums.splice(idx, 1);
     appState.appData.albums = albums;
     await saveAppData('albums', albums, true);
+    await syncAlbunsToSite(albums);
     renderAlbuns(container);
   };
 
@@ -168,6 +176,7 @@ export async function renderAlbuns(container) {
     albums[albumIdx].cover = albums[albumIdx].photos[photoIdx];
     appState.appData.albums = albums;
     await saveAppData('albums', albums, true);
+    await syncAlbunsToSite(albums);
     renderAlbuns(container);
   };
 
@@ -181,6 +190,7 @@ export async function renderAlbuns(container) {
     }
     appState.appData.albums = albums;
     await saveAppData('albums', albums, true);
+    await syncAlbunsToSite(albums);
     renderAlbuns(container);
   };
 }
