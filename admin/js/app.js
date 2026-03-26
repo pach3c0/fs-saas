@@ -27,7 +27,7 @@ async function initApp() {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'flex';
   startNotificationPolling();
-  await switchTab('hero');
+  await switchTab('sessoes');
   showWelcomeBanner();
 }
 
@@ -139,7 +139,7 @@ function showLoginForm() {
 
       await loadAppData();
       startNotificationPolling();
-      await switchTab('hero');
+      await switchTab('sessoes');
       showWelcomeBanner();
     } catch (error) {
       alert(error.message);
