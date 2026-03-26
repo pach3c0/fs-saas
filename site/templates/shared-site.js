@@ -83,13 +83,18 @@ function renderSite(data) {
   if (heroSubtitle) heroSubtitle.textContent = config.heroSubtitle || 'Fotografia profissional';
 
   const heroBg = document.getElementById('heroBg');
-  if (heroBg && config.heroImage) {
-    const scale = config.heroScale || 1;
-    const posX = config.heroPosX ?? 50;
-    const posY = config.heroPosY ?? 50;
-    heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
-    heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
-    heroBg.style.backgroundSize = `${scale * 100}%`;
+  if (heroBg) {
+    if (config.heroImage) {
+      const scale = config.heroScale || 1;
+      const posX = config.heroPosX ?? 50;
+      const posY = config.heroPosY ?? 50;
+      heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
+      heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
+      heroBg.style.backgroundSize = `${scale * 100}%`;
+    } else {
+      // Placeholder: gradiente neutro escuro sem foto pessoal
+      heroBg.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+    }
   }
 
   // Overlay e barras decorativas
@@ -124,16 +129,33 @@ function renderSite(data) {
   if (sobreText) sobreText.textContent = content.sobre?.text || '';
 
   const sobreImage = document.getElementById('sobreImage');
-  if (sobreImage && content.sobre?.image) {
-    sobreImage.src = resolvePath(content.sobre.image);
+  if (sobreImage) {
+    if (content.sobre?.image) {
+      sobreImage.src = resolvePath(content.sobre.image);
+    } else {
+      sobreImage.style.background = '#1f2937';
+      sobreImage.style.minHeight = '200px';
+      sobreImage.alt = 'Sua foto aqui';
+    }
   }
 
   // Preencher Portfolio
   const portfolioGrid = document.getElementById('portfolioGrid');
-  if (portfolioGrid && content.portfolio?.photos) {
-    portfolioGrid.innerHTML = content.portfolio.photos.map((p, i) =>
-      `<img src="${resolvePath(p.url)}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`
-    ).join('');
+  if (portfolioGrid) {
+    const photos = content.portfolio?.photos;
+    if (photos && photos.length > 0) {
+      portfolioGrid.innerHTML = photos.map((p, i) =>
+        `<img src="${resolvePath(p.url)}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`
+      ).join('');
+    } else {
+      // Placeholder neutro: grade de quadrados cinza com ícone de câmera
+      portfolioGrid.innerHTML = Array.from({ length: 6 }, (_, i) => `
+        <div style="aspect-ratio:3/4; background:#1a1a1a; border-radius:0.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; border:2px dashed #333;">
+          <span style="font-size:2rem; opacity:0.3;">📷</span>
+          <span style="font-size:0.75rem; color:#555; text-align:center;">Sua foto aqui</span>
+        </div>
+      `).join('');
+    }
   }
 
   // Preencher Serviços
