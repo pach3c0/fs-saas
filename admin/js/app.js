@@ -161,6 +161,159 @@ window.withSaveLoading = async function(btn, asyncFn) {
   }
 };
 
+// ── Builder Mode (Meu Site editor) ───────────────────────────────────────
+let builderDevice = 'desktop';
+let builderRefreshTimer = null;
+
+function getSiteUrlBuilder() {
+  const slug = appState.orgSlug;
+  return slug ? `/site?_tenant=${slug}` : '/site';
+}
+
+window.enterBuilderMode = function() {
+  const panel = document.getElementById('adminPanel');
+  const workspace = document.getElementById('workspace');
+  const builderProps = document.getElementById('builder-props');
+  const builderPreview = document.getElementById('builder-preview');
+
+  if (!panel) return;
+
+  // Add tooltips to nav items for collapsed sidebar
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    const text = btn.textContent.trim();
+    btn.setAttribute('data-tooltip', text);
+  });
+
+  panel.classList.add('builder-mode');
+  workspace.style.display = 'none';
+  builderProps.style.display = 'flex';
+  builderPreview.style.display = 'flex';
+
+  // Disable old preview toggle button
+  const previewBtn = document.getElementById('previewToggleBtn');
+  if (previewBtn) {
+    previewBtn.style.opacity = '0.4';
+    previewBtn.style.pointerEvents = 'none';
+  }
+
+  // Load the site in the iframe
+  builderLoadPreview();
+};
+
+window.exitBuilderMode = function(skipNav = false) {
+  const panel = document.getElementById('adminPanel');
+  if (!panel?.classList.contains('builder-mode')) return;
+
+  const workspace = document.getElementById('workspace');
+  const builderProps = document.getElementById('builder-props');
+  const builderPreview = document.getElementById('builder-preview');
+
+  panel.classList.remove('builder-mode');
+  workspace.style.display = '';
+  builderProps.style.display = 'none';
+  builderPreview.style.display = 'none';
+
+  // Limpar iframe para liberar memória
+  const iframe = document.getElementById('builder-iframe');
+  if (iframe) iframe.src = '';
+
+  // Restore topbar preview button
+  const previewBtn = document.getElementById('previewToggleBtn');
+  if (previewBtn) {
+    previewBtn.style.opacity = '';
+    previewBtn.style.pointerEvents = '';
+  }
+
+  // Navegar para dashboard se não for via switchTab
+  if (!skipNav) {
+    switchTab('dashboard');
+  }
+};
+
+function builderLoadPreview() {
+  const iframe = document.getElementById('builder-iframe');
+  const loading = document.getElementById('builder-loading');
+  const openLink = document.getElementById('builder-open-site');
+  if (!iframe) return;
+
+  const siteUrl = getSiteUrlBuilder();
+  if (openLink) openLink.href = siteUrl;
+
+  if (loading) loading.classList.remove('hidden');
+
+  iframe.src = '';
+  requestAnimationFrame(() => {
+    iframe.src = siteUrl;
+    iframe.onload = () => {
+      if (loading) loading.classList.add('hidden');
+      builderApplyDevice(builderDevice);
+    };
+  });
+
+  builderApplyDevice(builderDevice);
+}
+
+window.builderRefreshPreview = function() {
+  builderLoadPreview();
+};
+
+// Debounced auto-refresh after saves
+window.builderScheduleRefresh = function() {
+  clearTimeout(builderRefreshTimer);
+  const indicator = document.getElementById('builder-save-indicator');
+  if (indicator) indicator.style.display = 'inline-flex';
+  builderRefreshTimer = setTimeout(() => {
+    builderLoadPreview();
+    if (indicator) indicator.style.display = 'none';
+  }, 1200);
+};
+
+function builderApplyDevice(device) {
+  builderDevice = device;
+
+  document.querySelectorAll('.bd-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.device === device);
+  });
+
+  const wrap = document.getElementById('builder-iframe-wrap');
+  const iframe = document.getElementById('builder-iframe');
+  if (!wrap || !iframe) return;
+
+  const ww = wrap.clientWidth;
+  const wh = wrap.clientHeight || window.innerHeight - 96;
+
+  const sizes = {
+    desktop: { w: Math.max(ww, 900), h: wh },
+    tablet:  { w: 768,  h: 1024 },
+    mobile:  { w: 390,  h: 844  },
+  };
+
+  const s = sizes[device];
+
+  if (device === 'desktop') {
+    iframe.style.width = '100%';
+    iframe.style.height = wh + 'px';
+    iframe.style.transform = '';
+    iframe.style.marginTop = '0';
+  } else {
+    const scaleX = ww / s.w;
+    const scaleY = wh / s.h;
+    const scale = Math.min(1, scaleX, scaleY);
+    const scaledH = s.h * scale;
+    const topOffset = Math.max(0, (wh - scaledH) / 2);
+
+    iframe.style.width = s.w + 'px';
+    iframe.style.height = s.h + 'px';
+    iframe.style.transform = `scale(${scale})`;
+    iframe.style.transformOrigin = 'top center';
+    iframe.style.marginTop = topOffset + 'px';
+  }
+}
+
+window.builderSetDevice = function(device) {
+  builderApplyDevice(device);
+};
+
 // ── Navigation setup ──────────────────────────────────────────────────────
 function setupNavigation() {
   document.querySelectorAll('[data-tab]').forEach(tab => {
@@ -184,11 +337,18 @@ function setupKeyboardShortcuts() {
     const active = document.activeElement;
     const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
 
-    // Escape — fechar preview se aberto
-    if (e.key === 'Escape' && previewOpen) {
-      e.preventDefault();
-      window.toggleSitePreview();
-      return;
+    // Escape — fechar preview ou sair do builder
+    if (e.key === 'Escape') {
+      if (document.getElementById('adminPanel')?.classList.contains('builder-mode')) {
+        e.preventDefault();
+        window.exitBuilderMode();
+        return;
+      }
+      if (previewOpen) {
+        e.preventDefault();
+        window.toggleSitePreview();
+        return;
+      }
     }
 
     if (isInput) return;
@@ -207,6 +367,9 @@ function setupKeyboardShortcuts() {
   // Redimensionar frame ao mudar tamanho da janela
   window.addEventListener('resize', () => {
     if (previewOpen) applyDeviceFrame(previewDevice);
+    if (document.getElementById('adminPanel')?.classList.contains('builder-mode')) {
+      builderApplyDevice(builderDevice);
+    }
   });
 }
 
@@ -387,10 +550,11 @@ export async function switchTab(tabName) {
   const topbarTitle = document.getElementById('topbar-title');
   if (topbarTitle) topbarTitle.textContent = TAB_TITLES[tabName] || tabName;
 
-  // Show/hide preview toggle for Meu Site tab
-  const previewToggleBtn = document.getElementById('previewToggleBtn');
-  if (previewToggleBtn) {
-    previewToggleBtn.style.display = tabName === 'meu-site' ? '' : '';
+  // Sair do builder mode ao trocar de aba (skipNav=true evita loop)
+  if (tabName !== 'meu-site') {
+    if (document.getElementById('adminPanel')?.classList.contains('builder-mode')) {
+      window.exitBuilderMode(true);
+    }
   }
 
   showSkeleton(container);

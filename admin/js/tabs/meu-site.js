@@ -13,15 +13,40 @@ import { renderFaq } from './faq.js';
 import { renderNewsletter } from './newsletter.js';
 
 export async function renderMeuSite(container) {
+  // Enter builder mode — render properties into the builder panel
+  if (typeof window.enterBuilderMode === 'function') {
+    window.enterBuilderMode();
+    const propsContent = document.getElementById('builder-props-content');
+    const propsTabs = document.getElementById('builder-props-tabs');
+    if (propsContent && propsTabs) {
+      container.innerHTML = '<p style="color:var(--text-muted,#484f58); font-size:0.8125rem; padding:1rem; text-align:center;">Editor de site aberto ao lado →</p>';
+      await renderBuilderContent(propsContent, propsTabs);
+      return;
+    }
+  }
+
+  // Fallback: normal render (when builder elements aren't available)
+  await renderSiteContent(container, null);
+}
+
+async function renderBuilderContent(propsContent, propsTabs) {
+  // Render into builder props panel
+  await renderSiteContent(propsContent, propsTabs);
+}
+
+async function renderSiteContent(container, builderTabsEl) {
+  const isBuilder = !!builderTabsEl;
+
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
+      ${!isBuilder ? `
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Meu Site Profissional</h2>
         <div style="display:flex; gap:1rem; align-items:center;">
             <button id="copySiteLink" style="background:#374151; color:#d1d5db; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.875rem;">📋 Copiar Link</button>
             <a id="viewSiteLink" href="#" target="_blank" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; text-decoration:none; font-weight:600; font-size:0.875rem;">Ver Site</a>
         </div>
-      </div>
+      </div>` : ''}
 
       <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; align-items:center; justify-content:space-between;">
         <div>
@@ -247,14 +272,17 @@ export async function renderMeuSite(container) {
   toggle.checked = siteEnabled;
   toggle.onchange = async () => {
     await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
+    window.builderScheduleRefresh?.();
   };
 
-  // Links
+  // Links (only in non-builder mode)
   const siteUrl = orgSlug
     ? `${window.location.origin}/site?_tenant=${orgSlug}`
     : `${window.location.origin}/site`;
-  container.querySelector('#viewSiteLink').href = siteUrl;
-  container.querySelector('#copySiteLink').onclick = () => {
+  const viewSiteLink = container.querySelector('#viewSiteLink');
+  if (viewSiteLink) viewSiteLink.href = siteUrl;
+  const copySiteLink = container.querySelector('#copySiteLink');
+  if (copySiteLink) copySiteLink.onclick = () => {
     navigator.clipboard.writeText(siteUrl);
     window.showToast?.('Link copiado!', 'success');
   };
@@ -298,6 +326,33 @@ export async function renderMeuSite(container) {
     };
   });
 
+  // Builder mode: mirror sub-tab nav into #builder-props-tabs
+  if (isBuilder && builderTabsEl) {
+    // Hide the inline nav row (it stays in the DOM but is not needed visually)
+    const inlineNav = container.querySelector('div[style*="border-bottom:1px solid #374151"][style*="overflow-x:auto"]');
+    if (inlineNav) inlineNav.style.display = 'none';
+
+    // Build compact tab buttons in the builder panel header
+    builderTabsEl.innerHTML = '';
+    container.querySelectorAll('.sub-tab-btn').forEach(btn => {
+      const label = btn.textContent.trim();
+      const target = btn.dataset.target;
+      const bBtn = document.createElement('button');
+      bBtn.className = 'builder-tab-btn' + (btn.classList.contains('active') ? ' active' : '');
+      bBtn.textContent = label;
+      bBtn.dataset.target = target;
+      bBtn.onclick = () => {
+        // Delegate click to the hidden sub-tab button
+        const original = container.querySelector(`.sub-tab-btn[data-target="${target}"]`);
+        if (original) original.click();
+        // Update active state on builder tabs
+        builderTabsEl.querySelectorAll('.builder-tab-btn').forEach(b => b.classList.remove('active'));
+        bBtn.classList.add('active');
+      };
+      builderTabsEl.appendChild(bBtn);
+    });
+  }
+
   // --- GERAL ---
   container.querySelector('#saveGeralBtn').onclick = async () => {
     const newTheme = container.querySelector('#siteTheme').value;
@@ -306,6 +361,7 @@ export async function renderMeuSite(container) {
     selectedTheme = newTheme;
     renderTemplateCards();
     window.showToast?.('Tema salvo!', 'success');
+    window.builderScheduleRefresh?.();
   };
 
   // --- SOBRE ---
@@ -331,6 +387,7 @@ export async function renderMeuSite(container) {
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
       window.showToast?.('Salvo!', 'success');
+      window.builderScheduleRefresh?.();
   };
 
   // --- HERO ---
@@ -599,6 +656,7 @@ export async function renderMeuSite(container) {
       };
       await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
       window.showToast?.('Hero salvo!', 'success');
+      window.builderScheduleRefresh?.();
     };
 
     function updateHeroPreview() {
@@ -823,6 +881,7 @@ export async function renderMeuSite(container) {
         await apiPut('/api/site/admin/config', { siteSections: selected });
         window.showToast?.('Seções salvas!', 'success');
         configData.siteSections = selected;
+        window.builderScheduleRefresh?.();
       };
     };
 
@@ -907,6 +966,7 @@ export async function renderMeuSite(container) {
           await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, servicos: updated } });
           window.showToast?.('Serviços salvos!', 'success');
           configData.siteContent.servicos = updated;
+          window.builderScheduleRefresh?.();
         };
       }
     };
@@ -1087,6 +1147,7 @@ export async function renderMeuSite(container) {
           await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
           window.showToast?.('Depoimentos salvos!', 'success');
           configData.siteContent.depoimentos = updated;
+          window.builderScheduleRefresh?.();
         };
       }
     };
@@ -1292,6 +1353,7 @@ export async function renderMeuSite(container) {
           configData.siteStyle = newStyle;
           saveStyleBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
+          window.builderScheduleRefresh?.();
         };
       }
 
@@ -1303,6 +1365,7 @@ export async function renderMeuSite(container) {
           await apiPut('/api/site/admin/config', { siteStyle: {} });
           configData.siteStyle = {};
           renderCustomList();
+          window.builderScheduleRefresh?.();
         };
       }
 
@@ -1370,6 +1433,7 @@ export async function renderMeuSite(container) {
           configData.siteContent.customSections = updated;
           saveCSBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveCSBtn.textContent = 'Salvar Seções Extras'; }, 2000);
+          window.builderScheduleRefresh?.();
         };
       }
     };
@@ -1416,6 +1480,7 @@ export async function renderMeuSite(container) {
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
       window.showToast?.('Contato salvo!', 'success');
       configData.siteContent.contato = newContato;
+      window.builderScheduleRefresh?.();
     };
   };
 }
