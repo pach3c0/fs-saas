@@ -4,10 +4,10 @@
 
 Plataforma SaaS de gestao fotografica (CliqueZoom) com varios frontends e 1 backend:
 - **Home / cadastro** (`home/index.html`) - Landing page de cadastro da plataforma (conteudo editavel via saas-admin)
-- **Site publico** (`public/index.html` + `public/js/main.js`) - Portfolio, galeria, FAQ, contato
-- **Painel admin** (`admin/`) - Gerencia todo o conteudo do site
+- **Painel admin** (`admin/`) - Painel do fotografo: gerencia site, sessoes, clientes, perfil
 - **Galeria do cliente** (`cliente/index.html` + `cliente/js/gallery.js`) - Fotos privadas com codigo de acesso
 - **Painel super-admin** (`saas-admin/`) - Gerencia toda a plataforma SaaS (orgs, landing page, metricas)
+- **Site do fotografo** (`/site`) - Site publico gerado dinamicamente a partir de 5 templates
 - **API backend** (`src/server.js` + `src/routes/`) - Express.js + MongoDB
 
 Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `cliquezoom.com.br`
@@ -21,18 +21,20 @@ Path na VPS: `/var/www/cz-saas`
 
 2. **Backend JS = CommonJS.** O `package.json` tem `"type": "commonjs"`. Use `require()` e `module.exports` em tudo dentro de `src/`.
 
-3. **Admin tabs usam INLINE STYLES, nao classes Tailwind.** O admin tem tema escuro (fundo `#111827`). Classes Tailwind como `bg-white`, `text-gray-600` ficam invisiveis. Use sempre `style="background:#1f2937; color:#f3f4f6;"` etc.
+3. **Admin tabs usam INLINE STYLES com CSS variables do tema.** O admin tem tema GitHub dark. Use as CSS variables: `var(--bg-surface)`, `var(--text-primary)`, etc. (ver paleta abaixo). Nunca use classes Tailwind como `bg-white`, `text-gray-600` — ficam invisiveis.
 
 4. **Upload de imagens salva no disco local** em `/uploads/`. Retorna URL relativa `/uploads/filename.jpg`. NAO usar servicos externos (Cloudinary, S3, etc).
 
 5. **Sempre rode `npm run build:css` antes de deploy** se alterar qualquer HTML que use classes Tailwind. O Tailwind v4 compila de `assets/css/tailwind-input.css` para `assets/css/tailwind.css`.
+
+6. **Nunca use `alert()` ou `confirm()` no admin.** Use `window.showToast(msg, type)` e `window.showConfirm(msg, opts)` de `admin/js/utils/toast.js`.
 
 ---
 
 ## ARQUITETURA
 
 ```
-Site/
+FsSaaS/
   home/
     index.html              # Home / cadastro da plataforma CliqueZoom (rota /)
     js/
@@ -40,59 +42,59 @@ Site/
   saas-admin/
     index.html              # Painel super-admin (login + tabs: Organizacoes, Lixeira, Landing Page)
     js/
-      app.js                # Toda a logica do painel super-admin (dashboard, editor landing, etc)
+      app.js                # Toda a logica do painel super-admin
   admin/
-    index.html              # Shell do painel (login + sidebar + container)
+    index.html              # Shell do painel (login + sidebar + builder mode)
     js/
-      app.js                # Orquestrador: init, login, switchTab, logout
+      app.js                # Orquestrador: init, login, switchTab, logout, builder mode, toast
       state.js              # Estado global: appState, loadAppData, saveAppData
       tabs/                 # 1 arquivo por aba, carregado via dynamic import
+        dashboard.js        # renderDashboard(container) - Stats, sessoes recentes, acoes rapidas
         perfil.js           # renderPerfil(container) - Perfil do estudio, logo, watermark
-        hero.js             # renderHero(container)
-        sobre.js            # renderSobre(container)
-        portfolio.js        # renderPortfolio(container)
-        albuns.js           # renderAlbuns(container)
-        estudio.js          # renderEstudio(container)
-        faq.js              # renderFaq(container)
-        newsletter.js       # renderNewsletter(container)
-        sessoes.js          # renderSessoes(container)
+        meu-site.js         # renderMeuSite(container) - Builder mode com preview em tempo real
+        sessoes.js          # renderSessoes(container) - CRUD de sessoes, upload de fotos
         clientes.js         # renderClientes(container) - CRM de clientes
-        footer.js           # renderFooter(container)
-        manutencao.js       # renderManutencao(container)
+        albuns.js           # renderAlbuns(container) - Gerencia albuns de fotos
+        portfolio.js        # renderPortfolio(container) - Gerencia portfolio
+        estudio.js          # renderEstudio(container) - Info do estudio, video
+        faq.js              # renderFaq(container) - Perguntas frequentes
+        newsletter.js       # renderNewsletter(container) - Inscritos na newsletter
+        footer.js           # renderFooter(container) - Redes sociais, links rapidos
+        manutencao.js       # renderManutencao(container) - Modo manutencao
+        integracoes.js      # renderIntegracoes(container) - Integracoes externas
+        dominio.js          # renderDominio(container) - Configuracao de dominio
+        marketing.js        # renderMarketing(container) - Marketing
+        plano.js            # renderPlano(container) - Plano atual
       utils/
         helpers.js          # resolveImagePath, formatDate, generateId, copyToClipboard, escapeHtml
         upload.js           # compressImage, uploadImage, uploadVideo, showUploadProgress
         api.js              # apiGet, apiPost, apiPut, apiDelete (wrapper com auth automatico)
         photoEditor.js      # photoEditorHtml, setupPhotoEditor (modal reutilizavel)
         notifications.js    # startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, onNotifClick
+        toast.js            # showToast(msg, type, duration), showConfirm(msg, opts) — substitui alert/confirm
   assets/
     css/
       tailwind-input.css   # Source do Tailwind (com @source paths)
       tailwind.css          # Compilado (nao editar manualmente)
       shared.css            # Fontes Inter/Playfair, animacoes
-  public/
-    index.html              # Site publico (HTML apenas, sem JS inline)
-    albums.html             # Pagina de albuns
-    js/
-      main.js               # JS do site publico (~730 linhas)
-  site/                     # Sistema de templates do site do fotografo (Fase 9 + 13)
-    templates/              # 5 templates diferentes
-      elegante/
-        index.html          # Template clássico dourado/serif
+  site/                     # Sistema de templates do site do fotografo
+    templates/
+      elegante/             # Classico dourado/serif (Playfair Display)
+        index.html
         css/style.css
-      minimalista/
-        index.html          # Template clean P&B
+      minimalista/          # Clean P&B, grid 2 colunas, muito espaco
+        index.html
         css/style.css
-      moderno/
-        index.html          # Template azul/gradientes
+      moderno/              # Azul/gradientes, assimetrico, floating cards
+        index.html
         css/style.css
-      escuro/
-        index.html          # Template dark mode
+      escuro/               # Dark mode (#0a0a0a), laranja (#ff9500), fullscreen
+        index.html
         css/style.css
-      galeria/
-        index.html          # Template masonry grid
+      galeria/              # Masonry grid Pinterest-style, foco em fotos
+        index.html
         css/style.css
-      shared-site.js        # JavaScript compartilhado (renderiza todos os templates)
+      shared-site.js        # JS compartilhado entre todos os templates + listener postMessage
   cliente/
     index.html              # Galeria privada do cliente (HTML apenas, sem JS inline)
     sw.js                   # Service Worker PWA (cache offline de fotos)
@@ -109,7 +111,9 @@ Site/
     middleware/
       auth.js               # authenticateToken (JWT)
     models/
-      SiteData.js           # Documento unico com todo o conteudo do site
+      Organization.js       # Dados da org: perfil, slug, plano, watermark, siteTheme, siteConfig
+      User.js               # Usuario dono da organizacao
+      SiteData.js           # Documento unico com todo o conteudo do site (legado)
       LandingData.js        # Documento unico com todo o conteudo da landing page do SaaS
       Session.js            # Sessoes de clientes (fotos privadas)
       Client.js             # Clientes do fotografo (CRM)
@@ -123,37 +127,152 @@ Site/
       newsletter.js         # POST /newsletter/subscribe, GET/DELETE /newsletter
       sessions.js           # CRUD /sessions, upload/delete fotos, client endpoints
       clients.js            # CRUD /clients, GET /clients/:id/sessions
-      upload.js             # POST /admin/upload (imagens em /uploads/), POST /admin/upload-video (videos em /uploads/videos/)
-      notifications.js      # GET /notifications, GET /notifications/unread-count, PUT /notifications/read-all
+      upload.js             # POST /admin/upload, POST /admin/upload-video
+      notifications.js      # GET/PUT /notifications
       organization.js       # GET/PUT /organization/profile, GET /organization/public
-      site.js               # GET /site/config, PUT /site/admin/config (Fase 9)
-      landing.js            # GET /landing/config (publico), PUT /admin/landing/config (superadmin)
+      site.js               # GET /site/config, PUT /site/admin/config
+      landing.js            # GET /landing/config, PUT /admin/landing/config
     utils/
-      multerConfig.js       # createUploader(subdir, options) - config compartilhada do multer
-      notifications.js      # notify(type, sessionId, sessionName, message) - helper de criacao
-      deadlineChecker.js    # checkDeadlines(orgId) - verifica prazos e gera notificacoes
+      multerConfig.js       # createUploader(subdir, options)
+      notifications.js      # notify(type, sessionId, sessionName, message)
+      deadlineChecker.js    # checkDeadlines(orgId)
   package.json              # Node 22, CommonJS
 ```
 
 ---
 
+## PAINEL ADMIN — DESIGN SYSTEM (atualizado)
+
+O admin usa um tema GitHub dark moderno com CSS variables definidas no `:root` de `admin/index.html`.
+
+### CSS Variables do tema:
+```css
+:root {
+  --sidebar-w: 220px;
+  --header-h: 56px;
+  --bg-base: #0d1117;        /* fundo da pagina */
+  --bg-surface: #161b22;     /* cards, sidebar, topbar */
+  --bg-elevated: #1c2128;    /* inputs, modais */
+  --bg-hover: #21262d;       /* hover states */
+  --border: #30363d;         /* bordas */
+  --text-primary: #e6edf3;   /* texto principal */
+  --text-secondary: #8b949e; /* texto secundario */
+  --text-muted: #484f58;     /* texto desabilitado */
+  --accent: #2f81f7;         /* azul primario */
+  --accent-hover: #1f6feb;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --purple: #bc8cff;
+  --orange: #ffa657;
+}
+```
+
+### Paleta para inline styles (compativel com tema antigo e novo):
+| Elemento | CSS Variable | Fallback hex |
+|----------|-------------|--------------|
+| Fundo pagina | `var(--bg-base)` | `#0d1117` |
+| Fundo cards | `var(--bg-surface)` | `#161b22` |
+| Fundo inputs | `var(--bg-elevated)` | `#1c2128` |
+| Borda | `var(--border)` | `#30363d` |
+| Texto principal | `var(--text-primary)` | `#e6edf3` |
+| Texto secundario | `var(--text-secondary)` | `#8b949e` |
+| Botao primario | `var(--accent)` | `#2f81f7` |
+| Botao sucesso | `var(--green)` | `#3fb950` |
+| Botao perigo | `var(--red)` | `#f85149` |
+
+**Sempre use CSS variables em novos tabs:** `style="background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border);"`.
+
+### Layout do admin:
+```
+#adminPanel (display: flex; height: 100vh)
+  ├── #sidebar (220px fixo)
+  │     ├── #sidebar-header (logo + notificationBell)
+  │     ├── #sidebar-nav (nav-group-label + .nav-item[data-tab])
+  │     └── #sidebar-footer (links externos + logout)
+  └── #main-area (flex: 1)
+        ├── #topbar (56px — titulo + botao "Ver Previa")
+        ├── #workspace (flex: 1 — visivel no modo normal)
+        │     └── #content-panel → #tabContent (conteudo das abas)
+        ├── #builder-props (360px — visivel so no builder mode)
+        └── #builder-preview (flex:1 — visivel so no builder mode)
+```
+
+### Builder Mode (aba "Meu Site"):
+Quando o usuario clica em "Meu Site", o `app.js` entra em builder mode:
+- `#sidebar` fica `display: none` (tela cheia)
+- `#topbar` fica `display: none`
+- `#workspace` fica `display: none`
+- `#builder-props` (360px) fica `display: flex` — painel de propriedades
+- `#builder-preview` (flex:1) fica `display: flex` — iframe com o site
+
+O builder mode suporta 3 dispositivos: Desktop (scroll vertical), Tablet (768x1024 escalado), Mobile (390x844 escalado).
+
+**Preview em tempo real via postMessage:**
+- `admin/js/app.js` expoe `window.builderPostPreview(data)` que envia `{ type: 'cz_preview', data }` ao iframe
+- `site/templates/shared-site.js` escuta esse evento e chama `renderSite(data)` diretamente — sem reload
+- Quando o iframe termina de carregar, envia `{ type: 'cz_preview_ready' }` de volta
+- `meu-site.js` expoe `window._meuSitePostPreview()` que coleta todos os campos do form e chama `builderPostPreview`
+
+**Deteccao de alteracoes nao salvas:**
+- `meu-site.js` tem `markDirty(sectionId, label)` e `clearDirty()`
+- Ao trocar de sub-aba dentro de "Meu Site", `checkDirtyBeforeSwitch()` pergunta se quer salvar
+- Secoes que rastreiam dirty: Hero, Sobre, Contato, Personalizar
+
+### Sistema de notificacoes toast:
+Arquivo: `admin/js/utils/toast.js`
+
+```javascript
+// Exibir toast (nao bloqueia a UI)
+window.showToast('Salvo com sucesso!', 'success');  // success | error | warning | info
+window.showToast('Erro ao salvar', 'error', 5000);  // duracao customizavel em ms
+
+// Dialogo de confirmacao (retorna Promise<boolean>)
+const ok = await window.showConfirm('Remover este item?', {
+  title: 'Confirmar',
+  confirmText: 'Remover',
+  cancelText: 'Cancelar',
+  danger: true   // botao vermelho
+});
+if (ok) { /* executar acao */ }
+```
+
+**NUNCA use `alert()` ou `confirm()` — sempre use `showToast` e `showConfirm`.**
+
+### Skeleton loading:
+O `app.js` exibe skeleton animado enquanto a aba carrega. Nao precisa fazer nada — e automatico.
+
+### Atalhos de teclado:
+- `Ctrl+S` — clica no botao de salvar da aba ativa
+- `Escape` — sai do builder mode (se aberto) ou fecha o modal de preview
+- `P` — abre/fecha o modal de preview do site
+- `R` — recarrega o preview (se aberto)
+
+---
+
 ## COMO FUNCIONA O FLUXO DE DADOS
 
-### Salvar dados do admin:
+### Salvar dados do admin (abas que usam SiteData):
 ```
 Tab chama saveAppData('secao', dados)
-  → state.js monta payload completo: { ...appState.appData, [secao]: dados }
+  → state.js monta payload: { ...appState.appData, [secao]: dados }
   → PUT /api/site-data com payload completo
   → Backend: SiteData.findOneAndUpdate({}, payload, { upsert: true })
   → MongoDB atualiza o documento unico
 ```
 
-### Carregar dados no site publico:
+### Salvar dados do site (abas "Meu Site"):
 ```
-public/js/main.js → loadRemoteData()
-  → Promise.all([fetch('/api/site-data'), fetch('/api/hero')])
-  → Combina: { ...siteData, hero: heroData }
-  → Renderiza cada secao com os dados
+Tab chama apiPut('/api/site/admin/config', { siteTheme, siteConfig, siteContent, siteStyle, etc })
+  → Backend: Organization.findOneAndUpdate({ organizationId }, payload)
+  → MongoDB atualiza o documento da organizacao
+```
+
+### Carregar dados no site publico (/site):
+```
+shared-site.js → fetch('/api/site/config?_tenant=slug')
+  → Backend: busca Organization + SiteData e mescla
+  → shared-site.js chama renderSite(data) que preenche os IDs do template
 ```
 
 ### Upload de imagens:
@@ -161,21 +280,8 @@ public/js/main.js → loadRemoteData()
 Tab chama uploadImage(file, token, onProgress)
   → utils/upload.js comprime imagem (1200px, 85% quality)
   → XHR POST /api/admin/upload com FormData
-  → Backend: multer salva no disco em /uploads/
-  → Retorna { url: '/uploads/filename.jpg', filename: '...' }
-  → Tab salva a URL no campo correspondente do appState.appData
-  → Chama saveAppData() para persistir no MongoDB
-```
-
-### Upload de videos:
-```
-Tab chama uploadVideo(file, token, onProgress)
-  → utils/upload.js envia arquivo direto (sem compressao)
-  → XHR POST /api/admin/upload-video com FormData
-  → Backend: multer salva no disco em /uploads/videos/ (limite 300MB)
-  → Retorna { url: '/uploads/videos/filename.mp4', filename: '...' }
-  → Tab salva a URL no campo videoUrl do appState.appData.studio
-  → Chama saveAppData() para persistir no MongoDB
+  → Backend: multer salva no disco em /uploads/{orgId}/
+  → Retorna { url: '/uploads/orgId/filename.jpg', filename: '...' }
 ```
 
 ---
@@ -225,11 +331,11 @@ Tab chama uploadVideo(file, token, onProgress)
   selectedPhotos: [String],         // IDs das fotos selecionadas pelo cliente
   selectionSubmittedAt: Date,       // Data do envio da selecao
   selectionDeadline: Date,          // Data limite para selecao
-  deadlineWarningSent: Boolean,     // Aviso de 3 dias enviado
-  deadlineExpiredSent: Boolean,     // Aviso de expiracao enviado
-  deliveredAt: Date,                // Data da entrega
+  deadlineWarningSent: Boolean,
+  deadlineExpiredSent: Boolean,
+  deliveredAt: Date,
   coverPhoto: String,               // URL da foto de capa da galeria
-  highResDelivery: Boolean,         // Entrega em alta resolucao (default false) — serve urlOriginal no download
+  highResDelivery: Boolean,         // Entrega em alta resolucao (serve urlOriginal no download)
   watermark: Boolean,               // Mostrar watermark (default true)
   canShare: Boolean,                // Cliente pode compartilhar (default false)
   isActive: Boolean                 // Sessao ativa (default true)
@@ -245,78 +351,53 @@ Tab chama uploadVideo(file, token, onProgress)
 | POST | `/api/client/submit-selection/:id` | Finaliza a selecao |
 | POST | `/api/client/request-reopen/:id` | Pede reabertura da selecao |
 | POST | `/api/client/comments/:sessionId` | Adiciona comentario em foto |
-| GET | `/api/client/download/:sessionId/:photoId?code=X` | Download individual (original se highResDelivery) |
+| GET | `/api/client/download/:sessionId/:photoId?code=X` | Download individual |
 | GET | `/api/client/download-all/:sessionId?code=X` | Download ZIP de todas as fotos entregues |
 
-### Rotas do admin (com autenticacao):
+### Rotas do admin para sessoes (com autenticacao JWT):
 | Metodo | Rota | Descricao |
 |--------|------|-----------|
 | GET | `/api/sessions` | Lista todas as sessoes |
 | POST | `/api/sessions` | Cria nova sessao |
-| PUT | `/api/sessions/:id` | Edita sessao (inclui highResDelivery) |
+| PUT | `/api/sessions/:id` | Edita sessao |
 | DELETE | `/api/sessions/:id` | Deleta sessao |
-| POST | `/api/sessions/:id/photos` | Upload de fotos (salva original + thumb 1200px) |
-| DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto (remove thumb e original do disco) |
-| PUT | `/api/sessions/:id/reopen` | Reabre selecao (submitted → in_progress) |
+| POST | `/api/sessions/:id/photos` | Upload de fotos (salva original + thumb) |
+| DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto |
+| PUT | `/api/sessions/:id/reopen` | Reabre selecao |
 | PUT | `/api/sessions/:id/deliver` | Marca como entregue |
-| POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario em foto |
-| POST | `/api/sessions/:id/participants` | Adiciona participante (multi-seleção) |
-| PUT | `/api/sessions/:id/participants/:pid` | Edita participante |
-| DELETE | `/api/sessions/:id/participants/:pid` | Remove participante |
-| PUT | `/api/sessions/:id/participants/:pid/deliver` | Entrega individual |
-| GET | `/api/sessions/:id/participants/export` | Exporta seleções dos participantes |
+| POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario |
 | GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
-| GET | `/api/site/config` | Config pública do site do fotógrafo |
+| GET | `/api/site/config` | Config publica do site do fotografo |
 | PUT | `/api/site/admin/config` | Atualiza config do site (admin) |
-| POST | `/api/sessions/check-deadlines` | Verifica prazos e gera notificacoes (Cron) |
 
-### Rotas de Clientes (CRM - com autenticacao):
+### Rotas de Clientes (CRM):
 | Metodo | Rota | Descricao |
 |--------|------|-----------|
 | GET | `/api/clients` | Lista clientes com contagem de sessoes |
 | POST | `/api/clients` | Cria cliente |
 | PUT | `/api/clients/:id` | Edita cliente |
-| DELETE | `/api/clients/:id` | Deleta cliente (desvincula sessoes) |
+| DELETE | `/api/clients/:id` | Deleta cliente |
 | GET | `/api/clients/:id/sessions` | Sessoes vinculadas ao cliente |
 
 ---
 
 ## SISTEMA DE NOTIFICACOES
 
-### Tipos de notificacao:
-| Tipo | Icone | Quando |
-|------|-------|--------|
-| `session_accessed` | 👁️ | Cliente acessa a galeria |
-| `selection_started` | 🎯 | Cliente comeca a selecionar |
-| `selection_submitted` | ✅ | Cliente finaliza a selecao |
-| `reopen_requested` | 🔄 | Cliente pede reabertura |
-
-### Modelo Notification:
-```javascript
-{
-  type: String,          // Tipo da notificacao
-  sessionId: String,     // ID da sessao relacionada
-  sessionName: String,   // Nome do cliente
-  message: String,       // Mensagem para exibir
-  read: Boolean          // Se foi lida (default false)
-}
-```
-
-### Rotas da API:
-| Metodo | Rota | Descricao |
-|--------|------|-----------|
-| GET | `/api/notifications` | Lista notificacoes recentes |
-| GET | `/api/notifications/unread-count` | Contagem de nao lidas |
-| PUT | `/api/notifications/read-all` | Marca todas como lidas |
+### Tipos:
+| Tipo | Quando |
+|------|--------|
+| `session_accessed` | Cliente acessa a galeria |
+| `selection_started` | Cliente comeca a selecionar |
+| `selection_submitted` | Cliente finaliza a selecao |
+| `reopen_requested` | Cliente pede reabertura |
 
 ### Como funciona no admin:
 - Polling a cada 30 segundos (`admin/js/utils/notifications.js`)
 - Badge no sininho mostra contagem de nao lidas
 - Dropdown lista notificacoes com icone, mensagem e tempo relativo
 - Clicar numa notificacao navega para a aba Sessoes
-- Botao "Marcar todas como lidas" zera o badge
 
-### Backend: helper de criacao (`src/utils/notifications.js`):
+### Backend helper:
 ```javascript
 const { notify } = require('../utils/notifications');
 await notify('selection_submitted', session._id, session.name, `${session.name} finalizou a selecao`);
@@ -326,204 +407,115 @@ await notify('selection_submitted', session._id, session.name, `${session.name} 
 
 ## GALERIA DO CLIENTE
 
-A galeria do cliente (`cliente/index.html` + `cliente/js/gallery.js`) e uma SPA minimalista:
+A galeria (`cliente/index.html` + `cliente/js/gallery.js`) e uma SPA minimalista:
 
-### Funcionalidades:
 - **Login**: campo de codigo de acesso, validado via API
 - **Grid de fotos**: 2 colunas mobile, 3 tablet, 4 desktop
-- **Watermark**: overlay "FS FOTOGRAFIAS" sobre cada foto (removido quando entregue)
+- **Watermark**: overlay sobre cada foto (removido quando entregue)
 - **Selecao**: coracao no canto de cada foto, contador no topo e barra inferior fixa
-- **Fotos extras**: acima do limite do pacote mostra valor adicional (R$ X,XX)
 - **Lightbox**: visualizacao em tela cheia com navegacao por setas e swipe touch
-- **Status screens**: "Selecao Enviada" (com grid das fotos selecionadas) ou "Aguardando Processamento"
-- **Pedir reabertura**: botao "Preciso alterar minha selecao" na tela de status
 - **Polling 15s**: detecta automaticamente quando admin reabre a selecao ou entrega
-- **Modo gallery**: so visualizacao/download (sem selecao)
-- **Modo delivered**: fotos sem watermark, com botao de download
-
-### Anti-copia:
-- `oncontextmenu="return false"` no body
-- `-webkit-user-select: none` no body
-- `pointer-events: none` nas imagens
-- Watermark overlay sobre cada foto
+- **Anti-copia**: oncontextmenu, user-select:none, pointer-events:none nas imagens
 
 ---
+
 ## SISTEMA DE TEMPLATES DE SITE
 
-O site profissional do fotógrafo (`/site`) suporta **5 templates diferentes** que o fotógrafo pode escolher no admin. Cada template tem seu próprio HTML e CSS, mas todos compartilham o mesmo JavaScript.
+O site profissional do fotografo (`/site`) suporta **5 templates** que o fotografo escolhe no admin. Cada template tem HTML+CSS proprios, mas todos compartilham `shared-site.js`.
 
-### Estrutura de Templates
-
-```
-site/templates/
-  elegante/         # Clássico dourado, serif (Playfair), grid 3 colunas
-    index.html
-    css/style.css
-  minimalista/      # Clean P&B, grid 2 colunas, muito espaço
-    index.html
-    css/style.css
-  moderno/          # Azul/gradientes, assimétrico, floating cards
-    index.html
-    css/style.css
-  escuro/           # Dark mode (#0a0a0a), laranja (#ff9500), fullscreen
-    index.html
-    css/style.css
-  galeria/          # Masonry grid Pinterest-style, foco em fotos
-    index.html
-    css/style.css
-  shared-site.js    # JavaScript compartilhado entre TODOS os templates
-```
-
-### Rota Dinâmica (`/site`)
-
-A rota `GET /site` em `src/server.js` resolve qual template servir:
-
+### Rota dinamica (`/site`):
 ```javascript
-// 1. Resolve tenant (query ?_tenant=slug ou subdomain)
-// 2. Busca Organization.siteTheme no MongoDB
-// 3. Serve /site/templates/{theme}/index.html
-// 4. Fallback para 'elegante' se tema não existir
+// src/server.js — DEVE vir ANTES do express.static('/site')
+app.get('/site', async (req, res) => {
+  // 1. Resolve tenant (?_tenant=slug ou subdominio)
+  // 2. Busca Organization.siteTheme no MongoDB
+  // 3. Serve /site/templates/{theme}/index.html
+  // 4. Fallback para 'elegante'
+});
 ```
 
-**IMPORTANTE**: A rota dinâmica `app.get('/site')` **DEVE vir ANTES** do static middleware `app.use('/site', express.static(...))` para funcionar corretamente!
+### JavaScript compartilhado (`shared-site.js`):
+1. Detecta tenant
+2. Chama `/api/site/config` para buscar dados
+3. Preenche elementos do DOM (IDs padrao: `#heroTitle`, `#sobreTitle`, `#portfolioGrid`, etc.)
+4. Oculta secoes nao ativadas (`siteSections`)
+5. Reordena secoes conforme ordem do admin (insere antes do `#siteFooter`)
+6. Escuta `postMessage { type: 'cz_preview', data }` do admin para atualizar em tempo real
+7. Envia `{ type: 'cz_preview_ready' }` ao parent quando carregado (sinaliza que esta pronto)
 
-### JavaScript Compartilhado (`shared-site.js`)
+### IDs padrao esperados pelos templates:
+- `#heroTitle`, `#heroSubtitle`, `#heroBg`, `#heroOverlay` — Hero
+- `#sobreTitle`, `#sobreText`, `#sobreImage` — Sobre
+- `#portfolioGrid` — Grid de fotos do portfolio
+- `#servicosGrid` — Lista de servicos
+- `#depoimentosTrack` — Depoimentos
+- `#contatoTitle`, `#contatoText`, `#contactForm` — Contato
+- `#faqList` — FAQ
+- `#navLogo`, `#navLinks` — Navegacao
+- `#siteNav`, `#siteFooter` — Referencias de posicionamento
 
-Todos os 5 templates usam o mesmo `shared-site.js`:
-
+### Reordenacao de secoes (corrigido):
+Os templates sem `<main>` usam `<body>` diretamente. A reordenacao insere as secoes antes do `#siteFooter`:
 ```javascript
-// 1. Detecta tenant (?_tenant=slug ou subdomain)
-// 2. Chama /api/site/config para buscar dados
-// 3. Preenche elementos do DOM que existem no template
-// 4. Oculta seções não ativadas (via siteSections)
-// 5. Renderiza portfolio, serviços, depoimentos dinamicamente
-// 6. Lightbox, navegação, formulário de contato
+const anchor = document.getElementById('siteFooter');
+sectionElements.forEach(el => {
+  el.style.display = '';
+  document.body.insertBefore(el, anchor);
+});
 ```
 
-**Padrão de IDs esperados** (cada template pode ter ou não):
-- `#heroTitle`, `#heroSubtitle`, `#heroBg` - Hero
-- `#sobreTitle`, `#sobreText`, `#sobreImage` - Sobre
-- `#portfolioGrid` - Grid de fotos
-- `#servicosGrid` - Lista de serviços
-- `#depoimentosTrack` - Depoimentos
-- `#contatoTitle`, `#contatoText`, `#contactForm` - Contato
-
-### CSS do Formulário de Depoimento
-
-Todos os templates incluem estilos consistentes para o formulário de depoimento público (`.depoimento-form-public`):
-
-```css
-.depoimento-form-public form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.depoimento-form-public input,
-.depoimento-form-public textarea,
-.depoimento-form-public select {
-  padding: 0.75rem 1rem;
-  border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 0.5rem;
-  font-size: 0.9375rem;
-  font-family: var(--font-body);
-  background: var(--bg-alt);
-  color: var(--text);
-  transition: border-color 0.2s;
-  width: 100%;
-}
-.depoimento-form-public textarea {
-  resize: vertical;
-  min-height: 100px;
-}
-```
-
-### Reordenação de Seções
-
-O `shared-site.js` implementa reordenação dinâmica das seções baseado na ordem definida no admin:
-
-```javascript
-// Após processar todas as seções, reordenar DOM
-const mainContent = document.querySelector('main') || document.body;
-const sectionElements = sections.map(s => document.getElementById('section-' + s)).filter(el => el);
-
-// Remover todas as seções do DOM
-sectionElements.forEach(el => el.parentNode.removeChild(el));
-
-// Re-inserir na ordem correta
-sectionElements.forEach(el => mainContent.appendChild(el));
-```
-
-### Galeria Visual no Admin
-
-Na aba **"Meu Site" → "Geral"**, o fotógrafo vê cards visuais de cada template:
-
-```javascript
-{
-  id: 'elegante',
-  name: 'Elegante',
-  desc: 'Clássico com dourado e serif',
-  colors: ['#c9a962', '#2c2c2c', '#f5f5f5']  // Preview colorido
-}
-```
-
-- Preview com gradiente das cores principais
-- Paleta de 3 bolinhas coloridas
-- Badge "✓ Ativo" no template selecionado
-- Hover effects (borda azul + elevação)
-- Click → seleciona → "Salvar" → "Ver Site" para testar
-
-### Como Adicionar um Novo Template
-
-1. Criar diretório: `site/templates/novo-tema/`
-2. Criar `index.html` com IDs padrão (heroTitle, portfolioGrid, etc.)
-3. Criar `css/style.css` com estilos únicos
-4. Adicionar `<script src="/site/templates/shared-site.js"></script>`
-5. Adicionar no admin (`meu-site.js`):
-   ```javascript
-   { id: 'novo-tema', name: 'Novo Tema', desc: '...', colors: [...] }
-   ```
-6. Adicionar no `Organization.siteTheme` como opção válida
+### Como adicionar novo template:
+1. Criar `site/templates/novo-tema/index.html` com IDs padrao
+2. Criar `site/templates/novo-tema/css/style.css`
+3. Adicionar `<script src="/site/templates/shared-site.js"></script>` no HTML
+4. Adicionar no array de templates em `admin/js/tabs/meu-site.js`
+5. Adicionar como opcao valida em `Organization.siteTheme`
 
 ---
 
+## ABA MEU SITE — BUILDER MODE
 
-## PADRAO DO PHOTO EDITOR MODAL
+A aba "Meu Site" (`admin/js/tabs/meu-site.js`) funciona em "Builder Mode":
+- A sidebar e o topbar sao ocultados — tela inteira para o editor
+- Lado esquerdo (360px): painel de propriedades com sub-abas
+- Lado direito (restante): iframe com o site em tempo real
 
-O componente reutilizavel `admin/js/utils/photoEditor.js` permite ajustar enquadramento de fotos em qualquer tab. Ele foi extraido de 3 tabs que tinham codigo duplicado.
+### Sub-abas do Meu Site:
+| Sub-aba | O que configura |
+|---------|----------------|
+| Geral | Tema (template), status site (ativo/inativo), link do site |
+| Secoes | Quais secoes aparecem e em que ordem |
+| Hero | Imagem de fundo, titulo, subtitulo, posicao, overlay |
+| Sobre | Texto e imagem da secao "Sobre" |
+| Portfolio | Fotos do portfolio (usa renderPortfolio de portfolio.js) |
+| Servicos | Lista de servicos oferecidos |
+| Depoimentos | Depoimentos de clientes |
+| Albuns | Albuns de fotos (usa renderAlbuns de albuns.js) |
+| Estudio | Info do estudio, video, fotos (usa renderEstudio) |
+| Contato | Titulo, texto e endereco do contato |
+| FAQ | Perguntas frequentes (usa renderFaq) |
+| Newsletter | Config da newsletter (usa renderNewsletter) |
+| Personalizar | Cores (accent, fundo, texto) e fonte |
 
-### Como usar em um novo tab:
-
-```javascript
-import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
-
-// 1. No HTML template, adicionar o modal:
-container.innerHTML = `
-  ... seu conteudo ...
-  ${photoEditorHtml('meuEditorModal', '3/4')}
-`;
-// Aspect ratios disponiveis: '3/4' (portfolio), '1/1' (sobre), '16/9' (estudio), ou qualquer valor CSS
-
-// 2. Abrir o editor para uma foto:
-window.openMeuEditor = (idx) => {
-  const photo = fotos[idx];
-  setupPhotoEditor(container, 'meuEditorModal', resolveImagePath(photo.image),
-    { scale: photo.scale, posX: photo.posX, posY: photo.posY },
-    async (pos) => {
-      // pos = { scale, posX, posY }
-      fotos[idx] = { ...fotos[idx], ...pos };
-      appState.appData.secao = dados;
-      await saveAppData('secao', dados);
-      renderMinhaAba(container);
-    }
-  );
-};
+### Preview em tempo real — como funciona:
+```
+Usuario edita campo (oninput/onchange)
+  → markDirty(sectionId, label)     // marca que ha alteracoes nao salvas
+  → postPreviewData()               // coleta todos os campos do form
+  → window.builderPostPreview(snap) // envia via postMessage ao iframe
+  → shared-site.js recebe e chama renderSite(snap)  // atualiza DOM sem reload
 ```
 
-### API do componente:
-- `photoEditorHtml(modalId, aspectRatio)` - retorna string HTML do modal
-- `setupPhotoEditor(container, modalId, imageUrl, currentPos, onSave)` - configura sliders, preview, callbacks
-  - `currentPos`: `{ scale: Number, posX: Number, posY: Number }`
-  - `onSave`: callback que recebe `{ scale, posX, posY }` quando usuario clica "Salvar"
+### Variaveis globais do builder (em app.js):
+- `window.builderPostPreview(data)` — envia dados ao iframe via postMessage
+- `window.enterBuilderMode()` — entra no modo builder (chamado por renderMeuSite)
+- `window.exitBuilderMode(skipNav?)` — sai do modo (Escape ou botao "Sair")
+- `window.builderRefreshPreview()` — recarga o iframe (botao "Recarregar")
+- `window.builderSetDevice(device)` — muda entre desktop/tablet/mobile
+- `window.builderScheduleRefresh()` — debounce de 1.2s para recarregar apos save
+
+### Variaveis globais do meu-site.js:
+- `window._meuSitePostPreview()` — dispara coleta e envio de dados atuais do form
 
 ---
 
@@ -539,108 +531,83 @@ Criar `admin/js/tabs/novaaba.js`:
  */
 
 import { appState, saveAppData } from '../state.js';
-// Se precisar de upload:
-import { uploadImage, showUploadProgress } from '../utils/upload.js';
-// Se precisar de helpers:
-import { resolveImagePath, generateId } from '../utils/helpers.js';
-// Se precisar de editor de enquadramento:
-import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
+import { apiGet, apiPut } from '../utils/api.js';
 
 export async function renderNovaaba(container) {
   const dados = appState.appData.novaaba || {};
 
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Nome da Aba</h2>
+      <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary);">Nome da Aba</h2>
 
-      <!-- CAMPOS - sempre com inline styles dark mode -->
-      <div>
-        <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Campo</label>
-        <input type="text" id="campoX" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; color:#f3f4f6;"
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+        <label style="display:block; font-size:0.8125rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">Campo</label>
+        <input type="text" id="campoX"
+          style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:6px; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem; outline:none;"
           value="${dados.campo || ''}">
       </div>
 
-      <!-- BOTAO SALVAR - sempre azul -->
-      <button id="saveBtn" style="background:#2563eb; color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+      <button id="saveBtn"
+        style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:6px; border:none; font-weight:600; cursor:pointer; font-size:0.875rem;">
         Salvar
       </button>
     </div>
   `;
 
-  // Event listeners
   container.querySelector('#saveBtn').onclick = async () => {
-    const novoDados = {
-      campo: container.querySelector('#campoX').value
-    };
+    const novoDados = { campo: container.querySelector('#campoX').value };
     appState.appData.novaaba = novoDados;
     await saveAppData('novaaba', novoDados);
+    window.showToast?.('Salvo!', 'success');
   };
 }
 ```
 
 ### 2. Adicionar na sidebar do admin
 
-Em `admin/index.html`, dentro da `<nav>`:
+Em `admin/index.html`, dentro da `<nav>`, no grupo correto:
 ```html
-<div data-tab="novaaba" class="nav-item">Nome da Aba</div>
+<button class="nav-item" data-tab="novaaba">
+  <svg class="nav-icon" ...></svg>
+  Nome da Aba
+</button>
 ```
 
-### 3. Pronto
+### 3. Adicionar no TAB_TITLES do app.js
 
-O `app.js` carrega automaticamente via `import(\`./tabs/${tabName}.js\`)` e chama `renderNovaaba(container)`. Nao precisa editar `app.js`.
+Em `admin/js/app.js`:
+```javascript
+const TAB_TITLES = {
+  ...
+  novaaba: 'Nome da Aba',
+};
+```
 
----
-
-## PALETA DE CORES DO ADMIN (inline styles)
-
-| Elemento | Cor |
-|----------|-----|
-| Fundo da pagina | `#111827` |
-| Fundo de cards/containers | `#1f2937` |
-| Fundo de inputs | `#111827` |
-| Borda | `#374151` |
-| Texto principal | `#f3f4f6` |
-| Texto secundario/labels | `#d1d5db` |
-| Texto desabilitado | `#9ca3af` |
-| Botao primario (salvar) | `background:#2563eb` |
-| Botao adicionar | `background:#16a34a` |
-| Botao deletar/texto | `color:#ef4444` |
-| Botao editar/texto | `color:#60a5fa` |
-| Texto de sucesso | `color:#34d399` |
-| Texto de erro | `color:#f87171` |
+O `app.js` carrega automaticamente via `import('./tabs/novaaba.js')` e chama `renderNovaaba(container)`.
 
 ---
 
 ## COMO CRIAR UMA NOVA ROTA NO BACKEND
 
-### 1. Criar o arquivo de rota
-
-Criar `src/routes/novarota.js`:
-
 ```javascript
+// src/routes/novarota.js
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 
-// GET publico (sem auth)
 router.get('/novarota', async (req, res) => {
   try {
-    // buscar dados...
     res.json({ success: true, data: resultado });
   } catch (error) {
-    console.error('Erro:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// POST protegido (com auth)
 router.post('/novarota', authenticateToken, async (req, res) => {
   try {
     const { campo1, campo2 } = req.body;
-    // salvar dados...
     res.json({ success: true });
   } catch (error) {
-    console.error('Erro:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -648,11 +615,9 @@ router.post('/novarota', authenticateToken, async (req, res) => {
 module.exports = router;
 ```
 
-### 2. Registrar no server.js
-
+Registrar em `src/server.js`:
 ```javascript
-const novarotaRoutes = require('./routes/novarota');
-app.use('/api', novarotaRoutes);
+app.use('/api', require('./routes/novarota'));
 ```
 
 ---
@@ -663,229 +628,193 @@ app.use('/api', novarotaRoutes);
 const mongoose = require('mongoose');
 
 const NovoModelSchema = new mongoose.Schema({
+  organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
   campo: { type: String, required: true },
   numero: { type: Number, default: 0 },
   ativo: { type: Boolean, default: true }
-}, {
-  timestamps: true  // sempre incluir
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('NovoModel', NovoModelSchema);
 ```
 
-**Padrao do SiteData (documento unico com upsert):**
-```javascript
-// Buscar
-const data = await SiteData.findOne({});
+**Sempre incluir `organizationId` em novos modelos** (multi-tenancy).
 
-// Salvar (upsert)
-const result = await SiteData.findOneAndUpdate(
-  {},
-  { $set: payload },
-  { upsert: true, new: true, runValidators: true }
-);
+---
+
+## PADRAO DO PHOTO EDITOR MODAL
+
+O componente `admin/js/utils/photoEditor.js` permite ajustar enquadramento de fotos:
+
+```javascript
+import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
+
+container.innerHTML = `
+  ... conteudo ...
+  ${photoEditorHtml('meuEditorModal', '3/4')}
+`;
+
+window.openMeuEditor = (idx) => {
+  const photo = fotos[idx];
+  setupPhotoEditor(container, 'meuEditorModal', resolveImagePath(photo.image),
+    { scale: photo.scale, posX: photo.posX, posY: photo.posY },
+    async (pos) => {
+      fotos[idx] = { ...fotos[idx], ...pos };
+      await saveAppData('secao', dados);
+      renderMinhaAba(container);
+    }
+  );
+};
 ```
 
 ---
 
 ## PADRAO DE UPLOAD DE IMAGENS NO TAB
 
-Se um tab precisa de upload de imagem, siga este padrao:
-
 ```javascript
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
 
-// No HTML template:
-`
-<label style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer;">
+// HTML:
+`<label style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:6px; cursor:pointer;">
   Upload
   <input type="file" accept=".jpg,.jpeg,.png" id="uploadInput" style="display:none;">
 </label>
-<div id="uploadProgress"></div>
-`
+<div id="uploadProgress"></div>`
 
-// No event listener:
+// JS:
 container.querySelector('#uploadInput').onchange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-
   try {
     const result = await uploadImage(file, appState.authToken, (percent) => {
       showUploadProgress('uploadProgress', percent);
     });
-    // result.url = URL local (/uploads/filename.jpg)
     dados.image = result.url;
     e.target.value = '';
   } catch (error) {
-    alert('Erro: ' + error.message);
+    window.showToast?.('Erro: ' + error.message, 'error');
   }
 };
-
-// Para exibir a imagem:
-`<img src="${resolveImagePath(dados.image)}" style="...">`
-```
-
-**Para upload multiplo:**
-```javascript
-`<input type="file" accept=".jpg,.jpeg,.png" multiple id="uploadInput" style="display:none;">`
-
-container.querySelector('#uploadInput').onchange = async (e) => {
-  const files = Array.from(e.target.files);
-  if (!files.length) return;
-
-  for (const file of files) {
-    try {
-      const result = await uploadImage(file, appState.authToken);
-      lista.push(result.url);  // ou { image: result.url, posX: 50, posY: 50, scale: 1 }
-    } catch (error) {
-      alert('Erro: ' + error.message);
-    }
-  }
-
-  appState.appData.secao = dados;
-  await saveAppData('secao', dados);
-  renderMinhaAba(container);  // re-renderizar
-};
 ```
 
 ---
 
-## PADRAO DE LISTA COM CRUD NO TAB
-
-Para tabs que gerenciam uma lista de itens (FAQ, portfolio, albuns):
+## MODELO DE DADOS: Organization
 
 ```javascript
-// Dados: array no appState.appData
-const items = appState.appData.minhaLista || [];
-
-// Renderizar cada item
-items.forEach((item, index) => {
-  html += `
-    <div style="border:1px solid #374151; border-radius:0.375rem; padding:1rem; background:#1f2937;">
-      <input type="text" value="${item.titulo}" data-item-titulo="${index}"
-        style="width:100%; ... background:#111827; color:#f3f4f6;">
-      <button onclick="deleteItem(${index})" style="color:#ef4444; background:none; border:none; cursor:pointer;">Delete</button>
-    </div>
-  `;
-});
-
-// Adicionar
-container.querySelector('#addBtn').onclick = () => {
-  items.push({ id: generateId(), titulo: 'Novo' });
-  renderMinhaAba(container);  // re-renderiza tudo
-};
-
-// Deletar (expor no window para onclick inline)
-window.deleteItem = async (index) => {
-  if (!confirm('Remover?')) return;
-  items.splice(index, 1);
-  appState.appData.minhaLista = items;
-  await saveAppData('minhaLista', items);
-  renderMinhaAba(container);
-};
-
-// Salvar
-container.querySelector('#saveBtn').onclick = async () => {
-  const updated = [];
-  container.querySelectorAll('[data-item-titulo]').forEach((input, idx) => {
-    updated.push({
-      id: items[idx]?.id || generateId(),
-      titulo: input.value
-    });
-  });
-  appState.appData.minhaLista = updated;
-  await saveAppData('minhaLista', updated);
-};
+{
+  name: String,                   // Nome do estudio (obrigatorio)
+  slug: String,                   // Slug unico para subdomain
+  ownerId: ObjectId,              // Referencia ao User dono
+  plan: 'free' | 'basic' | 'pro',
+  isActive: Boolean,
+  // Perfil
+  logo: String,                   // URL do logotipo
+  phone: String,
+  whatsapp: String,               // Formato 5511999999999
+  email: String,
+  website: String,
+  bio: String,
+  address: String,
+  city: String,
+  state: String,
+  primaryColor: String,           // Cor primaria hex
+  // Watermark
+  watermarkType: 'text' | 'logo',
+  watermarkText: String,
+  watermarkOpacity: Number,       // 5-50 (default 15)
+  // Site do fotografo
+  siteEnabled: Boolean,           // Site ativo ou nao
+  siteTheme: String,              // 'elegante' | 'minimalista' | 'moderno' | 'escuro' | 'galeria'
+  siteConfig: {                   // Configuracoes do hero e pagina
+    heroTitle: String,
+    heroSubtitle: String,
+    heroImage: String,
+    heroScale: Number,
+    heroPosX: Number,
+    heroPosY: Number,
+    overlayOpacity: Number,
+    topBarHeight: Number,
+    bottomBarHeight: Number,
+    titleFontSize: Number,
+    subtitleFontSize: Number,
+    titlePosX: Number,
+    titlePosY: Number,
+    subtitlePosX: Number,
+    subtitlePosY: Number,
+  },
+  siteStyle: {                    // Personalizacao visual
+    accentColor: String,
+    bgColor: String,
+    textColor: String,
+    fontFamily: String,
+  },
+  siteSections: [String],         // Ordem das secoes ativas
+  siteContent: {                  // Conteudo das secoes
+    sobre: { title, text, image },
+    servicos: [{ id, title, description, price, icon }],
+    depoimentos: [{ id, name, text, rating, approved }],
+    portfolio: { photos: [...] },
+    contato: { title, text, address },
+    faq: [{ id, question, answer }],
+    customSections: [{ id, type, title, content, imageUrl, items, bgColor, textColor }],
+  },
+  integrations: {                 // Integracoes externas
+    whatsappMessage: String,
+    googleAnalytics: String,
+    facebookPixel: String,
+    instagramUrl: String,
+    instagramToken: String,
+  },
+}
 ```
 
----
-
-## PADRAO DE TAB QUE CHAMA API DIRETAMENTE
-
-Newsletter e Sessoes nao usam `saveAppData()` porque tem seus proprios modelos MongoDB. Padrao:
-
-```javascript
-// Usando o wrapper api.js (recomendado):
-import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
-
-const data = await apiGet('/api/endpoint');
-const result = await apiPost('/api/endpoint', { campo1, campo2 });
-await apiPut(`/api/endpoint/${id}`, { campo: 'valor' });
-await apiDelete(`/api/endpoint/${id}`);
-
-// Ou com fetch manual (se precisar de controle extra):
-const response = await fetch('/api/endpoint', {
-  headers: { 'Authorization': `Bearer ${appState.authToken}` }
-});
-if (!response.ok) throw new Error('Erro ao carregar');
-const result = await response.json();
-```
-
----
-
-## PADRAO DE HOVER OVERLAY EM IMAGENS
-
-Para botoes que aparecem ao passar o mouse sobre imagens:
-
-```javascript
-// No HTML:
-`
-<div class="meu-item" style="position:relative; ...">
-  <img src="${url}" style="width:100%; height:100%; object-fit:cover;">
-  <div class="meu-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
-    <button onclick="editar(${idx})" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;">Editar</button>
-    <button onclick="deletar(${idx})" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;">Deletar</button>
-  </div>
-</div>
-`
-
-// No JS apos innerHTML:
-container.querySelectorAll('.meu-item').forEach(item => {
-  const overlay = item.querySelector('.meu-overlay');
-  item.onmouseenter = () => { overlay.style.opacity = '1'; };
-  item.onmouseleave = () => { overlay.style.opacity = '0'; };
-});
-```
+### Rotas da Organization:
+| Metodo | Rota | Auth | Descricao |
+|--------|------|------|-----------|
+| GET | `/api/organization/profile` | JWT | Dados completos do perfil |
+| PUT | `/api/organization/profile` | JWT | Atualizar perfil |
+| GET | `/api/organization/public` | Tenant | Dados publicos para galeria |
+| GET | `/api/site/config` | Tenant | Config completa do site |
+| PUT | `/api/site/admin/config` | JWT | Atualizar config do site |
 
 ---
 
 ## VARIAVEIS DE AMBIENTE
 
-### VPS (producao - `/var/www/fs-saas/.env`):
+### VPS (producao):
 ```
 NODE_ENV=production
-PORT=3051                                         # Porta do Express (Nginx faz proxy)
-JWT_SECRET=...                                    # Secret para assinar tokens
-ADMIN_PASSWORD_HASH=...                           # Hash bcrypt da senha
-OWNER_EMAIL=...                                   # Email do dono da plataforma
-BASE_DOMAIN=cliquezoom.com.br                     # Dominio base do SaaS
-OWNER_SLUG=fs                                     # Slug da organizacao principal
-SMTP_HOST=smtp.titan.email                        # Servidor SMTP
-SMTP_PORT=465                                     # Porta SMTP
-SMTP_USER=...                                     # Email SMTP
-SMTP_PASS=...                                     # Senha SMTP
+PORT=3051
+JWT_SECRET=...
+ADMIN_PASSWORD_HASH=...
+OWNER_EMAIL=...
+BASE_DOMAIN=cliquezoom.com.br
+OWNER_SLUG=fs
+SMTP_HOST=smtp.titan.email
+SMTP_PORT=465
+SMTP_USER=...
+SMTP_PASS=...
 ```
 
-### Local (desenvolvimento - `.env` na raiz):
+### Local (desenvolvimento):
 ```
 PORT=3051
 NODE_ENV=development
-MONGODB_URI=mongodb+srv://...                     # MongoDB Atlas (dev)
+MONGODB_URI=mongodb+srv://...   # MongoDB Atlas (dev)
 JWT_SECRET=...
 BASE_DOMAIN=cliquezoom.com.br
 OWNER_SLUG=fs
-OWNER_EMAIL=...
 ```
 
-**IMPORTANTE**: Na VPS o MongoDB e local (`mongodb://localhost:27017/fsfotografias`), configurado diretamente no `src/server.js` como fallback quando `MONGODB_URI` nao esta definido.
+**Na VPS o MongoDB e local** (`mongodb://localhost:27017/fsfotografias`), configurado como fallback no `src/server.js`.
 
 ---
 
 ## COMANDOS
 
 ```bash
-npm run dev          # Servidor local com nodemon (desenvolvimento)
+npm run dev          # Servidor local com nodemon
 npm run build:css    # Compilar Tailwind CSS
 npm start            # Iniciar servidor (producao)
 ```
@@ -894,16 +823,8 @@ npm start            # Iniciar servidor (producao)
 
 ## DEPLOY NA VPS
 
-O app SaaS roda na VPS Contabo com Nginx como reverse proxy e PM2 como process manager.
-Path: `/var/www/fs-saas`
-
-**ATENCAO**: Na VPS existem DOIS apps separados:
-- `/var/www/fs-fotografias` → Site original (single-tenant) em `fsfotografias.com.br` (porta 3002)
-- `/var/www/fs-saas` → App SaaS (multi-tenant) em `app.fsfotografias.com.br` (porta 3051)
-
-### Deploy de atualizacoes:
 ```bash
-# Do seu computador local:
+# Do computador local:
 git add . && git commit -m "descricao" && git push
 
 # Na VPS (via SSH):
@@ -913,68 +834,39 @@ cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas
 ### Estrutura do servidor:
 ```
 Nginx (porta 80/443)
+  ├── /uploads/     → /var/www/cz-saas/uploads/ (static)
+  ├── /assets/      → /var/www/cz-saas/assets/ (static)
+  ├── /admin/js/    → /var/www/cz-saas/admin/js/ (static, ESM)
+  └── /*            → localhost:3051 (proxy Node.js)
 
-  Config: /etc/nginx/sites-enabled/cz-saas (ou equivalente)
-  Server name: cliquezoom.com.br / app.cliquezoom.com.br
-  ├── /uploads/     → /var/www/fs-saas/uploads/ (static)
-  ├── /assets/      → /var/www/fs-saas/assets/ (static)
-  ├── /admin/js/    → /var/www/fs-saas/admin/js/ (static, ESM)
-  ├── /saas-admin/  → /var/www/fs-saas/saas-admin/ (static)
-  └── /*            → localhost:3051 (proxy para Node.js)
-
-PM2 processos:
-  - fsfotografias   (id 2) → porta 3002 (site original, NAO MEXER)
-  - cliquezoom-saas (id 7) → porta 3051 (app SaaS CliqueZoom)
-  - crm-backend     (id 1) → outro app (NAO MEXER)
-  - vps-hub         (id 3) → outro app (NAO MEXER)
-
-MongoDB: localhost:27017 (sempre conectado)
-SSL: Let's Encrypt via Certbot (auto-renovacao)
+PM2 processos (NAO mexer nos outros):
+  - cliquezoom-saas (id 7) → porta 3051  ← ESTE E O NOSSO
+  - fsfotografias   (id 2) → porta 3002  ← NAO MEXER
+  - crm-backend     (id 1) → outro app   ← NAO MEXER
+  - vps-hub         (id 3) → outro app   ← NAO MEXER
 ```
 
 ### URLs:
 | URL | Destino |
 |-----|---------|
-| `cliquezoom.com.br` | Home / cadastro da plataforma CliqueZoom |
+| `cliquezoom.com.br` | Home / cadastro da plataforma |
 | `cliquezoom.com.br/admin/` | Painel admin do fotografo |
-| `cliquezoom.com.br/saas-admin/` | Painel super-admin do SaaS |
+| `cliquezoom.com.br/saas-admin/` | Painel super-admin |
 | `cliquezoom.com.br/cliente/` | Galeria do cliente |
-| `fsfotografias.com.br` | Site original do fotografo (app separado, NAO MEXER) |
+| `cliquezoom.com.br/site?_tenant=slug` | Site do fotografo (dev) |
+
 ---
 
 ## CHECKLIST ANTES DE DEPLOY
 
-- [ ] Se alterou HTML do site publico/cliente: rodar `npm run build:css`
-- [ ] Se criou novo tab no admin: adicionar `<div data-tab="nome">` no `admin/index.html`
+- [ ] Se alterou HTML com classes Tailwind: rodar `npm run build:css`
+- [ ] Se criou novo tab: adicionar `<button class="nav-item" data-tab="nome">` no `admin/index.html`
+- [ ] Se criou novo tab: adicionar entrada em `TAB_TITLES` no `app.js`
 - [ ] Se criou nova rota: registrar com `app.use('/api', require('./routes/arquivo'))` no `server.js`
-- [ ] Se criou novo modelo: verificar se tem `timestamps: true`
+- [ ] Se criou novo modelo: verificar `organizationId` + `timestamps: true`
 - [ ] Testar localmente com `npm run dev`
-- [ ] Commitar e push para GitHub
-- [ ] Na VPS: `cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas`
-
----
-
-## CUIDADO COM CLASSES TAILWIND ARBITRARIAS NO SITE PUBLICO
-
-**BUG JA CORRIGIDO - NAO REINTRODUZIR:**
-
-Classes Tailwind com valores arbitrarios como `aspect-[3/4]`, `w-[200px]`, `bg-[#123456]` so sao incluidas no CSS compilado se o Tailwind encontra o texto exato durante o build scan. Classes geradas **dinamicamente em JavaScript** (dentro de strings template, concatenacao, etc.) NAO sao detectadas pelo scanner.
-
-**Regra: No site publico (`public/js/main.js`), sempre use inline styles para valores dinamicos em vez de classes Tailwind arbitrarias.**
-
-Exemplo ERRADO:
-```javascript
-const aspectMap = { '3/4': 'aspect-[3/4]', '1/1': 'aspect-square' };
-const cls = aspectMap[ratio];
-return `<div class="${cls}">`;  // aspect-[3/4] NAO vai existir no CSS!
-```
-
-Exemplo CORRETO:
-```javascript
-return `<div style="aspect-ratio:${ratio};">`;  // inline style sempre funciona
-```
-
-Classes Tailwind padrao (nao arbitrarias) como `aspect-video`, `aspect-square`, `w-full`, `h-full` podem ser usadas normalmente, pois existem no CSS compilado.
+- [ ] Commit + push GitHub
+- [ ] Na VPS: `cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas`
 
 ---
 
@@ -982,284 +874,35 @@ Classes Tailwind padrao (nao arbitrarias) como `aspect-video`, `aspect-square`, 
 
 | Erro | Causa | Solucao |
 |------|-------|---------|
-| Conteudo aparece e some no admin | CSS invisivel no tema escuro | Usar inline styles, nao classes Tailwind |
-| `@apply` nao funciona | `@apply` so funciona durante build | Substituir por CSS puro ou inline styles |
-| Portfolio nao aparece no site | Classe `aspect-[3/4]` nao existe no CSS compilado | Usar inline style `style="aspect-ratio:3/4;"` em vez de classe arbitraria |
-| Upload falha com 413 | Payload muito grande | Imagem e comprimida no client (1200px). Se persistir, verificar `client_max_body_size` no Nginx |
-| Portfolio mostra imagem quebrada | Item antigo sem campo `image` no MongoDB | `processRemoteData` ja filtra itens sem `image`; nao salvar itens sem URL |
+| Conteudo aparece e some no admin | CSS invisivel no tema escuro | Usar CSS variables, nao classes Tailwind |
+| `@apply` nao funciona | So funciona durante build | Substituir por CSS puro ou inline styles |
+| Portfolio nao aparece no site | Classe arbitraria nao compilada | Usar `style="aspect-ratio:3/4;"` em vez de `aspect-[3/4]` |
+| Upload falha com 413 | Payload muito grande | Verificar `client_max_body_size` no Nginx |
+| Preview em branco ao abrir Meu Site | Race condition no postMessage | Aguardar `cz_preview_ready` — ja implementado no app.js |
+| Secoes do site fora de ordem | Reordenacao com `appendChild` no body | Usar `insertBefore(el, siteFooter)` — ja corrigido no shared-site.js |
 | App nao inicia | MongoDB desligado | `sudo systemctl start mongod` |
-| 502 Bad Gateway | Node.js caiu | `pm2 restart fsfotografias` e verificar logs: `pm2 logs fsfotografias` |
+| 502 Bad Gateway | Node.js caiu | `pm2 restart cliquezoom-saas && pm2 logs cliquezoom-saas` |
 
 ---
 
-## MODELO DE DADOS COMPLETO (SiteData)
+## INSTRUCOES CRITICAS PARA IAs — INFRAESTRUTURA VPS
 
-Documento unico no MongoDB que armazena todo o conteudo do site:
-
-```javascript
-{
-  hero: {
-    title: String,
-    subtitle: String,
-    image: String,              // URL da imagem (/uploads/xxx ou URL externa)
-    imageScale: Number,         // 0.5 a 2
-    imagePosX: Number,          // 0 a 100
-    imagePosY: Number,          // 0 a 100
-    titleFontSize: Number,
-    subtitleFontSize: Number,
-    topBarHeight: Number,
-    bottomBarHeight: Number,
-    overlayOpacity: Number
-  },
-  about: {
-    title: String,
-    text: String,
-    image: String,              // URL da imagem (legado, single)
-    images: [{                  // Array de imagens (novo, multiplas)
-      image: String,
-      posX: Number,
-      posY: Number,
-      scale: Number
-    }]
-  },
-  portfolio: [                  // Array de fotos
-    {
-      image: String,            // URL da imagem
-      posX: Number,             // 0 a 100 (default 50)
-      posY: Number,             // 0 a 100 (default 50)
-      scale: Number,            // 1 a 2 (default 1)
-      ratio: String             // Aspect ratio: '3/4', '1/1', '16/9' (default '3/4')
-    }
-  ],
-  albums: [                     // Array de albuns
-    {
-      id: String,
-      title: String,
-      subtitle: String,
-      cover: String,            // URL da foto de capa
-      photos: [String],         // Array de URLs
-      createdAt: String
-    }
-  ],
-  studio: {
-    title: String,
-    description: String,
-    address: String,
-    hours: String,
-    whatsapp: String,
-    videoUrl: String,           // URL do video do estudio (/uploads/videos/xxx.mp4)
-    photos: [                   // Fotos do estudio
-      { image: String, posX: Number, posY: Number, scale: Number }
-    ],
-    whatsappMessages: [         // Mensagens da bolha flutuante
-      { text: String, delay: Number }
-    ]
-  },
-  faq: {
-    faqs: [
-      { id: String, question: String, answer: String }
-    ]
-  },
-  footer: {
-    socialMedia: {
-      instagram: String,
-      facebook: String,
-      linkedin: String,
-      tiktok: String,
-      youtube: String,
-      email: String
-    },
-    quickLinks: [
-      { label: String, url: String }
-    ],
-    newsletter: {
-      enabled: Boolean,
-      title: String,
-      description: String
-    },
-    copyright: String
-  },
-  maintenance: {
-    enabled: Boolean,
-    title: String,
-    message: String
-  }
-}
-```
-
----
-
-## CONTEXTO SAAS E EVOLUCAO DO PROJETO
-
-### Objetivo do Projeto
-**CliqueZoom** e um **concorrente direto do PicSize** (picsize.com.br). Referencia competitiva com 30k+ fotografos. Nosso objetivo e oferecer as mesmas funcionalidades com preco menor e arquitetura mais leve.
-
-### Produtos Planejados (equivalentes ao PicSize)
-1. **Gallery PRO** (selecao + entrega + prova de albuns) - parcialmente implementado
-2. **Site PRO** (site profissional customizavel) - futuro
-3. **Entrega Online** (download em alta resolucao) - planejado FASE 4
-4. **Prova de Album Folheavel** - planejado FASE 8
-
-### Multi-Tenancy (implementado em 14/02/2026)
-- Cada fotografo e uma `Organization` com `slug` unico
-- Producao: `slug.cliquezoom.com.br` (subdomain - futuro)
-- Desenvolvimento: `?_tenant=slug` (query parameter)
-- Modelos: `User`, `Organization` (novos), todos os outros com `organizationId`
-- Uploads isolados: `/uploads/{orgId}/`
-- Login: email + senha (JWT com userId, organizationId, role)
-- Script de migracao: `node src/scripts/migrate-to-multitenancy.js`
-
-### Documentacao Complementar
-- **ROADMAP.md** - Fases de implementacao detalhadas (12 fases)
-- **ARCHITECTURE.md** - Decisoes tecnicas, padroes, escalabilidade
-- **MULTITENANCY-README.md** - Detalhes da implementacao multi-tenant
-- **MULTITENANCY-CHECKLIST.md** - Checklist de verificacao
-- **VPS-GUIDE.md** - Guia da infra na VPS Contabo
-- **METODOLOGIA_CLAUDE.md** - Filosofia e padroes de desenvolvimento
-
-### Regras para Novas Features
-1. **Sempre filtrar por `organizationId`** em queries e uploads
-2. **Novos modelos**: sempre incluir `organizationId` + `timestamps: true`
-3. **Novas abas admin**: seguir padrao ES Modules + inline styles dark mode
-4. **Novas rotas**: registrar no `server.js` com `app.use('/api', require(...))`
-5. **Upload**: salvar em `/uploads/{orgId}/subdir/`
-6. **Consultar ROADMAP.md** para saber o que implementar e em que ordem
+1. **NUNCA confunda os apps:** O nosso e `cliquezoom-saas` (id 7, porta 3051, path `/var/www/cz-saas`)
+2. **NUNCA altere a porta** — e 3051, definida no `.env` da VPS
+3. **NUNCA modifique configs do Nginx** sem autorizacao explicita
+4. **NUNCA faca `pm2 restart all`** — reinicia todos os processos. Use `pm2 restart cliquezoom-saas`
+5. **NUNCA mexer no site original** (`/var/www/fs-fotografias`, `fsfotografias`)
 
 ---
 
 ## ATUALIZACAO DE DOCUMENTACAO (OBRIGATORIO)
 
-**Apos implementar qualquer feature do ROADMAP, SEMPRE atualize a documentacao:**
+Apos implementar qualquer feature, SEMPRE atualize:
 
-### O que atualizar:
-
-| Documento | Quando atualizar | O que fazer |
-|-----------|-----------------|-------------|
-| **ROADMAP.md** | SEMPRE | Marcar itens como `[x]`, adicionar data de conclusao |
-| **CLAUDE.md** | SEMPRE | Adicionar novos arquivos na estrutura, novas rotas nas tabelas, novos modelos |
-| **ARCHITECTURE.md** | Se mudar modelo/relacao | Atualizar diagrama de dados, relacoes, decisoes tecnicas |
-
-### Como atualizar:
-
-1. **ROADMAP.md**: Marcar checkboxes `[x]` dos itens concluidos. Adicionar `(Concluido em DD/MM/AAAA)` no titulo da fase se todas as subtarefas estiverem prontas.
-2. **CLAUDE.md**:
-   - Se criou nova aba admin → adicionar na arvore de arquivos em "ARQUITETURA"
-   - Se criou nova rota → adicionar na arvore de arquivos e nas tabelas de rotas
-   - Se criou novo modelo → adicionar na arvore e documentar campos
-   - Se mudou padrao/convencao → documentar na secao relevante
-3. **ARCHITECTURE.md**: Atualizar apenas se mudar decisao arquitetural, adicionar novo modelo ou nova relacao entre modelos.
-
-**NAO atualizar**: MULTITENANCY-README, REVISAO-FINAL, METODOLOGIA_CLAUDE (sao documentos historicos).
-
-**Quando o usuario pedir "atualize a documentacao"**: seguir as regras acima.
-
----
-
-## MODELO DE DADOS: Organization (Perfil do Fotografo)
-
-Armazena dados do estudio/fotografo, identidade visual e configuracoes de watermark:
-
-```javascript
-{
-  name: String,                   // Nome do estudio (obrigatorio)
-  slug: String,                   // Slug unico para subdomain (obrigatorio, lowercase)
-  ownerId: ObjectId,              // Referencia ao User dono
-  plan: 'free' | 'basic' | 'pro', // Plano atual
-  isActive: Boolean,
-  // Perfil
-  logo: String,                   // URL do logotipo (/uploads/{orgId}/xxx)
-  phone: String,                  // Telefone
-  whatsapp: String,               // Numero WhatsApp (formato 5511999999999)
-  email: String,                  // Email de contato publico
-  website: String,                // URL do site pessoal
-  bio: String,                    // Biografia/descricao
-  address: String,                // Endereco
-  city: String,                   // Cidade
-  state: String,                  // Estado (UF)
-  // Identidade visual
-  primaryColor: String,           // Cor primaria hex (default #1a1a1a)
-  // Watermark
-  watermarkType: 'text' | 'logo', // Tipo de watermark
-  watermarkText: String,          // Texto customizado do watermark
-  watermarkOpacity: Number        // Opacidade 5-50 (default 15)
-}
-```
-
-### Rotas da Organization:
-
-| Metodo | Rota | Auth | Descricao |
-|--------|------|------|-----------|
-| GET | `/api/organization/profile` | JWT | Dados completos do perfil (admin) |
-| PUT | `/api/organization/profile` | JWT | Atualizar perfil |
-| GET | `/api/organization/public` | Tenant | Dados publicos (logo, watermark) para galeria |
-
-### Aba Perfil (`admin/js/tabs/perfil.js`):
-- Usa API direta (`apiGet/apiPut`) em vez de `saveAppData()`
-- Upload de logo com preview
-- Campos: nome, telefone, whatsapp, email, website, endereco, cidade, estado, bio
-- Identidade visual: cor primaria (color picker)
-- Watermark: tipo (texto/logo), texto, opacidade (slider com preview ao vivo)
-- Link do painel (slug.fsfotografias.com.br) com botao copiar
-
----
-
-## INSTRUCOES PARA IAs - CENARIO ATUAL DA INFRAESTRUTURA
-
-**LEIA ESTA SECAO COM ATENCAO antes de sugerir qualquer alteracao de deploy, infra ou configuracao.**
-
-### Contexto
-Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS com o site original single-tenant do fotografo. Sao dois apps COMPLETAMENTE SEPARADOS com repositorios, bancos, portas e processos PM2 diferentes.
-
-### Regras criticas para IAs:
-
-1. **NUNCA confunda os apps na VPS:**
-   - Site original: `/var/www/fs-fotografias`, PM2 `fsfotografias` (id 2), porta `3002`
-   - App SaaS CliqueZoom: `/var/www/cz-saas`, PM2 `cliquezoom-saas` (id 7), porta `3051`
-   - Outros: `crm-backend` (id 1), `vps-hub` (id 3) — NAO MEXER
-
-2. **NUNCA altere a porta do SaaS.** A porta e `3051` (definida no `.env` da VPS). Se mudar, o Nginx retorna 502.
-
-3. **NUNCA mexer no site original** (`/var/www/fs-fotografias`). Ele funciona independentemente e nao faz parte deste repositorio.
-
-4. **NUNCA modificar configs do Nginx** sem autorizacao explicita do usuario. Erros de Nginx derrubam ambos os sites.
-
-5. **NUNCA fazer `pm2 restart all`** - isso reinicia TODOS os processos. Use sempre `pm2 restart cliquezoom-saas`.
-
-6. **Deploy correto:**
-   ```bash
-   cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas
-   ```
-
-7. **Logs do SaaS:**
-   ```bash
-   pm2 logs cliquezoom-saas --lines 50
-   ```
-
-8. **Se o usuario reportar 502 Bad Gateway:**
-   - Verificar se PM2 esta rodando: `pm2 list`
-   - Verificar logs: `pm2 logs cliquezoom-saas --lines 50`
-   - Verificar se a porta 3051 esta no `.env`: `grep PORT /var/www/cz-saas/.env`
-   - Reiniciar: `pm2 restart cliquezoom-saas`
-
-9. **DNS e SSL:**
-   - DNS gerenciado na Hostinger (nao no Contabo)
-   - `cliquezoom.com.br` → A record para o IP da VPS
-   - SSL via Let's Encrypt/Certbot (auto-renovacao)
-   - Certificados em `/etc/letsencrypt/live/`
-
-10. **Desenvolvimento local:**
-    - Porta: `3051` (mesma da producao)
-    - MongoDB: Atlas (cloud) no dev, local na VPS
-    - Tenant em dev: `?_tenant=slug` (query parameter)
-    - Tenant em prod: subdomain (`slug.cliquezoom.com.br` - futuro)
-
-### Arquivos de configuracao na VPS (referencia, NAO editar sem pedir):
-| Arquivo | Funcao |
-|---------|--------|
-| `/var/www/cz-saas/.env` | Variaveis de ambiente do SaaS CliqueZoom |
-| `/etc/nginx/sites-enabled/cz-saas` | Config Nginx do SaaS (nome pode variar) |
-| `/etc/nginx/sites-enabled/fsfotografias` | Config Nginx do site original (NAO MEXER) |
-| PM2 ecosystem | Gerenciado via CLI, sem arquivo ecosystem.config.js |
+| Documento | Quando | O que fazer |
+|-----------|--------|-------------|
+| **CLAUDE.md** | SEMPRE | Adicionar novos arquivos na estrutura, novas rotas, novos modelos, novos padroes |
+| **ARCHITECTURE.md** | Se mudar modelo/relacao | Atualizar diagrama de dados |
 
 ---
 
