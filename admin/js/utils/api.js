@@ -16,6 +16,14 @@ async function apiRequest(method, url, body = null) {
     ...(body && { body: body instanceof FormData ? body : JSON.stringify(body) })
   });
 
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('organizationId');
+    alert('Sua sessão expirou. Faça login novamente.');
+    window.location.reload();
+    return;
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Erro ${res.status}`);
