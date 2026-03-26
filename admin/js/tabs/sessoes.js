@@ -475,7 +475,7 @@ export async function renderSessoes(container) {
       container.querySelector('#coverPreview').innerHTML = `<img src="${resolveImagePath(result.url)}" style="width:100%; height:100%; object-fit:cover;">`;
       e.target.value = '';
     } catch (error) {
-      alert('Erro no upload: ' + error.message);
+      window.showToast?.('Erro no upload: ' + error.message, 'error');
     }
   };
 
@@ -531,8 +531,8 @@ export async function renderSessoes(container) {
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const clientId = container.querySelector('#sessionClientId').value || null;
 
-    if (!name) { alert('Nome obrigatorio'); return; }
-    if (!date) { alert('Data obrigatoria'); return; }
+    if (!name) { window.showToast?.('Nome é obrigatório', 'warning'); return; }
+    if (!date) { window.showToast?.('Data é obrigatória', 'warning'); return; }
 
     try {
       const response = await fetch('/api/sessions', {
@@ -549,10 +549,10 @@ export async function renderSessoes(container) {
       const result = await response.json();
       const session = result.session || result;
       newSessionModal.style.display = 'none';
-      alert(`Sessao criada!\nCodigo de acesso: ${session.accessCode}`);
+      window.showToast?.(`Sessão criada! Código: `, 'success', 6000);
       await renderSessoes(container);
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -664,7 +664,7 @@ export async function renderSessoes(container) {
         await renderSessoes(container);
       }
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -680,7 +680,7 @@ export async function renderSessoes(container) {
         await renderSessoes(container);
       }
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -740,10 +740,10 @@ export async function renderSessoes(container) {
 
       editModal.style.display = 'none';
       editingSessionId = null;
-      alert('Configuracao salva!');
+      window.showToast?.('Configuração salva!', 'success');
       await renderSessoes(container);
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -833,7 +833,7 @@ export async function renderSessoes(container) {
         }
         commentInput.value = '';
     } catch (error) {
-        alert('Erro: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Enviar';
@@ -890,7 +890,7 @@ export async function renderSessoes(container) {
     const email = container.querySelector('#newPartEmail').value.trim();
     const packageLimit = container.querySelector('#newPartLimit').value;
 
-    if (!name) return alert('Nome obrigatório');
+    if (!name) return window.showToast?.('Nome é obrigatório', 'warning');
 
     try {
         const response = await fetch(`/api/sessions/${currentParticipantsSessionId}/participants`, {
@@ -904,7 +904,7 @@ export async function renderSessoes(container) {
             container.querySelector('#newPartName').value = '';
             container.querySelector('#newPartEmail').value = '';
         }
-    } catch (e) { alert(e.message); }
+    } catch (e) { window.showToast?.(e.message, 'error'); }
   };
 
   window.deleteParticipant = async (pid) => {
@@ -969,7 +969,7 @@ export async function renderSessoes(container) {
       await renderSessoes(container);
       viewSessionPhotos(sessionId);
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -985,7 +985,7 @@ export async function renderSessoes(container) {
         await renderSessoes(container);
       }
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 }

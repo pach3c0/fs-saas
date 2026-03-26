@@ -7,116 +7,602 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <link rel="stylesheet" href="/assets/css/shared.css">
-    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 
     <style>
-        .nav-item { color: #9ca3af; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; transition: all 0.15s; }
-        .nav-item:hover { background: #1f2937; color: #fff; }
-        .nav-item.active { background: #1f2937; color: #fff; }
+        :root {
+            --sidebar-w: 220px;
+            --header-h: 56px;
+            --bg-base: #0d1117;
+            --bg-surface: #161b22;
+            --bg-elevated: #1c2128;
+            --bg-hover: #21262d;
+            --border: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent: #2f81f7;
+            --accent-hover: #1f6feb;
+            --green: #3fb950;
+            --red: #f85149;
+            --yellow: #d29922;
+            --purple: #bc8cff;
+            --orange: #ffa657;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-base); color: var(--text-primary); font-size: 14px; }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Layout shell ── */
+        #adminPanel { display: flex; height: 100vh; overflow: hidden; }
+
+        /* ── Sidebar ── */
+        #sidebar {
+            width: var(--sidebar-w);
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        #sidebar-header {
+            padding: 1rem 1rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: var(--header-h);
+        }
+
+        .brand { display: flex; align-items: center; gap: 0.5rem; }
+        .brand-logo {
+            width: 28px; height: 28px;
+            background: linear-gradient(135deg, #2f81f7, #6e40c9);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; color: white;
+        }
+        .brand-name { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); }
+        .brand-name span { color: var(--accent); }
+
+        /* Notification bell */
+        #notificationBell {
+            position: relative; cursor: pointer;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            transition: background 0.15s, color 0.15s;
+        }
+        #notificationBell:hover { background: var(--bg-hover); color: var(--text-primary); }
+        #notifBadge {
+            display: none; position: absolute; top: 2px; right: 2px;
+            background: var(--red); color: white;
+            font-size: 9px; font-weight: 700;
+            min-width: 14px; height: 14px;
+            border-radius: 9999px;
+            align-items: center; justify-content: center;
+            padding: 0 3px; line-height: 14px;
+        }
+
+        /* Notification dropdown */
+        #notifDropdown {
+            display: none; position: absolute;
+            top: calc(var(--header-h) + 4px);
+            left: 0.5rem; right: 0.5rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 380px; overflow-y: auto;
+            z-index: 60;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        /* Sidebar nav */
+        #sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0.5rem;
+        }
+
+        .nav-group-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0.75rem 0.5rem 0.25rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4375rem 0.625rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 400;
+            transition: background 0.12s, color 0.12s;
+            user-select: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .nav-item.active { background: rgba(47,129,247,0.12); color: var(--accent); font-weight: 500; }
+        .nav-item.active .nav-icon { color: var(--accent); }
+
+        .nav-icon {
+            width: 16px; height: 16px;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+        .nav-item.active .nav-icon { opacity: 1; }
+
+        /* Sidebar footer */
+        #sidebar-footer {
+            padding: 0.75rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+
+        .sidebar-link-btn {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.4375rem 0.625rem;
+            border-radius: 6px;
+            font-size: 0.8125rem; font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.12s;
+            color: var(--text-secondary);
+        }
+        .sidebar-link-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .sidebar-link-btn.danger { color: var(--red); }
+        .sidebar-link-btn.danger:hover { background: rgba(248,81,73,0.1); }
+
+        /* ── Main area ── */
+        #main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+
+        /* Top bar */
+        #topbar {
+            height: var(--header-h);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            flex-shrink: 0;
+        }
+
+        #topbar-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        #topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
+
+        .topbar-btn {
+            display: flex; align-items: center; gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+        .topbar-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--text-muted); }
+        .topbar-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .topbar-btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+        /* ── Content + Preview layout ── */
+        #workspace {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #content-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            min-width: 0;
+        }
+
+        /* ── Preview panel ── */
+        #preview-panel {
+            width: 0;
+            border-left: 1px solid var(--border);
+            background: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #preview-panel.open { width: 420px; }
+
+        #preview-header {
+            padding: 0.625rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        #preview-controls { display: flex; gap: 0.375rem; }
+
+        .preview-device-btn {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.12s;
+        }
+        .preview-device-btn.active { background: var(--bg-elevated); border-color: var(--border); color: var(--text-primary); }
+        .preview-device-btn:hover:not(.active) { color: var(--text-primary); }
+
+        #preview-iframe-wrap {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0.75rem;
+            background: #1a1a2e;
+        }
+
+        #preview-iframe {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+            transition: width 0.3s, height 0.3s;
+            background: white;
+        }
+
+        /* ── Tab content typography ── */
+        #tabContent h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+        #tabContent p.subtitle { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1.5rem; }
+
+        /* ── Form elements (para tabs que não usam inline) ── */
+        .form-field { margin-bottom: 1rem; }
+        .form-label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.375rem; }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: border-color 0.15s;
+            outline: none;
+        }
+        .form-input:focus { border-color: var(--accent); }
+
+        /* ── Range slider ── */
         input[type="range"] {
             -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
+            width: 100%; height: 5px;
             border-radius: 3px;
-            background: #e5e7eb;
+            background: var(--border);
+            outline: none;
         }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             border-radius: 50%;
-            background: #171717;
+            background: var(--accent);
             cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            border: 2px solid var(--bg-surface);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
         }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+
+        /* ── Skeleton loading ── */
+        @keyframes skeleton-shimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
         }
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+            background-size: 800px 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 6px;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeInUp 0.25s ease both; }
+
+        /* ── Overlay spinner ── */
+        .save-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: inherit;
+            z-index: 10;
+        }
+
+        /* ── Spinner ── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        /* ── Login screen ── */
+        #loginForm {
+            position: fixed; inset: 0;
+            background: var(--bg-base);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50;
+        }
+
+        .login-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 340px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .login-logo {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #2f81f7, #6e40c9);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; color: white;
+            margin: 0 auto 1.25rem;
+        }
+
+        .login-title { text-align: center; font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+        .login-subtitle { text-align: center; font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+        .login-input {
+            width: 100%;
+            padding: 0.5625rem 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+            margin-bottom: 0.75rem;
+        }
+        .login-input:focus { border-color: var(--accent); }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.625rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .login-btn:hover { background: var(--accent-hover); }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body>
 
-<!-- Login Form -->
-<div id="loginForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
-    <div style="background:#1f2937; border-radius:0.5rem; padding:2rem; width:24rem; max-width:90vw;">
-        <h2 style="font-size:1.5rem; font-weight:bold; margin-bottom:1.5rem; text-align:center; color:#f3f4f6;">CliqueZoom Admin</h2>
-        <input type="email" id="adminEmail" style="width:100%; border:1px solid #374151; background:#111827; border-radius:0.375rem; padding:0.5rem 1rem; margin-bottom:1rem; color:white; font-size:0.875rem;" placeholder="Email (opcional para login legado)">
-        <input type="password" id="adminPassword" style="width:100%; border:1px solid #374151; background:#111827; border-radius:0.375rem; padding:0.5rem 1rem; margin-bottom:1rem; color:white; font-size:0.875rem;" placeholder="Senha">
-        <button style="width:100%; background:#2563eb; color:white; padding:0.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500; transition:background 0.15s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Entrar</button>
+<!-- ═══ LOGIN ═══ -->
+<div id="loginForm" style="display:none;">
+    <div class="login-card">
+        <div class="login-logo">C</div>
+        <h2 class="login-title">CliqueZoom Admin</h2>
+        <p class="login-subtitle">Entre para gerenciar sua conta</p>
+        <input type="email" id="adminEmail" class="login-input" placeholder="Email (opcional)">
+        <input type="password" id="adminPassword" class="login-input" placeholder="Senha" style="margin-bottom:1rem;">
+        <button class="login-btn" id="loginSubmitBtn">Entrar</button>
     </div>
 </div>
 
-<!-- Admin Panel -->
-<div id="adminPanel" class="flex h-screen" style="display: none;">
+<!-- ═══ ADMIN PANEL ═══ -->
+<div id="adminPanel" style="display:none;">
+
     <!-- Sidebar -->
-    <div style="width:16rem; background:#1f2937; border-right:1px solid #374151; display:flex; flex-direction:column; flex-shrink:0; position:relative;">
-        <div style="padding:1.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-                <h1 style="font-size:1.5rem; font-weight:bold; color:white;">Clique<span style="color:#3b82f6;">Zoom</span></h1>
-                <p style="color:#9ca3af; font-size:0.75rem;">Painel Administrativo</p>
+    <aside id="sidebar">
+        <div id="sidebar-header" style="position:relative;">
+            <div class="brand">
+                <div class="brand-logo">C</div>
+                <span class="brand-name">Clique<span>Zoom</span></span>
             </div>
-            <div id="notificationBell" style="position:relative; cursor:pointer; padding:0.375rem; margin-top:0.125rem;" onclick="toggleNotifications()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div id="notificationBell" onclick="toggleNotifications()" title="Notificações">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span id="notifBadge" style="display:none; position:absolute; top:0; right:0; background:#ef4444; color:white; font-size:0.5625rem; font-weight:bold; min-width:14px; height:14px; border-radius:9999px; align-items:center; justify-content:center; line-height:1;">0</span>
+                <span id="notifBadge"></span>
+            </div>
+
+            <!-- Notification Dropdown -->
+            <div id="notifDropdown">
+                <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
+                    <button onclick="markAllNotificationsRead()" style="font-size:0.75rem; color:var(--accent); background:none; border:none; cursor:pointer;">Marcar lidas</button>
+                </div>
+                <div id="notifList" style="padding:0.25rem 0;">
+                    <p style="color:var(--text-muted); font-size:0.8125rem; text-align:center; padding:1.5rem;">Nenhuma notificação</p>
+                </div>
             </div>
         </div>
 
-        <!-- Notification Dropdown -->
-        <div id="notifDropdown" style="display:none; position:absolute; top:4.25rem; left:0.5rem; right:0.5rem; background:#111827; border:1px solid #374151; border-radius:0.5rem; max-height:400px; overflow-y:auto; z-index:60; box-shadow:0 4px 12px rgba(0,0,0,0.5);">
-            <div style="padding:0.75rem 1rem; border-bottom:1px solid #374151; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8125rem; font-weight:600; color:#f3f4f6;">Notificacoes</span>
-                <button onclick="markAllNotificationsRead()" style="font-size:0.6875rem; color:#60a5fa; background:none; border:none; cursor:pointer;">Marcar lidas</button>
-            </div>
-            <div id="notifList" style="padding:0.25rem 0;">
-                <p style="color:#6b7280; font-size:0.75rem; text-align:center; padding:1.5rem;">Nenhuma notificacao</p>
-            </div>
-        </div>
+        <nav id="sidebar-nav">
+            <!-- Principal -->
+            <div class="nav-group-label">Principal</div>
+            <button class="nav-item" data-tab="dashboard">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </button>
+            <button class="nav-item" data-tab="sessoes">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Sessões
+            </button>
+            <button class="nav-item" data-tab="clientes">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Clientes
+            </button>
+            <button class="nav-item" data-tab="albuns-prova">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                Prova de Álbuns
+            </button>
 
-        <nav style="padding:0 1rem; flex:1; overflow-y:auto;" class="space-y-2">
-            <div data-tab="perfil" class="nav-item">👤 Perfil</div>
-            <div data-tab="sessoes" class="nav-item">👥 Sessões</div>
-            <div data-tab="albuns-prova" class="nav-item">📖 Prova de Álbuns</div>
-            <div data-tab="meu-site" class="nav-item">🌐 Meu Site</div>
-            <div data-tab="dominio" class="nav-item">🔗 Domínio</div>
-            <div data-tab="clientes" class="nav-item">🗂️ Clientes</div>
-            <div data-tab="plano" class="nav-item">💳 Plano</div>
-            <div data-tab="footer" class="nav-item">🔗 Rodapé</div>
-            <div data-tab="integracoes" class="nav-item">🔌 Integrações</div>
-            <div data-tab="marketing" class="nav-item">📈 Marketing</div>
-            <div data-tab="manutencao" class="nav-item">⚙️ Manutenção</div>
+            <!-- Site -->
+            <div class="nav-group-label">Site</div>
+            <button class="nav-item" data-tab="meu-site">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Meu Site
+            </button>
+            <button class="nav-item" data-tab="dominio">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Domínio
+            </button>
+            <button class="nav-item" data-tab="integracoes">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Integrações
+            </button>
+            <button class="nav-item" data-tab="marketing">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Marketing
+            </button>
+
+            <!-- Conta -->
+            <div class="nav-group-label">Conta</div>
+            <button class="nav-item" data-tab="perfil">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+                Perfil
+            </button>
+            <button class="nav-item" data-tab="plano">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Plano
+            </button>
+            <button class="nav-item" data-tab="footer">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                Rodapé
+            </button>
+            <button class="nav-item" data-tab="manutencao">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                Manutenção
+            </button>
         </nav>
 
-        <div style="padding:0.75rem 1rem; border-top:1px solid #374151; display:flex; flex-direction:column; gap:0.5rem;">
-            <a href="https://crm.cliquezoom.com.br" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; text-align:center; text-decoration:none; transition:background 0.15s;"
-              onmouseenter="this.style.background='#1d4ed8'" onmouseleave="this.style.background='#2563eb'">
-                📊 Abrir CRM
+        <div id="sidebar-footer">
+            <a href="https://crm.cliquezoom.com.br" target="_blank" rel="noopener noreferrer" class="sidebar-link-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Abrir CRM
             </a>
-            <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; background:#1877f2; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; text-align:center; text-decoration:none; transition:background 0.15s;"
-              onmouseenter="this.style.background='#1565c0'" onmouseleave="this.style.background='#1877f2'">
-                📣 Meta Ads
+            <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer" class="sidebar-link-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                Meta Ads
             </a>
-            <button onclick="logout()" style="width:100%; background:#7f1d1d; color:#fca5a5; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500; transition:background 0.15s;"
-              onmouseenter="this.style.background='#991b1b'" onmouseleave="this.style.background='#7f1d1d'">
+            <button onclick="logout()" class="sidebar-link-btn danger">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Sair
             </button>
         </div>
-    </div>
+    </aside>
 
-    <!-- Main Content -->
-    <div class="flex-1 overflow-auto" style="background:#111827;">
-        <div style="max-width:72rem; margin:0 auto; padding:2rem;">
-            <div id="tabContent" style="color:#f3f4f6; min-height:200px;">
-                <p style="color:#9ca3af;">Carregando...</p>
+    <!-- Main Area -->
+    <div id="main-area">
+        <!-- Top Bar -->
+        <header id="topbar">
+            <span id="topbar-title">Dashboard</span>
+            <div id="topbar-actions">
+                <button class="topbar-btn" id="previewToggleBtn" onclick="toggleSitePreview()" title="Prévia do site (P)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Prévia
+                </button>
+                <button class="topbar-btn" id="refreshPreviewBtn" onclick="refreshSitePreview()" title="Atualizar prévia" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+                <a id="openSiteBtn" href="#" target="_blank" class="topbar-btn" title="Abrir site em nova aba" style="text-decoration:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Ver Site
+                </a>
             </div>
+        </header>
+
+        <!-- Workspace -->
+        <div id="workspace">
+            <!-- Content Panel -->
+            <div id="content-panel">
+                <div id="tabContent" class="fade-in" style="color:var(--text-primary); min-height:200px;">
+                    <!-- Skeleton loading inicial -->
+                    <div style="display:flex; flex-direction:column; gap:1rem;">
+                        <div class="skeleton" style="height:28px; width:200px;"></div>
+                        <div class="skeleton" style="height:16px; width:300px;"></div>
+                        <div class="skeleton" style="height:120px; width:100%;"></div>
+                        <div class="skeleton" style="height:120px; width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <aside id="preview-panel">
+                <div id="preview-header">
+                    <span style="font-size:0.8125rem; font-weight:500; color:var(--text-secondary);">Prévia do Site</span>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div id="preview-controls">
+                            <button class="preview-device-btn active" onclick="setPreviewDevice('desktop')" title="Desktop">
+                                🖥
+                            </button>
+                            <button class="preview-device-btn" onclick="setPreviewDevice('tablet')" title="Tablet">
+                                📱
+                            </button>
+                            <button class="preview-device-btn" onclick="setPreviewDevice('mobile')" title="Mobile">
+                                📲
+                            </button>
+                        </div>
+                        <button onclick="toggleSitePreview()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px; border-radius:4px;" title="Fechar prévia">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="preview-iframe-wrap">
+                    <iframe id="preview-iframe" src="" style="width:100%; height:600px;"></iframe>
+                </div>
+            </aside>
         </div>
     </div>
 </div>

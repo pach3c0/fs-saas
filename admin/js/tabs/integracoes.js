@@ -113,9 +113,9 @@ function renderForm(container, data) {
     try {
       // Assume que a rota de perfil aceita atualização parcial de 'integrations'
       await apiPut('/api/organization/profile', payload);
-      alert('Integrações salvas com sucesso!');
+      window.showToast?.('Integrações salvas com sucesso!', 'success');
     } catch (error) {
-      alert('Erro ao salvar: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     } finally {
       btn.textContent = 'Salvar Configurações';
       btn.disabled = false;

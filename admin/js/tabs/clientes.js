@@ -294,7 +294,7 @@ async function deletarCliente(container, id) {
     clientesData = clientesData.filter(c => c._id !== id);
     renderLista(container);
   } catch (error) {
-    alert('Erro ao excluir cliente: ' + error.message);
+    window.showToast?.('Erro: ' + error.message, 'error');
   }
 }
 

@@ -50,15 +50,15 @@ function renderContent(container, data) {
         try {
           const res = await apiPost('/api/domains/verify');
           if (res.success) {
-            alert(res.message);
+            window.showToast?.(res.message, res.success ? 'success' : 'info');
             renderDominio(container);
           } else {
-            alert(res.message);
+            window.showToast?.(res.message, res.success ? 'success' : 'info');
             btnVerify.textContent = 'Verificar DNS';
             btnVerify.disabled = false;
           }
         } catch (e) {
-          alert('Erro: ' + e.message);
+          window.showToast?.('Erro: ' + e.message, 'error');
           btnVerify.textContent = 'Verificar DNS';
           btnVerify.disabled = false;
         }
@@ -75,7 +75,7 @@ function renderContent(container, data) {
           await apiPost('/api/domains', { domain });
           renderDominio(container);
         } catch (e) {
-          alert('Erro: ' + e.message);
+          window.showToast?.('Erro: ' + e.message, 'error');
         }
       };
     }

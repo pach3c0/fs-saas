@@ -112,7 +112,7 @@ export async function renderPortfolio(container) {
     }
 
     if (errors.length > 0) {
-      alert('Erros no upload:\n' + errors.join('\n'));
+      window.showToast?.('Erro: ' + errors.join('\n', 'error'));
     }
   };
 

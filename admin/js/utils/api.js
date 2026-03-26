@@ -19,7 +19,7 @@ async function apiRequest(method, url, body = null) {
   if (res.status === 401 || res.status === 403) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('organizationId');
-    alert('Sua sessão expirou. Faça login novamente.');
+    window.showToast?.('Sua sessão expirou. Faça login novamente.', 'warning', 0);
     window.location.reload();
     return;
   }

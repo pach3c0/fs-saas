@@ -240,7 +240,7 @@ export async function renderHero(container) {
       updatePreview();
       e.target.value = '';
     } catch (error) {
-      alert('Erro no upload: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 

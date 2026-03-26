@@ -148,7 +148,7 @@ function renderAlbumCard(album, container) {
   btnSend.disabled = album.status === 'approved';
   btnSend.onclick = async () => {
     if (album.pages?.length === 0) {
-      alert('Adicione pelo menos uma página antes de enviar.');
+      window.showToast?.('Adicione pelo menos uma página antes de enviar.', 'warning');
       return;
     }
     if (!confirm('Enviar álbum para aprovação do cliente?')) return;
@@ -456,7 +456,7 @@ async function openPagesEditor(album, container) {
   const btnSend = makeBtn('Enviar para Cliente', pal.primary, '#fff', 'none');
   btnSend.onclick = async () => {
     if (!fullAlbum.pages?.length) {
-      alert('Adicione pelo menos uma página antes de enviar.');
+      window.showToast?.('Adicione pelo menos uma página antes de enviar.', 'warning');
       return;
     }
     if (!confirm('Enviar álbum para aprovação do cliente?')) return;

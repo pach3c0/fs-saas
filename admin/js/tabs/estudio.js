@@ -208,7 +208,7 @@ export async function renderEstudio(container) {
     if (!file) return;
 
     if (file.size > 300 * 1024 * 1024) {
-      alert('O video deve ter no maximo 300MB.');
+      window.showToast?.('O vídeo deve ter no máximo 300MB.', 'warning');
       return;
     }
 
@@ -226,7 +226,7 @@ export async function renderEstudio(container) {
       await syncEstudioToSite(currentData);
       renderEstudio(container);
     } catch (error) {
-      alert('Erro no upload do video: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -255,7 +255,7 @@ export async function renderEstudio(container) {
         const result = await uploadImage(file, appState.authToken);
         studio.photos.push({ image: result.url, posX: 50, posY: 50, scale: 1 });
       } catch (error) {
-        alert('Erro no upload: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
       }
     }
 

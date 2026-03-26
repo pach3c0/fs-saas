@@ -221,7 +221,7 @@ export async function renderPerfil(container) {
       container.querySelector('#logoPreview').src = resolveImagePath(result.url);
       updateWatermarkPreview(container);
     } catch (error) {
-      alert('Erro no upload: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     } finally {
       e.target.value = '';
       showUploadProgress('logoUploadProgress', 0);
@@ -259,7 +259,7 @@ export async function renderPerfil(container) {
 
     const name = container.querySelector('#orgName').value.trim();
     if (!name) {
-        alert('O nome do estúdio é obrigatório.');
+        window.showToast?.('O nome do estúdio é obrigatório.', 'warning');
         btn.textContent = 'Salvar Alterações';
         btn.disabled = false;
         return;
@@ -282,9 +282,9 @@ export async function renderPerfil(container) {
       await apiPut('/api/organization/profile', payload);
       // Atualiza o cache local para o próximo render
       Object.assign(organizationData, payload);
-      alert('Perfil salvo com sucesso!');
+      window.showToast?.('Perfil salvo com sucesso!', 'success');
     } catch (error) {
-      alert('Erro ao salvar perfil: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Salvar Alterações';

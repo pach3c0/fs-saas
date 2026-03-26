@@ -114,7 +114,7 @@ export async function renderSobre(container) {
         const result = await uploadImage(file, appState.authToken);
         about.images.push({ image: result.url, posX: 50, posY: 50, scale: 1 });
       } catch (error) {
-        alert('Erro no upload: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
       }
     }
 

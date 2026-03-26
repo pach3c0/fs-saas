@@ -188,7 +188,7 @@ export async function renderManutencao(container) {
         });
         currentPhotos.push({ id: generateId(), url: result.url, scale: 1, posX: 50, posY: 50 });
       } catch (error) {
-        alert('Erro ao enviar foto: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
       }
     }
 

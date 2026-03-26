@@ -89,7 +89,7 @@ export async function renderLogo(container) {
       logo.image = result.url;
       renderLogo(container); // Refresh preview
     } catch (error) {
-      alert('Erro no upload: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 

@@ -83,7 +83,7 @@ export async function renderPlano(container) {
         const { checkoutUrl } = await apiPost('/api/billing/checkout', { plan });
         window.location.href = checkoutUrl;
       } catch (error) {
-        alert('Erro: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
       }
     };
   });

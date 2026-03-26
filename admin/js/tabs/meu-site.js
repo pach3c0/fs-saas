@@ -256,7 +256,7 @@ export async function renderMeuSite(container) {
   container.querySelector('#viewSiteLink').href = siteUrl;
   container.querySelector('#copySiteLink').onclick = () => {
     navigator.clipboard.writeText(siteUrl);
-    alert('Link copiado!');
+    window.showToast?.('Link copiado!', 'success');
   };
 
   // Navegação de Abas
@@ -305,7 +305,7 @@ export async function renderMeuSite(container) {
     configData.siteTheme = newTheme;
     selectedTheme = newTheme;
     renderTemplateCards();
-    alert('Tema salvo!');
+    window.showToast?.('Tema salvo!', 'success');
   };
 
   // --- SOBRE ---
@@ -330,7 +330,7 @@ export async function renderMeuSite(container) {
           image: container.querySelector('#sobreImage').value
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
-      alert('Salvo!');
+      window.showToast?.('Salvo!', 'success');
   };
 
   // --- HERO ---
@@ -573,7 +573,7 @@ export async function renderMeuSite(container) {
         updateHeroPreview();
         e.target.value = '';
       } catch (error) {
-        alert('Erro no upload: ' + error.message);
+        window.showToast?.('Erro: ' + error.message, 'error');
       }
     };
 
@@ -598,7 +598,7 @@ export async function renderMeuSite(container) {
         bottomBarHeight: parseInt(bottomBarInput.value)
       };
       await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
-      alert('Hero salvo!');
+      window.showToast?.('Hero salvo!', 'success');
     };
 
     function updateHeroPreview() {
@@ -821,7 +821,7 @@ export async function renderMeuSite(container) {
       secoesContainer.querySelector('#saveSectionsBtn').onclick = async () => {
         const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
         await apiPut('/api/site/admin/config', { siteSections: selected });
-        alert('Seções salvas!');
+        window.showToast?.('Seções salvas!', 'success');
         configData.siteSections = selected;
       };
     };
@@ -905,7 +905,7 @@ export async function renderMeuSite(container) {
             });
           });
           await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, servicos: updated } });
-          alert('Serviços salvos!');
+          window.showToast?.('Serviços salvos!', 'success');
           configData.siteContent.servicos = updated;
         };
       }
@@ -961,7 +961,7 @@ export async function renderMeuSite(container) {
         const resp2 = await apiGet('/api/site/admin/config');
         configData.siteContent = resp2.siteContent || configData.siteContent;
         renderDepoimentos();
-      } catch(e) { alert('Erro ao aprovar: ' + e.message); }
+      } catch(e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
 
     window.rejeitarDepoimento = async (id) => {
@@ -970,7 +970,7 @@ export async function renderMeuSite(container) {
         await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
         pendentes = pendentes.filter(p => p.id !== id);
         renderDepoimentos();
-      } catch(e) { alert('Erro ao rejeitar: ' + e.message); }
+      } catch(e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
 
     const renderList = () => {
@@ -1060,7 +1060,7 @@ export async function renderMeuSite(container) {
             depoimentos[idx].photo = result.url;
             renderList();
           } catch (err) {
-            alert('Erro no upload: ' + err.message);
+            window.showToast?.('Erro: ' + err.message, 'error');
           }
         };
       });
@@ -1085,7 +1085,7 @@ export async function renderMeuSite(container) {
             });
           });
           await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
-          alert('Depoimentos salvos!');
+          window.showToast?.('Depoimentos salvos!', 'success');
           configData.siteContent.depoimentos = updated;
         };
       }
@@ -1339,7 +1339,7 @@ export async function renderMeuSite(container) {
             const result = await uploadImage(file, appState.authToken);
             customSections[idx].imageUrl = result.url;
             renderCustomList();
-          } catch (err) { alert('Erro no upload: ' + err.message); }
+          } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
         };
       });
 
@@ -1414,7 +1414,7 @@ export async function renderMeuSite(container) {
         address: contatoContainer.querySelector('#contatoAddress').value
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
-      alert('Contato salvo!');
+      window.showToast?.('Contato salvo!', 'success');
       configData.siteContent.contato = newContato;
     };
   };

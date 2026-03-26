@@ -169,7 +169,7 @@ export async function setupPhotoEditor(container, modalId, imageUrl, _currentPos
   try {
     await loadCropperJs();
   } catch (e) {
-    alert('Erro ao carregar editor: ' + e.message);
+    window.showToast?.('Erro ao carregar editor: ' + e.message, 'error');
     return;
   }
 
@@ -330,7 +330,7 @@ export async function setupPhotoEditor(container, modalId, imageUrl, _currentPos
       await onSave({ url: result.url });
 
     } catch (err) {
-      alert('Erro ao salvar: ' + err.message);
+      window.showToast?.('Erro ao salvar: ' + err.message, 'error');
     } finally {
       loading.style.display = 'none';
       saveBtn.disabled = false;

@@ -1,13 +1,13 @@
 /**
  * Estado global e funções compartilhadas do admin
- * Módulo separado para evitar dependências circulares
  */
 
 export let appState = {
   authToken: localStorage.getItem('authToken') || '',
   organizationId: localStorage.getItem('organizationId') || '',
   appData: {},
-  currentTab: 'hero'
+  currentTab: 'dashboard',
+  orgSlug: localStorage.getItem('orgSlug') || ''
 };
 
 export async function loadAppData() {
@@ -30,12 +30,10 @@ export async function saveAppData(section, data, silent = false) {
   try {
     // Protecao: nao salvar se os dados nao foram carregados
     if (!appState.appData || Object.keys(appState.appData).length === 0) {
-      alert('Erro: dados nao carregados. Recarregue a pagina e tente novamente.');
+      window.showToast?.('Dados não carregados. Recarregue a página.', 'error');
       return false;
     }
 
-    // Enviar APENAS a secao que esta sendo salva
-    // O backend usa $set, entao so atualiza esta secao no MongoDB
     const payload = {};
     payload[section] = data;
 
@@ -50,20 +48,15 @@ export async function saveAppData(section, data, silent = false) {
 
     if (!response.ok) throw new Error('Erro ao salvar dados');
 
-    const result = await response.json();
-
-    // Sincronizar estado local: atualizar apenas a secao salva
-    // NAO substituir appState.appData inteiro para evitar invalidar
-    // referencias locais que as tabs mantem aos dados
     appState.appData[section] = data;
 
     if (!silent) {
-      alert('Salvo com sucesso!');
+      window.showToast?.('Salvo com sucesso!', 'success');
     }
-    console.log(`Secao '${section}' salva com sucesso`);
+    console.log(`Seção '${section}' salva com sucesso`);
     return true;
   } catch (error) {
-    alert('Erro: ' + error.message);
+    window.showToast?.('Erro: ' + error.message, 'error');
     return false;
   }
 }

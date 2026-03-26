@@ -64,7 +64,7 @@ export async function renderNewsletter(container) {
       a.download = 'newsletter.csv';
       a.click();
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 
@@ -80,7 +80,7 @@ export async function renderNewsletter(container) {
         await renderNewsletter(container);
       }
     } catch (error) {
-      alert('Erro: ' + error.message);
+      window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
 }

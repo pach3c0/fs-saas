@@ -122,7 +122,7 @@ export async function renderAlbuns(container) {
           album.photos.push(result.url);
           if (!album.cover) album.cover = result.url;
         } catch (error) {
-          alert('Erro no upload: ' + error.message);
+          window.showToast?.('Erro: ' + error.message, 'error');
         }
       }
 
