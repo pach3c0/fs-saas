@@ -370,11 +370,16 @@ function renderSite(data) {
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'faq', 'newsletter', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'newsletter', 'contato'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
-    if (el && !sections.includes(s)) {
-      el.style.display = 'none';
+    if (el) {
+      if (!sections.includes(s)) {
+        el.style.display = 'none';
+      } else {
+        // Mostrar seção que está ativa (remove inline style)
+        el.style.display = '';
+      }
     }
   });
 
@@ -389,8 +394,9 @@ function renderSite(data) {
     }
   });
 
-  // Re-inserir na ordem correta
+  // Re-inserir na ordem correta (com display limpo)
   sectionElements.forEach(el => {
+    el.style.display = '';  // Limpar inline style
     mainContent.appendChild(el);
   });
 
