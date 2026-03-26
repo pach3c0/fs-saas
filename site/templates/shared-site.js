@@ -496,7 +496,7 @@ function renderSite(data) {
       const btn = depoimentoForm.querySelector('button[type=submit]');
       if (btn) btn.disabled = true;
       try {
-        const res = await fetch(buildApiUrl().replace('/site/config', '/site/depoimento').replace('?', '').split('?')[0] + (window.location.search.includes('_tenant') ? window.location.search : ''), {
+        const res = await fetch(buildApiUrl().replace('/site/config', '/site/depoimento'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
