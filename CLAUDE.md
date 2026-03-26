@@ -1,18 +1,17 @@
-# FS FOTOGRAFIAS - Instrucoes para o Assistente de IA
+# CliqueZoom - Instrucoes para o Assistente de IA
 
 ## O QUE E ESTE PROJETO
 
-Plataforma de portfolio fotografico com varios frontends e 1 backend:
-- **Landing page** (`landing/index.html`) - Apresentacao do SaaS para novos fotografos (conteudo editavel via saas-admin)
-- **Pagina de cadastro** (`cadastro/index.html`) - Formulario de registro de fotografos
+Plataforma SaaS de gestao fotografica (CliqueZoom) com varios frontends e 1 backend:
+- **Home / cadastro** (`home/index.html`) - Landing page de cadastro da plataforma (conteudo editavel via saas-admin)
 - **Site publico** (`public/index.html` + `public/js/main.js`) - Portfolio, galeria, FAQ, contato
 - **Painel admin** (`admin/`) - Gerencia todo o conteudo do site
 - **Galeria do cliente** (`cliente/index.html` + `cliente/js/gallery.js`) - Fotos privadas com codigo de acesso
 - **Painel super-admin** (`saas-admin/`) - Gerencia toda a plataforma SaaS (orgs, landing page, metricas)
 - **API backend** (`src/server.js` + `src/routes/`) - Express.js + MongoDB
 
-Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `app.fsfotografias.com.br`
-Path na VPS: `/var/www/fs-saas`
+Deploy: **VPS Contabo** (Ubuntu + Nginx + PM2 + MongoDB local). Dominio: `cliquezoom.com.br`
+Path na VPS: `/var/www/cz-saas`
 
 ---
 
@@ -34,12 +33,10 @@ Path na VPS: `/var/www/fs-saas`
 
 ```
 Site/
-  landing/
-    index.html              # Landing page do SaaS (conteudo dinamico via /api/landing/config)
-  cadastro/
-    index.html              # Pagina de cadastro de fotografos
+  home/
+    index.html              # Home / cadastro da plataforma CliqueZoom (rota /)
     js/
-      cadastro.js           # JS do formulario de cadastro
+      home.js               # JS do formulario de cadastro
   saas-admin/
     index.html              # Painel super-admin (login + tabs: Organizacoes, Lixeira, Landing Page)
     js/
@@ -817,7 +814,7 @@ PORT=3051                                         # Porta do Express (Nginx faz 
 JWT_SECRET=...                                    # Secret para assinar tokens
 ADMIN_PASSWORD_HASH=...                           # Hash bcrypt da senha
 OWNER_EMAIL=...                                   # Email do dono da plataforma
-BASE_DOMAIN=app.fsfotografias.com.br              # Dominio base do SaaS
+BASE_DOMAIN=cliquezoom.com.br                     # Dominio base do SaaS
 OWNER_SLUG=fs                                     # Slug da organizacao principal
 SMTP_HOST=smtp.titan.email                        # Servidor SMTP
 SMTP_PORT=465                                     # Porta SMTP
@@ -831,7 +828,7 @@ PORT=3051
 NODE_ENV=development
 MONGODB_URI=mongodb+srv://...                     # MongoDB Atlas (dev)
 JWT_SECRET=...
-BASE_DOMAIN=fsfotografias.com.br
+BASE_DOMAIN=cliquezoom.com.br
 OWNER_SLUG=fs
 OWNER_EMAIL=...
 ```
@@ -865,15 +862,15 @@ Path: `/var/www/fs-saas`
 git add . && git commit -m "descricao" && git push
 
 # Na VPS (via SSH):
-cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas
+cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas
 ```
 
 ### Estrutura do servidor:
 ```
 Nginx (porta 80/443)
 
-  Config: /etc/nginx/sites-enabled/fs-saas
-  Server name: app.fsfotografias.com.br
+  Config: /etc/nginx/sites-enabled/cz-saas (ou equivalente)
+  Server name: cliquezoom.com.br / app.cliquezoom.com.br
   ├── /uploads/     → /var/www/fs-saas/uploads/ (static)
   ├── /assets/      → /var/www/fs-saas/assets/ (static)
   ├── /admin/js/    → /var/www/fs-saas/admin/js/ (static, ESM)
@@ -881,23 +878,23 @@ Nginx (porta 80/443)
   └── /*            → localhost:3051 (proxy para Node.js)
 
 PM2 processos:
-  - fsfotografias      (id 2) → porta 3002 (site original, NAO MEXER)
-  - fsfotografias-saas (id 4) → porta 3051 (app SaaS)
+  - fsfotografias   (id 2) → porta 3002 (site original, NAO MEXER)
+  - cliquezoom-saas (id 7) → porta 3051 (app SaaS CliqueZoom)
+  - crm-backend     (id 1) → outro app (NAO MEXER)
+  - vps-hub         (id 3) → outro app (NAO MEXER)
 
 MongoDB: localhost:27017 (sempre conectado)
 SSL: Let's Encrypt via Certbot (auto-renovacao)
 ```
 
-### URLs atuais (temporario ate dominio proprio):
+### URLs:
 | URL | Destino |
 |-----|---------|
-| `fsfotografias.com.br` | Site original do fotografo |
-| `app.fsfotografias.com.br` | App SaaS (redireciona para o site pois o Nginx do site original tambem responde) |
-| `app.fsfotografias.com.br/cadastro` | Landing page do SaaS (cadastro de fotografos) |
-| `app.fsfotografias.com.br/admin/` | Painel admin do fotografo |
-| `app.fsfotografias.com.br/saas-admin/` | Painel super-admin do SaaS |
-| `app.fsfotografias.com.br/cliente/` | Galeria do cliente |
-app.fsfotografias.com.br/landing
+| `cliquezoom.com.br` | Home / cadastro da plataforma CliqueZoom |
+| `cliquezoom.com.br/admin/` | Painel admin do fotografo |
+| `cliquezoom.com.br/saas-admin/` | Painel super-admin do SaaS |
+| `cliquezoom.com.br/cliente/` | Galeria do cliente |
+| `fsfotografias.com.br` | Site original do fotografo (app separado, NAO MEXER) |
 ---
 
 ## CHECKLIST ANTES DE DEPLOY
@@ -1050,7 +1047,7 @@ Documento unico no MongoDB que armazena todo o conteudo do site:
 ## CONTEXTO SAAS E EVOLUCAO DO PROJETO
 
 ### Objetivo do Projeto
-Este app e um **concorrente direto do PicSize** (picsize.com.br). Referencia competitiva com 30k+ fotografos. Nosso objetivo e oferecer as mesmas funcionalidades com preco menor e arquitetura mais leve.
+**CliqueZoom** e um **concorrente direto do PicSize** (picsize.com.br). Referencia competitiva com 30k+ fotografos. Nosso objetivo e oferecer as mesmas funcionalidades com preco menor e arquitetura mais leve.
 
 ### Produtos Planejados (equivalentes ao PicSize)
 1. **Gallery PRO** (selecao + entrega + prova de albuns) - parcialmente implementado
@@ -1060,7 +1057,7 @@ Este app e um **concorrente direto do PicSize** (picsize.com.br). Referencia com
 
 ### Multi-Tenancy (implementado em 14/02/2026)
 - Cada fotografo e uma `Organization` com `slug` unico
-- Producao: `slug.dominio.com.br` (subdomain)
+- Producao: `slug.cliquezoom.com.br` (subdomain - futuro)
 - Desenvolvimento: `?_tenant=slug` (query parameter)
 - Modelos: `User`, `Organization` (novos), todos os outros com `organizationId`
 - Uploads isolados: `/uploads/{orgId}/`
@@ -1170,9 +1167,10 @@ Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS c
 
 ### Regras criticas para IAs:
 
-1. **NUNCA confunda os dois apps:**
-   - Site original: `/var/www/fs-fotografias`, PM2 `fsfotografias`, porta `3002`, Nginx `fsfotografias`
-   - App SaaS: `/var/www/fs-saas`, PM2 `fsfotografias-saas`, porta `3051`, Nginx `fs-saas`
+1. **NUNCA confunda os apps na VPS:**
+   - Site original: `/var/www/fs-fotografias`, PM2 `fsfotografias` (id 2), porta `3002`
+   - App SaaS CliqueZoom: `/var/www/cz-saas`, PM2 `cliquezoom-saas` (id 7), porta `3051`
+   - Outros: `crm-backend` (id 1), `vps-hub` (id 3) — NAO MEXER
 
 2. **NUNCA altere a porta do SaaS.** A porta e `3051` (definida no `.env` da VPS). Se mudar, o Nginx retorna 502.
 
@@ -1180,27 +1178,27 @@ Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS c
 
 4. **NUNCA modificar configs do Nginx** sem autorizacao explicita do usuario. Erros de Nginx derrubam ambos os sites.
 
-5. **NUNCA fazer `pm2 restart all`** - isso reinicia TODOS os processos. Use sempre `pm2 restart fsfotografias-saas`.
+5. **NUNCA fazer `pm2 restart all`** - isso reinicia TODOS os processos. Use sempre `pm2 restart cliquezoom-saas`.
 
 6. **Deploy correto:**
    ```bash
-   cd /var/www/fs-saas && git pull && npm install && pm2 restart fsfotografias-saas
+   cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas
    ```
 
 7. **Logs do SaaS:**
    ```bash
-   pm2 logs fsfotografias-saas --lines 50
+   pm2 logs cliquezoom-saas --lines 50
    ```
 
 8. **Se o usuario reportar 502 Bad Gateway:**
    - Verificar se PM2 esta rodando: `pm2 list`
-   - Verificar logs: `pm2 logs fsfotografias-saas --lines 50`
-   - Verificar se a porta 3051 esta no `.env`: `grep PORT /var/www/fs-saas/.env`
-   - Reiniciar: `pm2 restart fsfotografias-saas`
+   - Verificar logs: `pm2 logs cliquezoom-saas --lines 50`
+   - Verificar se a porta 3051 esta no `.env`: `grep PORT /var/www/cz-saas/.env`
+   - Reiniciar: `pm2 restart cliquezoom-saas`
 
 9. **DNS e SSL:**
    - DNS gerenciado na Hostinger (nao no Contabo)
-   - `app.fsfotografias.com.br` → A record para `5.189.174.18`
+   - `cliquezoom.com.br` → A record para o IP da VPS
    - SSL via Let's Encrypt/Certbot (auto-renovacao)
    - Certificados em `/etc/letsencrypt/live/`
 
@@ -1208,13 +1206,13 @@ Este projeto e um SaaS multi-tenant para fotografos. Ele coexiste na mesma VPS c
     - Porta: `3051` (mesma da producao)
     - MongoDB: Atlas (cloud) no dev, local na VPS
     - Tenant em dev: `?_tenant=slug` (query parameter)
-    - Tenant em prod: subdomain (`slug.app.fsfotografias.com.br` - futuro)
+    - Tenant em prod: subdomain (`slug.cliquezoom.com.br` - futuro)
 
 ### Arquivos de configuracao na VPS (referencia, NAO editar sem pedir):
 | Arquivo | Funcao |
 |---------|--------|
-| `/var/www/fs-saas/.env` | Variaveis de ambiente do SaaS |
-| `/etc/nginx/sites-enabled/fs-saas` | Config Nginx do SaaS |
+| `/var/www/cz-saas/.env` | Variaveis de ambiente do SaaS CliqueZoom |
+| `/etc/nginx/sites-enabled/cz-saas` | Config Nginx do SaaS (nome pode variar) |
 | `/etc/nginx/sites-enabled/fsfotografias` | Config Nginx do site original (NAO MEXER) |
 | PM2 ecosystem | Gerenciado via CLI, sem arquivo ecosystem.config.js |
 
