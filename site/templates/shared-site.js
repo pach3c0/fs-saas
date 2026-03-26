@@ -70,7 +70,7 @@ function renderSite(data) {
   const navLinks = document.getElementById('navLinks');
   if (navLinks) {
     navLinks.innerHTML = sections.map(s => {
-      const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', servicos: 'Serviços', depoimentos: 'Depoimentos', contato: 'Contato'};
+      const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', contato: 'Contato'};
       return `<a href="#section-${s}">${labels[s] || s}</a>`;
     }).join('');
   }

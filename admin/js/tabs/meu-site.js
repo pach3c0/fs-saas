@@ -729,6 +729,8 @@ export async function renderMeuSite(container) {
       { id: 'hero', label: 'Hero / Capa' },
       { id: 'sobre', label: 'Sobre Mim' },
       { id: 'portfolio', label: 'Portfólio' },
+      { id: 'albuns', label: 'Álbuns' },
+      { id: 'estudio', label: 'Estúdio' },
       { id: 'servicos', label: 'Serviços' },
       { id: 'depoimentos', label: 'Depoimentos' },
       { id: 'contato', label: 'Contato' }
