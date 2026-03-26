@@ -515,6 +515,20 @@ body {
   font-size: 0.875rem;
 }
 
+/* GLOBAL SCROLL FIX */
+html { scroll-padding-top: 5rem; }
+section { scroll-margin-top: 5rem; }
+
+/* MOBILE TEXT & IMAGE CORRECTIONS */
+@media (max-width: 640px) {
+  body { font-size: 0.95rem; }
+  .section-title { font-size: 1.8rem; }
+  .contato-container, .sobre-container, .portfolio-container { padding: 0 1.25rem; }
+  .nav-container { padding: 1rem 1.25rem; gap: 1rem; }
+  .nav-menu { gap: 0.75rem; }
+  .portfolio-grid { grid-template-columns: 1fr !important; }
+}
+
 /* LIGHTBOX */
 .lightbox {
   position: fixed;

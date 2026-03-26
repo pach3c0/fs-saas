@@ -397,6 +397,18 @@ h1, h2, h3, h4 {
   font-size: 0.8rem;
 }
 
+/* GLOBAL SCROLL FIX */
+html { scroll-padding-top: 5rem; }
+section { scroll-margin-top: 5rem; }
+
+@media (max-width: 640px) {
+  body { font-size: 0.95rem; }
+  .section-title { font-size: 1.75rem; }
+  .nav-container { padding: 1rem; }
+  .portfolio-masonry { column-count: 1; }
+  .contact-container, .sobre-container { padding: 0 1rem; }
+}
+
 /* LIGHTBOX */
 .lightbox {
   position: fixed;

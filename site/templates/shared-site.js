@@ -130,8 +130,9 @@ function renderSite(data) {
 
   const sobreImage = document.getElementById('sobreImage');
   if (sobreImage) {
-    if (content.sobre?.image) {
-      sobreImage.src = resolvePath(content.sobre.image);
+    const sobreImageUrl = content.sobre?.image || (content.sobre?.images?.[0]?.image) || '';
+    if (sobreImageUrl) {
+      sobreImage.src = resolvePath(sobreImageUrl);
     } else {
       sobreImage.style.background = '#1f2937';
       sobreImage.style.minHeight = '200px';
@@ -144,9 +145,10 @@ function renderSite(data) {
   if (portfolioGrid) {
     const photos = content.portfolio?.photos;
     if (photos && photos.length > 0) {
-      portfolioGrid.innerHTML = photos.map((p, i) =>
-        `<img src="${resolvePath(p.url)}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`
-      ).join('');
+      portfolioGrid.innerHTML = photos.map((p, i) => {
+        const photoUrl = resolvePath(p.url || p.image || p);
+        return `<img src="${photoUrl}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`;
+      }).join('');
     } else {
       // Placeholder neutro: grade de quadrados cinza com ícone de câmera
       portfolioGrid.innerHTML = Array.from({ length: 6 }, (_, i) => `

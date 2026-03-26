@@ -452,6 +452,27 @@ body.theme-escuro .site-footer {
 .whatsapp-float:hover { transform: scale(1.1); }
 
 /* ============================================
+   GLOBAL SCROLL ANCHOR FIX
+   ============================================ */
+html { scroll-padding-top: 5rem; }
+section { scroll-margin-top: 5rem; }
+
+/* ============================================
+   RESPONSIVE ENHANCEMENTS
+   ============================================ */
+@media (max-width: 640px) {
+  body { font-size: 0.95rem; }
+  .section-title { font-size: 1.8rem; }
+  .hero-title { font-size: 2.2rem; }
+  .hero-subtitle { font-size: 1rem; }
+  .portfolio-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+  .servicos-grid { grid-template-columns: 1fr; }
+  .contato-grid { grid-template-columns: 1fr; }
+  .sobre-grid { grid-template-columns: 1fr; }
+  .nav-inner { padding: 0.75rem 1rem; }
+}
+
+/* ============================================
    LIGHTBOX
    ============================================ */
 .lightbox {
