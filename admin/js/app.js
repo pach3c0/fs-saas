@@ -200,6 +200,9 @@ window.addEventListener('message', (e) => {
       const d = builderPendingData;
       builderPendingData = null;
       setTimeout(() => window.builderPostPreview(d), 50);
+    } else {
+      // Solicitar dados frescos do formulário
+      setTimeout(() => window._meuSitePostPreview?.(), 100);
     }
   }
 });
@@ -212,23 +215,10 @@ window.enterBuilderMode = function() {
 
   if (!panel) return;
 
-  // Add tooltips to nav items for collapsed sidebar
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    const text = btn.textContent.trim();
-    btn.setAttribute('data-tooltip', text);
-  });
-
   panel.classList.add('builder-mode');
   workspace.style.display = 'none';
   builderProps.style.display = 'flex';
   builderPreview.style.display = 'flex';
-
-  // Disable old preview toggle button
-  const previewBtn = document.getElementById('previewToggleBtn');
-  if (previewBtn) {
-    previewBtn.style.opacity = '0.4';
-    previewBtn.style.pointerEvents = 'none';
-  }
 
   // Load the site in the iframe
   builderLoadPreview();
@@ -250,13 +240,6 @@ window.exitBuilderMode = function(skipNav = false) {
   // Limpar iframe para liberar memória
   const iframe = document.getElementById('builder-iframe');
   if (iframe) iframe.src = '';
-
-  // Restore topbar preview button
-  const previewBtn = document.getElementById('previewToggleBtn');
-  if (previewBtn) {
-    previewBtn.style.opacity = '';
-    previewBtn.style.pointerEvents = '';
-  }
 
   // Navegar para dashboard se não for via switchTab
   if (!skipNav) {
@@ -282,8 +265,13 @@ function builderLoadPreview() {
     iframe.onload = () => {
       if (loading) loading.classList.add('hidden');
       builderApplyDevice(builderDevice);
-      // Se o site não enviou cz_preview_ready em 2s, marcar como pronto mesmo assim
-      setTimeout(() => { builderIframeReady = true; }, 2000);
+      // Se o site não enviou cz_preview_ready em 2s, marcar como pronto e enviar dados
+      setTimeout(() => {
+        if (!builderIframeReady) {
+          builderIframeReady = true;
+          window._meuSitePostPreview?.();
+        }
+      }, 2000);
     };
   });
 
@@ -320,19 +308,29 @@ function builderApplyDevice(device) {
   const wh = wrap.clientHeight || window.innerHeight - 96;
 
   const sizes = {
-    desktop: { w: Math.max(ww, 900), h: wh },
+    desktop: { w: 1280, h: 900 },
     tablet:  { w: 768,  h: 1024 },
     mobile:  { w: 390,  h: 844  },
   };
 
   const s = sizes[device];
 
+  // Para todos os dispositivos: escalar para caber no espaço disponível,
+  // respeitando o aspect ratio. Desktop usa largura total se couber.
   if (device === 'desktop') {
+    // Desktop: preencher largura disponível, altura scrollável
     iframe.style.width = '100%';
-    iframe.style.height = wh + 'px';
+    iframe.style.height = Math.max(wh, 900) + 'px';
     iframe.style.transform = '';
+    iframe.style.transformOrigin = 'top center';
     iframe.style.marginTop = '0';
+    // Permitir scroll vertical no wrap para desktop
+    wrap.style.overflowY = 'auto';
+    wrap.style.alignItems = 'flex-start';
   } else {
+    // Tablet/Mobile: escalar para caber sem cortar
+    wrap.style.overflowY = 'hidden';
+    wrap.style.alignItems = 'center';
     const scaleX = ww / s.w;
     const scaleY = wh / s.h;
     const scale = Math.min(1, scaleX, scaleY);

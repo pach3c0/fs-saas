@@ -513,64 +513,7 @@
 
         /* ── Site Builder Mode ── */
         #adminPanel.builder-mode #sidebar {
-            width: 48px;
-            overflow: visible;
-        }
-        #adminPanel.builder-mode #sidebar .brand-name,
-        #adminPanel.builder-mode #sidebar .nav-group-label,
-        #adminPanel.builder-mode #sidebar #sidebar-footer .sidebar-link-btn span,
-        #adminPanel.builder-mode #sidebar #notificationBell,
-        #adminPanel.builder-mode #sidebar #notifDropdown {
             display: none;
-        }
-        #adminPanel.builder-mode #sidebar-header {
-            padding: 0.75rem 0;
-            justify-content: center;
-        }
-        #adminPanel.builder-mode #sidebar .brand-logo {
-            margin: 0 auto;
-        }
-        #adminPanel.builder-mode #sidebar-nav {
-            padding: 0.5rem 0;
-        }
-        #adminPanel.builder-mode #sidebar .nav-item {
-            padding: 0.625rem;
-            justify-content: center;
-            border-radius: 0;
-            position: relative;
-        }
-        #adminPanel.builder-mode #sidebar .nav-item .nav-icon {
-            width: 18px;
-            height: 18px;
-        }
-        #adminPanel.builder-mode #sidebar .nav-item::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            left: 56px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #1c2128;
-            border: 1px solid #30363d;
-            color: #e6edf3;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.625rem;
-            border-radius: 6px;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.15s;
-            z-index: 100;
-        }
-        #adminPanel.builder-mode #sidebar .nav-item:hover::after {
-            opacity: 1;
-        }
-        #adminPanel.builder-mode #sidebar-footer {
-            padding: 0.5rem 0;
-            align-items: center;
-        }
-        #adminPanel.builder-mode #sidebar-footer .sidebar-link-btn {
-            padding: 0.625rem;
-            justify-content: center;
         }
         #adminPanel.builder-mode #main-area {
             flex-direction: row;
@@ -686,6 +629,7 @@
             justify-content: center;
             padding: 0;
             position: relative;
+            background: #13141a;
         }
 
         #builder-iframe {

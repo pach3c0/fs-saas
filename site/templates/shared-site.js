@@ -410,7 +410,9 @@ function renderSite(data) {
   });
 
   // Reordenar seções baseado na ordem do array sections
-  const mainContent = document.querySelector('main') || document.body;
+  // Usar <main> se existir; caso contrário usar body mas inserir logo após o nav
+  const mainEl = document.querySelector('main');
+  const mainContent = mainEl || document.body;
   const sectionElements = sections.map(s => document.getElementById('section-' + s)).filter(el => el);
 
   // Remover todas as seções do DOM
@@ -420,11 +422,29 @@ function renderSite(data) {
     }
   });
 
-  // Re-inserir na ordem correta (com display limpo)
-  sectionElements.forEach(el => {
-    el.style.display = '';  // Limpar inline style
-    mainContent.appendChild(el);
-  });
+  // Re-inserir na ordem correta
+  if (mainEl) {
+    // Tem <main>: append normal
+    sectionElements.forEach(el => {
+      el.style.display = '';
+      mainEl.appendChild(el);
+    });
+  } else {
+    // Sem <main>: inserir após o nav (ou antes do footer, o que vier primeiro)
+    const nav = document.getElementById('siteNav');
+    const footer = document.getElementById('siteFooter');
+    const anchor = (footer && footer.parentNode === document.body) ? footer : null;
+    sectionElements.forEach(el => {
+      el.style.display = '';
+      if (anchor) {
+        document.body.insertBefore(el, anchor);
+      } else if (nav && nav.nextSibling) {
+        document.body.insertBefore(el, nav.nextSibling);
+      } else {
+        document.body.appendChild(el);
+      }
+    });
+  }
 
   // WhatsApp flutuante com mensagens do estúdio
   const whatsappBtn = document.getElementById('whatsappBtn');

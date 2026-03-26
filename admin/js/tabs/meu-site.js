@@ -287,6 +287,37 @@ async function renderSiteContent(container, builderTabsEl) {
     window.showToast?.('Link copiado!', 'success');
   };
 
+  // ── Detecção de alterações não salvas ────────────────────────────────
+  let _dirtySection = null;
+  let _dirtySectionLabel = '';
+
+  function markDirty(sectionId, label) {
+    _dirtySection = sectionId;
+    _dirtySectionLabel = label;
+  }
+  function clearDirty() {
+    _dirtySection = null;
+    _dirtySectionLabel = '';
+  }
+
+  async function checkDirtyBeforeSwitch() {
+    if (!_dirtySection) return true; // pode prosseguir
+    const label = _dirtySectionLabel;
+    const save = confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
+    if (save) {
+      // tenta clicar no botão de salvar da seção ativa
+      const activeContent = container.querySelector('.sub-tab-content[style*="block"]');
+      const saveBtn = activeContent?.querySelector('button[id*="save"], button[id*="Save"]');
+      if (saveBtn) {
+        saveBtn.click();
+        // aguarda um tick para o save executar
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+    clearDirty();
+    return true;
+  }
+
   // ── Preview em tempo real ─────────────────────────────────────────────
   // Variável compartilhada entre postPreviewData e o closure do heroStudio
   let _heroImageUrlForPreview = '';
@@ -390,39 +421,45 @@ async function renderSiteContent(container, builderTabsEl) {
   // ── Navegação de Abas
   const tabs = container.querySelectorAll('.sub-tab-btn');
   const contents = container.querySelectorAll('.sub-tab-content');
-  tabs.forEach(btn => {
-    btn.onclick = () => {
-        tabs.forEach(t => { t.style.borderBottom = 'none'; t.style.color = '#9ca3af'; });
-        btn.style.borderBottom = '2px solid #2563eb';
-        btn.style.color = '#f3f4f6';
-        contents.forEach(c => c.style.display = 'none');
-        const targetContainer = container.querySelector(`#${btn.dataset.target}`);
-        targetContainer.style.display = 'block';
 
-        // Renderizar conteúdo específico de cada tab
-        if (btn.dataset.target === 'config-secoes') {
-          renderSecoes();
-        } else if (btn.dataset.target === 'config-hero') {
-          renderHeroStudio();
-        } else if (btn.dataset.target === 'config-portfolio') {
-          renderPortfolio(targetContainer);
-        } else if (btn.dataset.target === 'config-servicos') {
-          renderServicos();
-        } else if (btn.dataset.target === 'config-depoimentos') {
-          renderDepoimentos();
-        } else if (btn.dataset.target === 'config-albuns') {
-          renderAlbuns(targetContainer);
-        } else if (btn.dataset.target === 'config-estudio') {
-          renderEstudio(targetContainer);
-        } else if (btn.dataset.target === 'config-contato') {
-          renderContato();
-        } else if (btn.dataset.target === 'config-faq') {
-          renderFaq(targetContainer);
-        } else if (btn.dataset.target === 'config-newsletter') {
-          renderNewsletter(targetContainer);
-        } else if (btn.dataset.target === 'config-personalizar') {
-          renderPersonalizar();
-        }
+  function doSwitchSubTab(btn, targetContainer) {
+    tabs.forEach(t => { t.style.borderBottom = 'none'; t.style.color = '#9ca3af'; });
+    btn.style.borderBottom = '2px solid #2563eb';
+    btn.style.color = '#f3f4f6';
+    contents.forEach(c => c.style.display = 'none');
+    targetContainer.style.display = 'block';
+
+    // Renderizar conteúdo específico de cada tab
+    if (btn.dataset.target === 'config-secoes') {
+      renderSecoes();
+    } else if (btn.dataset.target === 'config-hero') {
+      renderHeroStudio();
+    } else if (btn.dataset.target === 'config-portfolio') {
+      renderPortfolio(targetContainer);
+    } else if (btn.dataset.target === 'config-servicos') {
+      renderServicos();
+    } else if (btn.dataset.target === 'config-depoimentos') {
+      renderDepoimentos();
+    } else if (btn.dataset.target === 'config-albuns') {
+      renderAlbuns(targetContainer);
+    } else if (btn.dataset.target === 'config-estudio') {
+      renderEstudio(targetContainer);
+    } else if (btn.dataset.target === 'config-contato') {
+      renderContato();
+    } else if (btn.dataset.target === 'config-faq') {
+      renderFaq(targetContainer);
+    } else if (btn.dataset.target === 'config-newsletter') {
+      renderNewsletter(targetContainer);
+    } else if (btn.dataset.target === 'config-personalizar') {
+      renderPersonalizar();
+    }
+  }
+
+  tabs.forEach(btn => {
+    btn.onclick = async () => {
+      const targetContainer = container.querySelector(`#${btn.dataset.target}`);
+      await checkDirtyBeforeSwitch();
+      doSwitchSubTab(btn, targetContainer);
     };
   });
 
@@ -471,9 +508,9 @@ async function renderSiteContent(container, builderTabsEl) {
   container.querySelector('#sobreImage').value = sobre.image || '';
   if(sobre.image) container.querySelector('#sobrePreview').src = resolveImagePath(sobre.image);
 
-  // Preview em tempo real
-  container.querySelector('#sobreTitle').oninput = postPreviewData;
-  container.querySelector('#sobreText').oninput  = postPreviewData;
+  // Preview em tempo real + dirty tracking
+  container.querySelector('#sobreTitle').oninput = () => { markDirty('config-sobre', 'Sobre'); postPreviewData(); };
+  container.querySelector('#sobreText').oninput  = () => { markDirty('config-sobre', 'Sobre'); postPreviewData(); };
 
   container.querySelector('#sobreUpload').onchange = async (e) => {
       const file = e.target.files[0];
@@ -491,6 +528,7 @@ async function renderSiteContent(container, builderTabsEl) {
           image: container.querySelector('#sobreImage').value
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
+      clearDirty();
       window.showToast?.('Salvo!', 'success');
       window.builderScheduleRefresh?.();
   };
@@ -762,11 +800,13 @@ async function renderSiteContent(container, builderTabsEl) {
         bottomBarHeight: parseInt(bottomBarInput.value)
       };
       await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
+      clearDirty();
       window.showToast?.('Hero salvo!', 'success');
       window.builderScheduleRefresh?.();
     };
 
     function updateHeroPreview() {
+      markDirty('config-hero', 'Hero');
       const preview = heroContainer.querySelector('#heroStudioPreview');
       const image = heroImageUrl;
       const scale = parseFloat(scaleInput.value);
@@ -1445,11 +1485,11 @@ async function renderSiteContent(container, builderTabsEl) {
         personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
       }
 
-      if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (accentInput) accentInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (bgInput) bgInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (textInput) textInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
       const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
-      if (fontFamilyInput) fontFamilyInput.onchange = () => window._meuSitePostPreview?.();
+      if (fontFamilyInput) fontFamilyInput.onchange = () => { markDirty('config-personalizar', 'Personalizar'); window._meuSitePostPreview?.(); };
 
       // Salvar estilo
       const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
@@ -1463,6 +1503,7 @@ async function renderSiteContent(container, builderTabsEl) {
           };
           await apiPut('/api/site/admin/config', { siteStyle: newStyle });
           configData.siteStyle = newStyle;
+          clearDirty();
           saveStyleBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
           window.builderScheduleRefresh?.();
@@ -1583,10 +1624,10 @@ async function renderSiteContent(container, builderTabsEl) {
       </div>
     `;
 
-    // Preview em tempo real
-    contatoContainer.querySelector('#contatoTitle').oninput   = () => window._meuSitePostPreview?.();
-    contatoContainer.querySelector('#contatoText').oninput    = () => window._meuSitePostPreview?.();
-    contatoContainer.querySelector('#contatoAddress').oninput = () => window._meuSitePostPreview?.();
+    // Preview em tempo real + dirty tracking
+    contatoContainer.querySelector('#contatoTitle').oninput   = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoText').oninput    = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoAddress').oninput = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
 
     contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
       const newContato = {
@@ -1595,6 +1636,7 @@ async function renderSiteContent(container, builderTabsEl) {
         address: contatoContainer.querySelector('#contatoAddress').value
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
+      clearDirty();
       window.showToast?.('Contato salvo!', 'success');
       configData.siteContent.contato = newContato;
       window.builderScheduleRefresh?.();
