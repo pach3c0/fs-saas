@@ -95,7 +95,16 @@ const OrganizationSchema = new mongoose.Schema({
       name: String,
       text: String,
       rating: { type: Number, default: 5 },
-      photo: { type: String, default: '' }
+      photo: { type: String, default: '' },
+      socialLink: { type: String, default: '' }
+    }],
+    pendingDepoimentos: [{
+      id: String,
+      name: String,
+      text: String,
+      email: { type: String, default: '' },
+      rating: { type: Number, default: 5 },
+      submittedAt: { type: Date, default: Date.now }
     }],
     portfolio: {
       title: { type: String, default: 'Portfólio' },
@@ -131,7 +140,20 @@ const OrganizationSchema = new mongoose.Schema({
         posX: Number,
         posY: Number,
         scale: Number
+      }],
+      whatsappMessages: [{
+        text: String,
+        delay: { type: Number, default: 5 }
       }]
+    },
+    faq: [{
+      id: String,
+      question: String,
+      answer: String
+    }],
+    newsletter: {
+      title: { type: String, default: 'Fique por dentro' },
+      description: { type: String, default: '' }
     }
   },
   // Integrações de marketing e analytics

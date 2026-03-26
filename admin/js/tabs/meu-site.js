@@ -3,7 +3,7 @@
  */
 
 import { appState } from '../state.js';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPost, apiDelete } from '../utils/api.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { renderPortfolio } from './portfolio.js';
@@ -724,8 +724,7 @@ export async function renderMeuSite(container) {
   // --- SEÇÕES (Ativar/Desativar) ---
   const renderSecoes = () => {
     const secoesContainer = container.querySelector('#config-secoes');
-    const siteSections = configData.siteSections || ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
-    const allSections = [
+    const allSectionDefs = [
       { id: 'hero', label: 'Hero / Capa' },
       { id: 'sobre', label: 'Sobre Mim' },
       { id: 'portfolio', label: 'Portfólio' },
@@ -733,37 +732,95 @@ export async function renderMeuSite(container) {
       { id: 'estudio', label: 'Estúdio' },
       { id: 'servicos', label: 'Serviços' },
       { id: 'depoimentos', label: 'Depoimentos' },
+      { id: 'faq', label: 'FAQ' },
+      { id: 'newsletter', label: 'Newsletter' },
       { id: 'contato', label: 'Contato' }
     ];
 
-    secoesContainer.innerHTML = `
-      <div style="max-width:600px;">
-        <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.5rem;">Seções do Site</h3>
-        <p style="color:#9ca3af; margin-bottom:1.5rem; font-size:0.875rem;">Marque as seções que deseja exibir no site público.</p>
+    // Ordem atual: ativas primeiro (na ordem salva), depois inativas
+    const saved = configData.siteSections || ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
+    let ordered = [
+      ...saved.map(id => allSectionDefs.find(s => s.id === id)).filter(Boolean),
+      ...allSectionDefs.filter(s => !saved.includes(s.id))
+    ];
+    let activeSet = new Set(saved);
 
-        <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
-          ${allSections.map(sec => {
-            const checked = siteSections.includes(sec.id) ? 'checked' : '';
-            return `
-              <label style="display:flex; align-items:center; gap:0.75rem; background:#1f2937; padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid #374151; cursor:pointer; transition:all 0.2s;">
-                <input type="checkbox" value="${sec.id}" ${checked} style="width:18px; height:18px; cursor:pointer;">
-                <span style="color:#f3f4f6; font-weight:500;">${sec.label}</span>
-              </label>
-            `;
-          }).join('')}
+    const renderList = () => {
+      secoesContainer.innerHTML = `
+        <div style="max-width:580px;">
+          <div style="margin-bottom:1.25rem;">
+            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem;">Seções do Site</h3>
+            <p style="color:#9ca3af; font-size:0.875rem;">Ative/desative e arraste para reordenar as seções.</p>
+          </div>
+
+          <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.5rem;">
+            ${ordered.map((sec, idx) => {
+              const active = activeSet.has(sec.id);
+              return `
+                <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
+                  style="display:flex; align-items:center; gap:0.75rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none;">
+                  <span style="cursor:grab; color:#6b7280; font-size:1.1rem; flex-shrink:0;">⠿</span>
+                  <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
+                  <span style="flex:1; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.875rem;">${sec.label}</span>
+                  <div style="display:flex; gap:0.25rem;">
+                    <button onclick="moveSection(${idx}, -1)" style="background:#374151; border:none; color:#9ca3af; width:1.75rem; height:1.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.875rem;" ${idx === 0 ? 'disabled style="opacity:0.3;background:#374151;border:none;color:#9ca3af;width:1.75rem;height:1.75rem;border-radius:0.25rem;cursor:not-allowed;font-size:0.875rem;"' : ''}>▲</button>
+                    <button onclick="moveSection(${idx}, 1)" style="background:#374151; border:none; color:#9ca3af; width:1.75rem; height:1.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.875rem;" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.3;background:#374151;border:none;color:#9ca3af;width:1.75rem;height:1.75rem;border-radius:0.25rem;cursor:not-allowed;font-size:0.875rem;"' : ''}>▼</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1.25rem;">Salvar Seções</button>
         </div>
+      `;
 
-        <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1.5rem;">Salvar Seções</button>
-      </div>
-    `;
+      // Botões mover
+      window.moveSection = (idx, dir) => {
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= ordered.length) return;
+        [ordered[idx], ordered[newIdx]] = [ordered[newIdx], ordered[idx]];
+        renderList();
+      };
 
-    secoesContainer.querySelector('#saveSectionsBtn').onclick = async () => {
-      const selected = [];
-      secoesContainer.querySelectorAll('input:checked').forEach(cb => selected.push(cb.value));
-      await apiPut('/api/site/admin/config', { siteSections: selected });
-      alert('Seções salvas!');
-      configData.siteSections = selected;
+      // Toggle ativo
+      window.toggleSection = (id) => {
+        if (activeSet.has(id)) activeSet.delete(id);
+        else activeSet.add(id);
+        renderList();
+      };
+
+      // Drag & drop
+      let dragIdx = null;
+      secoesContainer.querySelectorAll('.sec-drag-item').forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+          dragIdx = parseInt(item.dataset.secIdx);
+          item.style.opacity = '0.5';
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragend', () => { item.style.opacity = '1'; });
+        item.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        item.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const targetIdx = parseInt(item.dataset.secIdx);
+          if (dragIdx === null || dragIdx === targetIdx) return;
+          const moved = ordered.splice(dragIdx, 1)[0];
+          ordered.splice(targetIdx, 0, moved);
+          dragIdx = null;
+          renderList();
+        });
+      });
+
+      // Salvar
+      secoesContainer.querySelector('#saveSectionsBtn').onclick = async () => {
+        const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
+        await apiPut('/api/site/admin/config', { siteSections: selected });
+        alert('Seções salvas!');
+        configData.siteSections = selected;
+      };
     };
+
+    renderList();
   };
 
   // --- SERVIÇOS ---
@@ -852,45 +909,123 @@ export async function renderMeuSite(container) {
   };
 
   // --- DEPOIMENTOS ---
-  const renderDepoimentos = () => {
+  const renderDepoimentos = async () => {
     const depoContainer = container.querySelector('#config-depoimentos');
     const depoimentos = configData.siteContent?.depoimentos || [];
+
+    // Carregar pendentes
+    let pendentes = [];
+    try {
+      const resp = await apiGet('/api/site/admin/depoimentos-pendentes');
+      pendentes = resp.pending || [];
+    } catch(e) {}
+
+    const renderPendentes = () => {
+      if (pendentes.length === 0) return '';
+      return `
+        <div style="background:#1c2a1c; border:1px solid #166534; border-radius:0.5rem; padding:1rem; margin-bottom:1.5rem;">
+          <h4 style="color:#34d399; font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">
+            🔔 ${pendentes.length} depoimento${pendentes.length > 1 ? 's' : ''} aguardando aprovação
+          </h4>
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            ${pendentes.map(p => `
+              <div style="background:#111827; padding:0.75rem; border-radius:0.375rem; border:1px solid #374151;">
+                <div style="display:flex; justify-content:space-between; align-items:start; gap:0.5rem;">
+                  <div style="flex:1;">
+                    <p style="color:#f3f4f6; font-weight:600; margin:0 0 0.25rem;">${p.name}${p.email ? ` <span style="color:#6b7280;font-size:0.75rem;font-weight:400;">(${p.email})</span>` : ''}</p>
+                    <p style="color:#d1d5db; font-size:0.875rem; margin:0 0 0.25rem;">"${p.text}"</p>
+                    <p style="color:#9ca3af; font-size:0.75rem; margin:0;">⭐ ${p.rating}/5</p>
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+                    <button onclick="aprovarDepoimento('${p.id}')" style="background:#16a34a; color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer;">✓ Aprovar</button>
+                    <button onclick="rejeitarDepoimento('${p.id}')" style="background:#dc2626; color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer;">✕ Rejeitar</button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    };
+
+    window.aprovarDepoimento = async (id) => {
+      try {
+        await apiPost(`/api/site/admin/depoimentos-pendentes/${id}/aprovar`, {});
+        pendentes = pendentes.filter(p => p.id !== id);
+        const resp2 = await apiGet('/api/site/admin/config');
+        configData.siteContent = resp2.siteContent || configData.siteContent;
+        renderDepoimentos();
+      } catch(e) { alert('Erro ao aprovar: ' + e.message); }
+    };
+
+    window.rejeitarDepoimento = async (id) => {
+      if (!confirm('Rejeitar e apagar este depoimento?')) return;
+      try {
+        await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
+        pendentes = pendentes.filter(p => p.id !== id);
+        renderDepoimentos();
+      } catch(e) { alert('Erro ao rejeitar: ' + e.message); }
+    };
 
     const renderList = () => {
       const list = depoimentos.map((dep, idx) => `
         <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
           <div style="display:grid; gap:0.75rem;">
+
+            <!-- Nome + deletar -->
             <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
               <div>
                 <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nome do Cliente</label>
                 <input type="text" value="${dep.name || ''}" data-dep-name="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
               </div>
-              <button onclick="deleteDepoimento(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover">🗑️</button>
+              <button onclick="deleteDepoimento(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem; margin-top:1.25rem;" title="Remover">🗑️</button>
             </div>
+
+            <!-- Texto -->
             <div>
               <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Depoimento</label>
               <textarea rows="3" data-dep-text="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${dep.text || ''}</textarea>
             </div>
-            <div style="display:grid; grid-template-columns:1fr auto; gap:0.75rem;">
+
+            <!-- Foto + nota -->
+            <div style="display:grid; grid-template-columns:auto 1fr auto; gap:0.75rem; align-items:end;">
+              <!-- Preview da foto -->
+              <div style="width:56px; height:56px; border-radius:50%; background:#374151; overflow:hidden; flex-shrink:0;">
+                ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:1.5rem;">👤</div>'}
+              </div>
               <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Foto do Cliente (URL)</label>
-                <input type="text" value="${dep.photo || ''}" data-dep-photo="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="URL da foto">
+                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Foto do Cliente</label>
+                <label style="display:inline-flex; align-items:center; gap:0.5rem; background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                  Upload
+                  <input type="file" accept="image/*" data-dep-photo-upload="${idx}" style="display:none;">
+                </label>
+                <input type="hidden" data-dep-photo="${idx}" value="${dep.photo || ''}">
               </div>
               <div>
                 <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nota (1-5)</label>
-                <input type="number" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:80px; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+                <input type="number" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:70px; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
               </div>
             </div>
+
+            <!-- Link social -->
+            <div>
+              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Link Instagram ou Facebook (opcional)</label>
+              <input type="text" value="${dep.socialLink || ''}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente"
+                style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
+            </div>
+
           </div>
         </div>
       `).join('');
 
       depoContainer.innerHTML = `
         <div style="max-width:700px;">
+          ${renderPendentes()}
+
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <div>
-              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Depoimentos</h3>
-              <p style="color:#9ca3af; font-size:0.875rem;">Adicione depoimentos de clientes satisfeitos</p>
+              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Depoimentos Publicados</h3>
+              <p style="color:#9ca3af; font-size:0.875rem;">Adicione ou gerencie depoimentos visíveis no site</p>
             </div>
             <button id="addDepoimentoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">+ Adicionar</button>
           </div>
@@ -904,9 +1039,25 @@ export async function renderMeuSite(container) {
       `;
 
       depoContainer.querySelector('#addDepoimentoBtn').onclick = () => {
-        depoimentos.push({ name: 'Cliente', text: '', photo: '', rating: 5 });
+        depoimentos.push({ name: 'Cliente', text: '', photo: '', rating: 5, socialLink: '' });
         renderList();
       };
+
+      // Upload de foto por depoimento
+      depoContainer.querySelectorAll('[data-dep-photo-upload]').forEach(input => {
+        input.onchange = async (e) => {
+          const idx = parseInt(input.dataset.depPhotoUpload);
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+            const result = await uploadImage(file, appState.authToken);
+            depoimentos[idx].photo = result.url;
+            renderList();
+          } catch (err) {
+            alert('Erro no upload: ' + err.message);
+          }
+        };
+      });
 
       window.deleteDepoimento = (idx) => {
         if (!confirm('Remover este depoimento?')) return;
@@ -918,15 +1069,16 @@ export async function renderMeuSite(container) {
       if (saveBtn) {
         saveBtn.onclick = async () => {
           const updated = [];
-          depoimentos.forEach((_, idx) => {
+          depoimentos.forEach((dep, idx) => {
             updated.push({
               name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
               text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
-              photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || '',
-              rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5)
+              photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || dep.photo || '',
+              rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5),
+              socialLink: depoContainer.querySelector(`[data-dep-social="${idx}"]`)?.value || ''
             });
           });
-          await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, depoimentos: updated } });
+          await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
           alert('Depoimentos salvos!');
           configData.siteContent.depoimentos = updated;
         };

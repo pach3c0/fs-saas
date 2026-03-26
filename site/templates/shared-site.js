@@ -70,7 +70,7 @@ function renderSite(data) {
   const navLinks = document.getElementById('navLinks');
   if (navLinks) {
     navLinks.innerHTML = sections.map(s => {
-      const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', contato: 'Contato'};
+      const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', newsletter: 'Newsletter', contato: 'Contato'};
       return `<a href="#section-${s}">${labels[s] || s}</a>`;
     }).join('');
   }
@@ -178,8 +178,18 @@ function renderSite(data) {
   if (depoimentosTrack && content.depoimentos) {
     depoimentosTrack.innerHTML = content.depoimentos.map(d => `
       <div class="depoimento-card">
-        <p>"${esc(d.text)}"</p>
-        <p><strong>${esc(d.name)}</strong></p>
+        <div class="depoimento-stars">${'★'.repeat(Math.max(1, Math.min(5, d.rating || 5)))}</div>
+        <p class="depoimento-text">"${esc(d.text)}"</p>
+        <div class="depoimento-author" style="display:flex; align-items:center; gap:0.75rem; margin-top:1rem;">
+          ${d.photo
+            ? `<img src="${resolvePath(d.photo)}" alt="${esc(d.name)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+            : `<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;">👤</div>`
+          }
+          <div>
+            <p style="font-weight:600;margin:0;">${esc(d.name)}</p>
+            ${d.socialLink ? `<a href="${esc(d.socialLink)}" target="_blank" rel="noopener" style="font-size:0.75rem;opacity:0.6;">Ver perfil</a>` : ''}
+          </div>
+        </div>
       </div>
     `).join('');
   }
@@ -187,31 +197,116 @@ function renderSite(data) {
   // Preencher Álbuns
   const albumsSection = document.getElementById('section-albuns');
   const albumsGrid = document.getElementById('albumsGrid');
+  window.allAlbums = content.albums || [];
   if (albumsGrid) {
     if (albumsSection && sections.includes('albuns')) albumsSection.style.display = '';
     if (content.albums && content.albums.length > 0) {
-    albumsGrid.innerHTML = content.albums.map(a => {
-      const cover = a.cover || (a.photos && a.photos[0]) || '';
-      return `
-        <div class="album-card" style="cursor:pointer; border-radius:0.75rem; overflow:hidden; background:#1a1a1a;">
-          <div style="aspect-ratio:3/4; overflow:hidden; position:relative;">
-            ${cover
-              ? `<img src="${resolvePath(cover)}" alt="${esc(a.title)}" style="width:100%; height:100%; object-fit:cover;">`
-              : `<div style="width:100%; height:100%; background:#2a2a2a; display:flex; align-items:center; justify-content:center;"><span style="font-size:3rem; opacity:0.3;">📷</span></div>`
-            }
-            <div style="position:absolute; bottom:0; left:0; right:0; padding:1rem; background:linear-gradient(transparent,rgba(0,0,0,0.8));">
-              <p style="color:white; font-weight:600; margin:0;">${esc(a.title)}</p>
-              ${a.subtitle ? `<p style="color:rgba(255,255,255,0.7); font-size:0.875rem; margin:0.25rem 0 0;">${esc(a.subtitle)}</p>` : ''}
-              ${a.photos ? `<p style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin:0.25rem 0 0;">${a.photos.length} foto${a.photos.length !== 1 ? 's' : ''}</p>` : ''}
+      albumsGrid.innerHTML = content.albums.map((a, i) => {
+        const cover = a.cover || (a.photos && a.photos[0]) || '';
+        return `
+          <div class="album-card" onclick="openAlbumModal(${i})" style="cursor:pointer; border-radius:0.75rem; overflow:hidden; background:#1a1a1a;">
+            <div style="aspect-ratio:3/4; overflow:hidden; position:relative;">
+              ${cover
+                ? `<img src="${resolvePath(cover)}" alt="${esc(a.title)}" style="width:100%; height:100%; object-fit:cover;">`
+                : `<div style="width:100%; height:100%; background:#2a2a2a; display:flex; align-items:center; justify-content:center;"><span style="font-size:3rem; opacity:0.3;">📷</span></div>`
+              }
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:1rem; background:linear-gradient(transparent,rgba(0,0,0,0.8));">
+                <p style="color:white; font-weight:600; margin:0;">${esc(a.title)}</p>
+                ${a.subtitle ? `<p style="color:rgba(255,255,255,0.7); font-size:0.875rem; margin:0.25rem 0 0;">${esc(a.subtitle)}</p>` : ''}
+                ${a.photos ? `<p style="color:rgba(255,255,255,0.5); font-size:0.75rem; margin:0.25rem 0 0;">${a.photos.length} foto${a.photos.length !== 1 ? 's' : ''}</p>` : ''}
+              </div>
             </div>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
     } else {
       albumsGrid.innerHTML = '<p style="color:#666; text-align:center; padding:2rem;">Nenhum álbum cadastrado ainda.</p>';
     }
   }
+
+  // Modal de álbum
+  window.albumLightboxIndex = 0;
+  window.albumLightboxPhotos = [];
+
+  window.openAlbumModal = function(albumIdx) {
+    const album = window.allAlbums[albumIdx];
+    if (!album) return;
+    const photos = album.photos || [];
+
+    // Remove modal anterior se existir
+    const existing = document.getElementById('albumModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'albumModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
+    modal.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
+        <div>
+          <h2 style="color:white;font-size:1.25rem;font-weight:600;margin:0;">${esc(album.title)}</h2>
+          ${album.subtitle ? `<p style="color:rgba(255,255,255,0.6);font-size:0.875rem;margin:0.25rem 0 0;">${esc(album.subtitle)}</p>` : ''}
+        </div>
+        <button onclick="document.getElementById('albumModal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:2.5rem;height:2.5rem;border-radius:50%;cursor:pointer;font-size:1.25rem;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:1.5rem;">
+        ${photos.length > 0
+          ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.75rem;">
+              ${photos.map((url, i) => `
+                <div style="aspect-ratio:3/4;overflow:hidden;border-radius:0.5rem;cursor:pointer;" onclick="openAlbumLightbox(${albumIdx},${i})">
+                  <img src="${resolvePath(url)}" alt="Foto ${i+1}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+              `).join('')}
+            </div>`
+          : '<p style="color:rgba(255,255,255,0.5);text-align:center;padding:4rem;">Este álbum ainda não tem fotos.</p>'
+        }
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.addEventListener('keydown', closeAlbumOnEsc);
+  };
+
+  function closeAlbumOnEsc(e) {
+    if (e.key === 'Escape') {
+      const m = document.getElementById('albumModal');
+      if (m) { m.remove(); document.removeEventListener('keydown', closeAlbumOnEsc); }
+    }
+  }
+
+  window.openAlbumLightbox = function(albumIdx, photoIdx) {
+    const album = window.allAlbums[albumIdx];
+    if (!album) return;
+    window.albumLightboxPhotos = album.photos || [];
+    window.albumLightboxIndex = photoIdx;
+
+    const existing = document.getElementById('albumLightbox');
+    if (existing) existing.remove();
+
+    const lb = document.createElement('div');
+    lb.id = 'albumLightbox';
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.98);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    lb.innerHTML = `
+      <button onclick="document.getElementById('albumLightbox').remove()" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:2.5rem;height:2.5rem;border-radius:50%;cursor:pointer;font-size:1.25rem;">✕</button>
+      <button onclick="prevAlbumPhoto()" style="position:absolute;left:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:3rem;height:3rem;border-radius:50%;cursor:pointer;font-size:1.5rem;">‹</button>
+      <img id="albumLbImg" src="${resolvePath(window.albumLightboxPhotos[photoIdx])}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:0.25rem;">
+      <button onclick="nextAlbumPhoto()" style="position:absolute;right:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:3rem;height:3rem;border-radius:50%;cursor:pointer;font-size:1.5rem;">›</button>
+    `;
+    document.body.appendChild(lb);
+  };
+
+  window.prevAlbumPhoto = function() {
+    if (window.albumLightboxIndex > 0) {
+      window.albumLightboxIndex--;
+      const img = document.getElementById('albumLbImg');
+      if (img) img.src = resolvePath(window.albumLightboxPhotos[window.albumLightboxIndex]);
+    }
+  };
+  window.nextAlbumPhoto = function() {
+    if (window.albumLightboxIndex < window.albumLightboxPhotos.length - 1) {
+      window.albumLightboxIndex++;
+      const img = document.getElementById('albumLbImg');
+      if (img) img.src = resolvePath(window.albumLightboxPhotos[window.albumLightboxIndex]);
+    }
+  };
 
   // Preencher Estúdio
   const studioSection = document.getElementById('section-estudio');
@@ -273,13 +368,128 @@ function renderSite(data) {
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'faq', 'newsletter', 'contato'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el && !sections.includes(s)) {
       el.style.display = 'none';
     }
   });
+
+  // WhatsApp flutuante com mensagens do estúdio
+  const whatsappBtn = document.getElementById('whatsappBtn');
+  const whatsappNumber = content.studio?.whatsapp || config.whatsapp || '';
+  if (whatsappBtn && whatsappNumber) {
+    const cleanNumber = whatsappNumber.replace(/\D/g, '');
+    const defaultMsg = encodeURIComponent(config.whatsappMessage || 'Olá! Vi seu site e gostaria de mais informações.');
+    whatsappBtn.href = `https://wa.me/${cleanNumber}?text=${defaultMsg}`;
+    whatsappBtn.style.display = 'flex';
+
+    const messages = content.studio?.whatsappMessages || [];
+    if (messages.length > 0) {
+      // Criar bolha de mensagens
+      const bubble = document.createElement('div');
+      bubble.id = 'whatsappBubble';
+      bubble.style.cssText = 'position:fixed;bottom:5.5rem;right:1.5rem;z-index:9998;display:flex;flex-direction:column;gap:0.5rem;max-width:280px;';
+      document.body.appendChild(bubble);
+
+      let msgIndex = 0;
+      function showNextMessage() {
+        if (msgIndex >= messages.length) return;
+        const msg = messages[msgIndex];
+        const el = document.createElement('div');
+        el.style.cssText = 'background:white;color:#1a1a1a;padding:0.75rem 1rem;border-radius:1rem 1rem 0.25rem 1rem;font-size:0.875rem;box-shadow:0 2px 12px rgba(0,0,0,0.15);animation:fadeInUp 0.3s ease;';
+        el.textContent = msg.text;
+        bubble.appendChild(el);
+        msgIndex++;
+        const delay = (messages[msgIndex]?.delay || 5) * 1000;
+        if (msgIndex < messages.length) setTimeout(showNextMessage, delay);
+      }
+      const firstDelay = (messages[0]?.delay || 5) * 1000;
+      setTimeout(showNextMessage, firstDelay);
+    }
+  }
+
+  // FAQ
+  const faqSection = document.getElementById('section-faq');
+  const faqList = document.getElementById('faqList');
+  if (faqSection && sections.includes('faq')) faqSection.style.display = '';
+  if (faqList && content.faq && content.faq.length > 0) {
+    faqList.innerHTML = content.faq.map((item, i) => `
+      <div class="faq-item" style="border-bottom:1px solid rgba(255,255,255,0.1);padding:0.75rem 0;">
+        <button class="faq-question" onclick="toggleFaq(${i})" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:1rem;font-weight:600;color:inherit;padding:0;">
+          <span>${esc(item.question)}</span>
+          <span id="faq-icon-${i}" style="font-size:1.25rem;transition:transform 0.2s;flex-shrink:0;">+</span>
+        </button>
+        <div id="faq-answer-${i}" style="display:none;padding:0.75rem 0 0;opacity:0.8;line-height:1.6;">${esc(item.answer)}</div>
+      </div>
+    `).join('');
+  }
+  window.toggleFaq = function(i) {
+    const ans = document.getElementById(`faq-answer-${i}`);
+    const icon = document.getElementById(`faq-icon-${i}`);
+    if (!ans) return;
+    const open = ans.style.display !== 'none';
+    ans.style.display = open ? 'none' : 'block';
+    if (icon) icon.textContent = open ? '+' : '−';
+  };
+
+  // Newsletter
+  const newsletterSection = document.getElementById('section-newsletter');
+  if (newsletterSection && sections.includes('newsletter')) newsletterSection.style.display = '';
+  const newsletterTitle = document.getElementById('newsletterTitle');
+  const newsletterDesc = document.getElementById('newsletterDesc');
+  if (newsletterTitle && content.newsletter?.title) newsletterTitle.textContent = content.newsletter.title;
+  if (newsletterDesc && content.newsletter?.description) newsletterDesc.textContent = content.newsletter.description;
+  const newsletterSiteForm = document.getElementById('newsletterSiteForm');
+  if (newsletterSiteForm) {
+    newsletterSiteForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('newsletterSiteEmail')?.value;
+      const msg = document.getElementById('newsletterSiteMsg');
+      try {
+        const res = await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (msg) { msg.textContent = 'Inscrito com sucesso!'; msg.style.display = 'block'; msg.style.color = '#22c55e'; }
+        newsletterSiteForm.reset();
+      } catch(err) {
+        if (msg) { msg.textContent = 'Erro ao inscrever. Tente novamente.'; msg.style.display = 'block'; msg.style.color = '#ef4444'; }
+      }
+    };
+  }
+
+  // Formulário de depoimento (visível quando seção depoimentos está ativa)
+  const depFormSection = document.getElementById('section-depoimento-form');
+  if (depFormSection && sections.includes('depoimentos')) depFormSection.style.display = '';
+  const depoimentoForm = document.getElementById('depoimentoForm');
+  if (depoimentoForm) {
+    depoimentoForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const msg = document.getElementById('depoimentoFormMsg');
+      const btn = depoimentoForm.querySelector('button[type=submit]');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch(buildApiUrl().replace('/site/config', '/site/depoimento').replace('?', '').split('?')[0] + (window.location.search.includes('_tenant') ? window.location.search : ''), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: depoimentoForm.name.value,
+            text: depoimentoForm.text.value,
+            email: depoimentoForm.email?.value || '',
+            rating: depoimentoForm.rating?.value || 5
+          })
+        });
+        if (msg) { msg.textContent = 'Depoimento enviado! Aguardando aprovação.'; msg.style.display = 'block'; msg.style.color = '#22c55e'; }
+        depoimentoForm.reset();
+      } catch(err) {
+        if (msg) { msg.textContent = 'Erro ao enviar. Tente novamente.'; msg.style.display = 'block'; msg.style.color = '#ef4444'; }
+      }
+      if (btn) btn.disabled = false;
+    };
+  }
 
   // Injetar scripts de analytics/pixel
   injectAnalyticsScripts(data.integrations);

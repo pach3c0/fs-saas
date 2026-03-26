@@ -56,14 +56,21 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
     // siteContent: merge por sub-chave para não apagar outros campos (sobre, servicos, etc)
     if (req.body.siteContent !== undefined) {
       Object.entries(req.body.siteContent).forEach(([key, value]) => {
-        updateData[`siteContent.${key}`] = value;
+        // Para portfolio.photos, usar dot notation profunda para garantir que o array seja salvo
+        if (key === 'portfolio' && value && value.photos !== undefined) {
+          updateData['siteContent.portfolio.photos'] = value.photos;
+          if (value.title !== undefined) updateData['siteContent.portfolio.title'] = value.title;
+          if (value.subtitle !== undefined) updateData['siteContent.portfolio.subtitle'] = value.subtitle;
+        } else {
+          updateData[`siteContent.${key}`] = value;
+        }
       });
     }
 
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,
       { $set: updateData },
-      { new: true }
+      { new: true, strict: false }
     );
 
     res.json({ success: true, org });
@@ -125,6 +132,93 @@ router.delete('/site/admin/portfolio/:idx', authenticateToken, async (req, res) 
       await org.save();
     }
 
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Uso de armazenamento
+router.get('/site/admin/storage', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId.toString();
+    const orgUploadDir = path.join(__dirname, '../../uploads', orgId);
+    let storageBytes = 0;
+    function calcSize(dir) {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fp = path.join(dir, entry.name);
+        if (entry.isDirectory()) calcSize(fp);
+        else { try { storageBytes += fs.statSync(fp).size; } catch(e) {} }
+      }
+    }
+    calcSize(orgUploadDir);
+    const storageMB = Math.round(storageBytes / 1024 / 1024 * 100) / 100;
+    res.json({ storageMB, storageBytes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Público: Submeter depoimento para aprovação
+router.post('/site/depoimento', async (req, res) => {
+  try {
+    if (!req.organizationId) return res.status(404).json({ error: 'Organização não encontrada' });
+    const { name, text, email, rating } = req.body;
+    if (!name || !text) return res.status(400).json({ error: 'Nome e texto são obrigatórios' });
+
+    const id = require('crypto').randomBytes(8).toString('hex');
+    await Organization.findByIdAndUpdate(req.organizationId, {
+      $push: { pendingDepoimentos: { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Listar depoimentos pendentes
+router.get('/site/admin/depoimentos-pendentes', authenticateToken, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.user.organizationId).select('pendingDepoimentos');
+    res.json({ pending: org?.pendingDepoimentos || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Aprovar depoimento pendente
+router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.user.organizationId);
+    if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+    const pending = org.pendingDepoimentos.find(d => d.id === req.params.id);
+    if (!pending) return res.status(404).json({ error: 'Depoimento não encontrado' });
+
+    // Mover para aprovados
+    if (!org.siteContent) org.siteContent = {};
+    if (!org.siteContent.depoimentos) org.siteContent.depoimentos = [];
+    org.siteContent.depoimentos.push({ id: pending.id, name: pending.name, text: pending.text, rating: pending.rating, photo: '', socialLink: '' });
+
+    // Remover dos pendentes
+    org.pendingDepoimentos = org.pendingDepoimentos.filter(d => d.id !== req.params.id);
+    org.markModified('siteContent');
+    org.markModified('pendingDepoimentos');
+    await org.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin: Rejeitar depoimento pendente
+router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, async (req, res) => {
+  try {
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      $pull: { pendingDepoimentos: { id: req.params.id } }
+    });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

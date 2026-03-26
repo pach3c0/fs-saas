@@ -184,6 +184,7 @@ app.use('/api/newsletter/subscribe', resolveTenant);
 app.use('/api/client', resolveTenant);
 app.use('/api/organization/public', resolveTenant);
 app.use('/api/site/config', resolveTenant);
+app.use('/api/site/depoimento', resolveTenant);
 
 // ============================================================================
 // ROTAS (cada router montado apenas UMA vez)

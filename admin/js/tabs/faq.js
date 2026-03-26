@@ -4,6 +4,11 @@
 
 import { appState, saveAppData } from '../state.js';
 import { generateId } from '../utils/helpers.js';
+import { apiPut } from '../utils/api.js';
+
+async function syncFaqToSite(faqs) {
+  await apiPut('/api/site/admin/config', { siteContent: { faq: faqs } });
+}
 
 export async function renderFaq(container) {
   const faqData = appState.appData.faq || { faqs: [] };
@@ -71,5 +76,6 @@ export async function renderFaq(container) {
     });
 
     await saveAppData('faq', updated);
+    await syncFaqToSite(updated.faqs);
   };
 }

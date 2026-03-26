@@ -518,3 +518,8 @@ h1, h2, h3, h4 {
   .studio-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+
+/* WhatsApp bolha */
+.whatsapp-float { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; background:#25d366; border-radius:50%; width:3.5rem; height:3.5rem; display:none; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(37,211,102,0.4); transition:transform 0.2s; }
+.whatsapp-float:hover { transform:scale(1.1); }
+@keyframes fadeInUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }

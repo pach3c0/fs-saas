@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/site/css/site.css">
+  <link rel="stylesheet" href="/site/templates/elegante/css/style.css">
 </head>
 <body>
 
@@ -105,6 +105,55 @@
       </div>
       <div id="studioPhotosGrid" class="studio-grid"></div>
       <div id="studioInfo" class="studio-info"></div>
+    </div>
+  </section>
+
+  <section id="section-faq" class="section-faq section-padded" style="display:none;">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Perguntas Frequentes</h2>
+      </div>
+      <div id="faqList" class="faq-list"></div>
+    </div>
+  </section>
+
+  <section id="section-newsletter" class="section-newsletter section-padded" style="display:none;">
+    <div class="container">
+      <div class="newsletter-inner">
+        <h2 class="section-title" id="newsletterTitle">Fique por dentro</h2>
+        <p class="section-subtitle" id="newsletterDesc"></p>
+        <form id="newsletterSiteForm" class="newsletter-form">
+          <input type="email" id="newsletterSiteEmail" placeholder="seu@email.com" required>
+          <button type="submit" class="btn-primary">Inscrever-se</button>
+        </form>
+        <p id="newsletterSiteMsg" style="display:none;"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="section-depoimento-form" class="section-depoimento-form section-padded" style="display:none;">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Deixe seu Depoimento</h2>
+        <p class="section-subtitle">Sua experiência é muito importante para nós</p>
+      </div>
+      <form id="depoimentoForm" class="depoimento-form-public" style="max-width:540px;margin:0 auto;">
+        <input type="text" name="name" placeholder="Seu nome" required>
+        <textarea name="text" placeholder="Conte sua experiência..." rows="4" required></textarea>
+        <input type="email" name="email" placeholder="Seu e-mail (não será publicado)" style="opacity:0.7;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <label>Nota:</label>
+          <select name="rating">
+            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+            <option value="4">⭐⭐⭐⭐ (4)</option>
+            <option value="3">⭐⭐⭐ (3)</option>
+            <option value="2">⭐⭐ (2)</option>
+            <option value="1">⭐ (1)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Enviar Depoimento</button>
+        <p id="depoimentoFormMsg" style="display:none;margin-top:0.75rem;"></p>
+      </form>
     </div>
   </section>
 

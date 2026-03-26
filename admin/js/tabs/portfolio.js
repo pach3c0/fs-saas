@@ -11,7 +11,7 @@ import { apiPut } from '../utils/api.js';
 // Sincroniza o portfólio com siteContent.portfolio.photos na Organization
 // (que é de onde o site público lê os dados)
 async function syncPortfolioToSite(portfolio) {
-  const photos = portfolio.map(p => ({ url: p.image }));
+  const photos = portfolio.filter(p => p.image).map(p => ({ url: p.image }));
   await apiPut('/api/site/admin/config', {
     siteContent: { portfolio: { photos } }
   });
