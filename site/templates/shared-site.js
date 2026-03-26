@@ -378,6 +378,22 @@ function renderSite(data) {
     }
   });
 
+  // Reordenar seções baseado na ordem do array sections
+  const mainContent = document.querySelector('main') || document.body;
+  const sectionElements = sections.map(s => document.getElementById('section-' + s)).filter(el => el);
+
+  // Remover todas as seções do DOM
+  sectionElements.forEach(el => {
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  });
+
+  // Re-inserir na ordem correta
+  sectionElements.forEach(el => {
+    mainContent.appendChild(el);
+  });
+
   // WhatsApp flutuante com mensagens do estúdio
   const whatsappBtn = document.getElementById('whatsappBtn');
   const whatsappNumber = content.studio?.whatsapp || config.whatsapp || '';
