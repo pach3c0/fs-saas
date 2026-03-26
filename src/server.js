@@ -68,8 +68,13 @@ app.get('/site', async (req, res) => {
     }
 
     // Get organization theme
+    const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
     let theme = 'elegante'; // default
-    if (orgId) {
+
+    // Preview mode: _preview_theme overrides saved theme (doesn't save)
+    if (req.query._preview_theme && validThemes.includes(req.query._preview_theme)) {
+      theme = req.query._preview_theme;
+    } else if (orgId) {
       const org = await Organization.findById(orgId).select('siteTheme');
       theme = org?.siteTheme || 'elegante';
     }

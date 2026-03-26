@@ -181,78 +181,104 @@ export async function renderMeuSite(container) {
     configData = await apiGet('/api/site/admin/config');
   } catch (e) { console.error(e); }
 
+  // Buscar slug da organização para montar URLs de preview
+  let orgSlug = new URLSearchParams(window.location.search).get('_tenant') || '';
+  if (!orgSlug) {
+    try {
+      const profile = await apiGet('/api/organization/profile');
+      orgSlug = profile.slug || '';
+    } catch (e) { /* usa fallback vazio */ }
+  }
+
   // Preencher campos
   const { siteEnabled, siteTheme, siteConfig = {}, siteContent = {} } = configData;
 
+  // Tema selecionado no momento (pode mudar sem salvar)
+  let selectedTheme = siteTheme || 'elegante';
+
   // Renderizar galeria de templates
   const templates = [
-    { id: 'elegante', name: 'Elegante', desc: 'Clássico com dourado e serif', colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
-    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco', colors: ['#000000', '#666666', '#ffffff'] },
-    { id: 'moderno', name: 'Moderno', desc: 'Azul com gradientes e cards', colors: ['#3b82f6', '#667eea', '#f8fafc'] },
-    { id: 'escuro', name: 'Escuro', desc: 'Dark mode com laranja', colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
-    { id: 'galeria', name: 'Galeria', desc: 'Masonry grid foco em fotos', colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
+    { id: 'elegante',    name: 'Elegante',    desc: 'Clássico com dourado e serif',    colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
+    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco',   colors: ['#000000', '#666666', '#ffffff'] },
+    { id: 'moderno',     name: 'Moderno',     desc: 'Azul com gradientes e cards',     colors: ['#3b82f6', '#667eea', '#f8fafc'] },
+    { id: 'escuro',      name: 'Escuro',      desc: 'Dark mode com laranja',           colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
+    { id: 'galeria',     name: 'Galeria',     desc: 'Masonry grid foco em fotos',      colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
   ];
 
-  const templateGallery = container.querySelector('#templateGallery');
-  templateGallery.innerHTML = templates.map(t => `
-    <div class="template-card" data-theme="${t.id}" style="
-      background:#1f2937;
-      border:2px solid ${siteTheme === t.id ? '#2563eb' : '#374151'};
-      border-radius:0.5rem;
-      padding:1rem;
-      cursor:pointer;
-      transition:all 0.3s;
-      position:relative;
-    ">
-      ${siteTheme === t.id ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; font-size:0.75rem; font-weight:600;">✓ Ativo</div>' : ''}
+  function buildPreviewUrl(themeId) {
+    const base = `${window.location.origin}/site?_preview_theme=${themeId}`;
+    return orgSlug ? `${base}&_tenant=${orgSlug}` : base;
+  }
 
-      <div style="height:120px; background:linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 100%); border-radius:0.375rem; margin-bottom:0.75rem; display:flex; align-items:center; justify-content:center; color:${t.colors[2]}; font-size:2rem; font-weight:bold; opacity:0.8;">
-        ${t.name[0]}
-      </div>
+  function renderTemplateCards() {
+    const templateGallery = container.querySelector('#templateGallery');
+    templateGallery.innerHTML = templates.map(t => {
+      const isActive = siteTheme === t.id;
+      const isSelected = selectedTheme === t.id;
+      const borderColor = isSelected ? '#2563eb' : '#374151';
+      return `
+        <div class="template-card" data-theme="${t.id}" style="
+          background:#1f2937;
+          border:2px solid ${borderColor};
+          border-radius:0.5rem;
+          padding:1rem;
+          cursor:pointer;
+          transition:all 0.2s;
+          position:relative;
+          display:flex;
+          flex-direction:column;
+          gap:0.5rem;
+        ">
+          ${isActive ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#16a34a; color:white; padding:0.2rem 0.5rem; border-radius:0.25rem; font-size:0.7rem; font-weight:700;">✓ Ativo</div>' : ''}
+          ${isSelected && !isActive ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.2rem 0.5rem; border-radius:0.25rem; font-size:0.7rem; font-weight:700;">Selecionado</div>' : ''}
 
-      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-        <div style="display:flex; gap:0.25rem;">
-          ${t.colors.map(c => `<div style="width:1rem; height:1rem; background:${c}; border-radius:50%;"></div>`).join('')}
+          <div style="height:100px; background:linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 100%); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; color:${t.colors[2]}; font-size:1.75rem; font-weight:bold; opacity:0.85;">
+            ${t.name[0]}
+          </div>
+
+          <div style="display:flex; gap:0.25rem;">
+            ${t.colors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid #374151;"></div>`).join('')}
+          </div>
+
+          <h4 style="color:#f3f4f6; font-weight:600; font-size:0.9rem; margin:0;">${t.name}</h4>
+          <p style="color:#9ca3af; font-size:0.75rem; margin:0;">${t.desc}</p>
+
+          <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
+            onclick="event.stopPropagation()"
+            style="display:block; text-align:center; margin-top:0.25rem; padding:0.375rem; background:#374151; color:#d1d5db; border-radius:0.375rem; font-size:0.75rem; font-weight:600; text-decoration:none; transition:background 0.15s;"
+            onmouseenter="this.style.background='#4b5563'"
+            onmouseleave="this.style.background='#374151'">
+            👁️ Visualizar
+          </a>
         </div>
-      </div>
+      `;
+    }).join('');
 
-      <h4 style="color:#f3f4f6; font-weight:600; font-size:1rem; margin-bottom:0.25rem;">${t.name}</h4>
-      <p style="color:#9ca3af; font-size:0.75rem;">${t.desc}</p>
-    </div>
-  `).join('');
+    // Click nos cards — seleciona sem salvar
+    container.querySelectorAll('.template-card').forEach(card => {
+      card.onclick = () => {
+        selectedTheme = card.dataset.theme;
+        container.querySelector('#siteTheme').value = selectedTheme;
+        renderTemplateCards(); // re-renderiza com novo estado visual
+      };
 
-  // Click nos cards de template
-  container.querySelectorAll('.template-card').forEach(card => {
-    card.onclick = () => {
-      const theme = card.dataset.theme;
-      container.querySelector('#siteTheme').value = theme;
+      card.onmouseenter = () => {
+        if (card.dataset.theme !== selectedTheme) {
+          card.style.borderColor = '#60a5fa';
+          card.style.transform = 'translateY(-2px)';
+        }
+      };
+      card.onmouseleave = () => {
+        if (card.dataset.theme !== selectedTheme) {
+          card.style.borderColor = '#374151';
+          card.style.transform = 'translateY(0)';
+        }
+      };
+    });
+  }
 
-      // Atualizar visual dos cards
-      container.querySelectorAll('.template-card').forEach(c => {
-        c.style.borderColor = '#374151';
-        const badge = c.querySelector('div[style*="✓ Ativo"]');
-        if (badge) badge.remove();
-      });
-      card.style.borderColor = '#2563eb';
-      card.insertAdjacentHTML('afterbegin', '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; font-size:0.75rem; font-weight:600;">✓ Ativo</div>');
-    };
-
-    // Hover effect
-    card.onmouseenter = () => {
-      if (card.dataset.theme !== siteTheme) {
-        card.style.borderColor = '#60a5fa';
-        card.style.transform = 'translateY(-2px)';
-      }
-    };
-    card.onmouseleave = () => {
-      if (card.dataset.theme !== siteTheme) {
-        card.style.borderColor = '#374151';
-        card.style.transform = 'translateY(0)';
-      }
-    };
-  });
-
-  container.querySelector('#siteTheme').value = siteTheme || 'elegante';
+  renderTemplateCards();
+  container.querySelector('#siteTheme').value = selectedTheme;
 
   // Status Toggle
   const toggle = container.querySelector('#siteEnabledToggle');
@@ -261,9 +287,10 @@ export async function renderMeuSite(container) {
     await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
   };
 
-  // Links - usar _tenant do URL atual ou 'fs' como fallback
-  const currentTenant = new URLSearchParams(window.location.search).get('_tenant') || 'fs';
-  const siteUrl = `${window.location.origin}/site?_tenant=${currentTenant}`;
+  // Links
+  const siteUrl = orgSlug
+    ? `${window.location.origin}/site?_tenant=${orgSlug}`
+    : `${window.location.origin}/site`;
   container.querySelector('#viewSiteLink').href = siteUrl;
   container.querySelector('#copySiteLink').onclick = () => {
     navigator.clipboard.writeText(siteUrl);
@@ -308,7 +335,6 @@ export async function renderMeuSite(container) {
   });
 
   // --- GERAL ---
-  container.querySelector('#siteTheme').value = siteTheme || 'elegante';
   container.querySelector('#siteTitle').value = siteConfig.title || '';
   container.querySelector('#siteDesc').value = siteConfig.description || '';
   container.querySelector('#heroTitle').value = siteConfig.heroTitle || '';
@@ -327,8 +353,9 @@ export async function renderMeuSite(container) {
   };
 
   container.querySelector('#saveGeralBtn').onclick = async () => {
+    const newTheme = container.querySelector('#siteTheme').value;
     const payload = {
-        siteTheme: container.querySelector('#siteTheme').value,
+        siteTheme: newTheme,
         siteConfig: {
             ...siteConfig,
             title: container.querySelector('#siteTitle').value,
@@ -341,7 +368,11 @@ export async function renderMeuSite(container) {
         }
     };
     await apiPut('/api/site/admin/config', payload);
-    alert('Salvo!');
+    // Atualiza siteTheme local para badge "✓ Ativo" ficar correto
+    configData.siteTheme = newTheme;
+    selectedTheme = newTheme;
+    renderTemplateCards();
+    alert('Configurações salvas!');
   };
 
   // --- SOBRE ---
