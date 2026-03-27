@@ -109,38 +109,38 @@ export async function renderPerfil(container) {
 
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:2.5rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Perfil e Identidade Visual</h2>
+      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Perfil e Identidade Visual</h2>
 
       <!-- LOGOTIPO -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
-        <h3 style="font-size:1.25rem; font-weight:600; color:#f3f4f6; margin-bottom:1rem;">Dados do Estúdio</h3>
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Dados do Estúdio</h3>
         <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem;">
           <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Nome do Estúdio</label>
-            <input type="text" id="orgName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${escapeHtml(data.name || '')}">
+            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Nome do Estúdio</label>
+            <input type="text" id="orgName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.name || '')}">
           </div>
           <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Email de Contato</label>
-            <input type="email" id="orgEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${escapeHtml(data.email || '')}">
+            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Email de Contato</label>
+            <input type="email" id="orgEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.email || '')}">
           </div>
           <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Telefone / WhatsApp</label>
-            <input type="text" id="orgWhatsapp" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${escapeHtml(data.whatsapp || '')}">
+            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Telefone / WhatsApp</label>
+            <input type="text" id="orgWhatsapp" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.whatsapp || '')}">
           </div>
           <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Website</label>
-            <input type="text" id="orgWebsite" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${escapeHtml(data.website || '')}">
+            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Website</label>
+            <input type="text" id="orgWebsite" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.website || '')}">
           </div>
         </div>
       </div>
 
       <!-- LOGOTIPO -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
-        <h3 style="font-size:1.25rem; font-weight:600; color:#f3f4f6; margin-bottom:1rem;">Logotipo</h3>
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Logotipo</h3>
         <div style="display:flex; align-items:center; gap:1.5rem;">
             <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px; max-width:150px; background:white; padding:5px; border-radius:4px; object-fit: contain;">
             <div>
-                <label style="background:#374151; color:white; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer;">
+                <label style="background:var(--bg-hover); color:white; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer;">
                     Enviar Logo
                     <input type="file" id="logoUpload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
                 </label>
@@ -150,46 +150,46 @@ export async function renderPerfil(container) {
       </div>
 
       <!-- WATERMARK -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
-        <h3 style="font-size:1.25rem; font-weight:600; color:#f3f4f6; margin-bottom:1rem;">Marca D'água</h3>
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Marca D'água</h3>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
             <!-- Coluna de Configurações -->
             <div style="display:flex; flex-direction:column; gap:1.5rem;">
                 <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Tipo</label>
+                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Tipo</label>
                     <div style="display:flex; gap:1rem;">
-                        <label style="color:#f3f4f6;"><input type="radio" name="watermarkType" value="text" ${data.watermarkType === 'text' ? 'checked' : ''}> Texto</label>
-                        <label style="color:#f3f4f6;"><input type="radio" name="watermarkType" value="logo" ${data.watermarkType === 'logo' ? 'checked' : ''}> Logo</label>
+                        <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="text" ${data.watermarkType === 'text' ? 'checked' : ''}> Texto</label>
+                        <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="logo" ${data.watermarkType === 'logo' ? 'checked' : ''}> Logo</label>
                     </div>
                 </div>
                 <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Texto da Marca D'água</label>
-                    <input type="text" id="watermarkText" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${escapeHtml(data.watermarkText || '')}" placeholder="Padrão: Nome do Estúdio">
+                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Texto da Marca D'água</label>
+                    <input type="text" id="watermarkText" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.watermarkText || '')}" placeholder="Padrão: Nome do Estúdio">
                 </div>
                 <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Opacidade (${data.watermarkOpacity || 15}%)</label>
+                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Opacidade (${data.watermarkOpacity || 15}%)</label>
                     <input type="range" id="watermarkOpacity" min="5" max="50" value="${data.watermarkOpacity || 15}" style="width:100%;">
                 </div>
                 <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Posição</label>
+                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Posição</label>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                         ${positionOptions.map(opt => `
-                            <label style="color:#f3f4f6; font-size:0.875rem;"><input type="radio" name="watermarkPosition" value="${opt.value}" ${data.watermarkPosition === opt.value ? 'checked' : ''}> ${opt.label}</label>
+                            <label style="color:var(--text-primary); font-size:0.875rem;"><input type="radio" name="watermarkPosition" value="${opt.value}" ${data.watermarkPosition === opt.value ? 'checked' : ''}> ${opt.label}</label>
                         `).join('')}
                     </div>
                 </div>
                 <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Tamanho</label>
+                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Tamanho</label>
                     <div style="display:flex; gap:1rem;">
                          ${sizeOptions.map(opt => `
-                            <label style="color:#f3f4f6;"><input type="radio" name="watermarkSize" value="${opt.value}" ${data.watermarkSize === opt.value ? 'checked' : ''}> ${opt.label}</label>
+                            <label style="color:var(--text-primary);"><input type="radio" name="watermarkSize" value="${opt.value}" ${data.watermarkSize === opt.value ? 'checked' : ''}> ${opt.label}</label>
                         `).join('')}
                     </div>
                 </div>
             </div>
             <!-- Coluna de Preview -->
             <div>
-                <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:#d1d5db;">Preview</label>
+                <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Preview</label>
                 <div id="watermarkPreview" style="position:relative; width:100%; aspect-ratio: 4/3; background:#555; border-radius:0.375rem; overflow:hidden;">
                     <img src="${PREVIEW_IMAGE}" style="width:100%; height:100%; object-fit:cover;">
                     <div class="watermark-overlay"></div>
@@ -200,7 +200,7 @@ export async function renderPerfil(container) {
 
       <!-- BOTAO SALVAR -->
       <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
-        <button id="saveProfileBtn" style="background:#2563eb; color:white; padding:0.75rem 2rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+        <button id="saveProfileBtn" style="background:var(--accent); color:white; padding:0.75rem 2rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
             Salvar Alterações
         </button>
       </div>

@@ -3,19 +3,19 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 
 const pal = {
-  bg: '#111827',
-  card: '#1f2937',
-  input: '#111827',
-  border: '#374151',
-  text: '#f3f4f6',
-  text2: '#d1d5db',
-  text3: '#9ca3af',
-  primary: '#2563eb',
-  add: '#16a34a',
-  del: '#ef4444',
-  warn: '#d97706',
+  bg: 'var(--bg-base)',
+  card: 'var(--bg-surface)',
+  input: 'var(--bg-elevated)',
+  border: 'var(--border)',
+  text: 'var(--text-primary)',
+  text2: 'var(--text-secondary)',
+  text3: 'var(--text-muted)',
+  primary: 'var(--accent)',
+  add: 'var(--green)',
+  del: 'var(--red)',
+  warn: 'var(--yellow)',
   success: '#34d399',
-  error: '#f87171',
+  error: 'var(--red)',
 };
 
 const STATUS = {
