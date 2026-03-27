@@ -63,24 +63,27 @@ async function renderSiteContent(container, builderTabsEl) {
         </style>
       </div>
 
-      <!-- Tabs de Navegação Interna -->
-      <div style="display:flex; gap:0.5rem; border-bottom:1px solid #374151; padding-bottom:0.5rem; overflow-x:auto;">
-        <button class="sub-tab-btn active" data-target="config-geral" style="background:none; border:none; color:#f3f4f6; padding:0.5rem 1rem; cursor:pointer; border-bottom:2px solid #2563eb;">Geral</button>
-        <button class="sub-tab-btn" data-target="config-secoes" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Seções</button>
-        <button class="sub-tab-btn" data-target="config-hero" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Hero</button>
-        <button class="sub-tab-btn" data-target="config-sobre" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Sobre</button>
-        <button class="sub-tab-btn" data-target="config-portfolio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Portfólio</button>
-        <button class="sub-tab-btn" data-target="config-servicos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Serviços</button>
-        <button class="sub-tab-btn" data-target="config-depoimentos" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Depoimentos</button>
-        <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Álbuns</button>
-        <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Estúdio</button>
-        <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Contato</button>
-        <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
-        <button class="sub-tab-btn" data-target="config-personalizar" style="background:none; border:none; color:#c084fc; padding:0.5rem 1rem; cursor:pointer; font-weight:600;">✦ Personalizar</button>
-      </div>
+      <!-- Layout: nav vertical + conteúdo -->
+      <div style="display:flex; gap:0; flex:1; min-height:0;">
 
-      <!-- Conteúdo das Abas -->
-      <div id="subTabContent">
+        <!-- Nav vertical -->
+        <div style="width:110px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid #374151; padding-right:0.5rem;">
+          <button class="sub-tab-btn active" data-target="config-geral" style="background:#1e3a5f; border:none; color:#93c5fd; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left; font-weight:600;">🎨 Geral</button>
+          <button class="sub-tab-btn" data-target="config-secoes" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📋 Seções</button>
+          <button class="sub-tab-btn" data-target="config-hero" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">🖼️ Hero</button>
+          <button class="sub-tab-btn" data-target="config-sobre" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">👤 Sobre</button>
+          <button class="sub-tab-btn" data-target="config-portfolio" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📷 Portfólio</button>
+          <button class="sub-tab-btn" data-target="config-servicos" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">💼 Serviços</button>
+          <button class="sub-tab-btn" data-target="config-depoimentos" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">⭐ Depoimentos</button>
+          <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📁 Álbuns</button>
+          <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">🏠 Estúdio</button>
+          <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📞 Contato</button>
+          <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">❓ FAQ</button>
+          <button class="sub-tab-btn" data-target="config-personalizar" style="background:none; border:none; color:#c084fc; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left; font-weight:600;">✦ Personalizar</button>
+        </div>
+
+        <!-- Conteúdo das Abas -->
+        <div id="subTabContent" style="flex:1; min-width:0; padding-left:0.75rem; overflow-y:auto;">
         <!-- Geral -->
         <div id="config-geral" class="sub-tab-content">
             <div style="display:flex; flex-direction:column; gap:2rem;">
@@ -154,6 +157,9 @@ async function renderSiteContent(container, builderTabsEl) {
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
       </div>
+      <!-- fim subTabContent -->
+      </div>
+      <!-- fim layout flex nav+conteudo -->
     </div>
   `;
 
@@ -511,9 +517,14 @@ async function renderSiteContent(container, builderTabsEl) {
   const contents = container.querySelectorAll('.sub-tab-content');
 
   function doSwitchSubTab(btn, targetContainer) {
-    tabs.forEach(t => { t.style.borderBottom = 'none'; t.style.color = '#9ca3af'; });
-    btn.style.borderBottom = '2px solid #2563eb';
-    btn.style.color = '#f3f4f6';
+    tabs.forEach(t => {
+      t.style.background = 'none';
+      t.style.color = t.dataset.target === 'config-personalizar' ? '#c084fc' : '#9ca3af';
+      t.style.fontWeight = t.dataset.target === 'config-personalizar' ? '600' : 'normal';
+    });
+    btn.style.background = '#1e3a5f';
+    btn.style.color = '#93c5fd';
+    btn.style.fontWeight = '600';
     contents.forEach(c => c.style.display = 'none');
     targetContainer.style.display = 'block';
 
@@ -549,31 +560,9 @@ async function renderSiteContent(container, builderTabsEl) {
     };
   });
 
-  // Builder mode: mirror sub-tab nav into #builder-props-tabs
+  // Builder mode: nav vertical já está embutido no painel, limpar área de tabs do header
   if (isBuilder && builderTabsEl) {
-    // Hide the inline nav row (it stays in the DOM but is not needed visually)
-    const inlineNav = container.querySelector('div[style*="border-bottom:1px solid #374151"][style*="overflow-x:auto"]');
-    if (inlineNav) inlineNav.style.display = 'none';
-
-    // Build compact tab buttons in the builder panel header
     builderTabsEl.innerHTML = '';
-    container.querySelectorAll('.sub-tab-btn').forEach(btn => {
-      const label = btn.textContent.trim();
-      const target = btn.dataset.target;
-      const bBtn = document.createElement('button');
-      bBtn.className = 'builder-tab-btn' + (btn.classList.contains('active') ? ' active' : '');
-      bBtn.textContent = label;
-      bBtn.dataset.target = target;
-      bBtn.onclick = () => {
-        // Delegate click to the hidden sub-tab button
-        const original = container.querySelector(`.sub-tab-btn[data-target="${target}"]`);
-        if (original) original.click();
-        // Update active state on builder tabs
-        builderTabsEl.querySelectorAll('.builder-tab-btn').forEach(b => b.classList.remove('active'));
-        bBtn.classList.add('active');
-      };
-      builderTabsEl.appendChild(bBtn);
-    });
   }
 
   // --- GERAL ---
