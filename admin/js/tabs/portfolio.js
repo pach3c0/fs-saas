@@ -35,9 +35,13 @@ export async function renderPortfolio(container) {
         <img src="${imgSrc}" alt="Portfolio ${idx + 1}"
           style="width:100%; height:100%; object-fit:cover; pointer-events:none; object-position:${posX}% ${posY}%; transform:scale(${scale}); transform-origin:${posX}% ${posY}%;">
         <div class="photo-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
-          <button onclick="event.stopPropagation(); openPhotoEditor(${idx})" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Ajustar posição">
+          <button onclick="event.stopPropagation(); openPhotoEditor(${idx})" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Editar foto">
             ✏️
           </button>
+          ${p.imageOriginal && p.imageOriginal !== p.image ? `
+          <button onclick="event.stopPropagation(); restorePortfolioOriginal(${idx})" style="background:#f59e0b; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Restaurar original">
+            ↩️
+          </button>` : ''}
           <button onclick="event.stopPropagation(); deletePortfolioImage(${idx})" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
             🗑️
           </button>
@@ -94,7 +98,7 @@ export async function renderPortfolio(container) {
       try {
         showUploadProgress('portfolioUploadProgress', Math.round((addedCount / files.length) * 100));
         const result = await uploadImage(file, appState.authToken);
-        portfolio.push({ image: result.url, posX: 50, posY: 50, scale: 1 });
+        portfolio.push({ image: result.url, imageOriginal: result.url, posX: 50, posY: 50, scale: 1 });
         addedCount++;
       } catch (error) {
         errors.push(error.message);
@@ -153,9 +157,28 @@ export async function renderPortfolio(container) {
     draggedIndex = null;
   });
 
+  // Restaurar imagem original
+  window.restorePortfolioOriginal = async (idx) => {
+    const photo = portfolio[idx];
+    if (!photo.imageOriginal) return;
+    const ok = await window.showConfirm?.('Restaurar a imagem original? A versão editada será descartada.', {
+      title: 'Restaurar Original',
+      confirmText: 'Restaurar',
+      cancelText: 'Cancelar',
+    }) ?? confirm('Restaurar a imagem original?');
+    if (!ok) return;
+    portfolio[idx] = { ...portfolio[idx], image: photo.imageOriginal };
+    appState.appData.portfolio = portfolio;
+    await saveAppData('portfolio', portfolio, true);
+    await syncPortfolioToSite(portfolio);
+    renderPortfolio(container);
+    window.showToast?.('Imagem original restaurada!', 'success');
+  };
+
   // Delete foto
   window.deletePortfolioImage = async (idx) => {
-    if (!confirm('Remover esta foto da galeria?')) return;
+    const ok = await window.showConfirm?.('Remover esta foto da galeria?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover esta foto da galeria?');
+    if (!ok) return;
     portfolio.splice(idx, 1);
     appState.appData.portfolio = portfolio;
     await saveAppData('portfolio', portfolio, true);
@@ -169,7 +192,9 @@ export async function renderPortfolio(container) {
     setupPhotoEditor(container, 'photoEditorModal', photo.image,
       { scale: photo.scale, posX: photo.posX, posY: photo.posY },
       async (pos) => {
-        portfolio[idx] = { ...portfolio[idx], image: pos.url };
+        // Preserva imageOriginal na primeira edição; nas seguintes mantém o original já salvo
+        const original = portfolio[idx].imageOriginal || portfolio[idx].image;
+        portfolio[idx] = { ...portfolio[idx], image: pos.url, imageOriginal: original };
         appState.appData.portfolio = portfolio;
         await saveAppData('portfolio', portfolio, true);
         await syncPortfolioToSite(portfolio);
