@@ -10,8 +10,20 @@ async function syncFaqToSite(faqs) {
   await apiPut('/api/site/admin/config', { siteContent: { faq: faqs } });
 }
 
+const DEFAULT_FAQS = [
+  { question: 'Quanto tempo leva para receber as fotos editadas?', answer: 'O prazo de entrega das fotos editadas é de 15 a 30 dias úteis após a sessão, dependendo do tipo e volume de imagens.' },
+  { question: 'Quantas fotos recebo no pacote?', answer: 'A quantidade de fotos varia conforme o pacote contratado. Consulte nossa tabela de pacotes para mais detalhes.' },
+  { question: 'Como funciona a seleção de fotos?', answer: 'Após a sessão, você receberá um link privado para acessar todas as fotos e fazer a seleção das suas favoritas dentro do prazo combinado.' },
+  { question: 'Vocês atendem em qual região?', answer: 'Atendemos em toda a região e também aceitamos convites para outras cidades mediante consulta de disponibilidade e deslocamento.' },
+  { question: 'É possível remarcar a sessão?', answer: 'Sim! Remarcações podem ser feitas com até 48 horas de antecedência sem custo adicional. Após esse prazo, pode haver cobrança de taxa.' },
+  { question: 'Qual é a política de cancelamento?', answer: 'Em caso de cancelamento com mais de 7 dias de antecedência, devolvemos o sinal. Cancelamentos com menos de 7 dias têm o sinal retido.' },
+];
+
 export async function renderFaq(container) {
-  const faqData = appState.appData.faq || { faqs: [] };
+  let faqData = appState.appData.faq || { faqs: [] };
+  if (!faqData.faqs || faqData.faqs.length === 0) {
+    faqData = { faqs: DEFAULT_FAQS.map(f => ({ id: generateId(), ...f })) };
+  }
 
   let html = `
     <div style="display:flex; flex-direction:column; gap:1rem;">
@@ -50,7 +62,8 @@ export async function renderFaq(container) {
   container.innerHTML = html;
 
   window.deleteFaq = async (index) => {
-    if (!confirm('Remover esta pergunta?')) return;
+    const ok = await window.showConfirm?.('Remover esta pergunta?', { confirmText: 'Remover', danger: true }) ?? true;
+    if (!ok) return;
     faqData.faqs.splice(index, 1);
     appState.appData.faq = faqData;
     await saveAppData('faq', faqData, true);
