@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Organization = require('../models/Organization');
+
+const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 const { authenticateToken } = require('../middleware/auth');
 const { createUploader } = require('../utils/multerConfig');
 const sharp = require('sharp');
@@ -24,9 +26,9 @@ router.get('/site/config', async (req, res) => {
       return res.status(404).json({ error: 'Organização não encontrada' });
     }
 
-    // siteEnabled null/undefined (docs antigos sem o campo) → true por padrão
     const result = org.toObject();
     if (result.siteEnabled == null) result.siteEnabled = true;
+    if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
 
     res.json(result);
   } catch (error) {
@@ -39,7 +41,9 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId)
       .select('siteEnabled siteTheme siteConfig siteSections siteContent siteStyle');
-    res.json(org);
+    const result = org ? org.toObject() : {};
+    if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
