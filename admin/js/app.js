@@ -425,8 +425,8 @@ async function postLoginSetup() {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'flex';
 
-  // Carregar slug da organização para links de site
-  loadOrgSlug();
+  // Carregar slug da organização para links de site (await garante slug pronto antes de abrir abas)
+  await loadOrgSlug();
   loadSidebarStorage();
 
   startNotificationPolling();
