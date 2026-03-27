@@ -915,9 +915,14 @@ async function renderSiteContent(container, builderTabsEl) {
       });
     };
 
+    // ── Contador para nomes automáticos ──
+    let _textCount = heroLayers.filter(l => (l.type || 'text') === 'text').length;
+    let _imgCount = heroLayers.filter(l => l.type === 'image').length;
+
     // ── Adicionar texto ──
     heroContainer.querySelector('#hcAddText').onclick = () => {
-      const newLayer = { id: 'l_' + Date.now(), type: 'text', text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true, rotation: 0, opacity: 100 };
+      _textCount++;
+      const newLayer = { id: 'l_' + Date.now(), type: 'text', name: 'Texto ' + _textCount, text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true, rotation: 0, opacity: 100 };
       canvasEditor.addLayer(newLayer);
       renderLayerList();
     };
@@ -929,40 +934,92 @@ async function renderSiteContent(container, builderTabsEl) {
       const file = e.target.files[0];
       if (!file) return;
       try {
+        _imgCount++;
         const result = await uploadImage(file, appState.authToken);
-        const newLayer = { id: 'l_' + Date.now(), type: 'image', url: result.url, x: 50, y: 50, width: 25, height: 30, rotation: 0, flipH: false, flipV: false, opacity: 100, borderRadius: 0 };
+        const newLayer = { id: 'l_' + Date.now(), type: 'image', name: 'Imagem ' + _imgCount, url: result.url, x: 50, y: 50, width: 25, height: 30, rotation: 0, flipH: false, flipV: false, opacity: 100, borderRadius: 0 };
         canvasEditor.addLayer(newLayer);
         renderLayerList();
         e.target.value = '';
       } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
     };
 
-    // ── Renderizar lista de layers ──
+    // ── Renderizar lista de layers (com drag-to-reorder e rename) ──
+    // Ordem: topo da lista = frente (z-index maior), baixo = atrás
+    let _dragLayerId = null;
+
     const renderLayerList = () => {
       const list = heroContainer.querySelector('#hcLayerList');
       if (!list) return;
       const layers = canvasEditor.getLayers();
-      list.innerHTML = layers.length === 0
-        ? '<div style="padding:0.5rem 0.75rem; font-size:0.75rem; color:#4b5563; text-align:center;">Nenhuma camada</div>'
-        : [...layers].reverse().map(l => {
-          const icon = (l.type === 'image') ? '🖼️' : '✏️';
-          const name = (l.type === 'image') ? 'Imagem' : (l.text || '(vazio)');
-          const isActive = canvasEditor.selectedId === l.id;
-          return `<div class="hc-layer-item ${isActive ? 'active' : ''}" data-layer-id="${l.id}">
-            <span class="layer-icon">${icon}</span>
-            <span class="layer-name">${name}</span>
-            <span class="layer-del" data-del-id="${l.id}">✕</span>
-          </div>`;
-        }).join('');
+      if (layers.length === 0) {
+        list.innerHTML = '<div style="padding:0.5rem 0.75rem; font-size:0.75rem; color:#4b5563; text-align:center;">Nenhuma camada</div>';
+        return;
+      }
 
-      // Clicks nos items
+      // Topo da lista = última do array (z-index mais alto = frente)
+      const reversed = [...layers].reverse();
+      list.innerHTML = reversed.map((l, idx) => {
+        const icon = (l.type === 'image') ? '🖼️' : '✏️';
+        const displayName = l.name || ((l.type === 'image') ? 'Imagem' : (l.text?.substring(0, 20) || '(vazio)'));
+        const isActive = canvasEditor.selectedId === l.id;
+        const pos = idx === 0 ? 'Frente' : idx === reversed.length - 1 ? 'Fundo' : '';
+        return `<div class="hc-layer-item ${isActive ? 'active' : ''}" data-layer-id="${l.id}" draggable="true"
+          style="cursor:grab; position:relative;">
+          <span style="cursor:grab; color:#4b5563; font-size:0.7rem; padding:0 2px;" title="Arrastar para reordenar">⠿</span>
+          <span class="layer-icon">${icon}</span>
+          <span class="layer-name" data-rename-id="${l.id}" title="Clique duplo para renomear">${displayName}</span>
+          ${pos ? `<span style="font-size:0.55rem; color:#6b7280; background:#1a1f2e; padding:1px 4px; border-radius:3px;">${pos}</span>` : ''}
+          <span class="layer-del" data-del-id="${l.id}" title="Remover">✕</span>
+        </div>`;
+      }).join('');
+
+      // ── Clicks ──
       list.querySelectorAll('.hc-layer-item').forEach(item => {
         item.onclick = (e) => {
-          if (e.target.closest('.layer-del')) return;
+          if (e.target.closest('.layer-del') || e.target.closest('.layer-name')?.isContentEditable) return;
           canvasEditor.selectLayer(item.dataset.layerId);
           renderLayerList();
         };
       });
+
+      // ── Double-click para renomear ──
+      list.querySelectorAll('.layer-name[data-rename-id]').forEach(nameEl => {
+        nameEl.ondblclick = (e) => {
+          e.stopPropagation();
+          nameEl.contentEditable = 'true';
+          nameEl.style.outline = '1px solid #3b82f6';
+          nameEl.style.borderRadius = '2px';
+          nameEl.style.padding = '0 2px';
+          nameEl.style.cursor = 'text';
+          nameEl.style.background = '#1f2937';
+          nameEl.focus();
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+
+          const finish = () => {
+            nameEl.contentEditable = 'false';
+            nameEl.style.outline = '';
+            nameEl.style.padding = '';
+            nameEl.style.cursor = '';
+            nameEl.style.background = '';
+            const newName = nameEl.textContent.trim();
+            if (newName) {
+              canvasEditor.updateLayer(nameEl.dataset.renameId, { name: newName });
+            }
+            nameEl.removeEventListener('blur', finish);
+          };
+          nameEl.addEventListener('blur', finish);
+          nameEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+            if (ev.key === 'Escape') { ev.preventDefault(); nameEl.blur(); }
+          });
+        };
+      });
+
+      // ── Deletar ──
       list.querySelectorAll('.layer-del').forEach(del => {
         del.onclick = async (e) => {
           e.stopPropagation();
@@ -971,6 +1028,53 @@ async function renderSiteContent(container, builderTabsEl) {
           canvasEditor.removeLayer(del.dataset.delId);
           renderLayerList();
           renderPropsForLayer(null);
+        };
+      });
+
+      // ── Drag-to-reorder ──
+      list.querySelectorAll('.hc-layer-item[draggable]').forEach(item => {
+        item.ondragstart = (e) => {
+          _dragLayerId = item.dataset.layerId;
+          item.style.opacity = '0.4';
+          e.dataTransfer.effectAllowed = 'move';
+        };
+        item.ondragend = () => {
+          item.style.opacity = '';
+          _dragLayerId = null;
+          list.querySelectorAll('.hc-layer-item').forEach(el => el.style.borderTop = '');
+        };
+        item.ondragover = (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          // Indicar posição de drop
+          list.querySelectorAll('.hc-layer-item').forEach(el => el.style.borderTop = '');
+          item.style.borderTop = '2px solid #3b82f6';
+        };
+        item.ondragleave = () => {
+          item.style.borderTop = '';
+        };
+        item.ondrop = (e) => {
+          e.preventDefault();
+          item.style.borderTop = '';
+          if (!_dragLayerId || _dragLayerId === item.dataset.layerId) return;
+
+          // Recalcular a nova ordem
+          // A lista visual é invertida (topo = frente), precisamos converter para a ordem do array
+          const currentLayers = canvasEditor.getLayers();
+          const reversedIds = [...currentLayers].reverse().map(l => l.id);
+
+          // Mover _dragLayerId para antes de item.dataset.layerId na lista visual
+          const fromIdx = reversedIds.indexOf(_dragLayerId);
+          const toIdx = reversedIds.indexOf(item.dataset.layerId);
+          if (fromIdx === -1 || toIdx === -1) return;
+
+          reversedIds.splice(fromIdx, 1);
+          reversedIds.splice(toIdx, 0, _dragLayerId);
+
+          // Reverter de volta para a ordem do array (index 0 = fundo, último = frente)
+          const newOrder = [...reversedIds].reverse();
+          canvasEditor.reorderLayers(newOrder);
+          renderLayerList();
         };
       });
     };
