@@ -220,6 +220,24 @@
         </div>
     </div>
 
+    <!-- Toast notifications -->
+    <div id="saasToastContainer" style="position:fixed; top:1.25rem; right:1.25rem; z-index:9999; display:flex; flex-direction:column; gap:0.5rem; pointer-events:none;"></div>
+
+    <!-- Modal de confirmação genérico -->
+    <div class="modal-overlay" id="saasConfirmModal">
+        <div class="modal" style="width:28rem;">
+            <div class="modal-header">
+                <h2 id="saasConfirmTitle" style="font-size:1rem;">Confirmar</h2>
+                <button class="modal-close" onclick="saasConfirmResolve(false)">&times;</button>
+            </div>
+            <p id="saasConfirmMsg" style="color:#94a3b8; font-size:0.875rem; margin:0 0 1.25rem;"></p>
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+                <button class="btn-cancel" onclick="saasConfirmResolve(false)">Cancelar</button>
+                <button id="saasConfirmOkBtn" onclick="saasConfirmResolve(true)" style="padding:0.4rem 1rem; border-radius:6px; border:none; font-weight:600; cursor:pointer;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de detalhes -->
     <div class="modal-overlay" id="detailModal">
         <div class="modal">

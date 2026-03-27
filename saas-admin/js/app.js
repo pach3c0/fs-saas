@@ -7,6 +7,40 @@ let authToken = localStorage.getItem('saas_token') || '';
 let userEmail = localStorage.getItem('saas_email') || '';
 
 // ============================================================================
+// TOAST & CONFIRM
+// ============================================================================
+
+function saasToast(msg, type = 'info') {
+  const container = document.getElementById('saasToastContainer');
+  if (!container) return;
+  const colors = { success: '#22c55e', error: '#f87171', warning: '#facc15', info: '#60a5fa' };
+  const toast = document.createElement('div');
+  toast.style.cssText = `background:#1e293b; border:1px solid ${colors[type] || colors.info}; color:#f1f5f9; padding:0.75rem 1rem; border-radius:8px; font-size:0.875rem; pointer-events:auto; box-shadow:0 4px 12px rgba(0,0,0,0.4); max-width:320px; border-left:3px solid ${colors[type] || colors.info};`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+let saasConfirmResolve = null;
+function saasConfirm(msg, { title = 'Confirmar', confirmText = 'Confirmar', danger = false } = {}) {
+  return new Promise(resolve => {
+    saasConfirmResolve = (val) => {
+      document.getElementById('saasConfirmModal').classList.remove('active');
+      saasConfirmResolve = null;
+      resolve(val);
+    };
+    document.getElementById('saasConfirmTitle').textContent = title;
+    document.getElementById('saasConfirmMsg').textContent = msg;
+    const okBtn = document.getElementById('saasConfirmOkBtn');
+    okBtn.textContent = confirmText;
+    okBtn.style.background = danger ? '#ef4444' : '#3b82f6';
+    okBtn.style.color = 'white';
+    document.getElementById('saasConfirmModal').classList.add('active');
+  });
+}
+window.saasConfirmResolve = (val) => saasConfirmResolve?.(val);
+
+// ============================================================================
 // AUTH
 // ============================================================================
 
@@ -229,22 +263,24 @@ async function loadOrganizations() {
 // ============================================================================
 
 window.approveOrg = async (id, name) => {
-  if (!confirm(`Aprovar a organizacao "${name}"?`)) return;
+  if (!await saasConfirm(`Aprovar a organização "${name}"?`, { title: 'Aprovar', confirmText: 'Aprovar' })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/approve`);
+    saasToast('Organização aprovada!', 'success');
     await loadDashboard();
   } catch (err) {
-    alert('Erro: ' + err.message);
+    saasToast('Erro: ' + err.message, 'error');
   }
 };
 
 window.deactivateOrg = async (id, name) => {
-  if (!confirm(`Desativar a organizacao "${name}"? O site dela ficara offline.`)) return;
+  if (!await saasConfirm(`Desativar a organização "${name}"? O site dela ficará offline.`, { title: 'Desativar', confirmText: 'Desativar', danger: true })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/deactivate`);
+    saasToast('Organização desativada.', 'warning');
     await loadDashboard();
   } catch (err) {
-    alert('Erro: ' + err.message);
+    saasToast('Erro: ' + err.message, 'error');
   }
 };
 
@@ -347,7 +383,7 @@ window.showDetails = async (id) => {
           btn.disabled = false;
         }, 2000);
       } catch (err) {
-        alert('Erro: ' + err.message);
+        saasToast('Erro: ' + err.message, 'error');
         btn.textContent = 'Salvar';
         btn.disabled = false;
       }
@@ -427,23 +463,25 @@ async function loadTrash() {
 }
 
 window.trashOrg = async (id, name) => {
-  if (!confirm(`Mover "${name}" para a lixeira?`)) return;
+  if (!await saasConfirm(`Mover "${name}" para a lixeira?`, { title: 'Mover para Lixeira', confirmText: 'Mover', danger: true })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/trash`);
+    saasToast(`"${name}" movida para a lixeira.`, 'warning');
     await loadDashboard();
   } catch (err) {
-    alert('Erro: ' + err.message);
+    saasToast('Erro: ' + err.message, 'error');
   }
 };
 
 window.restoreOrg = async (id, name) => {
-  if (!confirm(`Restaurar "${name}"? A organizacao ficara ativa novamente.`)) return;
+  if (!await saasConfirm(`Restaurar "${name}"? A organização ficará ativa novamente.`, { title: 'Restaurar', confirmText: 'Restaurar' })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/restore`);
+    saasToast(`"${name}" restaurada com sucesso!`, 'success');
     await loadTrash();
     await loadDashboard();
   } catch (err) {
-    alert('Erro: ' + err.message);
+    saasToast('Erro: ' + err.message, 'error');
   }
 };
 
@@ -480,11 +518,12 @@ window.executePermanentDelete = async () => {
     document.getElementById('confirmDeleteBtn').textContent = 'Excluindo...';
     document.getElementById('confirmDeleteBtn').disabled = true;
     await apiRequest('DELETE', `/api/admin/organizations/${pendingDeleteId}`);
+    saasToast(`"${pendingDeleteName}" excluída definitivamente.`, 'success');
     closeConfirmDelete();
     await loadTrash();
     await loadMetrics();
   } catch (err) {
-    alert('Erro: ' + err.message);
+    saasToast('Erro: ' + err.message, 'error');
   } finally {
     document.getElementById('confirmDeleteBtn').textContent = 'Excluir Definitivamente';
   }
@@ -789,7 +828,7 @@ async function saveLanding() {
       btn.disabled = false;
     }, 2000);
   } catch (err) {
-    alert('Erro ao salvar: ' + err.message);
+    saasToast('Erro ao salvar: ' + err.message, 'error');
     btn.textContent = 'Salvar tudo';
     btn.disabled = false;
   }
