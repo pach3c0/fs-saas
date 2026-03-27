@@ -515,15 +515,17 @@ async function renderSiteContent(container, builderTabsEl) {
   const contents = container.querySelectorAll('.sub-tab-content');
 
   function doSwitchSubTab(btn, targetContainer) {
-    // Cleanup canvas do hero ao sair da aba
-    if (_heroCanvasEditor && btn.dataset.target !== 'config-hero') {
-      _heroCanvasEditor.destroy();
-      _heroCanvasEditor = null;
-      // Restaurar iframe
-      const iframe = document.getElementById('builder-iframe');
-      const canvasEl = document.getElementById('hero-canvas-container');
+    // Hero canvas: esconder/mostrar (não destruir — o usuário vai e volta)
+    const canvasEl = document.getElementById('hero-canvas-container');
+    const iframe = document.getElementById('builder-iframe');
+    if (btn.dataset.target === 'config-hero') {
+      // Mostrar canvas, esconder iframe
+      if (canvasEl) canvasEl.style.display = 'flex';
+      if (iframe) iframe.style.display = 'none';
+    } else {
+      // Esconder canvas, restaurar iframe
+      if (canvasEl) canvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
-      if (canvasEl) canvasEl.remove();
     }
 
     tabs.forEach(t => {
@@ -647,6 +649,16 @@ async function renderSiteContent(container, builderTabsEl) {
 
   const renderHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
+
+    // Se o canvas já existe, apenas mostrar (não recriar)
+    if (_heroCanvasEditor) {
+      const canvasEl = document.getElementById('hero-canvas-container');
+      const iframe = document.getElementById('builder-iframe');
+      if (canvasEl) canvasEl.style.display = 'flex';
+      if (iframe) iframe.style.display = 'none';
+      return;
+    }
+
     const cfg = siteConfig || {};
     let _heroReady = false;
 
@@ -663,10 +675,6 @@ async function renderSiteContent(container, builderTabsEl) {
     const iframeWrap = document.getElementById('builder-iframe-wrap');
     const iframe = document.getElementById('builder-iframe');
     if (iframe) iframe.style.display = 'none';
-
-    // Remover canvas anterior se existir
-    const oldCanvas = document.getElementById('hero-canvas-container');
-    if (oldCanvas) oldCanvas.remove();
 
     const canvasContainer = document.createElement('div');
     canvasContainer.id = 'hero-canvas-container';
