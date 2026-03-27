@@ -10,6 +10,7 @@ import { renderPortfolio } from './portfolio.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
+import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 
 export async function renderMeuSite(container) {
   // Enter builder mode — render properties into the builder panel
@@ -640,271 +641,478 @@ async function renderSiteContent(container, builderTabsEl) {
   };
 
   // --- HERO ---
-  // Renderizar Hero Studio completo
+  // Renderizar Hero Studio completo — sistema de layers livres
   const renderHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
     const cfg = siteConfig || {};
 
-    // Estilos CSS injetados
-    const styles = `
-      <style>
-        #config-hero .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        #config-hero .custom-scrollbar::-webkit-scrollbar-track { background: #111827; }
-        #config-hero .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-        #config-hero .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-        #config-hero details > summary { list-style: none; outline: none; }
-        #config-hero details > summary::-webkit-details-marker { display: none; }
-        #config-hero details[open] > summary { border-bottom: 1px solid #374151; }
-        #config-hero .range-group { display: flex; align-items: center; gap: 0.5rem; }
-        #config-hero .range-label { font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; margin-bottom: 0.25rem; }
-        #config-hero .range-val { font-size: 0.75rem; font-family: monospace; color: #f3f4f6; min-width: 3rem; text-align: right; }
-      </style>
-    `;
+    // Migração: se não há layers, criar a partir dos campos antigos
+    let heroLayers = (cfg.heroLayers && cfg.heroLayers.length > 0)
+      ? cfg.heroLayers.map(l => ({ ...l }))
+      : [];
+    if (heroLayers.length === 0) {
+      if (cfg.heroTitle) heroLayers.push({ id: 'l_' + Date.now(), text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
+      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now()+1), text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
+    }
+
+    const FONTS = [
+      { value: '', label: 'Padrão do Tema' },
+      { value: "'Playfair Display', serif", label: 'Playfair Display' },
+      { value: "'Inter', sans-serif", label: 'Inter' },
+      { value: "'Poppins', sans-serif", label: 'Poppins' },
+      { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+      { value: "'Lato', sans-serif", label: 'Lato' },
+      { value: "Georgia, serif", label: 'Georgia' },
+    ];
 
     heroContainer.innerHTML = `
-      ${styles}
-      <div style="display:flex; height:calc(100vh - 200px); margin:-1rem; overflow:hidden; background:#020617; border-radius:0.5rem; border:1px solid #374151;">
+      <style>
+        #config-hero { height: 100%; }
+        #hs-wrap { display:flex; height:calc(100vh - 200px); margin:-1rem; overflow:hidden; background:#020617; border-radius:0.5rem; border:1px solid #374151; }
+        #hs-sidebar { width:320px; background:#111827; border-right:1px solid #374151; display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto; }
+        #hs-sidebar::-webkit-scrollbar { width:4px; }
+        #hs-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
+        #hs-canvas-wrap { flex:1; background:#020617; display:flex; flex-direction:column; position:relative; }
+        .hs-section { border-bottom:1px solid #1f2937; }
+        .hs-section-head { padding:0.75rem 1rem; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; }
+        .hs-row { padding:0.5rem 1rem; display:flex; flex-direction:column; gap:0.25rem; }
+        .hs-label { font-size:0.7rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+        .hs-input { width:100%; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.8rem; outline:none; box-sizing:border-box; }
+        .hs-input:focus { border-color:#3b82f6; }
+        .hs-range { width:100%; accent-color:#3b82f6; }
+        .hs-range-row { display:flex; align-items:center; gap:0.5rem; }
+        .hs-range-val { font-size:0.7rem; font-family:monospace; color:#9ca3af; min-width:2.5rem; text-align:right; }
+        .hs-btn-add { margin:0.75rem 1rem; background:#1d4ed8; color:white; border:none; border-radius:0.375rem; padding:0.6rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem; }
+        .hs-btn-add:hover { background:#2563eb; }
+        .hs-layer-card { margin:0 0.75rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.5rem; overflow:hidden; }
+        .hs-layer-card.selected { border-color:#3b82f6; }
+        .hs-layer-head { padding:0.5rem 0.75rem; display:flex; align-items:center; gap:0.5rem; cursor:pointer; background:#2d3748; }
+        .hs-layer-head:hover { background:#374151; }
+        .hs-layer-body { padding:0.75rem; display:flex; flex-direction:column; gap:0.6rem; }
+        .hs-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+        .hs-btn-del { background:none; border:none; color:#ef4444; cursor:pointer; font-size:1rem; margin-left:auto; padding:0.1rem 0.3rem; }
+        .hs-save-btn { margin:0.75rem 1rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; padding:0.75rem; font-size:0.875rem; font-weight:700; cursor:pointer; }
+        .hs-save-btn:hover { background:#15803d; }
+        #hs-preview { border:1px solid #374151; border-radius:0.75rem; background:#000; overflow:hidden; position:relative; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); container-type:inline-size; transition:all 0.3s ease; box-sizing:border-box; cursor:crosshair; }
+        .hs-layer-el { position:absolute; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0); padding:0.3rem; box-sizing:border-box; line-height:1.2; }
+        .hs-layer-el:hover { border-color:rgba(255,255,255,0.4); }
+        .hs-layer-el.selected { border-color:#3b82f6 !important; outline:1px solid #3b82f6; }
+        .hs-handle { position:absolute; bottom:-4px; right:-4px; width:10px; height:10px; background:#3b82f6; border-radius:2px; cursor:se-resize; }
+        .hs-prop-float { position:absolute; bottom:1rem; left:50%; transform:translateX(-50%); background:rgba(17,24,39,0.95); border:1px solid #374151; border-radius:0.5rem; padding:0.5rem 0.75rem; display:flex; align-items:center; gap:0.5rem; z-index:30; backdrop-filter:blur(4px); white-space:nowrap; }
+        .hs-prop-float input[type=color] { width:28px; height:28px; border:none; border-radius:4px; cursor:pointer; background:none; padding:0; }
+        .hs-prop-float select { background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.2rem 0.4rem; font-size:0.75rem; }
+        .hs-prop-float input[type=number] { width:3.5rem; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.2rem 0.4rem; font-size:0.75rem; text-align:center; }
+        .hs-prop-btn { background:#374151; border:none; color:#d1d5db; border-radius:0.25rem; padding:0.2rem 0.5rem; cursor:pointer; font-size:0.75rem; font-weight:600; }
+        .hs-prop-btn:hover { background:#4b5563; }
+        .hs-prop-sep { width:1px; height:1.5rem; background:#374151; }
+      </style>
 
+      <div id="hs-wrap">
         <!-- SIDEBAR -->
-        <div class="custom-scrollbar" style="width:350px; background:#111827; border-right:1px solid #374151; display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto;">
-
-          <div style="padding:1.5rem; border-bottom:1px solid #374151; position:sticky; top:0; background:#111827; z-index:10;">
-            <h2 style="font-size:1.25rem; font-weight:bold; color:#f3f4f6;">Hero Studio</h2>
-            <p style="font-size:0.75rem; color:#9ca3af;">Personalize a capa do site</p>
+        <div id="hs-sidebar">
+          <div style="padding:1rem; border-bottom:1px solid #374151; position:sticky; top:0; background:#111827; z-index:10;">
+            <div style="font-size:1rem; font-weight:700; color:#f3f4f6;">Hero Studio</div>
+            <div style="font-size:0.7rem; color:#6b7280; margin-top:0.2rem;">Clique no canvas para adicionar texto</div>
           </div>
 
-          <div style="padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-
-            <!-- 1. TEXTOS -->
-            <details open style="border:1px solid #374151; border-radius:0.5rem; background:#1f2937; overflow:hidden;">
-              <summary style="padding:1rem; cursor:pointer; font-weight:600; color:#d1d5db; display:flex; justify-content:space-between; align-items:center; background:#2d3748;">
-                Textos
-                <span style="font-size:0.75rem;">▼</span>
-              </summary>
-              <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-                <div>
-                  <label class="range-label">Titulo Principal</label>
-                  <input type="text" id="heroStudioTitle" style="width:100%; padding:0.5rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${cfg.heroTitle || ''}">
-                </div>
-                <div>
-                  <label class="range-label">Subtitulo</label>
-                  <input type="text" id="heroStudioSubtitle" style="width:100%; padding:0.5rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" value="${cfg.heroSubtitle || ''}">
-                </div>
+          <!-- IMAGEM -->
+          <div class="hs-section">
+            <div class="hs-section-head">Imagem de Fundo</div>
+            <div class="hs-row" style="gap:0.4rem;">
+              <label style="background:#1d4ed8; color:white; padding:0.5rem; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
+                📁 Nova Foto
+                <input type="file" id="heroImgInput" accept="image/*" style="display:none;">
+              </label>
+              <button id="heroCropBtn" style="background:#374151; color:#d1d5db; padding:0.5rem; border:1px solid #4b5563; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
+                ✂️ Editar / Cortar
+              </button>
+              <div id="heroImgProgress"></div>
+            </div>
+            <div class="hs-row">
+              <div class="hs-label">Zoom</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroScale" min="0.5" max="2" step="0.05" value="${cfg.heroScale ?? 1}">
+                <span class="hs-range-val" id="heroScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(2)}x</span>
               </div>
-            </details>
-
-            <!-- 2. IMAGEM -->
-            <details style="border:1px solid #374151; border-radius:0.5rem; background:#1f2937; overflow:hidden;">
-              <summary style="padding:1rem; cursor:pointer; font-weight:600; color:#d1d5db; display:flex; justify-content:space-between; align-items:center; background:#2d3748;">
-                Imagem
-                <span style="font-size:0.75rem;">▼</span>
-              </summary>
-              <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-                <label style="background:#2563eb; color:white; padding:0.75rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; text-align:center; display:block;">
-                  Substituir Imagem
-                  <input type="file" id="heroStudioImage" accept="image/*" style="display:none;">
-                </label>
-                <div id="heroStudioUploadProgress"></div>
-
-                <div>
-                  <div class="range-group"><label class="range-label" style="flex:1">Zoom</label><span id="heroStudioScaleValue" class="range-val"></span></div>
-                  <input type="range" id="heroStudioScale" min="0.5" max="2" step="0.05" value="${cfg.heroScale ?? 1}" style="width:100%;">
-                </div>
-                <input type="hidden" id="heroStudioPosX" value="${cfg.heroPosX ?? 50}">
-                <input type="hidden" id="heroStudioPosY" value="${cfg.heroPosY ?? 50}">
-              </div>
-            </details>
-
-            <!-- 3. POSICAO TITULO -->
-            <details style="border:1px solid #374151; border-radius:0.5rem; background:#1f2937; overflow:hidden;">
-              <summary style="padding:1rem; cursor:pointer; font-weight:600; color:#d1d5db; display:flex; justify-content:space-between; align-items:center; background:#2d3748;">
-                Título
-                <span style="font-size:0.75rem;">▼</span>
-              </summary>
-              <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-                <input type="hidden" id="heroStudioTitlePosX" value="${cfg.titlePosX ?? 50}">
-                <input type="hidden" id="heroStudioTitlePosY" value="${cfg.titlePosY ?? 40}">
-                <div>
-                  <label class="range-label">Tamanho (px)</label>
-                  <input type="number" id="heroStudioTitleFontSize" min="10" max="200" step="1" value="${cfg.titleFontSize ?? 80}" style="width:100%; padding:0.5rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-                </div>
-              </div>
-            </details>
-
-            <!-- 4. POSICAO SUBTITULO -->
-            <details style="border:1px solid #374151; border-radius:0.5rem; background:#1f2937; overflow:hidden;">
-              <summary style="padding:1rem; cursor:pointer; font-weight:600; color:#d1d5db; display:flex; justify-content:space-between; align-items:center; background:#2d3748;">
-                Subtítulo
-                <span style="font-size:0.75rem;">▼</span>
-              </summary>
-              <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-                <input type="hidden" id="heroStudioSubtitlePosX" value="${cfg.subtitlePosX ?? 50}">
-                <input type="hidden" id="heroStudioSubtitlePosY" value="${cfg.subtitlePosY ?? 55}">
-                <div>
-                  <label class="range-label">Tamanho (px)</label>
-                  <input type="number" id="heroStudioSubtitleFontSize" min="10" max="100" step="1" value="${cfg.subtitleFontSize ?? 40}" style="width:100%; padding:0.5rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-                </div>
-              </div>
-            </details>
-
-            <!-- 5. EFEITOS -->
-            <details style="border:1px solid #374151; border-radius:0.5rem; background:#1f2937; overflow:hidden;">
-              <summary style="padding:1rem; cursor:pointer; font-weight:600; color:#d1d5db; display:flex; justify-content:space-between; align-items:center; background:#2d3748;">
-                Efeitos
-                <span style="font-size:0.75rem;">▼</span>
-              </summary>
-              <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-                <div>
-                  <div class="range-group"><label class="range-label" style="flex:1">Overlay</label><span id="heroStudioOverlayVal" class="range-val"></span></div>
-                  <input type="range" id="heroStudioOverlayOpacity" min="0" max="80" step="5" value="${cfg.overlayOpacity ?? 30}" style="width:100%;">
-                </div>
-                <div>
-                  <div class="range-group"><label class="range-label" style="flex:1">Barra Sup.</label><span id="heroStudioTopBarVal" class="range-val"></span></div>
-                  <input type="range" id="heroStudioTopBarHeight" min="0" max="20" step="1" value="${cfg.topBarHeight ?? 0}" style="width:100%;">
-                </div>
-                <div>
-                  <div class="range-group"><label class="range-label" style="flex:1">Barra Inf.</label><span id="heroStudioBottomBarVal" class="range-val"></span></div>
-                  <input type="range" id="heroStudioBottomBarHeight" min="0" max="20" step="1" value="${cfg.bottomBarHeight ?? 0}" style="width:100%;">
-                </div>
-              </div>
-            </details>
-
+            </div>
+            <input type="hidden" id="heroPosX" value="${cfg.heroPosX ?? 50}">
+            <input type="hidden" id="heroPosY" value="${cfg.heroPosY ?? 50}">
+            <div style="padding:0 1rem 0.75rem; font-size:0.65rem; color:#4b5563;">Arraste a imagem no canvas para reposicionar</div>
           </div>
 
-          <div style="padding:1.5rem; border-top:1px solid #374151; background:#111827; margin-top:auto;">
-            <button id="saveHeroStudioBtn" style="width:100%; background:#2563eb; color:white; padding:1rem; border-radius:0.5rem; border:none; font-weight:bold; cursor:pointer; text-transform:uppercase; letter-spacing:0.05em; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
-              Salvar Design
-            </button>
+          <!-- EFEITOS -->
+          <div class="hs-section">
+            <div class="hs-section-head">Efeitos</div>
+            <div class="hs-row">
+              <div class="hs-label">Overlay escuro</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroOverlay" min="0" max="80" step="5" value="${cfg.overlayOpacity ?? 30}">
+                <span class="hs-range-val" id="heroOverlayVal">${cfg.overlayOpacity ?? 30}%</span>
+              </div>
+            </div>
+            <div class="hs-row">
+              <div class="hs-label">Barra superior</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroTopBar" min="0" max="20" step="1" value="${cfg.topBarHeight ?? 0}">
+                <span class="hs-range-val" id="heroTopBarVal">${cfg.topBarHeight ?? 0}%</span>
+              </div>
+            </div>
+            <div class="hs-row">
+              <div class="hs-label">Barra inferior</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroBottomBar" min="0" max="20" step="1" value="${cfg.bottomBarHeight ?? 0}">
+                <span class="hs-range-val" id="heroBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
+              </div>
+            </div>
           </div>
+
+          <!-- TEXTOS -->
+          <div class="hs-section">
+            <div class="hs-section-head">Textos</div>
+            <button class="hs-btn-add" id="heroAddLayerBtn">+ Adicionar Texto</button>
+            <div id="heroLayersList"></div>
+          </div>
+
+          <button class="hs-save-btn" id="saveHeroStudioBtn">Salvar Hero</button>
         </div>
 
-        <!-- PREVIEW AREA -->
-        <div style="flex:1; background:#020617; display:flex; flex-direction:column; position:relative;">
-
-          <!-- Toolbar -->
-          <div style="padding:1rem; display:flex; justify-content:center; gap:0.5rem; position:absolute; top:0; left:0; right:0; z-index:20; pointer-events:none;">
-            <div style="background:rgba(17,24,39,0.8); backdrop-filter:blur(4px); padding:0.25rem; border-radius:0.5rem; border:1px solid #374151; pointer-events:auto; display:flex; gap:0.25rem;">
-              <button id="heroPreviewDesktop" style="background:#374151; color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; font-weight:500;">Desktop</button>
-              <button id="heroPreviewMobile" style="background:transparent; color:#9ca3af; border:none; padding:0.375rem 0.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; font-weight:500;">Mobile</button>
+        <!-- CANVAS -->
+        <div id="hs-canvas-wrap">
+          <div style="padding:0.75rem; display:flex; justify-content:center; gap:0.5rem; position:absolute; top:0; left:0; right:0; z-index:20; pointer-events:none;">
+            <div style="background:rgba(17,24,39,0.85); backdrop-filter:blur(4px); padding:0.2rem; border-radius:0.375rem; border:1px solid #374151; pointer-events:auto; display:flex; gap:0.2rem;">
+              <button id="hsBtnDesktop" style="background:#374151; color:white; border:none; padding:0.3rem 0.6rem; border-radius:0.2rem; cursor:pointer; font-size:0.7rem; font-weight:600;">Desktop</button>
+              <button id="hsBtnMobile" style="background:transparent; color:#6b7280; border:none; padding:0.3rem 0.6rem; border-radius:0.2rem; cursor:pointer; font-size:0.7rem; font-weight:600;">Mobile</button>
             </div>
           </div>
-
-          <!-- Canvas Wrapper -->
-          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2rem; overflow:hidden;">
-            <div id="heroStudioPreview" style="border:1px solid #374151; border-radius:0.75rem; width:100%; background:#000; overflow:hidden; position:relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); container-type: inline-size; transition: all 0.3s ease; box-sizing: border-box;">
-              <p style="text-align:center; color:#9ca3af; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">Carregando Preview...</p>
-            </div>
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2.5rem 1.5rem; overflow:hidden;">
+            <div id="hs-preview"></div>
           </div>
         </div>
       </div>
+
+      ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
 
-    // Refs
-    const previewContainer = heroContainer.querySelector('#heroStudioPreview');
-    const btnDesktop = heroContainer.querySelector('#heroPreviewDesktop');
-    const btnMobile = heroContainer.querySelector('#heroPreviewMobile');
-    let previewMode = 'desktop';
-    let heroImageUrl = cfg.heroImage || '';
-    _heroImageUrlForPreview = heroImageUrl; // sync com postPreviewData
+    // ── Refs ──────────────────────────────────────────────────
+    const preview        = heroContainer.querySelector('#hs-preview');
+    const layersList     = heroContainer.querySelector('#heroLayersList');
+    const scaleInput     = heroContainer.querySelector('#heroScale');
+    const scaleVal       = heroContainer.querySelector('#heroScaleVal');
+    const posXInput      = heroContainer.querySelector('#heroPosX');
+    const posYInput      = heroContainer.querySelector('#heroPosY');
+    const overlayInput   = heroContainer.querySelector('#heroOverlay');
+    const overlayVal     = heroContainer.querySelector('#heroOverlayVal');
+    const topBarInput    = heroContainer.querySelector('#heroTopBar');
+    const topBarVal      = heroContainer.querySelector('#heroTopBarVal');
+    const bottomBarInput = heroContainer.querySelector('#heroBottomBar');
+    const bottomBarVal   = heroContainer.querySelector('#heroBottomBarVal');
+    const btnDesktop     = heroContainer.querySelector('#hsBtnDesktop');
+    const btnMobile      = heroContainer.querySelector('#hsBtnMobile');
+    const imgInput       = heroContainer.querySelector('#heroImgInput');
 
-    btnDesktop.onclick = () => {
-      previewMode = 'desktop';
-      btnDesktop.style.background = '#374151';
-      btnDesktop.style.color = 'white';
-      btnMobile.style.background = 'transparent';
-      btnMobile.style.color = '#9ca3af';
-      handleHeroResize();
+    let heroImageUrl  = cfg.heroImage || '';
+    let previewMode   = 'desktop';
+    let selectedId    = null;
+    let _heroReady    = false;
+    _heroImageUrlForPreview = heroImageUrl;
+
+    // ── Sliders ───────────────────────────────────────────────
+    scaleInput.oninput = () => { scaleVal.textContent = parseFloat(scaleInput.value).toFixed(2) + 'x'; renderPreview(); };
+    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; renderPreview(); };
+    topBarInput.oninput = () => { topBarVal.textContent = topBarInput.value + '%'; renderPreview(); };
+    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; renderPreview(); };
+
+    // ── Device toggle ─────────────────────────────────────────
+    const setDevice = (mode) => {
+      previewMode = mode;
+      btnDesktop.style.cssText = mode === 'desktop' ? 'background:#374151;color:white;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;' : 'background:transparent;color:#6b7280;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;';
+      btnMobile.style.cssText  = mode === 'mobile'  ? 'background:#374151;color:white;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;' : 'background:transparent;color:#6b7280;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;';
+      const isMobile = mode === 'mobile';
+      Object.assign(preview.style, {
+        aspectRatio: isMobile ? '9/16' : '16/9',
+        width: isMobile ? '280px' : '100%',
+        maxWidth: isMobile ? '280px' : '100%',
+        margin: isMobile ? '0 auto' : '0',
+      });
+      renderPreview();
     };
+    btnDesktop.onclick = () => setDevice('desktop');
+    btnMobile.onclick  = () => setDevice('mobile');
 
-    btnMobile.onclick = () => {
-      previewMode = 'mobile';
-      btnMobile.style.background = '#374151';
-      btnMobile.style.color = 'white';
-      btnDesktop.style.background = 'transparent';
-      btnDesktop.style.color = '#9ca3af';
-      handleHeroResize();
-    };
-
-    const titleInput = heroContainer.querySelector('#heroStudioTitle');
-    const subtitleInput = heroContainer.querySelector('#heroStudioSubtitle');
-    const imageInput = heroContainer.querySelector('#heroStudioImage');
-    const scaleInput = heroContainer.querySelector('#heroStudioScale');
-    const posXInput = heroContainer.querySelector('#heroStudioPosX');
-    const posYInput = heroContainer.querySelector('#heroStudioPosY');
-    const titlePosXInput = heroContainer.querySelector('#heroStudioTitlePosX');
-    const titlePosYInput = heroContainer.querySelector('#heroStudioTitlePosY');
-    const titleFSInput = heroContainer.querySelector('#heroStudioTitleFontSize');
-    const subtitlePosXInput = heroContainer.querySelector('#heroStudioSubtitlePosX');
-    const subtitlePosYInput = heroContainer.querySelector('#heroStudioSubtitlePosY');
-    const subtitleFSInput = heroContainer.querySelector('#heroStudioSubtitleFontSize');
-    const overlayInput = heroContainer.querySelector('#heroStudioOverlayOpacity');
-    const topBarInput = heroContainer.querySelector('#heroStudioTopBarHeight');
-    const bottomBarInput = heroContainer.querySelector('#heroStudioBottomBarHeight');
-
-    // Bind sliders to display values
-    const sliderBindings = [
-      [scaleInput, heroContainer.querySelector('#heroStudioScaleValue'), v => parseFloat(v).toFixed(2) + 'x'],
-      [overlayInput, heroContainer.querySelector('#heroStudioOverlayVal'), v => v + '%'],
-      [topBarInput, heroContainer.querySelector('#heroStudioTopBarVal'), v => v + '%'],
-      [bottomBarInput, heroContainer.querySelector('#heroStudioBottomBarVal'), v => v + '%'],
-    ];
-
-    sliderBindings.forEach(([input, display, format]) => {
-      input.oninput = () => {
-        display.textContent = format(input.value);
-        updateHeroPreview();
-      };
-      // Inicializar display
-      display.textContent = format(input.value);
-    });
-
-    // Listeners para inputs ocultos (atualizados via drag and drop)
-    [posXInput, posYInput, titlePosXInput, titlePosYInput, subtitlePosXInput, subtitlePosYInput].forEach(input => {
-      input.oninput = updateHeroPreview;
-    });
-
-    titleInput.oninput = updateHeroPreview;
-    subtitleInput.oninput = updateHeroPreview;
-    titleFSInput.oninput = updateHeroPreview;
-    subtitleFSInput.oninput = updateHeroPreview;
-
-    // Upload
-    imageInput.onchange = async (e) => {
+    // ── Upload imagem ─────────────────────────────────────────
+    imgInput.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        const result = await uploadImage(file, appState.authToken, (percent) => {
-          showUploadProgress('heroStudioUploadProgress', percent);
-        });
+        const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('heroImgProgress', p));
         heroImageUrl = result.url;
         _heroImageUrlForPreview = heroImageUrl;
-        updateHeroPreview();
+        if (_heroReady) markDirty('config-hero', 'Hero');
+        renderPreview();
         e.target.value = '';
-      } catch (error) {
-        window.showToast?.('Erro: ' + error.message, 'error');
-      }
+      } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
     };
 
-    // Salvar
+    // ── Editar / Cortar imagem com Cropper.js ─────────────────
+    heroContainer.querySelector('#heroCropBtn').onclick = () => {
+      if (!heroImageUrl) { window.showToast?.('Faça upload de uma imagem primeiro.', 'warning'); return; }
+      setupPhotoEditor(heroContainer, 'heroPhotoEditorModal', resolveImagePath(heroImageUrl), {}, async ({ url }) => {
+        heroImageUrl = url;
+        _heroImageUrlForPreview = url;
+        if (_heroReady) markDirty('config-hero', 'Hero');
+        renderPreview();
+      });
+    };
+
+    // ── Renderizar lista de layers na sidebar ─────────────────
+    const renderLayersList = () => {
+      layersList.innerHTML = heroLayers.map((layer, idx) => `
+        <div class="hs-layer-card ${selectedId === layer.id ? 'selected' : ''}" data-lid="${layer.id}">
+          <div class="hs-layer-head" onclick="heroSelectLayer('${layer.id}')">
+            <span style="font-size:0.75rem; color:#9ca3af; min-width:1.2rem;">${idx + 1}</span>
+            <span style="font-size:0.8rem; color:#d1d5db; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${layer.text || '(vazio)'}</span>
+            <button class="hs-btn-del" onclick="event.stopPropagation(); heroDeleteLayer('${layer.id}')">🗑️</button>
+          </div>
+          ${selectedId === layer.id ? `
+          <div class="hs-layer-body">
+            <div>
+              <div class="hs-label">Texto</div>
+              <textarea class="hs-input" rows="2" oninput="heroUpdateLayer('${layer.id}','text',this.value)" style="resize:vertical;">${layer.text || ''}</textarea>
+            </div>
+            <div class="hs-grid2">
+              <div>
+                <div class="hs-label">Tamanho (px)</div>
+                <input type="number" class="hs-input" min="8" max="300" value="${layer.fontSize || 48}" oninput="heroUpdateLayer('${layer.id}','fontSize',+this.value)">
+              </div>
+              <div>
+                <div class="hs-label">Cor</div>
+                <input type="color" value="${layer.color || '#ffffff'}" oninput="heroUpdateLayer('${layer.id}','color',this.value)" style="width:100%; height:34px; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; cursor:pointer; padding:2px;">
+              </div>
+            </div>
+            <div>
+              <div class="hs-label">Fonte</div>
+              <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','fontFamily',this.value)">
+                ${FONTS.map(f => `<option value="${f.value}" ${layer.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+              </select>
+            </div>
+            <div class="hs-grid2">
+              <div>
+                <div class="hs-label">Peso</div>
+                <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','fontWeight',this.value)">
+                  <option value="normal" ${layer.fontWeight === 'normal' ? 'selected' : ''}>Normal</option>
+                  <option value="bold" ${layer.fontWeight === 'bold' ? 'selected' : ''}>Negrito</option>
+                  <option value="300" ${layer.fontWeight === '300' ? 'selected' : ''}>Leve</option>
+                </select>
+              </div>
+              <div>
+                <div class="hs-label">Alinhamento</div>
+                <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','align',this.value)">
+                  <option value="left" ${layer.align === 'left' ? 'selected' : ''}>Esquerda</option>
+                  <option value="center" ${(layer.align || 'center') === 'center' ? 'selected' : ''}>Centro</option>
+                  <option value="right" ${layer.align === 'right' ? 'selected' : ''}>Direita</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <input type="checkbox" id="shadow-${layer.id}" ${layer.shadow !== false ? 'checked' : ''} onchange="heroUpdateLayer('${layer.id}','shadow',this.checked)">
+              <label for="shadow-${layer.id}" style="font-size:0.75rem; color:#9ca3af; cursor:pointer;">Sombra no texto</label>
+            </div>
+          </div>` : ''}
+        </div>
+      `).join('');
+    };
+
+    // ── Adicionar layer ───────────────────────────────────────
+    heroContainer.querySelector('#heroAddLayerBtn').onclick = () => {
+      const newLayer = { id: 'l_' + Date.now(), text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true };
+      heroLayers.push(newLayer);
+      selectedId = newLayer.id;
+      if (_heroReady) markDirty('config-hero', 'Hero');
+      renderLayersList();
+      renderPreview();
+    };
+
+    window.heroSelectLayer = (id) => {
+      selectedId = selectedId === id ? null : id;
+      renderLayersList();
+      renderPreview();
+    };
+
+    window.heroDeleteLayer = async (id) => {
+      const ok = await window.showConfirm?.('Remover este texto?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover?');
+      if (!ok) return;
+      heroLayers = heroLayers.filter(l => l.id !== id);
+      if (selectedId === id) selectedId = null;
+      if (_heroReady) markDirty('config-hero', 'Hero');
+      renderLayersList();
+      renderPreview();
+    };
+
+    window.heroUpdateLayer = (id, field, value) => {
+      const layer = heroLayers.find(l => l.id === id);
+      if (!layer) return;
+      layer[field] = value;
+      if (_heroReady) markDirty('config-hero', 'Hero');
+      renderPreview();
+    };
+
+    // ── Renderizar preview canvas ─────────────────────────────
+    const renderPreview = () => {
+      const scale   = parseFloat(scaleInput.value);
+      const px      = parseInt(posXInput.value);
+      const py      = parseInt(posYInput.value);
+      const overlay = parseInt(overlayInput.value);
+      const topBar  = parseInt(topBarInput.value);
+      const bottom  = parseInt(bottomBarInput.value);
+      const pw      = preview.offsetWidth || 600;
+
+      const imgHtml = heroImageUrl
+        ? `<img src="${resolveImagePath(heroImageUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${px}% ${py}%;transform:scale(${scale});transform-origin:${px}% ${py}%;pointer-events:none;user-select:none;">`
+        : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);"></div>`;
+
+      const layersHtml = heroLayers.map(layer => {
+        const fs = Math.max(8, layer.fontSize || 48);
+        const fspx = Math.round((fs / 1440) * pw);
+        const fsClamped = Math.max(10, Math.min(fs, fspx > 0 ? fspx : fs));
+        const isSelected = layer.id === selectedId;
+        return `<div
+          class="hs-layer-el${isSelected ? ' selected' : ''}"
+          data-layer-id="${layer.id}"
+          style="left:${layer.x ?? 50}%;top:${layer.y ?? 50}%;transform:translate(-50%,-50%);
+            color:${layer.color||'#fff'};font-size:${fsClamped}px;
+            font-family:${layer.fontFamily||'inherit'};font-weight:${layer.fontWeight||'bold'};
+            text-align:${layer.align||'center'};
+            text-shadow:${layer.shadow!==false?'2px 2px 8px rgba(0,0,0,0.8)':'none'};
+            white-space:pre-wrap;word-break:break-word;max-width:90%;z-index:5;">
+          ${layer.text || ''}
+          ${isSelected ? '<div class="hs-handle" data-resize="1"></div>' : ''}
+        </div>`;
+      }).join('');
+
+      preview.innerHTML = `
+        ${imgHtml}
+        <div data-drag="bg" style="position:absolute;inset:0;background:rgba(0,0,0,${overlay/100});z-index:1;cursor:move;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:${topBar}%;background:#000;z-index:2;pointer-events:none;"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:${bottom}%;background:#000;z-index:2;pointer-events:none;"></div>
+        ${layersHtml}
+      `;
+
+      // Enviar ao preview do builder
+      window._meuSitePostPreview?.();
+      setupCanvasInteraction();
+    };
+
+    // ── Interação no canvas (drag imagem + drag/resize layers) ─
+    const setupCanvasInteraction = () => {
+      let dragging = false, dragTarget = null, dragLayerId = null, resizing = false;
+      let startX = 0, startY = 0, startVals = {};
+
+      preview.addEventListener('mousedown', (e) => {
+        const resizeHandle = e.target.closest('[data-resize]');
+        const layerEl      = e.target.closest('[data-layer-id]');
+        const bgEl         = e.target.closest('[data-drag="bg"]');
+
+        if (resizeHandle && layerEl) {
+          // Resize do layer
+          resizing     = true;
+          dragLayerId  = layerEl.dataset.layerId;
+          const layer  = heroLayers.find(l => l.id === dragLayerId);
+          startX       = e.clientX;
+          startY       = e.clientY;
+          startVals    = { fontSize: layer?.fontSize || 48 };
+          e.preventDefault(); e.stopPropagation(); return;
+        }
+
+        if (layerEl) {
+          // Drag do layer
+          dragging    = true;
+          dragTarget  = 'layer';
+          dragLayerId = layerEl.dataset.layerId;
+          const layer = heroLayers.find(l => l.id === dragLayerId);
+          startX = e.clientX; startY = e.clientY;
+          startVals = { x: layer?.x ?? 50, y: layer?.y ?? 50 };
+          // Selecionar layer
+          if (selectedId !== dragLayerId) { selectedId = dragLayerId; renderLayersList(); }
+          e.preventDefault(); return;
+        }
+
+        if (bgEl) {
+          // Drag da imagem de fundo
+          dragging   = true;
+          dragTarget = 'bg';
+          startX = e.clientX; startY = e.clientY;
+          startVals = { x: parseInt(posXInput.value), y: parseInt(posYInput.value) };
+          e.preventDefault(); return;
+        }
+      });
+
+      const onMove = (e) => {
+        if (!dragging && !resizing) return;
+        const rect = preview.getBoundingClientRect();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (resizing) {
+          const layer = heroLayers.find(l => l.id === dragLayerId);
+          if (!layer) return;
+          const delta = dx + dy;
+          layer.fontSize = Math.max(8, Math.min(300, Math.round(startVals.fontSize + delta * 0.5)));
+          renderPreview(); return;
+        }
+
+        if (dragTarget === 'layer') {
+          const layer = heroLayers.find(l => l.id === dragLayerId);
+          if (!layer) return;
+          layer.x = Math.max(0, Math.min(100, startVals.x + (dx / rect.width) * 100));
+          layer.y = Math.max(0, Math.min(100, startVals.y + (dy / rect.height) * 100));
+          if (_heroReady) markDirty('config-hero', 'Hero');
+          renderPreview(); return;
+        }
+
+        if (dragTarget === 'bg') {
+          posXInput.value = Math.max(0, Math.min(100, Math.round(startVals.x + (dx / rect.width) * 100)));
+          posYInput.value = Math.max(0, Math.min(100, Math.round(startVals.y + (dy / rect.height) * 100)));
+          if (_heroReady) markDirty('config-hero', 'Hero');
+          renderPreview();
+        }
+      };
+
+      const onUp = () => { dragging = false; resizing = false; dragTarget = null; };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+
+      // Clique no canvas vazio → adicionar texto
+      preview.addEventListener('click', (e) => {
+        if (e.target !== preview && !e.target.closest('[data-drag="bg"]')) return;
+        const rect = preview.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        const newLayer = { id: 'l_' + Date.now(), text: 'Novo Texto', x, y, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true };
+        heroLayers.push(newLayer);
+        selectedId = newLayer.id;
+        if (_heroReady) markDirty('config-hero', 'Hero');
+        renderLayersList();
+        renderPreview();
+      });
+    };
+
+    // ── Salvar ────────────────────────────────────────────────
     heroContainer.querySelector('#saveHeroStudioBtn').onclick = async (e) => {
       await withBtnLoading(e.currentTarget, async () => {
         const newHeroConfig = {
           ...siteConfig,
-          heroTitle: titleInput.value,
-          heroSubtitle: subtitleInput.value,
           heroImage: heroImageUrl,
           heroScale: parseFloat(scaleInput.value),
           heroPosX: parseInt(posXInput.value),
           heroPosY: parseInt(posYInput.value),
-          titlePosX: parseInt(titlePosXInput.value),
-          titlePosY: parseInt(titlePosYInput.value),
-          titleFontSize: parseInt(titleFSInput.value),
-          subtitlePosX: parseInt(subtitlePosXInput.value),
-          subtitlePosY: parseInt(subtitlePosYInput.value),
-          subtitleFontSize: parseInt(subtitleFSInput.value),
           overlayOpacity: parseInt(overlayInput.value),
           topBarHeight: parseInt(topBarInput.value),
-          bottomBarHeight: parseInt(bottomBarInput.value)
+          bottomBarHeight: parseInt(bottomBarInput.value),
+          heroLayers: heroLayers,
+          // Manter campos antigos para compatibilidade com templates legados
+          heroTitle: heroLayers[0]?.text || '',
+          heroSubtitle: heroLayers[1]?.text || '',
         };
         await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
         clearDirty();
@@ -913,133 +1121,10 @@ async function renderSiteContent(container, builderTabsEl) {
       });
     };
 
-    let _heroReady = false;
-    function updateHeroPreview() {
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      const preview = heroContainer.querySelector('#heroStudioPreview');
-      const image = heroImageUrl;
-      const scale = parseFloat(scaleInput.value);
-      const px = parseInt(posXInput.value);
-      const py = parseInt(posYInput.value);
-      const tpx = parseInt(titlePosXInput.value);
-      const tpy = parseInt(titlePosYInput.value);
-      const tfs = parseInt(titleFSInput.value);
-      const spx = parseInt(subtitlePosXInput.value);
-      const spy = parseInt(subtitlePosYInput.value);
-      const sfs = parseInt(subtitleFSInput.value);
-      const overlay = parseInt(overlayInput.value);
-      const topBar = parseInt(topBarInput.value);
-      const bottomBar = parseInt(bottomBarInput.value);
-
-      const windowW = window.innerWidth;
-      const titleMaxW = (800 / windowW) * 100;
-      const subMaxW = (600 / windowW) * 100;
-      const titleFontSizeCqw = (tfs / windowW) * 100;
-      const subFontSizeCqw = (sfs / windowW) * 100;
-      const titleMinCqw = (28 / windowW) * 100;
-      const subMinCqw = (14 / windowW) * 100;
-
-      const imgHtml = image ? `<img src="${resolveImagePath(image)}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:${px}% ${py}%; transform:scale(${scale}); transform-origin:${px}% ${py}%; pointer-events:none; user-select:none;">` : '';
-
-      preview.innerHTML = `
-        ${imgHtml}
-        <div data-type="bg" style="position:absolute; inset:0; background:rgba(0,0,0,${overlay/100}); cursor:move;"></div>
-        <div style="position:absolute; top:0; left:0; right:0; height:${topBar}%; background:#000; z-index:2; pointer-events:none;"></div>
-        <div style="position:absolute; bottom:0; left:0; right:0; height:${bottomBar}%; background:#000; z-index:2; pointer-events:none;"></div>
-        <h1 data-type="title" style="position:absolute; left:${tpx}%; top:${tpy}%; transform:translate(-50%,-50%); color:white; font-family:'Playfair Display',serif; font-size:clamp(${titleMinCqw}cqw, 6cqw, ${titleFontSizeCqw}cqw); font-weight:bold; text-align:center; text-shadow:2px 2px 4px rgba(0,0,0,0.7); z-index:3; line-height:1.15; width:100%; max-width:min(90cqw, ${titleMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${titleInput.value || ''}</h1>
-        <p data-type="subtitle" style="position:absolute; left:${spx}%; top:${spy}%; transform:translate(-50%,-50%); color:#e5e7eb; font-size:clamp(${subMinCqw}cqw, 3.5cqw, ${subFontSizeCqw}cqw); text-align:center; text-shadow:1px 1px 2px rgba(0,0,0,0.7); z-index:3; line-height:1.6; width:100%; max-width:min(90cqw, ${subMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${subtitleInput.value || ''}</p>
-      `;
-
-      // Enviar ao preview do builder em tempo real
-      window._meuSitePostPreview?.();
-    }
-
-    const handleHeroResize = () => {
-      if (!document.body.contains(previewContainer)) {
-        window.removeEventListener('resize', handleHeroResize);
-        return;
-      }
-      const isMobile = previewMode === 'mobile';
-      Object.assign(previewContainer.style, {
-        aspectRatio: isMobile ? '9/16' : '16/9',
-        width: isMobile ? '300px' : '100%',
-        margin: isMobile ? '0 auto' : '0',
-      });
-      requestAnimationFrame(updateHeroPreview);
-    };
-    window.addEventListener('resize', handleHeroResize);
-    handleHeroResize();
-
-    // Drag and Drop Logic
-    let isDragging = false;
-    let dragType = null;
-    let startX = 0;
-    let startY = 0;
-    let initialVals = {};
-
-    previewContainer.addEventListener('mousedown', (e) => {
-      const target = e.target;
-      const type = target.getAttribute('data-type');
-
-      if (type) {
-        isDragging = true;
-        dragType = type;
-        startX = e.clientX;
-        startY = e.clientY;
-
-        if (type === 'title') {
-          initialVals = { x: parseInt(titlePosXInput.value), y: parseInt(titlePosYInput.value) };
-        } else if (type === 'subtitle') {
-          initialVals = { x: parseInt(subtitlePosXInput.value), y: parseInt(subtitlePosYInput.value) };
-        } else if (type === 'bg') {
-          initialVals = { x: parseInt(posXInput.value), y: parseInt(posYInput.value) };
-        }
-
-        e.preventDefault();
-      }
-    });
-
-    const heroMouseMove = (e) => {
-      if (!isDragging) return;
-
-      const rect = previewContainer.getBoundingClientRect();
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-
-      const deltaPctX = (deltaX / rect.width) * 100;
-      const deltaPctY = (deltaY / rect.height) * 100;
-
-      let newX = initialVals.x + deltaPctX;
-      let newY = initialVals.y + deltaPctY;
-
-      newX = Math.max(0, Math.min(100, newX));
-      newY = Math.max(0, Math.min(100, newY));
-
-      if (dragType === 'title') {
-        titlePosXInput.value = Math.round(newX);
-        titlePosYInput.value = Math.round(newY);
-      } else if (dragType === 'subtitle') {
-        subtitlePosXInput.value = Math.round(newX);
-        subtitlePosYInput.value = Math.round(newY);
-      } else if (dragType === 'bg') {
-        posXInput.value = Math.round(newX);
-        posYInput.value = Math.round(newY);
-      }
-
-      titlePosXInput.dispatchEvent(new Event('input'));
-    };
-
-    const heroMouseUp = () => {
-      isDragging = false;
-      dragType = null;
-    };
-
-    window.addEventListener('mousemove', heroMouseMove);
-    window.addEventListener('mouseup', heroMouseUp);
-
-    // Renderizar preview inicial (sem marcar dirty)
-    updateHeroPreview();
-    // Após render inicial, liberar dirty tracking
+    // ── Init ──────────────────────────────────────────────────
+    setDevice('desktop');
+    renderLayersList();
+    renderPreview();
     requestAnimationFrame(() => { _heroReady = true; });
   };
 

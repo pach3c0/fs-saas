@@ -112,13 +112,7 @@ function renderSite(data) {
     navLinks.innerHTML = [...standardLinks, ...customLinks].join('');
   }
 
-  // Preencher Hero
-  const heroTitle = document.getElementById('heroTitle');
-  if (heroTitle) heroTitle.textContent = config.heroTitle || 'Eternizando Momentos';
-
-  const heroSubtitle = document.getElementById('heroSubtitle');
-  if (heroSubtitle) heroSubtitle.textContent = config.heroSubtitle || 'Fotografia profissional';
-
+  // Preencher Hero — imagem de fundo
   const heroBg = document.getElementById('heroBg');
   if (heroBg) {
     if (config.heroImage) {
@@ -127,9 +121,9 @@ function renderSite(data) {
       const posY = config.heroPosY ?? 50;
       heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
       heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
-      heroBg.style.backgroundSize = `${scale * 100}%`;
+      heroBg.style.backgroundSize = scale === 1 ? 'cover' : `${scale * 100}%`;
+      heroBg.style.backgroundRepeat = 'no-repeat';
     } else {
-      // Placeholder: gradiente neutro escuro sem foto pessoal
       heroBg.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
     }
   }
@@ -140,22 +134,72 @@ function renderSite(data) {
     heroOverlay.style.background = `rgba(0,0,0,${(config.overlayOpacity ?? 30) / 100})`;
   }
   const heroTopBar = document.getElementById('heroTopBar');
-  if (heroTopBar) {
-    heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
-  }
+  if (heroTopBar) heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
   const heroBottomBar = document.getElementById('heroBottomBar');
-  if (heroBottomBar) {
-    heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
+  if (heroBottomBar) heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
+
+  // Renderizar heroLayers (textos livres posicionados)
+  // Migração automática: se não houver layers mas existir heroTitle/heroSubtitle antigos, converte
+  let heroLayers = config.heroLayers;
+  if (!heroLayers || heroLayers.length === 0) {
+    heroLayers = [];
+    if (config.heroTitle) {
+      heroLayers.push({
+        id: 'migrated-title',
+        text: config.heroTitle,
+        x: config.titlePosX ?? 50,
+        y: config.titlePosY ?? 40,
+        fontSize: config.titleFontSize ?? 80,
+        fontFamily: '',
+        color: '#ffffff',
+        fontWeight: 'bold',
+        align: 'center',
+        shadow: true,
+      });
+    }
+    if (config.heroSubtitle) {
+      heroLayers.push({
+        id: 'migrated-subtitle',
+        text: config.heroSubtitle,
+        x: config.subtitlePosX ?? 50,
+        y: config.subtitlePosY ?? 58,
+        fontSize: config.subtitleFontSize ?? 32,
+        fontFamily: '',
+        color: '#e5e7eb',
+        fontWeight: 'normal',
+        align: 'center',
+        shadow: true,
+      });
+    }
   }
 
-  // Tamanho de fonte do título e subtítulo
-  const heroTitleEl = document.getElementById('heroTitle');
-  if (heroTitleEl && config.titleFontSize) {
-    heroTitleEl.style.fontSize = `clamp(1rem, ${config.titleFontSize / window.innerWidth * 100}vw, ${config.titleFontSize}px)`;
-  }
-  const heroSubtitleEl = document.getElementById('heroSubtitle');
-  if (heroSubtitleEl && config.subtitleFontSize) {
-    heroSubtitleEl.style.fontSize = `clamp(0.875rem, ${config.subtitleFontSize / window.innerWidth * 100}vw, ${config.subtitleFontSize}px)`;
+  const heroLayersEl = document.getElementById('heroLayers');
+  if (heroLayersEl) {
+    heroLayersEl.innerHTML = heroLayers.map(layer => {
+      const fs = Math.max(12, layer.fontSize || 48);
+      // Converte px para vw proporcional (base 1440px)
+      const fsvw = (fs / 1440 * 100).toFixed(3);
+      const fsMin = Math.max(12, fs * 0.4);
+      const fsMax = fs;
+      return `<div style="
+        position: absolute;
+        left: ${layer.x ?? 50}%;
+        top: ${layer.y ?? 50}%;
+        transform: translate(-50%, -50%);
+        color: ${layer.color || '#ffffff'};
+        font-size: clamp(${fsMin}px, ${fsvw}vw, ${fsMax}px);
+        font-family: ${layer.fontFamily || 'inherit'};
+        font-weight: ${layer.fontWeight || 'bold'};
+        text-align: ${layer.align || 'center'};
+        text-shadow: ${layer.shadow !== false ? '2px 2px 8px rgba(0,0,0,0.8)' : 'none'};
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-width: 90%;
+        line-height: 1.2;
+        pointer-events: none;
+        user-select: none;
+      ">${esc(layer.text || '')}</div>`;
+    }).join('');
   }
 
   // Preencher Sobre
