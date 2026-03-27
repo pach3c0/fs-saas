@@ -1390,11 +1390,18 @@ async function renderSiteContent(container, builderTabsEl) {
             });
           });
           await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
+          clearDirty();
+          // Recapturar valores originais após salvar
+          captureOriginalValues('config-depoimentos', depoContainer);
           window.showToast?.('Depoimentos salvos!', 'success');
           configData.siteContent.depoimentos = updated;
           window.builderScheduleRefresh?.();
         };
       }
+
+      // Capturar valores originais e setup dirty tracking
+      captureOriginalValues('config-depoimentos', depoContainer);
+      setupDirtyTracking('config-depoimentos', 'Depoimentos', depoContainer);
     };
 
     renderList();
