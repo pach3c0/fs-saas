@@ -175,20 +175,61 @@ function renderSite(data) {
 
   const heroLayersEl = document.getElementById('heroLayers');
   if (heroLayersEl) {
-    heroLayersEl.innerHTML = heroLayers.map(layer => {
+    // Helper: pegar valores de posição respeitando presets por device
+    const getVal = (layer, field, device) => {
+      if (layer.presets && layer.presets[device] && layer.presets[device][field] !== undefined) {
+        return layer.presets[device][field];
+      }
+      return layer[field];
+    };
+
+    // Gerar CSS responsivo para cada layer
+    let responsiveCss = '';
+
+    heroLayersEl.innerHTML = heroLayers.map((layer, idx) => {
       const type = layer.type || 'text';
+      const layerClass = `hl-${layer.id || idx}`;
+
+      // Valores desktop (padrão)
+      const dkX = getVal(layer, 'x', 'desktop') ?? layer.x ?? 50;
+      const dkY = getVal(layer, 'y', 'desktop') ?? layer.y ?? 50;
+      const dkRotation = getVal(layer, 'rotation', 'desktop') ?? layer.rotation ?? 0;
+
+      // Gerar media queries se tem presets tablet/mobile
+      const hasTablet = layer.presets?.tablet;
+      const hasMobile = layer.presets?.mobile;
 
       if (type === 'image') {
-        const rotation = layer.rotation || 0;
+        const dkW = getVal(layer, 'width', 'desktop') ?? layer.width ?? 20;
+        const dkH = getVal(layer, 'height', 'desktop') ?? layer.height ?? 20;
         const flipH = layer.flipH ? 'scaleX(-1)' : '';
         const flipV = layer.flipV ? 'scaleY(-1)' : '';
-        const transforms = [`translate(-50%, -50%)`, `rotate(${rotation}deg)`, flipH, flipV].filter(Boolean).join(' ');
-        return `<div style="
+        const baseTransform = `translate(-50%, -50%) rotate(VAR_ROT) ${flipH} ${flipV}`.trim();
+
+        if (hasTablet) {
+          const tx = getVal(layer, 'x', 'tablet') ?? dkX;
+          const ty = getVal(layer, 'y', 'tablet') ?? dkY;
+          const tw = getVal(layer, 'width', 'tablet') ?? dkW;
+          const th = getVal(layer, 'height', 'tablet') ?? dkH;
+          const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
+          responsiveCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;width:${tw}%!important;height:${th}%!important;transform:${baseTransform.replace('VAR_ROT', tr+'deg')}!important;}}`;
+        }
+        if (hasMobile) {
+          const mx = getVal(layer, 'x', 'mobile') ?? dkX;
+          const my = getVal(layer, 'y', 'mobile') ?? dkY;
+          const mw = getVal(layer, 'width', 'mobile') ?? dkW;
+          const mh = getVal(layer, 'height', 'mobile') ?? dkH;
+          const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
+          responsiveCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;width:${mw}%!important;height:${mh}%!important;transform:${baseTransform.replace('VAR_ROT', mr+'deg')}!important;}}`;
+        }
+
+        const transforms = `translate(-50%, -50%) rotate(${dkRotation}deg) ${flipH} ${flipV}`.trim();
+        return `<div class="${layerClass}" style="
           position: absolute;
-          left: ${layer.x ?? 50}%;
-          top: ${layer.y ?? 50}%;
-          width: ${layer.width ?? 20}%;
-          height: ${layer.height ?? 20}%;
+          left: ${dkX}%;
+          top: ${dkY}%;
+          width: ${dkW}%;
+          height: ${dkH}%;
           transform: ${transforms};
           opacity: ${(layer.opacity ?? 100) / 100};
           overflow: hidden;
@@ -199,19 +240,33 @@ function renderSite(data) {
       }
 
       // Texto
-      const fs = Math.max(12, layer.fontSize || 48);
-      const fsvw = (fs / 1440 * 100).toFixed(3);
-      const fsMin = Math.max(12, fs * 0.4);
-      const fsMax = fs;
-      const rotation = layer.rotation || 0;
-      const transforms = [`translate(-50%, -50%)`, rotation ? `rotate(${rotation}deg)` : ''].filter(Boolean).join(' ');
-      return `<div style="
+      const dkFs = Math.max(12, getVal(layer, 'fontSize', 'desktop') ?? layer.fontSize ?? 48);
+      const fsvw = (dkFs / 1440 * 100).toFixed(3);
+      const fsMin = Math.max(12, dkFs * 0.4);
+      const transforms = `translate(-50%, -50%)${dkRotation ? ` rotate(${dkRotation}deg)` : ''}`;
+
+      if (hasTablet) {
+        const tx = getVal(layer, 'x', 'tablet') ?? dkX;
+        const ty = getVal(layer, 'y', 'tablet') ?? dkY;
+        const tfs = getVal(layer, 'fontSize', 'tablet') ?? dkFs;
+        const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
+        responsiveCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;font-size:${tfs}px!important;transform:translate(-50%,-50%)${tr ? ` rotate(${tr}deg)` : ''}!important;}}`;
+      }
+      if (hasMobile) {
+        const mx = getVal(layer, 'x', 'mobile') ?? dkX;
+        const my = getVal(layer, 'y', 'mobile') ?? dkY;
+        const mfs = getVal(layer, 'fontSize', 'mobile') ?? Math.round(dkFs * 0.5);
+        const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
+        responsiveCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;font-size:${mfs}px!important;transform:translate(-50%,-50%)${mr ? ` rotate(${mr}deg)` : ''}!important;}}`;
+      }
+
+      return `<div class="${layerClass}" style="
         position: absolute;
-        left: ${layer.x ?? 50}%;
-        top: ${layer.y ?? 50}%;
+        left: ${dkX}%;
+        top: ${dkY}%;
         transform: ${transforms};
         color: ${layer.color || '#ffffff'};
-        font-size: clamp(${fsMin}px, ${fsvw}vw, ${fsMax}px);
+        font-size: clamp(${fsMin}px, ${fsvw}vw, ${dkFs}px);
         font-family: ${layer.fontFamily || 'inherit'};
         font-weight: ${layer.fontWeight || 'bold'};
         text-align: ${layer.align || 'center'};
@@ -226,6 +281,17 @@ function renderSite(data) {
         user-select: none;
       ">${esc(layer.text || '')}</div>`;
     }).join('');
+
+    // Injetar CSS responsivo dos presets
+    if (responsiveCss) {
+      let styleTag = document.getElementById('heroLayersResponsive');
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'heroLayersResponsive';
+        document.head.appendChild(styleTag);
+      }
+      styleTag.textContent = responsiveCss;
+    }
   }
 
   // Preencher Sobre

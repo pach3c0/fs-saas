@@ -10,6 +10,16 @@ const HANDLE_SIZE = 8;
 const ROTATION_HANDLE_OFFSET = 24;
 const MIN_LAYER_SIZE = 20; // px mínimo
 
+// Tamanhos de referência do canvas por device
+const DEVICE_SIZES = {
+  desktop: { w: 1440, h: 810 },
+  tablet:  { w: 768,  h: 500 },
+  mobile:  { w: 390,  h: 680 },
+};
+
+// Campos que têm preset por device (posição/tamanho)
+const PRESET_FIELDS = ['x', 'y', 'fontSize', 'width', 'height', 'rotation'];
+
 /**
  * @param {HTMLElement} canvasContainer - onde o canvas será renderizado
  * @param {Object} opts
@@ -22,10 +32,12 @@ export class HeroCanvasEditor {
     this.container = canvasContainer;
     this.onSelect = opts.onSelect || (() => {});
     this.onChange = opts.onChange || (() => {});
+    this.onDeviceChange = opts.onDeviceChange || (() => {});
     this.resolveImage = opts.resolveImagePath || (u => u);
 
     this.layers = [];
     this.selectedId = null;
+    this.device = 'desktop';
     this.bg = { url: '', scale: 1, posX: 50, posY: 50 };
     this.overlay = { opacity: 30, topBarHeight: 0, bottomBarHeight: 0 };
 
@@ -45,10 +57,11 @@ export class HeroCanvasEditor {
     this.container.innerHTML = '';
     this.container.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;overflow:hidden;position:relative;';
 
-    // Wrapper que mantém aspect ratio 16:9 e escala
+    // Wrapper que mantém aspect ratio e escala conforme device
+    const size = DEVICE_SIZES[this.device];
     this.root = document.createElement('div');
     this.root.id = 'hc-root';
-    this.root.style.cssText = 'position:relative;width:1440px;height:810px;overflow:hidden;transform-origin:top center;background:#111;flex-shrink:0;';
+    this.root.style.cssText = `position:relative;width:${size.w}px;height:${size.h}px;overflow:hidden;transform-origin:top center;background:#111;flex-shrink:0;`;
     this.container.appendChild(this.root);
 
     // Background
@@ -93,12 +106,15 @@ export class HeroCanvasEditor {
     const ch = this.container.clientHeight;
     if (!cw || !ch) return;
 
-    const scaleX = cw / 1440;
-    const scaleY = ch / 810;
+    const size = DEVICE_SIZES[this.device];
+    const scaleX = cw / size.w;
+    const scaleY = ch / size.h;
     const scale = Math.min(scaleX, scaleY, 1);
 
+    this.root.style.width = `${size.w}px`;
+    this.root.style.height = `${size.h}px`;
     this.root.style.transform = `scale(${scale})`;
-    this.root.style.marginTop = ch > 810 * scale ? `${(ch - 810 * scale) / 2 / scale}px` : '0';
+    this.root.style.marginTop = ch > size.h * scale ? `${(ch - size.h * scale) / 2 / scale}px` : '0';
     this._scale = scale;
   }
 
@@ -192,8 +208,9 @@ export class HeroCanvasEditor {
     if (this._drag) {
       const dx = this._toCanvasX(e) - this._drag.startX;
       const dy = this._toCanvasY(e) - this._drag.startY;
-      const pctX = (dx / 1440) * 100;
-      const pctY = (dy / 810) * 100;
+      const size = DEVICE_SIZES[this.device];
+      const pctX = (dx / size.w) * 100;
+      const pctY = (dy / size.h) * 100;
       const layer = this._getLayer(this._drag.layerId);
       if (!layer) return;
       layer.x = Math.max(0, Math.min(100, this._drag.origX + pctX));
@@ -343,8 +360,9 @@ export class HeroCanvasEditor {
     } else if (type === 'image') {
       // Para imagem, resize muda width/height em %
       const dir = r.dir;
-      const dpctX = (dx / 1440) * 100;
-      const dpctY = (dy / 810) * 100;
+      const sz = DEVICE_SIZES[this.device];
+      const dpctX = (dx / sz.w) * 100;
+      const dpctY = (dy / sz.h) * 100;
 
       let w = r.origWidth ?? 20;
       let h = r.origHeight ?? 20;
@@ -495,7 +513,54 @@ export class HeroCanvasEditor {
     this.onChange();
   }
 
+  // ── Device presets ────────────────────────────────────────
+
+  /**
+   * Troca o device ativo. Salva posições atuais no preset do device anterior,
+   * carrega posições do novo device (ou copia do desktop se não existir).
+   */
+  setDevice(newDevice) {
+    if (newDevice === this.device) return;
+
+    // 1) Salvar posições atuais no preset do device atual
+    this._saveCurrentPreset();
+
+    // 2) Trocar device
+    const prevDevice = this.device;
+    this.device = newDevice;
+
+    // 3) Carregar posições do novo device (fallback: copiar do anterior)
+    this.layers.forEach(layer => {
+      if (!layer.presets) layer.presets = {};
+      const preset = layer.presets[newDevice];
+      if (preset) {
+        // Tem preset salvo — aplicar
+        PRESET_FIELDS.forEach(f => { if (preset[f] !== undefined) layer[f] = preset[f]; });
+      }
+      // Se não tem preset, mantém as posições atuais (herda do device anterior)
+    });
+
+    // 4) Redimensionar canvas e re-renderizar
+    this._fitToContainer();
+    this._renderAllLayers();
+    this._renderHandles();
+    this.onDeviceChange(newDevice);
+  }
+
+  /** Salva as posições atuais de cada layer no preset do device ativo */
+  _saveCurrentPreset() {
+    this.layers.forEach(layer => {
+      if (!layer.presets) layer.presets = {};
+      const preset = {};
+      PRESET_FIELDS.forEach(f => { if (layer[f] !== undefined) preset[f] = layer[f]; });
+      layer.presets[this.device] = preset;
+    });
+  }
+
   getState() {
+    // Salvar preset atual antes de exportar
+    this._saveCurrentPreset();
+
     return {
       heroImage: this.bg.url,
       heroScale: this.bg.scale,
@@ -523,14 +588,15 @@ export class HeroCanvasEditor {
   }
 
   _getLayerRect(layer) {
-    // Retorna posição e tamanho em pixels no canvas (1440x810)
+    // Retorna posição e tamanho em pixels no canvas
     const type = layer.type || 'text';
-    const cx = (layer.x ?? 50) / 100 * 1440;
-    const cy = (layer.y ?? 50) / 100 * 810;
+    const size = DEVICE_SIZES[this.device];
+    const cx = (layer.x ?? 50) / 100 * size.w;
+    const cy = (layer.y ?? 50) / 100 * size.h;
 
     if (type === 'image') {
-      const w = (layer.width ?? 20) / 100 * 1440;
-      const h = (layer.height ?? 20) / 100 * 810;
+      const w = (layer.width ?? 20) / 100 * size.w;
+      const h = (layer.height ?? 20) / 100 * size.h;
       return { x: cx - w / 2, y: cy - h / 2, w, h };
     }
 

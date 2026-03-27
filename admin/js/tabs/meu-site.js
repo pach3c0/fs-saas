@@ -734,9 +734,29 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-layer-item .layer-del:hover { opacity:1; }
         .hc-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; }
         .hc-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.35rem; }
+        .hc-device-bar { display:flex; gap:2px; padding:0.5rem 0.75rem; background:#0d1117; border-bottom:1px solid #1f2937; }
+        .hc-device-btn { flex:1; padding:0.35rem 0; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; color:#9ca3af; font-size:0.7rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.25rem; transition:all 0.15s; }
+        .hc-device-btn:hover { color:#d1d5db; border-color:#4b5563; }
+        .hc-device-btn.active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
       </style>
 
       <div class="hc-sidebar">
+        <!-- DEVICE SELECTOR -->
+        <div class="hc-device-bar">
+          <button class="hc-device-btn active" data-hc-device="desktop" title="Desktop (1440×810)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Desktop
+          </button>
+          <button class="hc-device-btn" data-hc-device="tablet" title="Tablet (768×500)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Tablet
+          </button>
+          <button class="hc-device-btn" data-hc-device="mobile" title="Mobile (390×680)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Mobile
+          </button>
+        </div>
+
         <!-- AÇÕES -->
         <div class="hc-section">
           <div class="hc-section-head">Adicionar</div>
@@ -842,6 +862,18 @@ async function renderSiteContent(container, builderTabsEl) {
 
       ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
+
+    // ── Device selector ──
+    heroContainer.querySelectorAll('.hc-device-btn').forEach(btn => {
+      btn.onclick = () => {
+        heroContainer.querySelectorAll('.hc-device-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        canvasEditor.setDevice(btn.dataset.hcDevice);
+        // Atualizar props se layer selecionado
+        const sel = canvasEditor.selectedId ? canvasEditor.getLayers().find(l => l.id === canvasEditor.selectedId) : null;
+        renderPropsForLayer(sel || null);
+      };
+    });
 
     // ── Refs ──
     const bgScaleInput = heroContainer.querySelector('#hcBgScale');
