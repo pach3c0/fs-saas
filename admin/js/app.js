@@ -246,15 +246,25 @@ window.exitBuilderMode = function(skipNav = false) {
   }
 };
 
-function builderLoadPreview() {
+async function builderLoadPreview() {
   const iframe = document.getElementById('builder-iframe');
   const loading = document.getElementById('builder-loading');
   const openLink = document.getElementById('builder-open-site');
   if (!iframe) return;
 
-  const siteUrl = getSiteUrlBuilder();
-  if (openLink) openLink.href = siteUrl;
+  // Garantir slug carregado antes de montar a URL
+  if (!appState.orgSlug) await loadOrgSlug();
 
+  const siteUrl = getSiteUrlBuilder();
+  if (!appState.orgSlug) {
+    // Sem slug não há como montar URL correta — mostrar aviso
+    if (loading) loading.classList.add('hidden');
+    iframe.src = '';
+    iframe.srcdoc = '<body style="background:#0d1117;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#8b949e;"><p>Configure o slug da organização para visualizar o site.</p></body>';
+    return;
+  }
+
+  if (openLink) openLink.href = siteUrl;
   if (loading) loading.classList.remove('hidden');
 
   builderIframeReady = false;
@@ -264,7 +274,6 @@ function builderLoadPreview() {
     iframe.onload = () => {
       if (loading) loading.classList.add('hidden');
       builderApplyDevice(builderDevice);
-      // Se o site não enviou cz_preview_ready em 2s, marcar como pronto e enviar dados
       setTimeout(() => {
         if (!builderIframeReady) {
           builderIframeReady = true;
@@ -425,8 +434,8 @@ async function postLoginSetup() {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'flex';
 
-  // Carregar slug da organização para links de site (await garante slug pronto antes de abrir abas)
-  await loadOrgSlug();
+  // Carregar slug da organização para links de site
+  loadOrgSlug();
   loadSidebarStorage();
 
   startNotificationPolling();
