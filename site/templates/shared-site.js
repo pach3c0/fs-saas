@@ -580,7 +580,7 @@ function renderSite(data) {
   }
 
   // Renderizar seções customizadas criadas pelo fotógrafo
-  renderCustomSections(content.customSections || [], mainContent, sections);
+  renderCustomSections(content.customSections || [], document.body, sections);
 
   // Injetar scripts de analytics/pixel
   injectAnalyticsScripts(data.integrations);
