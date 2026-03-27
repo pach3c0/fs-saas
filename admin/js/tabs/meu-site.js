@@ -191,7 +191,7 @@ async function renderSiteContent(container, builderTabsEl) {
   ];
 
   function buildPreviewUrl(themeId) {
-    const base = `${window.location.origin}/site?_preview_theme=${themeId}`;
+    const base = `${window.location.origin}/site?_preview=1&_preview_theme=${themeId}`;
     return orgSlug ? `${base}&_tenant=${orgSlug}` : base;
   }
 
