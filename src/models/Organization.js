@@ -64,6 +64,7 @@ const OrganizationSchema = new mongoose.Schema({
     overlayOpacity: { type: Number, default: 30, min: 0, max: 80 },
     topBarHeight: { type: Number, default: 0, min: 0, max: 20 },
     bottomBarHeight: { type: Number, default: 0, min: 0, max: 20 },
+    heroLayers: { type: mongoose.Schema.Types.Mixed, default: [] },
     whatsapp: { type: String, default: '' },
     whatsappMessage: { type: String, default: 'Olá! Vi seu site e gostaria de mais informações.' },
     instagramUrl: { type: String, default: '' },

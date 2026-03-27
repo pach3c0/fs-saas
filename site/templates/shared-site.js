@@ -176,26 +176,52 @@ function renderSite(data) {
   const heroLayersEl = document.getElementById('heroLayers');
   if (heroLayersEl) {
     heroLayersEl.innerHTML = heroLayers.map(layer => {
+      const type = layer.type || 'text';
+
+      if (type === 'image') {
+        const rotation = layer.rotation || 0;
+        const flipH = layer.flipH ? 'scaleX(-1)' : '';
+        const flipV = layer.flipV ? 'scaleY(-1)' : '';
+        const transforms = [`translate(-50%, -50%)`, `rotate(${rotation}deg)`, flipH, flipV].filter(Boolean).join(' ');
+        return `<div style="
+          position: absolute;
+          left: ${layer.x ?? 50}%;
+          top: ${layer.y ?? 50}%;
+          width: ${layer.width ?? 20}%;
+          height: ${layer.height ?? 20}%;
+          transform: ${transforms};
+          opacity: ${(layer.opacity ?? 100) / 100};
+          overflow: hidden;
+          border-radius: ${layer.borderRadius ?? 0}px;
+          pointer-events: none;
+          user-select: none;
+        "><img src="${resolvePath(layer.url || '')}" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""></div>`;
+      }
+
+      // Texto
       const fs = Math.max(12, layer.fontSize || 48);
-      // Converte px para vw proporcional (base 1440px)
       const fsvw = (fs / 1440 * 100).toFixed(3);
       const fsMin = Math.max(12, fs * 0.4);
       const fsMax = fs;
+      const rotation = layer.rotation || 0;
+      const transforms = [`translate(-50%, -50%)`, rotation ? `rotate(${rotation}deg)` : ''].filter(Boolean).join(' ');
       return `<div style="
         position: absolute;
         left: ${layer.x ?? 50}%;
         top: ${layer.y ?? 50}%;
-        transform: translate(-50%, -50%);
+        transform: ${transforms};
         color: ${layer.color || '#ffffff'};
         font-size: clamp(${fsMin}px, ${fsvw}vw, ${fsMax}px);
         font-family: ${layer.fontFamily || 'inherit'};
         font-weight: ${layer.fontWeight || 'bold'};
         text-align: ${layer.align || 'center'};
         text-shadow: ${layer.shadow !== false ? '2px 2px 8px rgba(0,0,0,0.8)' : 'none'};
+        letter-spacing: ${layer.letterSpacing || 0}px;
+        line-height: ${layer.lineHeight || 1.2};
+        opacity: ${(layer.opacity ?? 100) / 100};
         white-space: pre-wrap;
         word-break: break-word;
         max-width: 90%;
-        line-height: 1.2;
         pointer-events: none;
         user-select: none;
       ">${esc(layer.text || '')}</div>`;

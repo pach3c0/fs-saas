@@ -11,6 +11,7 @@ import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
+import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
 export async function renderMeuSite(container) {
   // Enter builder mode — render properties into the builder panel
@@ -415,7 +416,8 @@ async function renderSiteContent(container, builderTabsEl) {
   }
 
   // ── Preview em tempo real ─────────────────────────────────────────────
-  // Variável compartilhada entre postPreviewData e o closure do heroStudio
+  // Referência ao canvas editor (quando hero está aberto)
+  let _heroCanvasEditor = null;
   let _heroImageUrlForPreview = '';
 
   // Monta snapshot dos dados atuais (campos do form + configData) e envia
@@ -456,37 +458,15 @@ async function renderSiteContent(container, builderTabsEl) {
     if (sobreText)  snap.siteContent.sobre.text  = sobreText.value;
     if (sobreImage) snap.siteContent.sobre.image = sobreImage.value;
 
-    // Hero Studio (se aberto)
-    const heroTitle = container.querySelector('#heroStudioTitle');
-    const heroSubtitle = container.querySelector('#heroStudioSubtitle');
-    const heroScale = container.querySelector('#heroStudioScale');
-    const heroPosX = container.querySelector('#heroStudioPosX');
-    const heroPosY = container.querySelector('#heroStudioPosY');
-    const heroTitlePosX = container.querySelector('#heroStudioTitlePosX');
-    const heroTitlePosY = container.querySelector('#heroStudioTitlePosY');
-    const heroTitleFS = container.querySelector('#heroStudioTitleFontSize');
-    const heroSubPosX = container.querySelector('#heroStudioSubtitlePosX');
-    const heroSubPosY = container.querySelector('#heroStudioSubtitlePosY');
-    const heroSubFS = container.querySelector('#heroStudioSubtitleFontSize');
-    const heroOverlay = container.querySelector('#heroStudioOverlayOpacity');
-    const heroTopBar = container.querySelector('#heroStudioTopBarHeight');
-    const heroBottomBar = container.querySelector('#heroStudioBottomBarHeight');
-    if (heroTitle)     snap.siteConfig.heroTitle     = heroTitle.value;
-    if (heroSubtitle)  snap.siteConfig.heroSubtitle  = heroSubtitle.value;
-    if (heroScale)     snap.siteConfig.heroScale     = parseFloat(heroScale.value);
-    if (heroPosX)      snap.siteConfig.heroPosX      = parseInt(heroPosX.value);
-    if (heroPosY)      snap.siteConfig.heroPosY      = parseInt(heroPosY.value);
-    if (heroTitlePosX) snap.siteConfig.titlePosX     = parseInt(heroTitlePosX.value);
-    if (heroTitlePosY) snap.siteConfig.titlePosY     = parseInt(heroTitlePosY.value);
-    if (heroTitleFS)   snap.siteConfig.titleFontSize = parseInt(heroTitleFS.value);
-    if (heroSubPosX)   snap.siteConfig.subtitlePosX  = parseInt(heroSubPosX.value);
-    if (heroSubPosY)   snap.siteConfig.subtitlePosY  = parseInt(heroSubPosY.value);
-    if (heroSubFS)     snap.siteConfig.subtitleFontSize = parseInt(heroSubFS.value);
-    if (heroOverlay)   snap.siteConfig.overlayOpacity = parseInt(heroOverlay.value);
-    if (heroTopBar)    snap.siteConfig.topBarHeight  = parseInt(heroTopBar.value);
-    if (heroBottomBar) snap.siteConfig.bottomBarHeight = parseInt(heroBottomBar.value);
-    // Imagem do hero (sincronizada pelo heroStudio via _heroImageUrlForPreview)
-    if (_heroImageUrlForPreview) {
+    // Hero Canvas (se aberto)
+    if (_heroCanvasEditor) {
+      const cs = _heroCanvasEditor.getState();
+      Object.assign(snap.siteConfig, cs);
+      // Manter campos legados para templates antigos
+      const layers = cs.heroLayers || [];
+      snap.siteConfig.heroTitle = layers[0]?.text || '';
+      snap.siteConfig.heroSubtitle = layers[1]?.text || '';
+    } else if (_heroImageUrlForPreview) {
       snap.siteConfig.heroImage = _heroImageUrlForPreview;
     }
 
@@ -535,6 +515,17 @@ async function renderSiteContent(container, builderTabsEl) {
   const contents = container.querySelectorAll('.sub-tab-content');
 
   function doSwitchSubTab(btn, targetContainer) {
+    // Cleanup canvas do hero ao sair da aba
+    if (_heroCanvasEditor && btn.dataset.target !== 'config-hero') {
+      _heroCanvasEditor.destroy();
+      _heroCanvasEditor = null;
+      // Restaurar iframe
+      const iframe = document.getElementById('builder-iframe');
+      const canvasEl = document.getElementById('hero-canvas-container');
+      if (iframe) iframe.style.display = '';
+      if (canvasEl) canvasEl.remove();
+    }
+
     tabs.forEach(t => {
       t.style.background = 'none';
       t.style.color = t.dataset.target === 'config-personalizar' ? '#c084fc' : '#9ca3af';
@@ -640,320 +631,568 @@ async function renderSiteContent(container, builderTabsEl) {
     });
   };
 
-  // --- HERO ---
-  // Renderizar Hero Studio completo — sistema de layers livres
+  // --- HERO CANVAS ---
+  // Editor visual completo estilo Canva — canvas interativo com layers
+  const HERO_FONTS = [
+    { value: '', label: 'Padrão do Tema' },
+    { value: "'Playfair Display', serif", label: 'Playfair Display' },
+    { value: "'Inter', sans-serif", label: 'Inter' },
+    { value: "'Poppins', sans-serif", label: 'Poppins' },
+    { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+    { value: "'Lato', sans-serif", label: 'Lato' },
+    { value: "'Raleway', sans-serif", label: 'Raleway' },
+    { value: "'Oswald', sans-serif", label: 'Oswald' },
+    { value: "Georgia, serif", label: 'Georgia' },
+  ];
+
   const renderHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
     const cfg = siteConfig || {};
+    let _heroReady = false;
 
     // Migração: se não há layers, criar a partir dos campos antigos
     let heroLayers = (cfg.heroLayers && cfg.heroLayers.length > 0)
       ? cfg.heroLayers.map(l => ({ ...l }))
       : [];
     if (heroLayers.length === 0) {
-      if (cfg.heroTitle) heroLayers.push({ id: 'l_' + Date.now(), text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
-      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now()+1), text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
+      if (cfg.heroTitle) heroLayers.push({ id: 'l_' + Date.now(), type: 'text', text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
+      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now()+1), type: 'text', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
     }
 
-    const FONTS = [
-      { value: '', label: 'Padrão do Tema' },
-      { value: "'Playfair Display', serif", label: 'Playfair Display' },
-      { value: "'Inter', sans-serif", label: 'Inter' },
-      { value: "'Poppins', sans-serif", label: 'Poppins' },
-      { value: "'Montserrat', sans-serif", label: 'Montserrat' },
-      { value: "'Lato', sans-serif", label: 'Lato' },
-      { value: "Georgia, serif", label: 'Georgia' },
-    ];
+    // ── Tomar conta da área de preview (substituir iframe pelo canvas) ──
+    const iframeWrap = document.getElementById('builder-iframe-wrap');
+    const iframe = document.getElementById('builder-iframe');
+    if (iframe) iframe.style.display = 'none';
 
+    // Remover canvas anterior se existir
+    const oldCanvas = document.getElementById('hero-canvas-container');
+    if (oldCanvas) oldCanvas.remove();
+
+    const canvasContainer = document.createElement('div');
+    canvasContainer.id = 'hero-canvas-container';
+    canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
+    if (iframeWrap) iframeWrap.appendChild(canvasContainer);
+
+    // ── Instanciar Canvas Editor ──
+    const canvasEditor = new HeroCanvasEditor(canvasContainer, {
+      onSelect: (layer) => {
+        renderPropsForLayer(layer);
+      },
+      onChange: () => {
+        if (_heroReady) markDirty('config-hero', 'Hero');
+        window._meuSitePostPreview?.();
+      },
+      resolveImagePath: resolveImagePath,
+    });
+
+    canvasEditor.setBackground({ url: cfg.heroImage || '', scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 });
+    canvasEditor.setOverlay({ opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, bottomBarHeight: cfg.bottomBarHeight ?? 0 });
+    canvasEditor.setLayers(heroLayers);
+
+    _heroCanvasEditor = canvasEditor;
+    _heroImageUrlForPreview = cfg.heroImage || '';
+
+    // ── Sidebar: Painel de Propriedades ──
     heroContainer.innerHTML = `
       <style>
         #config-hero { display:flex; flex-direction:column; height:100%; overflow:hidden; }
-        #hs-wrap { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
-        #hs-sidebar { width:100%; display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
-        #hs-sidebar::-webkit-scrollbar { width:4px; }
-        #hs-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
-        .hs-section { border-bottom:1px solid #1f2937; }
-        .hs-section-head { padding:0.75rem 1rem; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; }
-        .hs-row { padding:0.5rem 1rem; display:flex; flex-direction:column; gap:0.25rem; }
-        .hs-label { font-size:0.7rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
-        .hs-input { width:100%; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.8rem; outline:none; box-sizing:border-box; }
-        .hs-input:focus { border-color:#3b82f6; }
-        .hs-range { width:100%; accent-color:#3b82f6; }
-        .hs-range-row { display:flex; align-items:center; gap:0.5rem; }
-        .hs-range-val { font-size:0.7rem; font-family:monospace; color:#9ca3af; min-width:2.5rem; text-align:right; }
-        .hs-btn-add { margin:0.75rem 1rem; background:#1d4ed8; color:white; border:none; border-radius:0.375rem; padding:0.6rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem; }
-        .hs-btn-add:hover { background:#2563eb; }
-        .hs-layer-card { margin:0 0.75rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.5rem; overflow:hidden; }
-        .hs-layer-card.selected { border-color:#3b82f6; }
-        .hs-layer-head { padding:0.5rem 0.75rem; display:flex; align-items:center; gap:0.5rem; cursor:pointer; background:#2d3748; }
-        .hs-layer-head:hover { background:#374151; }
-        .hs-layer-body { padding:0.75rem; display:flex; flex-direction:column; gap:0.6rem; }
-        .hs-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
-        .hs-btn-del { background:none; border:none; color:#ef4444; cursor:pointer; font-size:1rem; margin-left:auto; padding:0.1rem 0.3rem; }
-        .hs-save-btn { margin:0.75rem 1rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; padding:0.75rem; font-size:0.875rem; font-weight:700; cursor:pointer; }
-        .hs-save-btn:hover { background:#15803d; }
+        .hc-sidebar { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
+        .hc-sidebar::-webkit-scrollbar { width:4px; }
+        .hc-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
+        .hc-section { border-bottom:1px solid #1f2937; }
+        .hc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:space-between; }
+        .hc-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
+        .hc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+        .hc-input { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; }
+        .hc-input:focus { border-color:#3b82f6; }
+        .hc-range { width:100%; accent-color:#3b82f6; }
+        .hc-range-row { display:flex; align-items:center; gap:0.4rem; }
+        .hc-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.2rem; text-align:right; }
+        .hc-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:#d1d5db; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
+        .hc-btn:hover { background:#374151; color:#fff; }
+        .hc-btn.primary { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+        .hc-btn.primary:hover { background:#2563eb; }
+        .hc-btn.success { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
+        .hc-btn.success:hover { background:#15803d; }
+        .hc-btn.danger { border-color:#dc2626; color:#ef4444; }
+        .hc-btn.danger:hover { background:#dc2626; color:#fff; }
+        .hc-btn-group { display:flex; gap:0.35rem; padding:0.4rem 0.75rem; flex-wrap:wrap; }
+        .hc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
+        .hc-layer-item:hover { background:#2d3748; }
+        .hc-layer-item.active { border-color:#3b82f6; background:#172554; }
+        .hc-layer-item .layer-icon { font-size:0.8rem; opacity:0.6; }
+        .hc-layer-item .layer-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .hc-layer-item .layer-del { color:#ef4444; cursor:pointer; font-size:0.85rem; opacity:0.6; }
+        .hc-layer-item .layer-del:hover { opacity:1; }
+        .hc-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; }
+        .hc-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.35rem; }
       </style>
 
-      <div id="hs-wrap">
-        <!-- SIDEBAR -->
-        <div id="hs-sidebar">
-
-          <!-- IMAGEM -->
-          <div class="hs-section">
-            <div class="hs-section-head">Imagem de Fundo</div>
-            <div class="hs-row" style="gap:0.4rem;">
-              <label style="background:#1d4ed8; color:white; padding:0.5rem; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
-                📁 Nova Foto
-                <input type="file" id="heroImgInput" accept="image/*" style="display:none;">
-              </label>
-              <button id="heroCropBtn" style="background:#374151; color:#d1d5db; padding:0.5rem; border:1px solid #4b5563; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
-                ✂️ Editar / Cortar
-              </button>
-              <div id="heroImgProgress"></div>
-            </div>
-            <div class="hs-row">
-              <div class="hs-label">Zoom</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroScale" min="0.5" max="2" step="0.05" value="${cfg.heroScale ?? 1}">
-                <span class="hs-range-val" id="heroScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(2)}x</span>
-              </div>
-            </div>
-            <div class="hs-row">
-              <div class="hs-label">Posição Horizontal</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroPosX" min="0" max="100" step="1" value="${cfg.heroPosX ?? 50}">
-                <span class="hs-range-val" id="heroPosXVal">${cfg.heroPosX ?? 50}%</span>
-              </div>
-            </div>
-            <div class="hs-row">
-              <div class="hs-label">Posição Vertical</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroPosY" min="0" max="100" step="1" value="${cfg.heroPosY ?? 50}">
-                <span class="hs-range-val" id="heroPosYVal">${cfg.heroPosY ?? 50}%</span>
-              </div>
-            </div>
+      <div class="hc-sidebar">
+        <!-- AÇÕES -->
+        <div class="hc-section">
+          <div class="hc-section-head">Adicionar</div>
+          <div class="hc-btn-group">
+            <button class="hc-btn primary" id="hcAddText" title="Adicionar texto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+              Texto
+            </button>
+            <button class="hc-btn primary" id="hcAddImage" title="Adicionar imagem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              Imagem
+            </button>
           </div>
-
-          <!-- EFEITOS -->
-          <div class="hs-section">
-            <div class="hs-section-head">Efeitos</div>
-            <div class="hs-row">
-              <div class="hs-label">Overlay escuro</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroOverlay" min="0" max="80" step="5" value="${cfg.overlayOpacity ?? 30}">
-                <span class="hs-range-val" id="heroOverlayVal">${cfg.overlayOpacity ?? 30}%</span>
-              </div>
-            </div>
-            <div class="hs-row">
-              <div class="hs-label">Barra superior</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroTopBar" min="0" max="20" step="1" value="${cfg.topBarHeight ?? 0}">
-                <span class="hs-range-val" id="heroTopBarVal">${cfg.topBarHeight ?? 0}%</span>
-              </div>
-            </div>
-            <div class="hs-row">
-              <div class="hs-label">Barra inferior</div>
-              <div class="hs-range-row">
-                <input type="range" class="hs-range" id="heroBottomBar" min="0" max="20" step="1" value="${cfg.bottomBarHeight ?? 0}">
-                <span class="hs-range-val" id="heroBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- TEXTOS -->
-          <div class="hs-section">
-            <div class="hs-section-head">Textos</div>
-            <button class="hs-btn-add" id="heroAddLayerBtn">+ Adicionar Texto</button>
-            <div id="heroLayersList"></div>
-          </div>
-
-          <button class="hs-save-btn" id="saveHeroStudioBtn">Salvar Hero</button>
+          <input type="file" id="hcImageUpload" accept="image/*" style="display:none;">
         </div>
 
+        <!-- FUNDO -->
+        <div class="hc-section">
+          <div class="hc-section-head">Imagem de Fundo</div>
+          <div class="hc-btn-group">
+            <label class="hc-btn primary" style="cursor:pointer;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload
+              <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
+            </label>
+            <button class="hc-btn" id="hcBgCrop">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+              Cortar
+            </button>
+          </div>
+          <div id="hcBgProgress"></div>
+          <div class="hc-row">
+            <div class="hc-label">Zoom</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcBgScale" min="0.5" max="3" step="0.05" value="${cfg.heroScale ?? 1}">
+              <span class="hc-range-val" id="hcBgScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(1)}x</span>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Posição X</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcBgPosX" min="0" max="100" step="1" value="${cfg.heroPosX ?? 50}">
+              <span class="hc-range-val" id="hcBgPosXVal">${cfg.heroPosX ?? 50}%</span>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Posição Y</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcBgPosY" min="0" max="100" step="1" value="${cfg.heroPosY ?? 50}">
+              <span class="hc-range-val" id="hcBgPosYVal">${cfg.heroPosY ?? 50}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EFEITOS -->
+        <div class="hc-section">
+          <div class="hc-section-head">Efeitos</div>
+          <div class="hc-row">
+            <div class="hc-label">Overlay escuro</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcOverlay" min="0" max="80" step="5" value="${cfg.overlayOpacity ?? 30}">
+              <span class="hc-range-val" id="hcOverlayVal">${cfg.overlayOpacity ?? 30}%</span>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Barra superior</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcTopBar" min="0" max="20" step="1" value="${cfg.topBarHeight ?? 0}">
+              <span class="hc-range-val" id="hcTopBarVal">${cfg.topBarHeight ?? 0}%</span>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Barra inferior</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcBottomBar" min="0" max="20" step="1" value="${cfg.bottomBarHeight ?? 0}">
+              <span class="hc-range-val" id="hcBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROPRIEDADES DO LAYER SELECIONADO -->
+        <div class="hc-section" id="hcLayerProps" style="display:none;">
+          <div class="hc-section-head">
+            <span id="hcPropTitle">Propriedades</span>
+          </div>
+          <div id="hcPropContent"></div>
+        </div>
+
+        <!-- LAYERS -->
+        <div class="hc-section" style="border-bottom:none;">
+          <div class="hc-section-head">Camadas</div>
+          <div id="hcLayerList"></div>
+        </div>
+
+        <!-- SALVAR -->
+        <div style="padding:0.5rem 0.75rem; margin-top:auto;">
+          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.65rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar Hero
+          </button>
+        </div>
       </div>
 
       ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
 
-    // ── Refs ──────────────────────────────────────────────────
-    const layersList     = heroContainer.querySelector('#heroLayersList');
-    const scaleInput     = heroContainer.querySelector('#heroScale');
-    const scaleVal       = heroContainer.querySelector('#heroScaleVal');
-    const posXInput      = heroContainer.querySelector('#heroPosX');
-    const posYInput      = heroContainer.querySelector('#heroPosY');
-    const overlayInput   = heroContainer.querySelector('#heroOverlay');
-    const overlayVal     = heroContainer.querySelector('#heroOverlayVal');
-    const topBarInput    = heroContainer.querySelector('#heroTopBar');
-    const topBarVal      = heroContainer.querySelector('#heroTopBarVal');
-    const bottomBarInput = heroContainer.querySelector('#heroBottomBar');
-    const bottomBarVal   = heroContainer.querySelector('#heroBottomBarVal');
-    const imgInput       = heroContainer.querySelector('#heroImgInput');
+    // ── Refs ──
+    const bgScaleInput = heroContainer.querySelector('#hcBgScale');
+    const bgScaleVal = heroContainer.querySelector('#hcBgScaleVal');
+    const bgPosXInput = heroContainer.querySelector('#hcBgPosX');
+    const bgPosXVal = heroContainer.querySelector('#hcBgPosXVal');
+    const bgPosYInput = heroContainer.querySelector('#hcBgPosY');
+    const bgPosYVal = heroContainer.querySelector('#hcBgPosYVal');
+    const overlayInput = heroContainer.querySelector('#hcOverlay');
+    const overlayVal = heroContainer.querySelector('#hcOverlayVal');
+    const topBarInput = heroContainer.querySelector('#hcTopBar');
+    const topBarVal = heroContainer.querySelector('#hcTopBarVal');
+    const bottomBarInput = heroContainer.querySelector('#hcBottomBar');
+    const bottomBarVal = heroContainer.querySelector('#hcBottomBarVal');
 
-    let heroImageUrl  = cfg.heroImage || '';
-    let selectedId    = null;
-    let _heroReady    = false;
-    _heroImageUrlForPreview = heroImageUrl;
+    let heroImageUrl = cfg.heroImage || '';
 
-    const posXVal  = heroContainer.querySelector('#heroPosXVal');
-    const posYVal  = heroContainer.querySelector('#heroPosYVal');
+    // ── Sliders de fundo ──
+    const updateBg = () => {
+      canvasEditor.setBackground({
+        url: heroImageUrl,
+        scale: parseFloat(bgScaleInput.value),
+        posX: parseInt(bgPosXInput.value),
+        posY: parseInt(bgPosYInput.value),
+      });
+      if (_heroReady) markDirty('config-hero', 'Hero');
+      window._meuSitePostPreview?.();
+    };
+    bgScaleInput.oninput = () => { bgScaleVal.textContent = parseFloat(bgScaleInput.value).toFixed(1) + 'x'; updateBg(); };
+    bgPosXInput.oninput = () => { bgPosXVal.textContent = bgPosXInput.value + '%'; updateBg(); };
+    bgPosYInput.oninput = () => { bgPosYVal.textContent = bgPosYInput.value + '%'; updateBg(); };
 
-    // ── Sliders ───────────────────────────────────────────────
-    scaleInput.oninput   = () => { scaleVal.textContent = parseFloat(scaleInput.value).toFixed(2) + 'x'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
-    posXInput.oninput    = () => { posXVal.textContent = posXInput.value + '%'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
-    posYInput.oninput    = () => { posYVal.textContent = posYInput.value + '%'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
-    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; renderPreview(); };
-    topBarInput.oninput  = () => { topBarVal.textContent = topBarInput.value + '%'; renderPreview(); };
-    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; renderPreview(); };
+    // ── Sliders de efeitos ──
+    const updateOverlay = () => {
+      canvasEditor.setOverlay({
+        opacity: parseInt(overlayInput.value),
+        topBarHeight: parseInt(topBarInput.value),
+        bottomBarHeight: parseInt(bottomBarInput.value),
+      });
+      if (_heroReady) markDirty('config-hero', 'Hero');
+      window._meuSitePostPreview?.();
+    };
+    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; updateOverlay(); };
+    topBarInput.oninput = () => { topBarVal.textContent = topBarInput.value + '%'; updateOverlay(); };
+    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; updateOverlay(); };
 
-    // ── Upload imagem ─────────────────────────────────────────
-    imgInput.onchange = async (e) => {
+    // ── Upload de fundo ──
+    heroContainer.querySelector('#hcBgUpload').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('heroImgProgress', p));
+        const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('hcBgProgress', p));
         heroImageUrl = result.url;
         _heroImageUrlForPreview = heroImageUrl;
+        canvasEditor.setBackground({ url: heroImageUrl });
         if (_heroReady) markDirty('config-hero', 'Hero');
-        renderPreview();
+        window._meuSitePostPreview?.();
         e.target.value = '';
       } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
     };
 
-    // ── Editar / Cortar imagem com Cropper.js ─────────────────
-    heroContainer.querySelector('#heroCropBtn').onclick = () => {
+    // ── Cortar fundo ──
+    heroContainer.querySelector('#hcBgCrop').onclick = () => {
       if (!heroImageUrl) { window.showToast?.('Faça upload de uma imagem primeiro.', 'warning'); return; }
       setupPhotoEditor(heroContainer, 'heroPhotoEditorModal', resolveImagePath(heroImageUrl), {}, async ({ url }) => {
         heroImageUrl = url;
         _heroImageUrlForPreview = url;
+        canvasEditor.setBackground({ url: heroImageUrl });
         if (_heroReady) markDirty('config-hero', 'Hero');
-        renderPreview();
+        window._meuSitePostPreview?.();
       });
     };
 
-    // ── Renderizar lista de layers na sidebar ─────────────────
-    const renderLayersList = () => {
-      layersList.innerHTML = heroLayers.map((layer, idx) => `
-        <div class="hs-layer-card ${selectedId === layer.id ? 'selected' : ''}" data-lid="${layer.id}">
-          <div class="hs-layer-head" onclick="heroSelectLayer('${layer.id}')">
-            <span style="font-size:0.75rem; color:#9ca3af; min-width:1.2rem;">${idx + 1}</span>
-            <span style="font-size:0.8rem; color:#d1d5db; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${layer.text || '(vazio)'}</span>
-            <button class="hs-btn-del" onclick="event.stopPropagation(); heroDeleteLayer('${layer.id}')">🗑️</button>
+    // ── Adicionar texto ──
+    heroContainer.querySelector('#hcAddText').onclick = () => {
+      const newLayer = { id: 'l_' + Date.now(), type: 'text', text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true, rotation: 0, opacity: 100 };
+      canvasEditor.addLayer(newLayer);
+      renderLayerList();
+    };
+
+    // ── Adicionar imagem ──
+    const imgUploadInput = heroContainer.querySelector('#hcImageUpload');
+    heroContainer.querySelector('#hcAddImage').onclick = () => imgUploadInput.click();
+    imgUploadInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const result = await uploadImage(file, appState.authToken);
+        const newLayer = { id: 'l_' + Date.now(), type: 'image', url: result.url, x: 50, y: 50, width: 25, height: 30, rotation: 0, flipH: false, flipV: false, opacity: 100, borderRadius: 0 };
+        canvasEditor.addLayer(newLayer);
+        renderLayerList();
+        e.target.value = '';
+      } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
+    };
+
+    // ── Renderizar lista de layers ──
+    const renderLayerList = () => {
+      const list = heroContainer.querySelector('#hcLayerList');
+      if (!list) return;
+      const layers = canvasEditor.getLayers();
+      list.innerHTML = layers.length === 0
+        ? '<div style="padding:0.5rem 0.75rem; font-size:0.75rem; color:#4b5563; text-align:center;">Nenhuma camada</div>'
+        : [...layers].reverse().map(l => {
+          const icon = (l.type === 'image') ? '🖼️' : '✏️';
+          const name = (l.type === 'image') ? 'Imagem' : (l.text || '(vazio)');
+          const isActive = canvasEditor.selectedId === l.id;
+          return `<div class="hc-layer-item ${isActive ? 'active' : ''}" data-layer-id="${l.id}">
+            <span class="layer-icon">${icon}</span>
+            <span class="layer-name">${name}</span>
+            <span class="layer-del" data-del-id="${l.id}">✕</span>
+          </div>`;
+        }).join('');
+
+      // Clicks nos items
+      list.querySelectorAll('.hc-layer-item').forEach(item => {
+        item.onclick = (e) => {
+          if (e.target.closest('.layer-del')) return;
+          canvasEditor.selectLayer(item.dataset.layerId);
+          renderLayerList();
+        };
+      });
+      list.querySelectorAll('.layer-del').forEach(del => {
+        del.onclick = async (e) => {
+          e.stopPropagation();
+          const ok = await window.showConfirm?.('Remover esta camada?', { confirmText: 'Remover', danger: true });
+          if (!ok) return;
+          canvasEditor.removeLayer(del.dataset.delId);
+          renderLayerList();
+          renderPropsForLayer(null);
+        };
+      });
+    };
+
+    // ── Renderizar propriedades do layer selecionado ──
+    const renderPropsForLayer = (layer) => {
+      const propsSection = heroContainer.querySelector('#hcLayerProps');
+      const propTitle = heroContainer.querySelector('#hcPropTitle');
+      const propContent = heroContainer.querySelector('#hcPropContent');
+      if (!propsSection || !propContent) return;
+
+      renderLayerList();
+
+      if (!layer) {
+        propsSection.style.display = 'none';
+        return;
+      }
+
+      propsSection.style.display = '';
+      const type = layer.type || 'text';
+
+      if (type === 'text') {
+        propTitle.textContent = 'Texto';
+        propContent.innerHTML = `
+          <div class="hc-row">
+            <div class="hc-label">Conteúdo</div>
+            <textarea class="hc-input" id="hcPropText" rows="2" style="resize:vertical;">${layer.text || ''}</textarea>
           </div>
-          ${selectedId === layer.id ? `
-          <div class="hs-layer-body">
-            <div>
-              <div class="hs-label">Texto</div>
-              <textarea class="hs-input" rows="2" oninput="heroUpdateLayer('${layer.id}','text',this.value)" style="resize:vertical;">${layer.text || ''}</textarea>
-            </div>
-            <div class="hs-grid2">
+          <div class="hc-row">
+            <div class="hc-grid2">
               <div>
-                <div class="hs-label">Tamanho (px)</div>
-                <input type="number" class="hs-input" min="8" max="300" value="${layer.fontSize || 48}" oninput="heroUpdateLayer('${layer.id}','fontSize',+this.value)">
+                <div class="hc-label">Tamanho</div>
+                <input type="number" class="hc-input" id="hcPropFontSize" min="8" max="400" value="${layer.fontSize || 48}">
               </div>
               <div>
-                <div class="hs-label">Cor</div>
-                <input type="color" value="${layer.color || '#ffffff'}" oninput="heroUpdateLayer('${layer.id}','color',this.value)" style="width:100%; height:34px; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; cursor:pointer; padding:2px;">
+                <div class="hc-label">Cor</div>
+                <input type="color" id="hcPropColor" value="${layer.color || '#ffffff'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:0.375rem;background:#1f2937;cursor:pointer;padding:2px;">
               </div>
             </div>
-            <div>
-              <div class="hs-label">Fonte</div>
-              <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','fontFamily',this.value)">
-                ${FONTS.map(f => `<option value="${f.value}" ${layer.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
-              </select>
-            </div>
-            <div class="hs-grid2">
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Fonte</div>
+            <select class="hc-input" id="hcPropFont">
+              ${HERO_FONTS.map(f => `<option value="${f.value}" ${layer.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="hc-row">
+            <div class="hc-grid3">
               <div>
-                <div class="hs-label">Peso</div>
-                <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','fontWeight',this.value)">
-                  <option value="normal" ${layer.fontWeight === 'normal' ? 'selected' : ''}>Normal</option>
-                  <option value="bold" ${layer.fontWeight === 'bold' ? 'selected' : ''}>Negrito</option>
+                <div class="hc-label">Peso</div>
+                <select class="hc-input" id="hcPropWeight">
                   <option value="300" ${layer.fontWeight === '300' ? 'selected' : ''}>Leve</option>
+                  <option value="normal" ${layer.fontWeight === 'normal' ? 'selected' : ''}>Normal</option>
+                  <option value="600" ${layer.fontWeight === '600' ? 'selected' : ''}>Semibold</option>
+                  <option value="bold" ${(layer.fontWeight === 'bold' || !layer.fontWeight) ? 'selected' : ''}>Negrito</option>
+                  <option value="900" ${layer.fontWeight === '900' ? 'selected' : ''}>Black</option>
                 </select>
               </div>
               <div>
-                <div class="hs-label">Alinhamento</div>
-                <select class="hs-input" onchange="heroUpdateLayer('${layer.id}','align',this.value)">
-                  <option value="left" ${layer.align === 'left' ? 'selected' : ''}>Esquerda</option>
+                <div class="hc-label">Alinhar</div>
+                <select class="hc-input" id="hcPropAlign">
+                  <option value="left" ${layer.align === 'left' ? 'selected' : ''}>Esq</option>
                   <option value="center" ${(layer.align || 'center') === 'center' ? 'selected' : ''}>Centro</option>
-                  <option value="right" ${layer.align === 'right' ? 'selected' : ''}>Direita</option>
+                  <option value="right" ${layer.align === 'right' ? 'selected' : ''}>Dir</option>
                 </select>
               </div>
+              <div>
+                <div class="hc-label">Rotação</div>
+                <input type="number" class="hc-input" id="hcPropRotation" min="-360" max="360" value="${layer.rotation || 0}">
+              </div>
             </div>
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <input type="checkbox" id="shadow-${layer.id}" ${layer.shadow !== false ? 'checked' : ''} onchange="heroUpdateLayer('${layer.id}','shadow',this.checked)">
-              <label for="shadow-${layer.id}" style="font-size:0.75rem; color:#9ca3af; cursor:pointer;">Sombra no texto</label>
+          </div>
+          <div class="hc-row">
+            <div class="hc-grid2">
+              <div>
+                <div class="hc-label">Opacidade</div>
+                <div class="hc-range-row">
+                  <input type="range" class="hc-range" id="hcPropOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
+                  <span class="hc-range-val" id="hcPropOpacityVal">${layer.opacity ?? 100}%</span>
+                </div>
+              </div>
+              <div>
+                <div class="hc-label">Espaçamento</div>
+                <input type="number" class="hc-input" id="hcPropLetterSpacing" min="-10" max="50" value="${layer.letterSpacing || 0}">
+              </div>
             </div>
-          </div>` : ''}
-        </div>
-      `).join('');
+          </div>
+          <div class="hc-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
+            <input type="checkbox" id="hcPropShadow" ${layer.shadow !== false ? 'checked' : ''}>
+            <label for="hcPropShadow" style="font-size:0.72rem; color:#9ca3af; cursor:pointer;">Sombra no texto</label>
+          </div>
+        `;
+
+        // Bind events para texto
+        const bind = (id, field, parse) => {
+          const el = heroContainer.querySelector(id);
+          if (!el) return;
+          el.oninput = () => {
+            const val = parse ? parse(el.value) : el.value;
+            canvasEditor.updateLayer(layer.id, { [field]: val });
+            if (field === 'opacity') {
+              heroContainer.querySelector('#hcPropOpacityVal').textContent = val + '%';
+            }
+          };
+          el.onchange = el.oninput;
+        };
+        bind('#hcPropText', 'text');
+        bind('#hcPropFontSize', 'fontSize', Number);
+        bind('#hcPropColor', 'color');
+        bind('#hcPropFont', 'fontFamily');
+        bind('#hcPropWeight', 'fontWeight');
+        bind('#hcPropAlign', 'align');
+        bind('#hcPropRotation', 'rotation', Number);
+        bind('#hcPropOpacity', 'opacity', Number);
+        bind('#hcPropLetterSpacing', 'letterSpacing', Number);
+        bind('#hcPropShadow', 'shadow', null);
+        // Checkbox especial
+        const shadowEl = heroContainer.querySelector('#hcPropShadow');
+        if (shadowEl) {
+          shadowEl.onchange = () => canvasEditor.updateLayer(layer.id, { shadow: shadowEl.checked });
+        }
+
+      } else if (type === 'image') {
+        propTitle.textContent = 'Imagem';
+        propContent.innerHTML = `
+          <div class="hc-btn-group">
+            <label class="hc-btn primary" style="cursor:pointer;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Trocar
+              <input type="file" id="hcPropImgUpload" accept="image/*" style="display:none;">
+            </label>
+            <button class="hc-btn" id="hcPropFlipH" title="Espelhar horizontal">↔ Flip H</button>
+            <button class="hc-btn" id="hcPropFlipV" title="Espelhar vertical">↕ Flip V</button>
+          </div>
+          <div class="hc-row">
+            <div class="hc-grid2">
+              <div>
+                <div class="hc-label">Largura %</div>
+                <input type="number" class="hc-input" id="hcPropWidth" min="2" max="100" value="${Math.round(layer.width ?? 20)}">
+              </div>
+              <div>
+                <div class="hc-label">Altura %</div>
+                <input type="number" class="hc-input" id="hcPropHeight" min="2" max="100" value="${Math.round(layer.height ?? 20)}">
+              </div>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-grid2">
+              <div>
+                <div class="hc-label">Rotação</div>
+                <input type="number" class="hc-input" id="hcPropImgRotation" min="-360" max="360" value="${layer.rotation || 0}">
+              </div>
+              <div>
+                <div class="hc-label">Borda arred.</div>
+                <input type="number" class="hc-input" id="hcPropBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
+              </div>
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Opacidade</div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropImgOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
+              <span class="hc-range-val" id="hcPropImgOpacityVal">${layer.opacity ?? 100}%</span>
+            </div>
+          </div>
+        `;
+
+        // Binds para imagem
+        const ibind = (id, field, parse) => {
+          const el = heroContainer.querySelector(id);
+          if (!el) return;
+          el.oninput = () => {
+            const val = parse ? parse(el.value) : el.value;
+            canvasEditor.updateLayer(layer.id, { [field]: val });
+            if (field === 'opacity') {
+              const valEl = heroContainer.querySelector('#hcPropImgOpacityVal');
+              if (valEl) valEl.textContent = val + '%';
+            }
+          };
+          el.onchange = el.oninput;
+        };
+        ibind('#hcPropWidth', 'width', Number);
+        ibind('#hcPropHeight', 'height', Number);
+        ibind('#hcPropImgRotation', 'rotation', Number);
+        ibind('#hcPropBorderRadius', 'borderRadius', Number);
+        ibind('#hcPropImgOpacity', 'opacity', Number);
+
+        // Flip
+        heroContainer.querySelector('#hcPropFlipH').onclick = () => {
+          canvasEditor.updateLayer(layer.id, { flipH: !layer.flipH });
+        };
+        heroContainer.querySelector('#hcPropFlipV').onclick = () => {
+          canvasEditor.updateLayer(layer.id, { flipV: !layer.flipV });
+        };
+
+        // Trocar imagem
+        heroContainer.querySelector('#hcPropImgUpload').onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+            const result = await uploadImage(file, appState.authToken);
+            canvasEditor.updateLayer(layer.id, { url: result.url });
+            e.target.value = '';
+          } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
+        };
+      }
     };
 
-    // ── Adicionar layer ───────────────────────────────────────
-    heroContainer.querySelector('#heroAddLayerBtn').onclick = () => {
-      const newLayer = { id: 'l_' + Date.now(), text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true };
-      heroLayers.push(newLayer);
-      selectedId = newLayer.id;
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      renderLayersList();
-      renderPreview();
-    };
-
-    window.heroSelectLayer = (id) => {
-      selectedId = selectedId === id ? null : id;
-      renderLayersList();
-      renderPreview();
-    };
-
-    window.heroDeleteLayer = async (id) => {
-      const ok = await window.showConfirm?.('Remover este texto?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover?');
-      if (!ok) return;
-      heroLayers = heroLayers.filter(l => l.id !== id);
-      if (selectedId === id) selectedId = null;
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      renderLayersList();
-      renderPreview();
-    };
-
-    window.heroUpdateLayer = (id, field, value) => {
-      const layer = heroLayers.find(l => l.id === id);
-      if (!layer) return;
-      layer[field] = value;
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      renderPreview();
-    };
-
-    // ── Atualizar preview do builder via postMessage ──────────
-    const renderPreview = () => {
-      window._meuSitePostPreview?.();
-    };
-
-    // ── Salvar ────────────────────────────────────────────────
-    heroContainer.querySelector('#saveHeroStudioBtn').onclick = async (e) => {
+    // ── Salvar ──
+    heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
       await withBtnLoading(e.currentTarget, async () => {
+        const state = canvasEditor.getState();
         const newHeroConfig = {
           ...siteConfig,
-          heroImage: heroImageUrl,
-          heroScale: parseFloat(scaleInput.value),
-          heroPosX: parseInt(posXInput.value),
-          heroPosY: parseInt(posYInput.value),
-          overlayOpacity: parseInt(overlayInput.value),
-          topBarHeight: parseInt(topBarInput.value),
-          bottomBarHeight: parseInt(bottomBarInput.value),
-          heroLayers: heroLayers,
-          // Manter campos antigos para compatibilidade com templates legados
-          heroTitle: heroLayers[0]?.text || '',
-          heroSubtitle: heroLayers[1]?.text || '',
+          ...state,
+          // Manter campos antigos para compatibilidade
+          heroTitle: state.heroLayers[0]?.text || '',
+          heroSubtitle: state.heroLayers[1]?.text || '',
         };
         await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
+        // Atualizar configData local
+        configData.siteConfig = { ...configData.siteConfig, ...state };
         clearDirty();
         window.showToast?.('Hero salvo!', 'success');
         liveRefresh({ siteConfig: newHeroConfig });
       });
     };
 
-    // ── Init ──────────────────────────────────────────────────
-    renderLayersList();
-    renderPreview();
+    // ── Init ──
+    renderLayerList();
     requestAnimationFrame(() => { _heroReady = true; });
   };
 
