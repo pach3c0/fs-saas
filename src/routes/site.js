@@ -24,7 +24,11 @@ router.get('/site/config', async (req, res) => {
       return res.status(404).json({ error: 'Organização não encontrada' });
     }
 
-    res.json(org);
+    // siteEnabled null/undefined (docs antigos sem o campo) → true por padrão
+    const result = org.toObject();
+    if (result.siteEnabled == null) result.siteEnabled = true;
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

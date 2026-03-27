@@ -38,7 +38,7 @@ const OrganizationSchema = new mongoose.Schema({
     default: 'medium'
   },
   // Site público do fotógrafo
-  siteEnabled: { type: Boolean, default: false },
+  siteEnabled: { type: Boolean, default: true },
   siteTheme: {
     type: String,
     enum: ['elegante', 'minimalista', 'moderno', 'escuro', 'colorido'],
