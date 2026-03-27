@@ -160,15 +160,18 @@ async function renderSiteContent(container, builderTabsEl) {
   // Carregar dados
   let configData = {};
   try {
-    configData = await apiGet('/api/site/admin/config');
+    configData = (await apiGet('/api/site/admin/config')) || {};
   } catch (e) { console.error(e); }
 
   // Buscar slug da organização para montar URLs de preview
   let orgSlug = new URLSearchParams(window.location.search).get('_tenant') || '';
   if (!orgSlug) {
+    orgSlug = appState.orgSlug || '';
+  }
+  if (!orgSlug) {
     try {
       const profile = await apiGet('/api/organization/profile');
-      orgSlug = profile.slug || '';
+      orgSlug = profile.data?.slug || profile.slug || '';
     } catch (e) { /* usa fallback vazio */ }
   }
 

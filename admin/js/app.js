@@ -462,14 +462,15 @@ async function loadOrgSlug() {
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.slug) {
-        appState.orgSlug = data.slug;
-        localStorage.setItem('orgSlug', data.slug);
+      const slug = data.data?.slug || data.slug;
+      if (slug) {
+        appState.orgSlug = slug;
+        localStorage.setItem('orgSlug', slug);
         // Atualizar link "Abrir" dentro do modal de preview
         const newTabA = document.getElementById('openSiteNewTab');
-        if (newTabA) newTabA.href = `/site?_tenant=${data.slug}`;
+        if (newTabA) newTabA.href = `/site?_tenant=${slug}`;
         const urlBar = document.getElementById('preview-url-bar');
-        if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${data.slug}`;
+        if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${slug}`;
       }
     }
   } catch (e) { /* silencioso */ }
