@@ -66,7 +66,9 @@ function applyCustomStyle(siteStyle) {
 function renderSite(data) {
   const config = data.siteConfig || {};
   const content = data.siteContent || {};
-  const sections = data.siteSections || [];
+  const sections = (data.siteSections && data.siteSections.length)
+    ? data.siteSections
+    : ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 
   // Aplicar estilo personalizado
   applyCustomStyle(data.siteStyle);

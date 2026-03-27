@@ -74,7 +74,7 @@ const OrganizationSchema = new mongoose.Schema({
   // Seções ativas e ordem
   siteSections: {
     type: [String],
-    default: ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato']
+    default: ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq']
   },
   // Conteúdo de cada seção
   siteContent: {

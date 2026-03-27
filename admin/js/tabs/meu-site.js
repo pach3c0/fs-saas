@@ -1028,20 +1028,21 @@ async function renderSiteContent(container, builderTabsEl) {
   // --- SEÇÕES (Ativar/Desativar) ---
   const renderSecoes = () => {
     const secoesContainer = container.querySelector('#config-secoes');
+    const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
     const allSectionDefs = [
       { id: 'hero', label: 'Hero / Capa' },
-      { id: 'sobre', label: 'Sobre Mim' },
       { id: 'portfolio', label: 'Portfólio' },
       { id: 'albuns', label: 'Álbuns' },
-      { id: 'estudio', label: 'Estúdio' },
       { id: 'servicos', label: 'Serviços' },
+      { id: 'estudio', label: 'Estúdio' },
       { id: 'depoimentos', label: 'Depoimentos' },
+      { id: 'contato', label: 'Contato' },
+      { id: 'sobre', label: 'Sobre Mim' },
       { id: 'faq', label: 'FAQ' },
-      { id: 'contato', label: 'Contato' }
     ];
 
     // Ordem atual: ativas primeiro (na ordem salva), depois inativas
-    const saved = configData.siteSections || ['hero', 'sobre', 'portfolio', 'servicos', 'depoimentos', 'contato'];
+    const saved = configData.siteSections?.length ? configData.siteSections : DEFAULT_SECTIONS;
     let ordered = [
       ...saved.map(id => allSectionDefs.find(s => s.id === id)).filter(Boolean),
       ...allSectionDefs.filter(s => !saved.includes(s.id))
