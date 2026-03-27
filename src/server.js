@@ -203,6 +203,11 @@ app.use('/api', require('./routes/landing'));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+});
+
+// Sinaliza ao PM2 que o processo está pronto (usado no modo cluster para zero-downtime reload)
+mongoose.connection.once('open', () => {
+  if (process.send) process.send('ready');
 });

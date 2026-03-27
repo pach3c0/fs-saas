@@ -277,8 +277,9 @@ async function renderSiteContent(container, builderTabsEl) {
   toggle.onchange = async () => {
     try {
       await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
+      configData.siteEnabled = toggle.checked;
       window.showToast?.(toggle.checked ? 'Site ativado!' : 'Site desativado.', toggle.checked ? 'success' : 'warning');
-      window.builderScheduleRefresh?.();
+      liveRefresh({});
     } catch (e) {
       window.showToast?.('Erro ao salvar status do site', 'error');
       toggle.checked = !toggle.checked; // reverte
@@ -512,6 +513,22 @@ async function renderSiteContent(container, builderTabsEl) {
   // Expor globalmente para que sub-funções (heroStudio, etc.) chamem
   window._meuSitePostPreview = postPreviewData;
 
+  // Atualiza configData localmente e dispara postMessage — sem reload do iframe
+  function liveRefresh(patch = {}) {
+    if (patch.siteContent) {
+      configData.siteContent = { ...(configData.siteContent || {}), ...patch.siteContent };
+    }
+    if (patch.siteConfig) {
+      configData.siteConfig = { ...(configData.siteConfig || {}), ...patch.siteConfig };
+    }
+    if (patch.siteStyle) {
+      configData.siteStyle = { ...(configData.siteStyle || {}), ...patch.siteStyle };
+    }
+    if (patch.siteSections) configData.siteSections = patch.siteSections;
+    if (patch.siteTheme)    configData.siteTheme    = patch.siteTheme;
+    postPreviewData();
+  }
+
   // ── Navegação de Abas
   const tabs = container.querySelectorAll('.sub-tab-btn');
   const contents = container.querySelectorAll('.sub-tab-content');
@@ -574,6 +591,7 @@ async function renderSiteContent(container, builderTabsEl) {
       selectedTheme = newTheme;
       renderTemplateCards();
       window.showToast?.('Tema salvo!', 'success');
+      // Troca de tema requer reload completo do iframe (templates diferentes)
       window.builderScheduleRefresh?.();
     });
   };
@@ -617,7 +635,7 @@ async function renderSiteContent(container, builderTabsEl) {
       // Recapturar valores originais após salvar
       captureOriginalValues('config-sobre', sobreContainer);
       window.showToast?.('Salvo!', 'success');
-      window.builderScheduleRefresh?.();
+      liveRefresh({ siteContent: { sobre: newSobre } });
     });
   };
 
@@ -891,7 +909,7 @@ async function renderSiteContent(container, builderTabsEl) {
         await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
         clearDirty();
         window.showToast?.('Hero salvo!', 'success');
-        window.builderScheduleRefresh?.();
+        liveRefresh({ siteConfig: newHeroConfig });
       });
     };
 
@@ -1121,8 +1139,7 @@ async function renderSiteContent(container, builderTabsEl) {
           const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
           await apiPut('/api/site/admin/config', { siteSections: selected });
           window.showToast?.('Seções salvas!', 'success');
-          configData.siteSections = selected;
-          window.builderScheduleRefresh?.();
+          liveRefresh({ siteSections: selected });
         });
       };
     };
@@ -1215,8 +1232,7 @@ async function renderSiteContent(container, builderTabsEl) {
           // Recapturar valores originais após salvar
           captureOriginalValues('config-servicos', servicosContainer);
           window.showToast?.('Serviços salvos!', 'success');
-          configData.siteContent.servicos = updated;
-          window.builderScheduleRefresh?.();
+          liveRefresh({ siteContent: { servicos: updated } });
         };
       }
     };
@@ -1398,8 +1414,7 @@ async function renderSiteContent(container, builderTabsEl) {
         clearDirty();
         captureOriginalValues('config-depoimentos', depoContainer);
         window.showToast?.('Depoimentos salvos!', 'success');
-        configData.siteContent.depoimentos = updated;
-        window.builderScheduleRefresh?.();
+        liveRefresh({ siteContent: { depoimentos: updated } });
       };
 
       // Capturar valores originais e setup dirty tracking
@@ -1611,12 +1626,11 @@ async function renderSiteContent(container, builderTabsEl) {
             fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
           };
           await apiPut('/api/site/admin/config', { siteStyle: newStyle });
-          configData.siteStyle = newStyle;
           clearDirty();
           captureOriginalValues('config-personalizar', personalizarContainer);
           saveStyleBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
-          window.builderScheduleRefresh?.();
+          liveRefresh({ siteStyle: newStyle });
         };
       }
 
@@ -1626,9 +1640,8 @@ async function renderSiteContent(container, builderTabsEl) {
         resetStyleBtn.onclick = async () => {
           if (!confirm('Resetar para o estilo padrão do tema?')) return;
           await apiPut('/api/site/admin/config', { siteStyle: {} });
-          configData.siteStyle = {};
           renderCustomList();
-          window.builderScheduleRefresh?.();
+          liveRefresh({ siteStyle: {} });
         };
       }
 
@@ -1692,11 +1705,9 @@ async function renderSiteContent(container, builderTabsEl) {
             };
           });
           await apiPut('/api/site/admin/config', { siteContent: { customSections: updated } });
-          configData.siteContent = configData.siteContent || {};
-          configData.siteContent.customSections = updated;
           saveCSBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveCSBtn.textContent = 'Salvar Seções Extras'; }, 2000);
-          window.builderScheduleRefresh?.();
+          liveRefresh({ siteContent: { customSections: updated } });
         };
       }
     };
@@ -1754,8 +1765,7 @@ async function renderSiteContent(container, builderTabsEl) {
       // Recapturar valores originais após salvar
       captureOriginalValues('config-contato', contatoContainer);
       window.showToast?.('Contato salvo!', 'success');
-      configData.siteContent.contato = newContato;
-      window.builderScheduleRefresh?.();
+      liveRefresh({ siteContent: { contato: newContato } });
     };
   };
 }

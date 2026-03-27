@@ -3,7 +3,7 @@
  */
 
 import { appState, saveAppData } from '../state.js';
-import { resolveImagePath, generateId } from '../utils/helpers.js';
+import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 import { apiPut } from '../utils/api.js';
@@ -169,7 +169,7 @@ export async function renderPortfolio(container) {
     setupPhotoEditor(container, 'photoEditorModal', photo.image,
       { scale: photo.scale, posX: photo.posX, posY: photo.posY },
       async (pos) => {
-        portfolio[idx] = { ...portfolio[idx], ...pos };
+        portfolio[idx] = { ...portfolio[idx], image: pos.url };
         appState.appData.portfolio = portfolio;
         await saveAppData('portfolio', portfolio, true);
         await syncPortfolioToSite(portfolio);
