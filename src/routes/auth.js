@@ -291,15 +291,13 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
   try {
     const Session = require('../models/Session');
     const Notification = require('../models/Notification');
-    const Newsletter = require('../models/Newsletter');
 
-    const [totalOrgs, activeOrgs, totalUsers, totalSessions, totalPhotos, totalNewsletterSubs, planGroups] = await Promise.all([
+    const [totalOrgs, activeOrgs, totalUsers, totalSessions, totalPhotos, planGroups] = await Promise.all([
       Organization.countDocuments(),
       Organization.countDocuments({ isActive: true }),
       User.countDocuments(),
       Session.countDocuments(),
       Session.aggregate([{ $project: { count: { $size: '$photos' } } }, { $group: { _id: null, total: { $sum: '$count' } } }]),
-      Newsletter.countDocuments(),
       Organization.aggregate([{ $group: { _id: '$plan', count: { $sum: 1 } } }])
     ]);
 
@@ -310,8 +308,7 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
       organizations: { total: totalOrgs, active: activeOrgs, pending: totalOrgs - activeOrgs, byPlan },
       users: totalUsers,
       sessions: totalSessions,
-      photos: totalPhotos[0]?.total || 0,
-      newsletterSubs: totalNewsletterSubs
+      photos: totalPhotos[0]?.total || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -322,7 +319,6 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
 router.get('/admin/organizations/:id/details', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
     const Session = require('../models/Session');
-    const Newsletter = require('../models/Newsletter');
     const fs = require('fs');
     const path = require('path');
 
@@ -331,7 +327,6 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
 
     const users = await User.find({ organizationId: org._id }).select('name email role approved createdAt');
     const sessions = await Session.find({ organizationId: org._id }).select('name type mode selectionStatus photos createdAt');
-    const newsletterCount = await Newsletter.countDocuments({ organizationId: org._id });
 
     // Calcular storage usado
     let storageBytes = 0;
@@ -355,7 +350,7 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
       stats: {
         sessions: sessions.length,
         photos: totalPhotos,
-        newsletterSubs: newsletterCount,
+        newsletterSubs: 0,
         storageMB: Math.round(storageBytes / 1024 / 1024 * 100) / 100
       },
       recentSessions: sessions.slice(0, 10).map(s => ({
@@ -423,7 +418,6 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
     const Session = require('../models/Session');
     const SiteData = require('../models/SiteData');
     const Notification = require('../models/Notification');
-    const Newsletter = require('../models/Newsletter');
     const fs = require('fs');
     const path = require('path');
 
@@ -432,8 +426,7 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
       User.deleteMany({ organizationId: orgId }),
       SiteData.deleteMany({ organizationId: orgId }),
       Session.deleteMany({ organizationId: orgId }),
-      Notification.deleteMany({ organizationId: orgId }),
-      Newsletter.deleteMany({ organizationId: orgId })
+      Notification.deleteMany({ organizationId: orgId })
     ]);
 
     // Deletar pasta de uploads
