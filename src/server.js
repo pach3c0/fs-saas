@@ -180,7 +180,6 @@ app.use('/api/site-data', resolveTenant);
 app.use('/api/hero', resolveTenant);
 app.use('/api/site-config', resolveTenant);
 app.use('/api/faq', resolveTenant);
-app.use('/api/newsletter/subscribe', resolveTenant);
 app.use('/api/client', resolveTenant);
 app.use('/api/organization/public', resolveTenant);
 app.use('/api/site/config', resolveTenant);
@@ -191,7 +190,6 @@ app.use('/api/site/depoimento', resolveTenant);
 // ============================================================================
 app.use('/api', require('./routes/auth'));
 app.use('/api', require('./routes/siteData'));
-app.use('/api', require('./routes/newsletter'));
 app.use('/api', require('./routes/sessions'));
 app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));

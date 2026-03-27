@@ -70,7 +70,7 @@ SiteData {
   albums            -> [{ id, title, cover, photos }]
   studio            -> { title, description, photos, videoUrl }
   faq               -> { faqs: [{ question, answer }] }
-  footer            -> { socialMedia, quickLinks, newsletter, copyright }
+  footer            -> { socialMedia, quickLinks, copyright }
   maintenance       -> { enabled, title, message }
 }
 ```
@@ -85,7 +85,6 @@ Session         -> Sessao de fotos (galeria do cliente), coverPhoto
 Client          -> CRM de clientes [FASE 5]
 Album           -> Prova de album folheavel [FASE 8]
 Notification    -> Notificacoes do admin
-Newsletter      -> Inscritos na newsletter
 Subscription    -> Plano e billing [FASE 12]
 ```
 
@@ -98,7 +97,6 @@ Organization (1) ──── (*) Client [FASE 5]
 Organization (1) ──── (*) Album [FASE 8]
 Organization (1) ──── (1) SiteData
 Organization (1) ──── (*) Notification
-Organization (1) ──── (*) Newsletter
 Organization (1) ──── (1) Subscription [FASE 12]
 Client (1) ──── (*) Session [FASE 5]
 Client (1) ──── (*) Album [FASE 8]
