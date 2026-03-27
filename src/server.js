@@ -176,7 +176,6 @@ const { resolveTenant } = require('./middleware/tenant');
 
 // Aplicar resolveTenant nas rotas publicas (GET sem auth)
 // As rotas usam req.organizationId (do tenant) OU req.user.organizationId (do JWT)
-app.use('/api/site-data', resolveTenant);
 app.use('/api/hero', resolveTenant);
 app.use('/api/site-config', resolveTenant);
 app.use('/api/faq', resolveTenant);
