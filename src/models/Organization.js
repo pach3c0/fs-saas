@@ -8,7 +8,7 @@ const OrganizationSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
-  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
   isActive: { type: Boolean, default: false },
   // Perfil do fotografo
