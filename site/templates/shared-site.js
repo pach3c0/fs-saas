@@ -7,10 +7,11 @@
 function buildApiUrl() {
   const params = new URLSearchParams(window.location.search);
   const tenantParam = params.get('_tenant');
-  if (tenantParam) {
-    return '/api/site/config?_tenant=' + encodeURIComponent(tenantParam);
-  }
-  return '/api/site/config';
+  const isPreview = params.get('_preview') === '1';
+  const qs = [];
+  if (tenantParam) qs.push('_tenant=' + encodeURIComponent(tenantParam));
+  if (isPreview) qs.push('_preview=1');
+  return '/api/site/config' + (qs.length ? '?' + qs.join('&') : '');
 }
 
 // Carregar dados da API
