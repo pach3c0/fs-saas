@@ -410,40 +410,52 @@ function renderSite(data) {
   });
 
   // Reordenar seções baseado na ordem do array sections
-  // Usar <main> se existir; caso contrário usar body mas inserir logo após o nav
   const mainEl = document.querySelector('main');
-  const mainContent = mainEl || document.body;
+  const siteFooter = document.getElementById('siteFooter');
   const sectionElements = sections.map(s => document.getElementById('section-' + s)).filter(el => el);
 
   // Remover todas as seções do DOM
   sectionElements.forEach(el => {
-    if (el.parentNode) {
-      el.parentNode.removeChild(el);
-    }
+    if (el.parentNode) el.parentNode.removeChild(el);
   });
 
-  // Re-inserir na ordem correta
+  // Âncora de inserção: sempre antes do #siteFooter quando possível
+  function getAnchor(parent) {
+    if (siteFooter && siteFooter.parentNode === parent) return siteFooter;
+    return null;
+  }
+
+  // Re-inserir na ordem correta, sempre antes do footer
   if (mainEl) {
-    // Tem <main>: append normal
+    const anchor = getAnchor(mainEl);
     sectionElements.forEach(el => {
       el.style.display = '';
-      mainEl.appendChild(el);
+      anchor ? mainEl.insertBefore(el, anchor) : mainEl.appendChild(el);
     });
   } else {
-    // Sem <main>: inserir após o nav (ou antes do footer, o que vier primeiro)
-    const nav = document.getElementById('siteNav');
-    const footer = document.getElementById('siteFooter');
-    const anchor = (footer && footer.parentNode === document.body) ? footer : null;
+    const anchor = getAnchor(document.body);
     sectionElements.forEach(el => {
       el.style.display = '';
-      if (anchor) {
-        document.body.insertBefore(el, anchor);
-      } else if (nav && nav.nextSibling) {
-        document.body.insertBefore(el, nav.nextSibling);
-      } else {
-        document.body.appendChild(el);
-      }
+      anchor ? document.body.insertBefore(el, anchor) : document.body.appendChild(el);
     });
+  }
+
+  // Formulário de depoimento: inserir sempre logo após section-depoimentos e antes do footer
+  const depFormEl = document.getElementById('section-depoimento-form');
+  if (depFormEl) {
+    if (depFormEl.parentNode) depFormEl.parentNode.removeChild(depFormEl);
+    const depSection = document.getElementById('section-depoimentos');
+    if (sections.includes('depoimentos') && depSection && depSection.parentNode) {
+      // Insere imediatamente após a seção de depoimentos
+      depSection.parentNode.insertBefore(depFormEl, depSection.nextSibling);
+      depFormEl.style.display = '';
+    } else {
+      // Depoimentos não está ativo — oculta o formulário
+      depFormEl.style.display = 'none';
+      // Mantém antes do footer para não sumir do DOM
+      const anchor = siteFooter || null;
+      anchor ? document.body.insertBefore(depFormEl, anchor) : document.body.appendChild(depFormEl);
+    }
   }
 
   // WhatsApp flutuante com mensagens do estúdio
@@ -531,9 +543,7 @@ function renderSite(data) {
     };
   }
 
-  // Formulário de depoimento (visível quando seção depoimentos está ativa)
-  const depFormSection = document.getElementById('section-depoimento-form');
-  if (depFormSection && sections.includes('depoimentos')) depFormSection.style.display = '';
+  // Formulário de depoimento — visibilidade e posição controladas pelo bloco de reordenação acima
   const depoimentoForm = document.getElementById('depoimentoForm');
   if (depoimentoForm) {
     depoimentoForm.onsubmit = async function(e) {
