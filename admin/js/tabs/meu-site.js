@@ -667,12 +667,11 @@ async function renderSiteContent(container, builderTabsEl) {
 
     heroContainer.innerHTML = `
       <style>
-        #config-hero { height: 100%; }
-        #hs-wrap { display:flex; height:calc(100vh - 200px); margin:-1rem; overflow:hidden; background:#020617; border-radius:0.5rem; border:1px solid #374151; }
-        #hs-sidebar { width:320px; background:#111827; border-right:1px solid #374151; display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto; }
+        #config-hero { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+        #hs-wrap { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+        #hs-sidebar { width:100%; display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
         #hs-sidebar::-webkit-scrollbar { width:4px; }
         #hs-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
-        #hs-canvas-wrap { flex:1; background:#020617; display:flex; flex-direction:column; position:relative; }
         .hs-section { border-bottom:1px solid #1f2937; }
         .hs-section-head { padding:0.75rem 1rem; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; }
         .hs-row { padding:0.5rem 1rem; display:flex; flex-direction:column; gap:0.25rem; }
@@ -693,27 +692,11 @@ async function renderSiteContent(container, builderTabsEl) {
         .hs-btn-del { background:none; border:none; color:#ef4444; cursor:pointer; font-size:1rem; margin-left:auto; padding:0.1rem 0.3rem; }
         .hs-save-btn { margin:0.75rem 1rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; padding:0.75rem; font-size:0.875rem; font-weight:700; cursor:pointer; }
         .hs-save-btn:hover { background:#15803d; }
-        #hs-preview { border:1px solid #374151; border-radius:0.75rem; background:#000; overflow:hidden; position:relative; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); container-type:inline-size; transition:all 0.3s ease; box-sizing:border-box; cursor:crosshair; }
-        .hs-layer-el { position:absolute; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0); padding:0.3rem; box-sizing:border-box; line-height:1.2; }
-        .hs-layer-el:hover { border-color:rgba(255,255,255,0.4); }
-        .hs-layer-el.selected { border-color:#3b82f6 !important; outline:1px solid #3b82f6; }
-        .hs-handle { position:absolute; bottom:-4px; right:-4px; width:10px; height:10px; background:#3b82f6; border-radius:2px; cursor:se-resize; }
-        .hs-prop-float { position:absolute; bottom:1rem; left:50%; transform:translateX(-50%); background:rgba(17,24,39,0.95); border:1px solid #374151; border-radius:0.5rem; padding:0.5rem 0.75rem; display:flex; align-items:center; gap:0.5rem; z-index:30; backdrop-filter:blur(4px); white-space:nowrap; }
-        .hs-prop-float input[type=color] { width:28px; height:28px; border:none; border-radius:4px; cursor:pointer; background:none; padding:0; }
-        .hs-prop-float select { background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.2rem 0.4rem; font-size:0.75rem; }
-        .hs-prop-float input[type=number] { width:3.5rem; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.2rem 0.4rem; font-size:0.75rem; text-align:center; }
-        .hs-prop-btn { background:#374151; border:none; color:#d1d5db; border-radius:0.25rem; padding:0.2rem 0.5rem; cursor:pointer; font-size:0.75rem; font-weight:600; }
-        .hs-prop-btn:hover { background:#4b5563; }
-        .hs-prop-sep { width:1px; height:1.5rem; background:#374151; }
       </style>
 
       <div id="hs-wrap">
         <!-- SIDEBAR -->
         <div id="hs-sidebar">
-          <div style="padding:1rem; border-bottom:1px solid #374151; position:sticky; top:0; background:#111827; z-index:10;">
-            <div style="font-size:1rem; font-weight:700; color:#f3f4f6;">Hero Studio</div>
-            <div style="font-size:0.7rem; color:#6b7280; margin-top:0.2rem;">Clique no canvas para adicionar texto</div>
-          </div>
 
           <!-- IMAGEM -->
           <div class="hs-section">
@@ -735,9 +718,20 @@ async function renderSiteContent(container, builderTabsEl) {
                 <span class="hs-range-val" id="heroScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(2)}x</span>
               </div>
             </div>
-            <input type="hidden" id="heroPosX" value="${cfg.heroPosX ?? 50}">
-            <input type="hidden" id="heroPosY" value="${cfg.heroPosY ?? 50}">
-            <div style="padding:0 1rem 0.75rem; font-size:0.65rem; color:#4b5563;">Arraste a imagem no canvas para reposicionar</div>
+            <div class="hs-row">
+              <div class="hs-label">Posição Horizontal</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroPosX" min="0" max="100" step="1" value="${cfg.heroPosX ?? 50}">
+                <span class="hs-range-val" id="heroPosXVal">${cfg.heroPosX ?? 50}%</span>
+              </div>
+            </div>
+            <div class="hs-row">
+              <div class="hs-label">Posição Vertical</div>
+              <div class="hs-range-row">
+                <input type="range" class="hs-range" id="heroPosY" min="0" max="100" step="1" value="${cfg.heroPosY ?? 50}">
+                <span class="hs-range-val" id="heroPosYVal">${cfg.heroPosY ?? 50}%</span>
+              </div>
+            </div>
           </div>
 
           <!-- EFEITOS -->
@@ -776,25 +770,12 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="hs-save-btn" id="saveHeroStudioBtn">Salvar Hero</button>
         </div>
 
-        <!-- CANVAS -->
-        <div id="hs-canvas-wrap">
-          <div style="padding:0.75rem; display:flex; justify-content:center; gap:0.5rem; position:absolute; top:0; left:0; right:0; z-index:20; pointer-events:none;">
-            <div style="background:rgba(17,24,39,0.85); backdrop-filter:blur(4px); padding:0.2rem; border-radius:0.375rem; border:1px solid #374151; pointer-events:auto; display:flex; gap:0.2rem;">
-              <button id="hsBtnDesktop" style="background:#374151; color:white; border:none; padding:0.3rem 0.6rem; border-radius:0.2rem; cursor:pointer; font-size:0.7rem; font-weight:600;">Desktop</button>
-              <button id="hsBtnMobile" style="background:transparent; color:#6b7280; border:none; padding:0.3rem 0.6rem; border-radius:0.2rem; cursor:pointer; font-size:0.7rem; font-weight:600;">Mobile</button>
-            </div>
-          </div>
-          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2.5rem 1.5rem; overflow:hidden;">
-            <div id="hs-preview"></div>
-          </div>
-        </div>
       </div>
 
       ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
 
     // ── Refs ──────────────────────────────────────────────────
-    const preview        = heroContainer.querySelector('#hs-preview');
     const layersList     = heroContainer.querySelector('#heroLayersList');
     const scaleInput     = heroContainer.querySelector('#heroScale');
     const scaleVal       = heroContainer.querySelector('#heroScaleVal');
@@ -806,38 +787,23 @@ async function renderSiteContent(container, builderTabsEl) {
     const topBarVal      = heroContainer.querySelector('#heroTopBarVal');
     const bottomBarInput = heroContainer.querySelector('#heroBottomBar');
     const bottomBarVal   = heroContainer.querySelector('#heroBottomBarVal');
-    const btnDesktop     = heroContainer.querySelector('#hsBtnDesktop');
-    const btnMobile      = heroContainer.querySelector('#hsBtnMobile');
     const imgInput       = heroContainer.querySelector('#heroImgInput');
 
     let heroImageUrl  = cfg.heroImage || '';
-    let previewMode   = 'desktop';
     let selectedId    = null;
     let _heroReady    = false;
     _heroImageUrlForPreview = heroImageUrl;
 
-    // ── Sliders ───────────────────────────────────────────────
-    scaleInput.oninput = () => { scaleVal.textContent = parseFloat(scaleInput.value).toFixed(2) + 'x'; renderPreview(); };
-    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; renderPreview(); };
-    topBarInput.oninput = () => { topBarVal.textContent = topBarInput.value + '%'; renderPreview(); };
-    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; renderPreview(); };
+    const posXVal  = heroContainer.querySelector('#heroPosXVal');
+    const posYVal  = heroContainer.querySelector('#heroPosYVal');
 
-    // ── Device toggle ─────────────────────────────────────────
-    const setDevice = (mode) => {
-      previewMode = mode;
-      btnDesktop.style.cssText = mode === 'desktop' ? 'background:#374151;color:white;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;' : 'background:transparent;color:#6b7280;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;';
-      btnMobile.style.cssText  = mode === 'mobile'  ? 'background:#374151;color:white;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;' : 'background:transparent;color:#6b7280;border:none;padding:0.3rem 0.6rem;border-radius:0.2rem;cursor:pointer;font-size:0.7rem;font-weight:600;';
-      const isMobile = mode === 'mobile';
-      Object.assign(preview.style, {
-        aspectRatio: isMobile ? '9/16' : '16/9',
-        width: isMobile ? '280px' : '100%',
-        maxWidth: isMobile ? '280px' : '100%',
-        margin: isMobile ? '0 auto' : '0',
-      });
-      renderPreview();
-    };
-    btnDesktop.onclick = () => setDevice('desktop');
-    btnMobile.onclick  = () => setDevice('mobile');
+    // ── Sliders ───────────────────────────────────────────────
+    scaleInput.oninput   = () => { scaleVal.textContent = parseFloat(scaleInput.value).toFixed(2) + 'x'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
+    posXInput.oninput    = () => { posXVal.textContent = posXInput.value + '%'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
+    posYInput.oninput    = () => { posYVal.textContent = posYInput.value + '%'; if (_heroReady) markDirty('config-hero', 'Hero'); renderPreview(); };
+    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; renderPreview(); };
+    topBarInput.oninput  = () => { topBarVal.textContent = topBarInput.value + '%'; renderPreview(); };
+    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; renderPreview(); };
 
     // ── Upload imagem ─────────────────────────────────────────
     imgInput.onchange = async (e) => {
@@ -956,145 +922,9 @@ async function renderSiteContent(container, builderTabsEl) {
       renderPreview();
     };
 
-    // ── Renderizar preview canvas ─────────────────────────────
+    // ── Atualizar preview do builder via postMessage ──────────
     const renderPreview = () => {
-      const scale   = parseFloat(scaleInput.value);
-      const px      = parseInt(posXInput.value);
-      const py      = parseInt(posYInput.value);
-      const overlay = parseInt(overlayInput.value);
-      const topBar  = parseInt(topBarInput.value);
-      const bottom  = parseInt(bottomBarInput.value);
-      const pw      = preview.offsetWidth || 600;
-
-      const imgHtml = heroImageUrl
-        ? `<img src="${resolveImagePath(heroImageUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${px}% ${py}%;transform:scale(${scale});transform-origin:${px}% ${py}%;pointer-events:none;user-select:none;">`
-        : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);"></div>`;
-
-      const layersHtml = heroLayers.map(layer => {
-        const fs = Math.max(8, layer.fontSize || 48);
-        const fspx = Math.round((fs / 1440) * pw);
-        const fsClamped = Math.max(10, Math.min(fs, fspx > 0 ? fspx : fs));
-        const isSelected = layer.id === selectedId;
-        return `<div
-          class="hs-layer-el${isSelected ? ' selected' : ''}"
-          data-layer-id="${layer.id}"
-          style="left:${layer.x ?? 50}%;top:${layer.y ?? 50}%;transform:translate(-50%,-50%);
-            color:${layer.color||'#fff'};font-size:${fsClamped}px;
-            font-family:${layer.fontFamily||'inherit'};font-weight:${layer.fontWeight||'bold'};
-            text-align:${layer.align||'center'};
-            text-shadow:${layer.shadow!==false?'2px 2px 8px rgba(0,0,0,0.8)':'none'};
-            white-space:pre-wrap;word-break:break-word;max-width:90%;z-index:5;">
-          ${layer.text || ''}
-          ${isSelected ? '<div class="hs-handle" data-resize="1"></div>' : ''}
-        </div>`;
-      }).join('');
-
-      preview.innerHTML = `
-        ${imgHtml}
-        <div data-drag="bg" style="position:absolute;inset:0;background:rgba(0,0,0,${overlay/100});z-index:1;cursor:move;"></div>
-        <div style="position:absolute;top:0;left:0;right:0;height:${topBar}%;background:#000;z-index:2;pointer-events:none;"></div>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:${bottom}%;background:#000;z-index:2;pointer-events:none;"></div>
-        ${layersHtml}
-      `;
-
-      // Enviar ao preview do builder
       window._meuSitePostPreview?.();
-      setupCanvasInteraction();
-    };
-
-    // ── Interação no canvas (drag imagem + drag/resize layers) ─
-    const setupCanvasInteraction = () => {
-      let dragging = false, dragTarget = null, dragLayerId = null, resizing = false;
-      let startX = 0, startY = 0, startVals = {};
-
-      preview.addEventListener('mousedown', (e) => {
-        const resizeHandle = e.target.closest('[data-resize]');
-        const layerEl      = e.target.closest('[data-layer-id]');
-        const bgEl         = e.target.closest('[data-drag="bg"]');
-
-        if (resizeHandle && layerEl) {
-          // Resize do layer
-          resizing     = true;
-          dragLayerId  = layerEl.dataset.layerId;
-          const layer  = heroLayers.find(l => l.id === dragLayerId);
-          startX       = e.clientX;
-          startY       = e.clientY;
-          startVals    = { fontSize: layer?.fontSize || 48 };
-          e.preventDefault(); e.stopPropagation(); return;
-        }
-
-        if (layerEl) {
-          // Drag do layer
-          dragging    = true;
-          dragTarget  = 'layer';
-          dragLayerId = layerEl.dataset.layerId;
-          const layer = heroLayers.find(l => l.id === dragLayerId);
-          startX = e.clientX; startY = e.clientY;
-          startVals = { x: layer?.x ?? 50, y: layer?.y ?? 50 };
-          // Selecionar layer
-          if (selectedId !== dragLayerId) { selectedId = dragLayerId; renderLayersList(); }
-          e.preventDefault(); return;
-        }
-
-        if (bgEl) {
-          // Drag da imagem de fundo
-          dragging   = true;
-          dragTarget = 'bg';
-          startX = e.clientX; startY = e.clientY;
-          startVals = { x: parseInt(posXInput.value), y: parseInt(posYInput.value) };
-          e.preventDefault(); return;
-        }
-      });
-
-      const onMove = (e) => {
-        if (!dragging && !resizing) return;
-        const rect = preview.getBoundingClientRect();
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-
-        if (resizing) {
-          const layer = heroLayers.find(l => l.id === dragLayerId);
-          if (!layer) return;
-          const delta = dx + dy;
-          layer.fontSize = Math.max(8, Math.min(300, Math.round(startVals.fontSize + delta * 0.5)));
-          renderPreview(); return;
-        }
-
-        if (dragTarget === 'layer') {
-          const layer = heroLayers.find(l => l.id === dragLayerId);
-          if (!layer) return;
-          layer.x = Math.max(0, Math.min(100, startVals.x + (dx / rect.width) * 100));
-          layer.y = Math.max(0, Math.min(100, startVals.y + (dy / rect.height) * 100));
-          if (_heroReady) markDirty('config-hero', 'Hero');
-          renderPreview(); return;
-        }
-
-        if (dragTarget === 'bg') {
-          posXInput.value = Math.max(0, Math.min(100, Math.round(startVals.x + (dx / rect.width) * 100)));
-          posYInput.value = Math.max(0, Math.min(100, Math.round(startVals.y + (dy / rect.height) * 100)));
-          if (_heroReady) markDirty('config-hero', 'Hero');
-          renderPreview();
-        }
-      };
-
-      const onUp = () => { dragging = false; resizing = false; dragTarget = null; };
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-
-      // Clique no canvas vazio → adicionar texto
-      preview.addEventListener('click', (e) => {
-        if (e.target !== preview && !e.target.closest('[data-drag="bg"]')) return;
-        const rect = preview.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        const newLayer = { id: 'l_' + Date.now(), text: 'Novo Texto', x, y, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true };
-        heroLayers.push(newLayer);
-        selectedId = newLayer.id;
-        if (_heroReady) markDirty('config-hero', 'Hero');
-        renderLayersList();
-        renderPreview();
-      });
     };
 
     // ── Salvar ────────────────────────────────────────────────
@@ -1122,7 +952,6 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     // ── Init ──────────────────────────────────────────────────
-    setDevice('desktop');
     renderLayersList();
     renderPreview();
     requestAnimationFrame(() => { _heroReady = true; });
