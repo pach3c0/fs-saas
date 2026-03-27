@@ -6,7 +6,6 @@ import { appState, saveAppData } from '../state.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
-import { apiGet } from '../utils/api.js';
 
 export async function renderManutencao(container) {
   const maintenance = appState.appData.maintenance || { enabled: false, title: '', message: '', carouselPhotos: [] };
@@ -111,11 +110,6 @@ export async function renderManutencao(container) {
         Salvar
       </button>
 
-      <!-- Armazenamento -->
-      <div id="storageCard" style="border:1px solid #374151; border-radius:0.75rem; background:#1f2937; padding:1.5rem;">
-        <h3 style="font-size:1rem; font-weight:600; color:#d1d5db; margin-bottom:1rem;">Armazenamento</h3>
-        <p style="color:#9ca3af; font-size:0.875rem;">Carregando...</p>
-      </div>
     </div>
 
     ${photoEditorHtml('carouselEditorModal', '16/9')}
@@ -212,25 +206,6 @@ export async function renderManutencao(container) {
     await saveAppData('maintenance', appState.appData.maintenance, true);
     renderManutencao(container);
   };
-
-  // Armazenamento
-  const storageCard = container.querySelector('#storageCard');
-  try {
-    const storage = await apiGet('/api/site/admin/storage');
-    const pct = Math.min(storage.storageMB / 5120 * 100, 100).toFixed(1);
-    storageCard.innerHTML = `
-      <h3 style="font-size:1rem; font-weight:600; color:#d1d5db; margin-bottom:1rem;">Armazenamento</h3>
-      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
-        <div style="flex:1; background:#374151; border-radius:9999px; height:8px; overflow:hidden;">
-          <div style="width:${pct}%; background:${pct > 80 ? '#ef4444' : '#2563eb'}; height:100%; border-radius:9999px; transition:width 0.3s;"></div>
-        </div>
-        <span style="color:#f3f4f6; font-size:0.875rem; white-space:nowrap; font-weight:600;">${storage.storageMB} MB</span>
-      </div>
-      <p style="color:#9ca3af; font-size:0.75rem;">${pct}% de 5 GB usados</p>
-    `;
-  } catch(e) {
-    storageCard.innerHTML = '<h3 style="font-size:1rem; font-weight:600; color:#d1d5db; margin-bottom:0.5rem;">Armazenamento</h3><p style="color:#6b7280; font-size:0.875rem;">Não disponível</p>';
-  }
 
   // Salvar
   container.querySelector('#saveMaintenanceBtn').onclick = async () => {

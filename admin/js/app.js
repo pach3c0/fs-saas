@@ -428,10 +428,32 @@ async function postLoginSetup() {
 
   // Carregar slug da organização para links de site
   loadOrgSlug();
+  loadSidebarStorage();
 
   startNotificationPolling();
   await switchTab('dashboard');
   showWelcomeBanner();
+}
+
+async function loadSidebarStorage() {
+  try {
+    const res = await fetch('/api/site/admin/storage', {
+      headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    if (!res.ok) return;
+    const storage = await res.json();
+    const pct = Math.min(storage.storageMB / 5120 * 100, 100).toFixed(1);
+    const widget = document.getElementById('sidebar-storage');
+    const bar = document.getElementById('sidebar-storage-bar');
+    const label = document.getElementById('sidebar-storage-label');
+    const pctEl = document.getElementById('sidebar-storage-pct');
+    if (!widget) return;
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 80 ? 'var(--red)' : 'var(--accent)';
+    label.textContent = storage.storageMB + ' MB';
+    pctEl.textContent = pct + '% de 5 GB';
+    widget.style.display = 'block';
+  } catch(e) { /* silencioso */ }
 }
 
 async function loadOrgSlug() {
