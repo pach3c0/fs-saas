@@ -316,20 +316,157 @@ function renderSite(data) {
   // Preencher Portfolio
   const portfolioGrid = document.getElementById('portfolioGrid');
   if (portfolioGrid) {
-    const photos = content.portfolio?.photos;
-    if (photos && photos.length > 0) {
-      portfolioGrid.innerHTML = photos.map((p, i) => {
-        const photoUrl = resolvePath(p.url || p.image || p);
-        return `<img src="${photoUrl}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`;
+    const portfolioData = content.portfolio || {};
+    const canvasLayers = portfolioData.canvasLayers;
+    const canvasBg = portfolioData.canvasBg || {};
+
+    if (canvasLayers && canvasLayers.length > 0) {
+      // Modo canvas: renderizar layers livres posicionadas (igual ao hero)
+      // Aplicar fundo da seção portfolio
+      const sectionEl = document.getElementById('section-portfolio');
+      if (sectionEl && canvasBg.type) {
+        if (canvasBg.type === 'image' && canvasBg.url) {
+          sectionEl.style.backgroundImage = `url('${resolvePath(canvasBg.url)}')`;
+          sectionEl.style.backgroundSize = 'cover';
+          sectionEl.style.backgroundPosition = `${canvasBg.posX || 50}% ${canvasBg.posY || 50}%`;
+          if (canvasBg.overlayOpacity) {
+            const overlay = sectionEl.querySelector('.section-bg-overlay') || (() => {
+              const d = document.createElement('div');
+              d.className = 'section-bg-overlay';
+              d.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:0;';
+              sectionEl.style.position = 'relative';
+              sectionEl.insertBefore(d, sectionEl.firstChild);
+              return d;
+            })();
+            overlay.style.background = `rgba(0,0,0,${canvasBg.overlayOpacity / 100})`;
+          }
+        } else if (canvasBg.type === 'solid') {
+          sectionEl.style.backgroundColor = canvasBg.color || '';
+        } else if (canvasBg.type === 'gradient') {
+          sectionEl.style.background = `linear-gradient(${canvasBg.gradAngle || 135}deg, ${canvasBg.gradColor1 || '#1a1a2e'} 0%, ${canvasBg.gradColor2 || '#16213e'} 100%)`;
+        }
+      }
+
+      // Renderizar layers em container relativo sobre o portfolioGrid
+      portfolioGrid.style.cssText = 'position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;';
+
+      const getVal = (layer, field, device) => {
+        if (layer.presets && layer.presets[device] && layer.presets[device][field] !== undefined) {
+          return layer.presets[device][field];
+        }
+        return layer[field];
+      };
+
+      let portfolioCss = '';
+
+      portfolioGrid.innerHTML = canvasLayers.map((layer, idx) => {
+        const type = layer.type || 'text';
+        const layerClass = `pl-${layer.id || idx}`;
+        const dkX = getVal(layer, 'x', 'desktop') ?? layer.x ?? 50;
+        const dkY = getVal(layer, 'y', 'desktop') ?? layer.y ?? 50;
+        const dkRotation = getVal(layer, 'rotation', 'desktop') ?? layer.rotation ?? 0;
+        const hasTablet = layer.presets?.tablet;
+        const hasMobile = layer.presets?.mobile;
+
+        if (type === 'image') {
+          const dkW = getVal(layer, 'width', 'desktop') ?? layer.width ?? 25;
+          const dkH = getVal(layer, 'height', 'desktop') ?? layer.height ?? 30;
+          const flipH = layer.flipH ? 'scaleX(-1)' : '';
+          const flipV = layer.flipV ? 'scaleY(-1)' : '';
+          const baseTransform = `translate(-50%, -50%) rotate(VAR_ROT) ${flipH} ${flipV}`.trim();
+          const shadow = layer.shadow ? `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})` : '';
+
+          if (hasTablet) {
+            const tx = getVal(layer, 'x', 'tablet') ?? dkX;
+            const ty = getVal(layer, 'y', 'tablet') ?? dkY;
+            const tw = getVal(layer, 'width', 'tablet') ?? dkW;
+            const th = getVal(layer, 'height', 'tablet') ?? dkH;
+            const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
+            portfolioCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;width:${tw}%!important;height:${th}%!important;transform:${baseTransform.replace('VAR_ROT', tr+'deg')}!important;}}`;
+          }
+          if (hasMobile) {
+            const mx = getVal(layer, 'x', 'mobile') ?? dkX;
+            const my = getVal(layer, 'y', 'mobile') ?? dkY;
+            const mw = getVal(layer, 'width', 'mobile') ?? dkW;
+            const mh = getVal(layer, 'height', 'mobile') ?? dkH;
+            const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
+            portfolioCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;width:${mw}%!important;height:${mh}%!important;transform:${baseTransform.replace('VAR_ROT', mr+'deg')}!important;}}`;
+          }
+
+          const transforms = `translate(-50%, -50%) rotate(${dkRotation}deg) ${flipH} ${flipV}`.trim();
+          return `<div class="${layerClass}" style="
+            position:absolute;left:${dkX}%;top:${dkY}%;
+            width:${dkW}%;height:${dkH}%;
+            transform:${transforms};
+            opacity:${(layer.opacity ?? 100) / 100};
+            overflow:hidden;
+            border-radius:${layer.borderRadius ?? 0}px;
+            filter:${shadow};
+            pointer-events:none;user-select:none;
+          "><img src="${resolvePath(layer.url || '')}" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""></div>`;
+        }
+
+        // Texto
+        const dkFs = Math.max(12, getVal(layer, 'fontSize', 'desktop') ?? layer.fontSize ?? 48);
+        const transforms = `translate(-50%, -50%)${dkRotation ? ` rotate(${dkRotation}deg)` : ''}`;
+
+        if (hasTablet) {
+          const tx = getVal(layer, 'x', 'tablet') ?? dkX;
+          const ty = getVal(layer, 'y', 'tablet') ?? dkY;
+          const tfs = getVal(layer, 'fontSize', 'tablet') ?? dkFs;
+          const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
+          portfolioCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;font-size:${tfs}px!important;transform:translate(-50%,-50%)${tr ? ` rotate(${tr}deg)` : ''}!important;}}`;
+        }
+        if (hasMobile) {
+          const mx = getVal(layer, 'x', 'mobile') ?? dkX;
+          const my = getVal(layer, 'y', 'mobile') ?? dkY;
+          const mfs = getVal(layer, 'fontSize', 'mobile') ?? Math.round(dkFs * 0.5);
+          const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
+          portfolioCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;font-size:${mfs}px!important;transform:translate(-50%,-50%)${mr ? ` rotate(${mr}deg)` : ''}!important;}}`;
+        }
+
+        return `<div class="${layerClass}" style="
+          position:absolute;left:${dkX}%;top:${dkY}%;
+          transform:${transforms};
+          color:${layer.color || '#ffffff'};
+          font-size:${dkFs}px;
+          font-family:${layer.fontFamily || 'inherit'};
+          font-weight:${layer.fontWeight || 'bold'};
+          text-align:${layer.align || 'center'};
+          text-shadow:${layer.shadow !== false ? '2px 2px 8px rgba(0,0,0,0.8)' : 'none'};
+          opacity:${(layer.opacity ?? 100) / 100};
+          white-space:pre-wrap;word-break:break-word;max-width:90%;
+          pointer-events:none;user-select:none;
+        ">${esc(layer.text || '')}</div>`;
       }).join('');
+
+      if (portfolioCss) {
+        let styleTag = document.getElementById('portfolioLayersResponsive');
+        if (!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = 'portfolioLayersResponsive';
+          document.head.appendChild(styleTag);
+        }
+        styleTag.textContent = portfolioCss;
+      }
+
     } else {
-      // Placeholder neutro: grade de quadrados cinza com ícone de câmera
-      portfolioGrid.innerHTML = Array.from({ length: 6 }, (_, i) => `
-        <div style="aspect-ratio:3/4; background:#1a1a1a; border-radius:0.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; border:2px dashed #333;">
-          <span style="font-size:2rem; opacity:0.3;">📷</span>
-          <span style="font-size:0.75rem; color:#555; text-align:center;">Sua foto aqui</span>
-        </div>
-      `).join('');
+      // Modo legado: grade de fotos (photos array)
+      const photos = portfolioData.photos;
+      if (photos && photos.length > 0) {
+        portfolioGrid.innerHTML = photos.map((p, i) => {
+          const photoUrl = resolvePath(p.url || p.image || p);
+          return `<img src="${photoUrl}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`;
+        }).join('');
+      } else {
+        // Placeholder neutro
+        portfolioGrid.innerHTML = Array.from({ length: 6 }, () => `
+          <div style="aspect-ratio:3/4; background:#1a1a1a; border-radius:0.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; border:2px dashed #333;">
+            <span style="font-size:2rem; opacity:0.3;">📷</span>
+            <span style="font-size:0.75rem; color:#555; text-align:center;">Sua foto aqui</span>
+          </div>
+        `).join('');
+      }
     }
   }
 

@@ -6,12 +6,20 @@ import { appState } from '../state.js';
 import { apiGet, apiPut, apiPost, apiDelete } from '../utils/api.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
-import { renderPortfolio } from './portfolio.js';
+import { renderPortfolio, destroyPortfolioCanvas, getPortfolioCanvasState } from './portfolio.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 import { HeroCanvasEditor } from '../utils/heroCanvas.js';
+
+// Destruir todos os canvas ao sair do builder (chamado por app.js)
+window._cleanupBuilderCanvases = function() {
+  destroyPortfolioCanvas();
+  // Hero canvas é limpo automaticamente (variável local de renderSiteContent)
+  const heroEl = document.getElementById('hero-canvas-container');
+  if (heroEl) heroEl.remove();
+};
 
 export async function renderMeuSite(container) {
   // Enter builder mode — render properties into the builder panel
@@ -170,6 +178,8 @@ async function renderSiteContent(container, builderTabsEl) {
   try {
     configData = (await apiGet('/api/site/admin/config')) || {};
   } catch (e) { console.error(e); }
+  // Disponibilizar para sub-módulos (portfolio.js, etc.)
+  appState.configData = configData;
 
   // Buscar slug da organização para montar URLs de preview
   let orgSlug = new URLSearchParams(window.location.search).get('_tenant') || '';
@@ -470,6 +480,20 @@ async function renderSiteContent(container, builderTabsEl) {
       snap.siteConfig.heroImage = _heroImageUrlForPreview;
     }
 
+    // Portfolio Canvas (se aberto)
+    const portfolioState = getPortfolioCanvasState();
+    if (portfolioState) {
+      const photos = portfolioState.layers
+        .filter(l => l.type === 'image' && l.url)
+        .map(l => ({ url: l.url }));
+      snap.siteContent.portfolio = {
+        ...snap.siteContent.portfolio,
+        photos,
+        canvasLayers: portfolioState.layers,
+        canvasBg: portfolioState.bg,
+      };
+    }
+
     // Contato
     const contatoTitle = container.querySelector('#contatoTitle');
     const contatoText = container.querySelector('#contatoText');
@@ -515,16 +539,24 @@ async function renderSiteContent(container, builderTabsEl) {
   const contents = container.querySelectorAll('.sub-tab-content');
 
   function doSwitchSubTab(btn, targetContainer) {
-    // Hero canvas: esconder/mostrar (não destruir — o usuário vai e volta)
-    const canvasEl = document.getElementById('hero-canvas-container');
+    // Canvas editors: esconder/mostrar sem destruir (o usuário vai e volta)
+    const heroCanvasEl = document.getElementById('hero-canvas-container');
+    const portfolioCanvasEl = document.getElementById('portfolio-canvas-container');
     const iframe = document.getElementById('builder-iframe');
-    if (btn.dataset.target === 'config-hero') {
-      // Mostrar canvas, esconder iframe
-      if (canvasEl) canvasEl.style.display = 'flex';
+
+    const target = btn.dataset.target;
+    if (target === 'config-hero') {
+      if (heroCanvasEl) heroCanvasEl.style.display = 'flex';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (iframe) iframe.style.display = 'none';
+    } else if (target === 'config-portfolio') {
+      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
       if (iframe) iframe.style.display = 'none';
     } else {
-      // Esconder canvas, restaurar iframe
-      if (canvasEl) canvasEl.style.display = 'none';
+      // Esconder ambos os canvas, restaurar iframe
+      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
     }
 

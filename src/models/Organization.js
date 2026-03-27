@@ -113,7 +113,9 @@ const OrganizationSchema = new mongoose.Schema({
       photos: [{
         url: String,
         caption: { type: String, default: '' }
-      }]
+      }],
+      canvasLayers: { type: mongoose.Schema.Types.Mixed, default: [] },
+      canvasBg: { type: mongoose.Schema.Types.Mixed, default: {} }
     },
     contato: {
       title: { type: String, default: 'Entre em Contato' },

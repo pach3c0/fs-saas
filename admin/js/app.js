@@ -236,7 +236,8 @@ window.exitBuilderMode = function(skipNav = false) {
   builderProps.style.display = 'none';
   builderPreview.style.display = 'none';
 
-  // Limpar iframe para liberar memória
+  // Limpar canvas editors e iframe ao sair do builder
+  window._cleanupBuilderCanvases?.();
   const iframe = document.getElementById('builder-iframe');
   if (iframe) iframe.src = '';
 
