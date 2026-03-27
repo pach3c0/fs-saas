@@ -148,22 +148,33 @@ export async function renderAlbuns(container) {
     renderAlbuns(container);
   };
 
-  // Salvar títulos/subtítulos editados
-  container.querySelector('#saveAlbumsBtn').onclick = async () => {
+  // Salvar título/subtítulo automaticamente ao perder foco
+  const saveAlbumFields = async () => {
     container.querySelectorAll('[data-album-title]').forEach((input, idx) => {
-      albums[idx].title = input.value;
+      if (albums[idx]) albums[idx].title = input.value;
     });
     container.querySelectorAll('[data-album-subtitle]').forEach((input, idx) => {
-      albums[idx].subtitle = input.value;
+      if (albums[idx]) albums[idx].subtitle = input.value;
     });
     appState.appData.albums = albums;
-    await saveAppData('albums', albums);
+    await saveAppData('albums', albums, true);
     await syncAlbunsToSite(albums);
+  };
+
+  container.querySelectorAll('[data-album-title], [data-album-subtitle]').forEach(input => {
+    input.onblur = saveAlbumFields;
+  });
+
+  // Botão salvar mantido para salvar explicitamente se quiser
+  container.querySelector('#saveAlbumsBtn').onclick = async () => {
+    await saveAlbumFields();
+    window.showToast?.('Álbuns salvos!', 'success');
   };
 
   // Remover album
   window.removeAlbum = async (idx) => {
-    if (!confirm('Remover este álbum e todas as fotos?')) return;
+    const ok = await window.showConfirm?.('Remover este álbum e todas as fotos?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este álbum e todas as fotos?');
+    if (!ok) return;
     albums.splice(idx, 1);
     appState.appData.albums = albums;
     await saveAppData('albums', albums, true);

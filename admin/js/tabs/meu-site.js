@@ -350,28 +350,38 @@ async function renderSiteContent(container, builderTabsEl) {
   }
 
   async function checkDirtyBeforeSwitch() {
-    // Se não há seção dirty marcada, passa
     if (!_dirtySection) return true;
-    
-    // Verifica se há mudanças REAIS no container ativo
+
     const activeContent = container.querySelector('.sub-tab-content:not([style*="display: none"]):not([style*="display:none"])');
     if (activeContent && !hasRealChanges(_dirtySection, activeContent)) {
-      // Nenhuma mudança real, apenas limpa e passa
       clearDirty();
       return true;
     }
-    
+
     const label = _dirtySectionLabel;
     const save = await window.showConfirm?.(`Você tem alterações não salvas em "${label}". Deseja salvar antes de continuar?`, {
       title: 'Alterações não salvas',
       confirmText: 'Salvar',
       cancelText: 'Descartar',
     }) ?? confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
+
     if (save) {
       const saveBtn = activeContent?.querySelector('button[id*="save"], button[id*="Save"]');
       if (saveBtn && !saveBtn.disabled) {
         saveBtn.click();
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 600));
+      }
+    } else {
+      // Descartar: restaurar campos ao valor original
+      const original = _originalValues[_dirtySection] || {};
+      if (activeContent) {
+        activeContent.querySelectorAll('input, textarea, select').forEach(input => {
+          const key = input.id || input.name || input.getAttribute('data-field');
+          if (key && key in original) {
+            if (input.type === 'checkbox') input.checked = original[key];
+            else input.value = original[key];
+          }
+        });
       }
     }
     clearDirty();
@@ -893,8 +903,9 @@ async function renderSiteContent(container, builderTabsEl) {
       });
     };
 
+    let _heroReady = false;
     function updateHeroPreview() {
-      markDirty('config-hero', 'Hero');
+      if (_heroReady) markDirty('config-hero', 'Hero');
       const preview = heroContainer.querySelector('#heroStudioPreview');
       const image = heroImageUrl;
       const scale = parseFloat(scaleInput.value);
@@ -1016,8 +1027,10 @@ async function renderSiteContent(container, builderTabsEl) {
     window.addEventListener('mousemove', heroMouseMove);
     window.addEventListener('mouseup', heroMouseUp);
 
-    // Renderizar preview inicial
+    // Renderizar preview inicial (sem marcar dirty)
     updateHeroPreview();
+    // Após render inicial, liberar dirty tracking
+    requestAnimationFrame(() => { _heroReady = true; });
   };
 
   // --- SEÇÕES (Ativar/Desativar) ---
@@ -1345,7 +1358,7 @@ async function renderSiteContent(container, builderTabsEl) {
             ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum depoimento adicionado</p>'}
           </div>
 
-          ${depoimentos.length > 0 ? '<button id="saveDepoimentosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Depoimentos</button>' : ''}
+          <button id="saveDepoimentosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Depoimentos</button>
         </div>
       `;
 
@@ -1370,34 +1383,31 @@ async function renderSiteContent(container, builderTabsEl) {
         };
       });
 
-      window.deleteDepoimento = (idx) => {
-        if (!confirm('Remover este depoimento?')) return;
+      window.deleteDepoimento = async (idx) => {
+        const ok = await window.showConfirm?.('Remover este depoimento?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este depoimento?');
+        if (!ok) return;
         depoimentos.splice(idx, 1);
         renderList();
       };
 
-      const saveBtn = depoContainer.querySelector('#saveDepoimentosBtn');
-      if (saveBtn) {
-        saveBtn.onclick = async () => {
-          const updated = [];
-          depoimentos.forEach((dep, idx) => {
-            updated.push({
-              name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
-              text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
-              photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || dep.photo || '',
-              rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5),
-              socialLink: depoContainer.querySelector(`[data-dep-social="${idx}"]`)?.value || ''
-            });
+      depoContainer.querySelector('#saveDepoimentosBtn').onclick = async () => {
+        const updated = [];
+        depoimentos.forEach((dep, idx) => {
+          updated.push({
+            name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
+            text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
+            photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || dep.photo || '',
+            rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5),
+            socialLink: depoContainer.querySelector(`[data-dep-social="${idx}"]`)?.value || ''
           });
-          await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
-          clearDirty();
-          // Recapturar valores originais após salvar
-          captureOriginalValues('config-depoimentos', depoContainer);
-          window.showToast?.('Depoimentos salvos!', 'success');
-          configData.siteContent.depoimentos = updated;
-          window.builderScheduleRefresh?.();
-        };
-      }
+        });
+        await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
+        clearDirty();
+        captureOriginalValues('config-depoimentos', depoContainer);
+        window.showToast?.('Depoimentos salvos!', 'success');
+        configData.siteContent.depoimentos = updated;
+        window.builderScheduleRefresh?.();
+      };
 
       // Capturar valores originais e setup dirty tracking
       captureOriginalValues('config-depoimentos', depoContainer);
@@ -1565,6 +1575,10 @@ async function renderSiteContent(container, builderTabsEl) {
         </div>
       `;
 
+      // Capturar snapshot original para dirty tracking
+      captureOriginalValues('config-personalizar', personalizarContainer);
+      setupDirtyTracking('config-personalizar', 'Personalizar', personalizarContainer);
+
       // Live preview da paleta
       const accentInput = personalizarContainer.querySelector('#styleAccentColor');
       const bgInput = personalizarContainer.querySelector('#styleBgColor');
@@ -1587,11 +1601,11 @@ async function renderSiteContent(container, builderTabsEl) {
         personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
       }
 
-      if (accentInput) accentInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (bgInput) bgInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (textInput) textInput.oninput = () => { markDirty('config-personalizar', 'Personalizar'); updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+      if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
       const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
-      if (fontFamilyInput) fontFamilyInput.onchange = () => { markDirty('config-personalizar', 'Personalizar'); window._meuSitePostPreview?.(); };
+      if (fontFamilyInput) fontFamilyInput.onchange = () => { window._meuSitePostPreview?.(); };
 
       // Salvar estilo
       const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
@@ -1606,6 +1620,7 @@ async function renderSiteContent(container, builderTabsEl) {
           await apiPut('/api/site/admin/config', { siteStyle: newStyle });
           configData.siteStyle = newStyle;
           clearDirty();
+          captureOriginalValues('config-personalizar', personalizarContainer);
           saveStyleBtn.textContent = '✓ Salvo!';
           setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
           window.builderScheduleRefresh?.();
