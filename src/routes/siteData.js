@@ -6,10 +6,9 @@ const { authenticateToken } = require('../middleware/auth');
 // ============================================================================
 // ROTAS DE SITE DATA (Hero, Sobre, etc)
 // ============================================================================
-router.get('/site-data', async (req, res) => {
+router.get('/site-data', authenticateToken, async (req, res) => {
   try {
-    const orgId = req.organizationId || req.user?.organizationId;
-    if (!orgId) return res.status(400).json({ error: 'Organização não identificada' });
+    const orgId = req.user.organizationId;
     const data = await SiteData.findOne({ organizationId: orgId }).lean();
     res.json(data || {});
   } catch (error) {
