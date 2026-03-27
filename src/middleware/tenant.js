@@ -25,17 +25,19 @@ async function resolveTenant(req, res, next) {
 
     let slug = null;
 
-    // Desenvolvimento: permitir query parameter ?_tenant=xxx
-    if (process.env.NODE_ENV === 'development' || host.includes('localhost')) {
+    const isPreview = req.query._preview === '1';
+
+    // Em preview do builder ou em desenvolvimento: aceitar ?_tenant=xxx
+    if (isPreview || process.env.NODE_ENV === 'development' || host.includes('localhost')) {
       slug = req.query._tenant || ownerSlug;
     } else {
       // Produção: extrair do subdomínio
       // joao.cliquezoom.com.br → slug = 'joao'
       // cliquezoom.com.br → slug = ownerSlug (domínio principal)
-      
+
       // Remover porta se existir
       const hostWithoutPort = host.split(':')[0];
-      
+
       if (hostWithoutPort === baseDomain || hostWithoutPort === `www.${baseDomain}`) {
         // Domínio principal: usar slug do dono
         slug = ownerSlug;
@@ -48,17 +50,20 @@ async function resolveTenant(req, res, next) {
       }
     }
 
-    // Verificar cache
+    // Verificar cache (não cachear em preview para sempre ter dados frescos)
     const cacheKey = `org:${slug}`;
-    const cached = cache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-      req.organization = cached.org;
-      req.organizationId = cached.org._id;
-      return next();
+    if (!isPreview) {
+      const cached = cache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        req.organization = cached.org;
+        req.organizationId = cached.org._id;
+        return next();
+      }
     }
 
-    // Buscar organização no banco
-    const org = await Organization.findOne({ slug: slug.toLowerCase(), isActive: true }).lean();
+    // Buscar organização no banco (preview ignora isActive para permitir edição)
+    const query = isPreview ? { slug: slug.toLowerCase() } : { slug: slug.toLowerCase(), isActive: true };
+    const org = await Organization.findOne(query).lean();
     if (!org) {
       return res.status(404).json({ 
         error: 'Organização não encontrada',
