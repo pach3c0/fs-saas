@@ -10,7 +10,6 @@ import { renderPortfolio } from './portfolio.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
-import { renderNewsletter } from './newsletter.js';
 
 export async function renderMeuSite(container) {
   // Enter builder mode — render properties into the builder panel
@@ -77,7 +76,6 @@ async function renderSiteContent(container, builderTabsEl) {
         <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Estúdio</button>
         <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Contato</button>
         <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">FAQ</button>
-        <button class="sub-tab-btn" data-target="config-newsletter" style="background:none; border:none; color:#9ca3af; padding:0.5rem 1rem; cursor:pointer;">Newsletter</button>
         <button class="sub-tab-btn" data-target="config-personalizar" style="background:none; border:none; color:#c084fc; padding:0.5rem 1rem; cursor:pointer; font-weight:600;">✦ Personalizar</button>
       </div>
 
@@ -152,9 +150,6 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- FAQ (renderizado pelo faq.js) -->
         <div id="config-faq" class="sub-tab-content" style="display:none;"></div>
-
-        <!-- Newsletter (renderizado pelo newsletter.js) -->
-        <div id="config-newsletter" class="sub-tab-content" style="display:none;"></div>
 
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
@@ -469,8 +464,6 @@ async function renderSiteContent(container, builderTabsEl) {
       renderContato();
     } else if (btn.dataset.target === 'config-faq') {
       renderFaq(targetContainer);
-    } else if (btn.dataset.target === 'config-newsletter') {
-      renderNewsletter(targetContainer);
     } else if (btn.dataset.target === 'config-personalizar') {
       renderPersonalizar();
     }
@@ -971,7 +964,6 @@ async function renderSiteContent(container, builderTabsEl) {
       { id: 'servicos', label: 'Serviços' },
       { id: 'depoimentos', label: 'Depoimentos' },
       { id: 'faq', label: 'FAQ' },
-      { id: 'newsletter', label: 'Newsletter' },
       { id: 'contato', label: 'Contato' }
     ];
 
