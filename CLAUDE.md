@@ -60,7 +60,6 @@ FsSaaS/
         faq.js              # renderFaq(container) - Perguntas frequentes
         newsletter.js       # renderNewsletter(container) - Inscritos na newsletter
         footer.js           # renderFooter(container) - Redes sociais, links rapidos
-        manutencao.js       # renderManutencao(container) - Modo manutencao
         integracoes.js      # renderIntegracoes(container) - Integracoes externas
         dominio.js          # renderDominio(container) - Configuracao de dominio
         marketing.js        # renderMarketing(container) - Marketing

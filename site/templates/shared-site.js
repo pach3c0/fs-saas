@@ -20,9 +20,17 @@ async function loadAndRenderSite() {
     if (!res.ok) throw new Error('Erro ' + res.status);
     const data = await res.json();
 
-    // Verificar se site está ativado
-    if (!data.siteEnabled) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;font-family:sans-serif;"><h1>' + (data.name || 'Site em construção') + '</h1><p>Estamos preparando algo especial para você.</p></div>';
+    // Verificar se site está ativado (pula verificação no preview do builder)
+    const isPreview = new URLSearchParams(window.location.search).get('_preview') === '1';
+    if (!data.siteEnabled && !isPreview) {
+      document.body.style.cssText = 'margin:0;padding:0;background:#0a0a0a;';
+      document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;font-family:'Inter',sans-serif;text-align:center;padding:2rem;">
+          ${data.logo ? `<img src="${data.logo}" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:1.5rem;border-radius:50%;">` : ''}
+          <h1 style="color:#f3f4f6;font-size:1.75rem;font-weight:700;margin:0 0 0.75rem;">${data.name || 'Em breve'}</h1>
+          <div style="width:3rem;height:2px;background:#444;margin:0 auto 1.25rem;"></div>
+          <p style="color:#9ca3af;font-size:1rem;max-width:400px;margin:0;">Estamos preparando algo especial para você. Volte em breve!</p>
+        </div>`;
       return;
     }
 

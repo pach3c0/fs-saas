@@ -25,7 +25,6 @@ const TAB_TITLES = {
   perfil: 'Perfil',
   plano: 'Plano',
   footer: 'Rodapé',
-  manutencao: 'Manutenção',
 };
 
 // ── Skeleton loading ──────────────────────────────────────────────────────

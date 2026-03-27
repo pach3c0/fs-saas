@@ -271,8 +271,14 @@ async function renderSiteContent(container, builderTabsEl) {
   const toggle = container.querySelector('#siteEnabledToggle');
   toggle.checked = siteEnabled;
   toggle.onchange = async () => {
-    await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
-    window.builderScheduleRefresh?.();
+    try {
+      await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
+      window.showToast?.(toggle.checked ? 'Site ativado!' : 'Site desativado.', toggle.checked ? 'success' : 'warning');
+      window.builderScheduleRefresh?.();
+    } catch (e) {
+      window.showToast?.('Erro ao salvar status do site', 'error');
+      toggle.checked = !toggle.checked; // reverte
+    }
   };
 
   // Links (only in non-builder mode)
