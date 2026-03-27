@@ -301,21 +301,66 @@ async function renderSiteContent(container, builderTabsEl) {
     }
   }
 
-  // ── Detecção de alterações não salvas ────────────────────────────────
+  // ── Detecção de alterações não salvas (SISTEMA ROBUSTO) ─────────────
   let _dirtySection = null;
   let _dirtySectionLabel = '';
+  let _originalValues = {}; // { 'config-hero': { field1: 'value1', ... }, ... }
+
+  // Captura snapshot dos valores originais de uma aba
+  function captureOriginalValues(sectionId, container) {
+    const inputs = container.querySelectorAll('input, textarea, select');
+    const snapshot = {};
+    inputs.forEach(input => {
+      const key = input.id || input.name || input.getAttribute('data-field');
+      if (key) {
+        snapshot[key] = input.type === 'checkbox' ? input.checked : input.value;
+      }
+    });
+    _originalValues[sectionId] = snapshot;
+  }
+
+  // Verifica se houve mudanças REAIS comparando com snapshot original
+  function hasRealChanges(sectionId, container) {
+    const inputs = container.querySelectorAll('input, textarea, select');
+    const original = _originalValues[sectionId] || {};
+    
+    for (let input of inputs) {
+      const key = input.id || input.name || input.getAttribute('data-field');
+      if (!key) continue;
+      const currentValue = input.type === 'checkbox' ? input.checked : input.value;
+      const originalValue = original[key];
+      
+      // Se o valor mudou comparado ao original, retorna true
+      if (currentValue !== originalValue) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
 
   function markDirty(sectionId, label) {
     _dirtySection = sectionId;
     _dirtySectionLabel = label;
   }
+  
   function clearDirty() {
     _dirtySection = null;
     _dirtySectionLabel = '';
   }
 
   async function checkDirtyBeforeSwitch() {
+    // Se não há seção dirty marcada, passa
     if (!_dirtySection) return true;
+    
+    // Verifica se há mudanças REAIS no container ativo
+    const activeContent = container.querySelector('.sub-tab-content:not([style*="display: none"]):not([style*="display:none"])');
+    if (activeContent && !hasRealChanges(_dirtySection, activeContent)) {
+      // Nenhuma mudança real, apenas limpa e passa
+      clearDirty();
+      return true;
+    }
+    
     const label = _dirtySectionLabel;
     const save = await window.showConfirm?.(`Você tem alterações não salvas em "${label}". Deseja salvar antes de continuar?`, {
       title: 'Alterações não salvas',
@@ -323,7 +368,6 @@ async function renderSiteContent(container, builderTabsEl) {
       cancelText: 'Descartar',
     }) ?? confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
     if (save) {
-      const activeContent = container.querySelector('.sub-tab-content:not([style*="display: none"]):not([style*="display:none"])');
       const saveBtn = activeContent?.querySelector('button[id*="save"], button[id*="Save"]');
       if (saveBtn && !saveBtn.disabled) {
         saveBtn.click();
@@ -332,6 +376,21 @@ async function renderSiteContent(container, builderTabsEl) {
     }
     clearDirty();
     return true;
+  }
+
+  // Helper: Adiciona listeners automáticos a inputs para detectar mudanças
+  function setupDirtyTracking(sectionId, sectionLabel, targetContainer) {
+    const inputs = targetContainer.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+      const eventType = input.type === 'checkbox' ? 'change' : 'input';
+      input.addEventListener(eventType, () => {
+        if (hasRealChanges(sectionId, targetContainer)) {
+          markDirty(sectionId, sectionLabel);
+        } else {
+          clearDirty();
+        }
+      });
+    });
   }
 
   // ── Preview em tempo real ─────────────────────────────────────────────
@@ -524,9 +583,14 @@ async function renderSiteContent(container, builderTabsEl) {
   container.querySelector('#sobreImage').value = sobre.image || '';
   if(sobre.image) container.querySelector('#sobrePreview').src = resolveImagePath(sobre.image);
 
-  // Preview em tempo real + dirty tracking
-  container.querySelector('#sobreTitle').oninput = () => { markDirty('config-sobre', 'Sobre'); postPreviewData(); };
-  container.querySelector('#sobreText').oninput  = () => { markDirty('config-sobre', 'Sobre'); postPreviewData(); };
+  // Capturar valores originais e setup dirty tracking
+  const sobreContainer = container.querySelector('#config-sobre');
+  captureOriginalValues('config-sobre', sobreContainer);
+  setupDirtyTracking('config-sobre', 'Sobre', sobreContainer);
+
+  // Preview em tempo real
+  container.querySelector('#sobreTitle').oninput = () => { postPreviewData(); };
+  container.querySelector('#sobreText').oninput  = () => { postPreviewData(); };
 
   container.querySelector('#sobreUpload').onchange = async (e) => {
       const file = e.target.files[0];
@@ -534,6 +598,8 @@ async function renderSiteContent(container, builderTabsEl) {
       const res = await uploadImage(file, appState.authToken);
       container.querySelector('#sobreImage').value = res.url;
       container.querySelector('#sobrePreview').src = resolveImagePath(res.url);
+      // Mark dirty manualmente pois upload não dispara input event
+      markDirty('config-sobre', 'Sobre');
       postPreviewData();
   };
 
@@ -546,6 +612,8 @@ async function renderSiteContent(container, builderTabsEl) {
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
       clearDirty();
+      // Recapturar valores originais após salvar
+      captureOriginalValues('config-sobre', sobreContainer);
       window.showToast?.('Salvo!', 'success');
       window.builderScheduleRefresh?.();
     });
@@ -1068,22 +1136,22 @@ async function renderSiteContent(container, builderTabsEl) {
             <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
               <div>
                 <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Título</label>
-                <input type="text" value="${srv.title || ''}" data-srv-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+                <input type="text" id="srv-title-${idx}" value="${srv.title || ''}" data-srv-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
               </div>
               <button onclick="deleteServico(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover">🗑️</button>
             </div>
             <div>
               <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Descrição</label>
-              <textarea rows="2" data-srv-desc="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${srv.description || ''}</textarea>
+              <textarea rows="2" id="srv-desc-${idx}" data-srv-desc="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${srv.description || ''}</textarea>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
               <div>
                 <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Ícone (emoji)</label>
-                <input type="text" value="${srv.icon || '📸'}" data-srv-icon="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="📸">
+                <input type="text" id="srv-icon-${idx}" value="${srv.icon || '📸'}" data-srv-icon="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="📸">
               </div>
               <div>
                 <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Preço (opcional)</label>
-                <input type="text" value="${srv.price || ''}" data-srv-price="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="R$ 500">
+                <input type="text" id="srv-price-${idx}" value="${srv.price || ''}" data-srv-price="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="R$ 500">
               </div>
             </div>
           </div>
@@ -1110,7 +1178,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
       servicosContainer.querySelector('#addServicoBtn').onclick = () => {
         servicos.push({ title: 'Novo Serviço', description: '', icon: '📸', price: '' });
-        renderList();
+        renderList(); // re-render para gerar novos IDs
       };
 
       window.deleteServico = async (idx) => {
@@ -1119,6 +1187,10 @@ async function renderSiteContent(container, builderTabsEl) {
         servicos.splice(idx, 1);
         renderList();
       };
+
+      // Setup dirty tracking após renderizar inputs
+      captureOriginalValues('config-servicos', servicosContainer);
+      setupDirtyTracking('config-servicos', 'Serviços', servicosContainer);
 
       const saveBtn = servicosContainer.querySelector('#saveServicosBtn');
       if (saveBtn) {
@@ -1133,6 +1205,9 @@ async function renderSiteContent(container, builderTabsEl) {
             });
           });
           await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, servicos: updated } });
+          clearDirty();
+          // Recapturar valores originais após salvar
+          captureOriginalValues('config-servicos', servicosContainer);
           window.showToast?.('Serviços salvos!', 'success');
           configData.siteContent.servicos = updated;
           window.builderScheduleRefresh?.();
@@ -1644,10 +1719,14 @@ async function renderSiteContent(container, builderTabsEl) {
       </div>
     `;
 
-    // Preview em tempo real + dirty tracking
-    contatoContainer.querySelector('#contatoTitle').oninput   = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
-    contatoContainer.querySelector('#contatoText').oninput    = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
-    contatoContainer.querySelector('#contatoAddress').oninput = () => { markDirty('config-contato', 'Contato'); window._meuSitePostPreview?.(); };
+    // Capturar valores originais e setup dirty tracking
+    captureOriginalValues('config-contato', contatoContainer);
+    setupDirtyTracking('config-contato', 'Contato', contatoContainer);
+
+    // Preview em tempo real
+    contatoContainer.querySelector('#contatoTitle').oninput   = () => { window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoText').oninput    = () => { window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoAddress').oninput = () => { window._meuSitePostPreview?.(); };
 
     contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
       const newContato = {
@@ -1657,6 +1736,8 @@ async function renderSiteContent(container, builderTabsEl) {
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
       clearDirty();
+      // Recapturar valores originais após salvar
+      captureOriginalValues('config-contato', contatoContainer);
       window.showToast?.('Contato salvo!', 'success');
       configData.siteContent.contato = newContato;
       window.builderScheduleRefresh?.();
