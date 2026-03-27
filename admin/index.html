@@ -691,12 +691,15 @@
 
             <!-- Notification Dropdown -->
             <div id="notifDropdown">
-                <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-elevated); z-index:10;">
                     <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
-                    <button onclick="markAllNotificationsRead()" style="font-size:0.75rem; color:var(--accent); background:none; border:none; cursor:pointer;">Marcar lidas</button>
+                    <button onclick="markAllNotificationsRead()" style="font-size:0.75rem; color:var(--accent); background:none; border:none; cursor:pointer; padding:0.25rem 0.5rem; border-radius:4px; transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background='none'">Marcar lidas</button>
                 </div>
-                <div id="notifList" style="padding:0.25rem 0;">
-                    <p style="color:var(--text-muted); font-size:0.8125rem; text-align:center; padding:1.5rem;">Nenhuma notificação</p>
+                <div id="notifList" style="padding:0.25rem 0; min-height:80px;">
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem 1rem; color:var(--text-muted); gap:0.5rem;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <p style="font-size:0.8125rem; margin:0;">Tudo em dia!</p>
+                    </div>
                 </div>
             </div>
         </div>

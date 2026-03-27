@@ -287,6 +287,19 @@ async function renderSiteContent(container, builderTabsEl) {
     window.showToast?.('Link copiado!', 'success');
   };
 
+  // ── Helper: loading state em botão de salvar ─────────────────────────
+  async function withBtnLoading(btn, fn) {
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;vertical-align:middle;"></span>Salvando...`;
+    try {
+      await fn();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  }
+
   // ── Detecção de alterações não salvas ────────────────────────────────
   let _dirtySection = null;
   let _dirtySectionLabel = '';
@@ -301,17 +314,19 @@ async function renderSiteContent(container, builderTabsEl) {
   }
 
   async function checkDirtyBeforeSwitch() {
-    if (!_dirtySection) return true; // pode prosseguir
+    if (!_dirtySection) return true;
     const label = _dirtySectionLabel;
-    const save = confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
+    const save = await window.showConfirm?.(`Você tem alterações não salvas em "${label}". Deseja salvar antes de continuar?`, {
+      title: 'Alterações não salvas',
+      confirmText: 'Salvar',
+      cancelText: 'Descartar',
+    }) ?? confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
     if (save) {
-      // tenta clicar no botão de salvar da seção ativa
-      const activeContent = container.querySelector('.sub-tab-content[style*="block"]');
+      const activeContent = container.querySelector('.sub-tab-content:not([style*="display: none"]):not([style*="display:none"])');
       const saveBtn = activeContent?.querySelector('button[id*="save"], button[id*="Save"]');
-      if (saveBtn) {
+      if (saveBtn && !saveBtn.disabled) {
         saveBtn.click();
-        // aguarda um tick para o save executar
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 400));
       }
     }
     clearDirty();
@@ -491,14 +506,16 @@ async function renderSiteContent(container, builderTabsEl) {
   }
 
   // --- GERAL ---
-  container.querySelector('#saveGeralBtn').onclick = async () => {
-    const newTheme = container.querySelector('#siteTheme').value;
-    await apiPut('/api/site/admin/config', { siteTheme: newTheme });
-    configData.siteTheme = newTheme;
-    selectedTheme = newTheme;
-    renderTemplateCards();
-    window.showToast?.('Tema salvo!', 'success');
-    window.builderScheduleRefresh?.();
+  container.querySelector('#saveGeralBtn').onclick = async (e) => {
+    await withBtnLoading(e.currentTarget, async () => {
+      const newTheme = container.querySelector('#siteTheme').value;
+      await apiPut('/api/site/admin/config', { siteTheme: newTheme });
+      configData.siteTheme = newTheme;
+      selectedTheme = newTheme;
+      renderTemplateCards();
+      window.showToast?.('Tema salvo!', 'success');
+      window.builderScheduleRefresh?.();
+    });
   };
 
   // --- SOBRE ---
@@ -521,16 +538,18 @@ async function renderSiteContent(container, builderTabsEl) {
       postPreviewData();
   };
 
-  container.querySelector('#saveSobreBtn').onclick = async () => {
+  container.querySelector('#saveSobreBtn').onclick = async (e) => {
+    await withBtnLoading(e.currentTarget, async () => {
       const newSobre = {
-          title: container.querySelector('#sobreTitle').value,
-          text: container.querySelector('#sobreText').value,
-          image: container.querySelector('#sobreImage').value
+        title: container.querySelector('#sobreTitle').value,
+        text: container.querySelector('#sobreText').value,
+        image: container.querySelector('#sobreImage').value
       };
       await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
       clearDirty();
       window.showToast?.('Salvo!', 'success');
       window.builderScheduleRefresh?.();
+    });
   };
 
   // --- HERO ---
@@ -780,29 +799,31 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     // Salvar
-    heroContainer.querySelector('#saveHeroStudioBtn').onclick = async () => {
-      const newHeroConfig = {
-        ...siteConfig,
-        heroTitle: titleInput.value,
-        heroSubtitle: subtitleInput.value,
-        heroImage: heroImageUrl,
-        heroScale: parseFloat(scaleInput.value),
-        heroPosX: parseInt(posXInput.value),
-        heroPosY: parseInt(posYInput.value),
-        titlePosX: parseInt(titlePosXInput.value),
-        titlePosY: parseInt(titlePosYInput.value),
-        titleFontSize: parseInt(titleFSInput.value),
-        subtitlePosX: parseInt(subtitlePosXInput.value),
-        subtitlePosY: parseInt(subtitlePosYInput.value),
-        subtitleFontSize: parseInt(subtitleFSInput.value),
-        overlayOpacity: parseInt(overlayInput.value),
-        topBarHeight: parseInt(topBarInput.value),
-        bottomBarHeight: parseInt(bottomBarInput.value)
-      };
-      await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
-      clearDirty();
-      window.showToast?.('Hero salvo!', 'success');
-      window.builderScheduleRefresh?.();
+    heroContainer.querySelector('#saveHeroStudioBtn').onclick = async (e) => {
+      await withBtnLoading(e.currentTarget, async () => {
+        const newHeroConfig = {
+          ...siteConfig,
+          heroTitle: titleInput.value,
+          heroSubtitle: subtitleInput.value,
+          heroImage: heroImageUrl,
+          heroScale: parseFloat(scaleInput.value),
+          heroPosX: parseInt(posXInput.value),
+          heroPosY: parseInt(posYInput.value),
+          titlePosX: parseInt(titlePosXInput.value),
+          titlePosY: parseInt(titlePosYInput.value),
+          titleFontSize: parseInt(titleFSInput.value),
+          subtitlePosX: parseInt(subtitlePosXInput.value),
+          subtitlePosY: parseInt(subtitlePosYInput.value),
+          subtitleFontSize: parseInt(subtitleFSInput.value),
+          overlayOpacity: parseInt(overlayInput.value),
+          topBarHeight: parseInt(topBarInput.value),
+          bottomBarHeight: parseInt(bottomBarInput.value)
+        };
+        await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
+        clearDirty();
+        window.showToast?.('Hero salvo!', 'success');
+        window.builderScheduleRefresh?.();
+      });
     };
 
     function updateHeroPreview() {
@@ -850,16 +871,13 @@ async function renderSiteContent(container, builderTabsEl) {
         window.removeEventListener('resize', handleHeroResize);
         return;
       }
-      if (previewMode === 'mobile') {
-        previewContainer.style.aspectRatio = '9/16';
-        previewContainer.style.width = '300px';
-        previewContainer.style.margin = '0 auto';
-      } else {
-        previewContainer.style.aspectRatio = '16/9';
-        previewContainer.style.width = '100%';
-        previewContainer.style.margin = '0';
-      }
-      updateHeroPreview();
+      const isMobile = previewMode === 'mobile';
+      Object.assign(previewContainer.style, {
+        aspectRatio: isMobile ? '9/16' : '16/9',
+        width: isMobile ? '300px' : '100%',
+        margin: isMobile ? '0 auto' : '0',
+      });
+      requestAnimationFrame(updateHeroPreview);
     };
     window.addEventListener('resize', handleHeroResize);
     handleHeroResize();
@@ -1026,12 +1044,14 @@ async function renderSiteContent(container, builderTabsEl) {
       });
 
       // Salvar
-      secoesContainer.querySelector('#saveSectionsBtn').onclick = async () => {
-        const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
-        await apiPut('/api/site/admin/config', { siteSections: selected });
-        window.showToast?.('Seções salvas!', 'success');
-        configData.siteSections = selected;
-        window.builderScheduleRefresh?.();
+      secoesContainer.querySelector('#saveSectionsBtn').onclick = async (e) => {
+        await withBtnLoading(e.currentTarget, async () => {
+          const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
+          await apiPut('/api/site/admin/config', { siteSections: selected });
+          window.showToast?.('Seções salvas!', 'success');
+          configData.siteSections = selected;
+          window.builderScheduleRefresh?.();
+        });
       };
     };
 
@@ -1095,8 +1115,9 @@ async function renderSiteContent(container, builderTabsEl) {
         renderList();
       };
 
-      window.deleteServico = (idx) => {
-        if (!confirm('Remover este serviço?')) return;
+      window.deleteServico = async (idx) => {
+        const ok = await window.showConfirm?.('Remover este serviço?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este serviço?');
+        if (!ok) return;
         servicos.splice(idx, 1);
         renderList();
       };
@@ -1175,7 +1196,8 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     window.rejeitarDepoimento = async (id) => {
-      if (!confirm('Rejeitar e apagar este depoimento?')) return;
+      const ok = await window.showConfirm?.('Rejeitar e apagar este depoimento?', { confirmText: 'Rejeitar', danger: true }) ?? confirm('Rejeitar e apagar este depoimento?');
+      if (!ok) return;
       try {
         await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
         pendentes = pendentes.filter(p => p.id !== id);
