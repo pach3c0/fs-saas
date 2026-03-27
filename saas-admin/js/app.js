@@ -168,8 +168,8 @@ async function loadMetrics() {
         <div class="metric-value">${data.photos.toLocaleString('pt-BR')}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Newsletter</div>
-        <div class="metric-value">${data.newsletterSubs}</div>
+        <div class="metric-label">Usuários</div>
+        <div class="metric-value">${data.users ?? 0}</div>
       </div>
     `;
   } catch (err) {
@@ -975,18 +975,19 @@ async function renderPanelMeuSite(content) {
               <div class="reset-item-desc">${s.desc}</div>
             </div>
           </div>
-          <button class="btn-reset" onclick="resetSiteSection('${s.id}', '${s.label}')">Reset</button>
+          <button class="btn-reset" onclick="resetSiteSection('${currentPanelOrgId}', '${s.id}', '${s.label}')">Reset</button>
         </div>
       `).join('')}
     </div>
 
-    <button class="btn-reset-all" onclick="resetSiteSection('all', 'Meu Site completo')">
+    <button class="btn-reset-all" onclick="resetSiteSection('${currentPanelOrgId}', 'all', 'Meu Site completo')">
       ⚠️ Reset Completo — Meu Site
     </button>
   `;
 }
 
-window.resetSiteSection = async (section, label) => {
+window.resetSiteSection = async (orgId, section, label) => {
+  if (!orgId || orgId === 'null') { saasToast('Erro: organização não identificada', 'error'); return; }
   const ok = await saasConfirm(
     `Resetar "${label}"? Todos os dados desta seção serão apagados e voltarão ao padrão.`,
     { title: 'Confirmar Reset', confirmText: 'Resetar', danger: true }
@@ -994,7 +995,7 @@ window.resetSiteSection = async (section, label) => {
   if (!ok) return;
 
   try {
-    await apiRequest('POST', `/api/admin/organizations/${currentPanelOrgId}/reset/site`, { section });
+    await apiRequest('POST', `/api/admin/organizations/${orgId}/reset/site`, { section });
     saasToast(`"${label}" resetado com sucesso!`, 'success');
   } catch (err) {
     saasToast('Erro: ' + err.message, 'error');
