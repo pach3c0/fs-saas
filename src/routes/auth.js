@@ -498,4 +498,61 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
   }
 });
 
+// ============================================================================
+// RESET DE SEÇÕES DO SITE (superadmin)
+// ============================================================================
+
+const SITE_RESET_DEFAULTS = {
+  hero:        { siteConfig: { heroTitle: '', heroSubtitle: '', heroImage: '', heroScale: 1, heroPosX: 50, heroPosY: 50, overlayOpacity: 40, topBarHeight: 0, bottomBarHeight: 0, titleFontSize: 80, subtitleFontSize: 40, titlePosX: 50, titlePosY: 50, subtitlePosX: 50, subtitlePosY: 60 } },
+  portfolio:   { 'siteContent.portfolio': { photos: [] } },
+  albuns:      { albums: [] },
+  servicos:    { 'siteContent.servicos': [] },
+  estudio:     { 'siteContent.estudio': {} },
+  depoimentos: { 'siteContent.depoimentos': [] },
+  contato:     { 'siteContent.contato': { title: 'Contato', text: '', address: '' } },
+  sobre:       { 'siteContent.sobre': { title: 'Sobre Mim', text: '', image: '' } },
+  faq:         { 'siteContent.faq': [] },
+  personalizar:{ siteStyle: { accentColor: '', bgColor: '', textColor: '', fontFamily: '' } },
+  secoes:      { siteSections: ['hero','portfolio','albuns','servicos','estudio','depoimentos','contato','sobre','faq'] },
+};
+
+router.post('/admin/organizations/:id/reset/site', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { section } = req.body; // 'all' ou nome da seção
+    const org = await Organization.findById(req.params.id);
+    if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+    let updateData = {};
+
+    if (section === 'all') {
+      // Reset completo: todas as seções
+      for (const def of Object.values(SITE_RESET_DEFAULTS)) {
+        Object.assign(updateData, def);
+      }
+      updateData.siteTheme = 'elegante';
+    } else if (SITE_RESET_DEFAULTS[section]) {
+      updateData = { ...SITE_RESET_DEFAULTS[section] };
+    } else {
+      return res.status(400).json({ error: 'Seção inválida' });
+    }
+
+    await Organization.findByIdAndUpdate(req.params.id, { $set: updateData }, { strict: false });
+
+    // Se reset de álbuns, limpar também no SiteData
+    if (section === 'albuns' || section === 'all') {
+      const SiteData = require('../models/SiteData');
+      await SiteData.findOneAndUpdate(
+        { organizationId: req.params.id },
+        { $set: { albums: [] } },
+        { upsert: false }
+      );
+    }
+
+    res.json({ success: true, message: `Reset de "${section}" realizado com sucesso` });
+  } catch (error) {
+    console.error('Erro no reset:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

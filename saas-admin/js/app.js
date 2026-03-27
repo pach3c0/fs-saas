@@ -203,7 +203,7 @@ function renderOrgsTable(orgs) {
         <td style="color:#94a3b8; font-size:0.75rem;">${date}</td>
         <td>
           <div class="btn-actions">
-            <button class="btn btn-details" onclick="showDetails('${org._id}')">Detalhes</button>
+            <button class="btn btn-panel" onclick="openOrgPanel('${org._id}', '${esc(org.name)}', '${esc(org.slug)}')">Painel</button>
             ${org.isActive
               ? `<button class="btn btn-deactivate" onclick="deactivateOrg('${org._id}', '${esc(org.name)}')">Desativar</button>`
               : `<button class="btn btn-approve" onclick="approveOrg('${org._id}', '${esc(org.name)}')">Aprovar</button>
@@ -833,6 +833,173 @@ async function saveLanding() {
     btn.disabled = false;
   }
 }
+
+// ============================================================================
+// PAINEL LATERAL DO USUÁRIO
+// ============================================================================
+
+let currentPanelOrgId = null;
+let currentPanelTab = 'overview';
+
+window.openOrgPanel = async (id, name, slug) => {
+  currentPanelOrgId = id;
+  currentPanelTab = 'overview';
+  document.getElementById('panelOrgName').textContent = name;
+  document.getElementById('panelOrgSlug').textContent = slug + '.cliquezoom.com.br';
+  document.getElementById('orgPanel').classList.add('open');
+  document.getElementById('orgPanelOverlay').classList.add('open');
+
+  // Resetar nav
+  document.querySelectorAll('.panel-nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.panel-nav-item[data-panel="overview"]').classList.add('active');
+
+  await loadPanelTab('overview');
+};
+
+window.closeOrgPanel = () => {
+  document.getElementById('orgPanel').classList.remove('open');
+  document.getElementById('orgPanelOverlay').classList.remove('open');
+  currentPanelOrgId = null;
+};
+
+window.switchPanelTab = async (el) => {
+  const tab = el.dataset.panel;
+  document.querySelectorAll('.panel-nav-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  currentPanelTab = tab;
+  await loadPanelTab(tab);
+};
+
+async function loadPanelTab(tab) {
+  const content = document.getElementById('panelContent');
+  content.innerHTML = '<div class="loading">Carregando...</div>';
+
+  try {
+    if (tab === 'overview') await renderPanelOverview(content);
+    else if (tab === 'meusite') await renderPanelMeuSite(content);
+    else {
+      content.innerHTML = `<div class="coming-soon"><span class="cs-icon">🚧</span><p>Em breve</p></div>`;
+    }
+  } catch (err) {
+    content.innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
+  }
+}
+
+async function renderPanelOverview(content) {
+  const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/details`);
+  const org = data.organization;
+  const stats = data.stats;
+
+  const planOptions = ['free', 'basic', 'pro'].map(p =>
+    `<option value="${p}" ${org.plan === p ? 'selected' : ''}>${p.toUpperCase()}</option>`
+  ).join('');
+
+  const usersHtml = data.users.map(u => `
+    <li><span>${esc(u.name)} <span style="color:#64748b;">(${esc(u.email)})</span></span>
+    <span style="color:${u.approved ? '#34d399' : '#fbbf24'};">${u.approved ? 'Aprovado' : 'Pendente'}</span></li>
+  `).join('') || '<li style="color:#64748b;">Nenhum usuário</li>';
+
+  const sessionsHtml = data.recentSessions.slice(0, 5).map(s => `
+    <li><span>${esc(s.name)}</span><span style="color:#64748b;">${s.photosCount} fotos</span></li>
+  `).join('') || '<li style="color:#64748b;">Nenhuma sessão</li>';
+
+  content.innerHTML = `
+    <h3 style="font-size:0.875rem; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Visão Geral</h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.25rem;">
+      <div class="detail-card"><h4>Sessões</h4><div class="val">${stats.sessions}</div></div>
+      <div class="detail-card"><h4>Fotos</h4><div class="val">${stats.photos}</div></div>
+      <div class="detail-card"><h4>Storage</h4><div class="val">${stats.storageMB} MB</div></div>
+      <div class="detail-card">
+        <h4>Plano</h4>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+          <select id="panelPlanSelect" style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8125rem; cursor:pointer;">${planOptions}</select>
+          <button id="panelSavePlan" style="background:#6366f1; color:white; border:none; border-radius:0.25rem; padding:0.25rem 0.625rem; font-size:0.75rem; font-weight:600; cursor:pointer;">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Usuários</h3>
+      <ul class="detail-list">${usersHtml}</ul>
+    </div>
+    <div class="detail-section">
+      <h3>Sessões recentes</h3>
+      <ul class="detail-list">${sessionsHtml}</ul>
+    </div>
+  `;
+
+  content.querySelector('#panelSavePlan').onclick = async () => {
+    const plan = content.querySelector('#panelPlanSelect').value;
+    const btn = content.querySelector('#panelSavePlan');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/plan`, { plan });
+      saasToast('Plano atualizado!', 'success');
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar';
+      btn.disabled = false;
+    }
+  };
+}
+
+async function renderPanelMeuSite(content) {
+  const sections = [
+    { id: 'hero',        icon: '🖼️', label: 'Hero / Capa',   desc: 'Imagem, título e subtítulo do hero' },
+    { id: 'portfolio',   icon: '📷', label: 'Portfólio',      desc: 'Fotos do portfólio' },
+    { id: 'albuns',      icon: '📁', label: 'Álbuns',         desc: 'Álbuns de fotos' },
+    { id: 'servicos',    icon: '💼', label: 'Serviços',       desc: 'Lista de serviços' },
+    { id: 'estudio',     icon: '🏠', label: 'Estúdio',        desc: 'Info do estúdio e vídeo' },
+    { id: 'depoimentos', icon: '⭐', label: 'Depoimentos',    desc: 'Depoimentos de clientes' },
+    { id: 'contato',     icon: '📞', label: 'Contato',        desc: 'Título, texto e endereço' },
+    { id: 'sobre',       icon: '👤', label: 'Sobre Mim',      desc: 'Texto e foto de perfil' },
+    { id: 'faq',         icon: '❓', label: 'FAQ',            desc: 'Perguntas frequentes' },
+    { id: 'secoes',      icon: '📋', label: 'Ordem das Seções', desc: 'Ordem e visibilidade' },
+    { id: 'personalizar',icon: '🎨', label: 'Personalizar',   desc: 'Cores e fontes' },
+  ];
+
+  content.innerHTML = `
+    <h3 style="font-size:0.875rem; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Meu Site — Resets</h3>
+    <p style="font-size:0.75rem; color:#475569; margin-bottom:1rem;">Restaura os valores padrão de cada seção. <strong style="color:#fbbf24;">Ação irreversível.</strong></p>
+
+    <div class="reset-grid">
+      ${sections.map(s => `
+        <div class="reset-item">
+          <div class="reset-item-info">
+            <span class="reset-item-icon">${s.icon}</span>
+            <div>
+              <div class="reset-item-label">${s.label}</div>
+              <div class="reset-item-desc">${s.desc}</div>
+            </div>
+          </div>
+          <button class="btn-reset" onclick="resetSiteSection('${s.id}', '${s.label}')">Reset</button>
+        </div>
+      `).join('')}
+    </div>
+
+    <button class="btn-reset-all" onclick="resetSiteSection('all', 'Meu Site completo')">
+      ⚠️ Reset Completo — Meu Site
+    </button>
+  `;
+}
+
+window.resetSiteSection = async (section, label) => {
+  const ok = await saasConfirm(
+    `Resetar "${label}"? Todos os dados desta seção serão apagados e voltarão ao padrão.`,
+    { title: 'Confirmar Reset', confirmText: 'Resetar', danger: true }
+  );
+  if (!ok) return;
+
+  try {
+    await apiRequest('POST', `/api/admin/organizations/${currentPanelOrgId}/reset/site`, { section });
+    saasToast(`"${label}" resetado com sucesso!`, 'success');
+  } catch (err) {
+    saasToast('Erro: ' + err.message, 'error');
+  }
+};
 
 // ============================================================================
 // UTILS
