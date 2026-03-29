@@ -13,15 +13,15 @@ import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
-// Destruir todos os canvas ao sair do builder (chamado por app.js)
-window._cleanupBuilderCanvases = function() {
-  destroyPortfolioCanvas();
-  // Hero canvas é limpo automaticamente (variável local de renderSiteContent)
-  const heroEl = document.getElementById('hero-canvas-container');
-  if (heroEl) heroEl.remove();
-};
-
 export async function renderMeuSite(container) {
+  // Registrar cleanup de canvas ao sair do builder (feito aqui para garantir
+  // que o módulo portfolio.js já foi carregado quando o cleanup for chamado)
+  window._cleanupBuilderCanvases = function() {
+    destroyPortfolioCanvas();
+    const heroEl = document.getElementById('hero-canvas-container');
+    if (heroEl) heroEl.remove();
+  };
+
   // Enter builder mode — render properties into the builder panel
   if (typeof window.enterBuilderMode === 'function') {
     window.enterBuilderMode();
@@ -1168,16 +1168,14 @@ async function renderSiteContent(container, builderTabsEl) {
             <textarea class="hc-input" id="hcPropText" rows="2" style="resize:vertical;">${layer.text || ''}</textarea>
           </div>
           <div class="hc-row">
-            <div class="hc-grid2">
-              <div>
-                <div class="hc-label">Tamanho</div>
-                <input type="number" class="hc-input" id="hcPropFontSize" min="8" max="400" value="${layer.fontSize || 48}">
-              </div>
-              <div>
-                <div class="hc-label">Cor</div>
-                <input type="color" id="hcPropColor" value="${layer.color || '#ffffff'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:0.375rem;background:#1f2937;cursor:pointer;padding:2px;">
-              </div>
+            <div class="hc-label">Tamanho: <span id="hcPropFontSizeVal">${layer.fontSize || 48}px</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropFontSize" min="8" max="400" value="${layer.fontSize || 48}">
             </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Cor</div>
+            <input type="color" id="hcPropColor" value="${layer.color || '#ffffff'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:0.375rem;background:#1f2937;cursor:pointer;padding:2px;">
           </div>
           <div class="hc-row">
             <div class="hc-label">Fonte</div>
@@ -1206,24 +1204,23 @@ async function renderSiteContent(container, builderTabsEl) {
                 </select>
               </div>
               <div>
-                <div class="hc-label">Rotação</div>
-                <input type="number" class="hc-input" id="hcPropRotation" min="-360" max="360" value="${layer.rotation || 0}">
+                <div class="hc-label">Rotação: <span id="hcPropRotationVal">${layer.rotation || 0}°</span></div>
+                <div class="hc-range-row">
+                  <input type="range" class="hc-range" id="hcPropRotation" min="-360" max="360" value="${layer.rotation || 0}">
+                </div>
               </div>
             </div>
           </div>
           <div class="hc-row">
-            <div class="hc-grid2">
-              <div>
-                <div class="hc-label">Opacidade</div>
-                <div class="hc-range-row">
-                  <input type="range" class="hc-range" id="hcPropOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
-                  <span class="hc-range-val" id="hcPropOpacityVal">${layer.opacity ?? 100}%</span>
-                </div>
-              </div>
-              <div>
-                <div class="hc-label">Espaçamento</div>
-                <input type="number" class="hc-input" id="hcPropLetterSpacing" min="-10" max="50" value="${layer.letterSpacing || 0}">
-              </div>
+            <div class="hc-label">Opacidade: <span id="hcPropOpacityVal">${layer.opacity ?? 100}%</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Espaçamento: <span id="hcPropLetterSpacingVal">${layer.letterSpacing || 0}px</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropLetterSpacing" min="-10" max="50" value="${layer.letterSpacing || 0}">
             </div>
           </div>
           <div class="hc-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
@@ -1233,27 +1230,28 @@ async function renderSiteContent(container, builderTabsEl) {
         `;
 
         // Bind events para texto
-        const bind = (id, field, parse) => {
+        const bind = (id, field, parse, valId, suffix) => {
           const el = heroContainer.querySelector(id);
           if (!el) return;
           el.oninput = () => {
             const val = parse ? parse(el.value) : el.value;
             canvasEditor.updateLayer(layer.id, { [field]: val });
-            if (field === 'opacity') {
-              heroContainer.querySelector('#hcPropOpacityVal').textContent = val + '%';
+            if (valId) {
+              const valEl = heroContainer.querySelector(valId);
+              if (valEl) valEl.textContent = val + (suffix || '');
             }
           };
           el.onchange = el.oninput;
         };
         bind('#hcPropText', 'text');
-        bind('#hcPropFontSize', 'fontSize', Number);
+        bind('#hcPropFontSize', 'fontSize', Number, '#hcPropFontSizeVal', 'px');
         bind('#hcPropColor', 'color');
         bind('#hcPropFont', 'fontFamily');
         bind('#hcPropWeight', 'fontWeight');
         bind('#hcPropAlign', 'align');
-        bind('#hcPropRotation', 'rotation', Number);
-        bind('#hcPropOpacity', 'opacity', Number);
-        bind('#hcPropLetterSpacing', 'letterSpacing', Number);
+        bind('#hcPropRotation', 'rotation', Number, '#hcPropRotationVal', '°');
+        bind('#hcPropOpacity', 'opacity', Number, '#hcPropOpacityVal', '%');
+        bind('#hcPropLetterSpacing', 'letterSpacing', Number, '#hcPropLetterSpacingVal', 'px');
         bind('#hcPropShadow', 'shadow', null);
         // Checkbox especial
         const shadowEl = heroContainer.querySelector('#hcPropShadow');
@@ -1274,57 +1272,56 @@ async function renderSiteContent(container, builderTabsEl) {
             <button class="hc-btn" id="hcPropFlipV" title="Espelhar vertical">↕ Flip V</button>
           </div>
           <div class="hc-row">
-            <div class="hc-grid2">
-              <div>
-                <div class="hc-label">Largura %</div>
-                <input type="number" class="hc-input" id="hcPropWidth" min="2" max="100" value="${Math.round(layer.width ?? 20)}">
-              </div>
-              <div>
-                <div class="hc-label">Altura %</div>
-                <input type="number" class="hc-input" id="hcPropHeight" min="2" max="100" value="${Math.round(layer.height ?? 20)}">
-              </div>
+            <div class="hc-label">Largura: <span id="hcPropWidthVal">${Math.round(layer.width ?? 20)}%</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropWidth" min="2" max="100" value="${Math.round(layer.width ?? 20)}">
             </div>
           </div>
           <div class="hc-row">
-            <div class="hc-grid2">
-              <div>
-                <div class="hc-label">Rotação</div>
-                <input type="number" class="hc-input" id="hcPropImgRotation" min="-360" max="360" value="${layer.rotation || 0}">
-              </div>
-              <div>
-                <div class="hc-label">Borda arred.</div>
-                <input type="number" class="hc-input" id="hcPropBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
-              </div>
+            <div class="hc-label">Altura: <span id="hcPropHeightVal">${Math.round(layer.height ?? 20)}%</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropHeight" min="2" max="100" value="${Math.round(layer.height ?? 20)}">
             </div>
           </div>
           <div class="hc-row">
-            <div class="hc-label">Opacidade</div>
+            <div class="hc-label">Rotação: <span id="hcPropImgRotationVal">${layer.rotation || 0}°</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropImgRotation" min="-360" max="360" value="${layer.rotation || 0}">
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Borda arred.: <span id="hcPropBorderRadiusVal">${layer.borderRadius || 0}px</span></div>
+            <div class="hc-range-row">
+              <input type="range" class="hc-range" id="hcPropBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
+            </div>
+          </div>
+          <div class="hc-row">
+            <div class="hc-label">Opacidade: <span id="hcPropImgOpacityVal">${layer.opacity ?? 100}%</span></div>
             <div class="hc-range-row">
               <input type="range" class="hc-range" id="hcPropImgOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
-              <span class="hc-range-val" id="hcPropImgOpacityVal">${layer.opacity ?? 100}%</span>
             </div>
           </div>
         `;
 
         // Binds para imagem
-        const ibind = (id, field, parse) => {
+        const ibind = (id, field, parse, valId, suffix) => {
           const el = heroContainer.querySelector(id);
           if (!el) return;
           el.oninput = () => {
             const val = parse ? parse(el.value) : el.value;
             canvasEditor.updateLayer(layer.id, { [field]: val });
-            if (field === 'opacity') {
-              const valEl = heroContainer.querySelector('#hcPropImgOpacityVal');
-              if (valEl) valEl.textContent = val + '%';
+            if (valId) {
+              const valEl = heroContainer.querySelector(valId);
+              if (valEl) valEl.textContent = val + (suffix || '');
             }
           };
           el.onchange = el.oninput;
         };
-        ibind('#hcPropWidth', 'width', Number);
-        ibind('#hcPropHeight', 'height', Number);
-        ibind('#hcPropImgRotation', 'rotation', Number);
-        ibind('#hcPropBorderRadius', 'borderRadius', Number);
-        ibind('#hcPropImgOpacity', 'opacity', Number);
+        ibind('#hcPropWidth', 'width', Number, '#hcPropWidthVal', '%');
+        ibind('#hcPropHeight', 'height', Number, '#hcPropHeightVal', '%');
+        ibind('#hcPropImgRotation', 'rotation', Number, '#hcPropImgRotationVal', '°');
+        ibind('#hcPropBorderRadius', 'borderRadius', Number, '#hcPropBorderRadiusVal', 'px');
+        ibind('#hcPropImgOpacity', 'opacity', Number, '#hcPropImgOpacityVal', '%');
 
         // Flip
         heroContainer.querySelector('#hcPropFlipH').onclick = () => {
