@@ -402,9 +402,14 @@ function renderSite(data, opts = {}) {
 
   const sobreImage = document.getElementById('sobreImage');
   if (sobreImage) {
-    const sobreImageUrl = content.sobre?.image || (content.sobre?.images?.[0]?.image) || '';
+    // Prioridade: primeira imagem do canvas → campo legado image
+    const canvasImg = (content.sobre?.canvasLayers || []).find(l => l.type === 'image' && l.url);
+    const sobreImageUrl = canvasImg?.url || content.sobre?.image || (content.sobre?.images?.[0]?.image) || '';
     if (sobreImageUrl) {
       sobreImage.src = resolvePath(sobreImageUrl);
+      // Aplicar borderRadius se definido na layer
+      if (canvasImg?.borderRadius) sobreImage.style.borderRadius = canvasImg.borderRadius + 'px';
+      if (canvasImg?.opacity != null && canvasImg.opacity < 100) sobreImage.style.opacity = canvasImg.opacity / 100;
     } else {
       sobreImage.style.background = '#1f2937';
       sobreImage.style.minHeight = '200px';

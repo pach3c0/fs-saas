@@ -7,6 +7,7 @@ import { apiGet, apiPut, apiPost, apiDelete } from '../utils/api.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { renderPortfolio, destroyPortfolioCanvas, getPortfolioCanvasState } from './portfolio.js';
+import { renderSobre, destroySobreCanvas, getSobreCanvasState } from './sobre.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
@@ -18,6 +19,7 @@ export async function renderMeuSite(container) {
   // que o módulo portfolio.js já foi carregado quando o cleanup for chamado)
   window._cleanupBuilderCanvases = function() {
     destroyPortfolioCanvas();
+    destroySobreCanvas();
     const heroEl = document.getElementById('hero-canvas-container');
     if (heroEl) heroEl.remove();
   };
@@ -117,31 +119,8 @@ async function renderSiteContent(container, builderTabsEl) {
         <!-- Hero -->
         <div id="config-hero" class="sub-tab-content" style="display:none;"></div>
 
-        <!-- Sobre (mantém versão simplificada para site.js) -->
-        <div id="config-sobre" class="sub-tab-content" style="display:none;">
-            <div style="display:grid; gap:1rem; max-width:600px;">
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
-                    <input type="text" id="sobreTitle" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;">
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
-                    <textarea id="sobreText" rows="6" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:white; border-radius:0.375rem;"></textarea>
-                </div>
-                <div>
-                    <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Foto</label>
-                    <div style="display:flex; gap:1rem; align-items:center;">
-                        <img id="sobrePreview" src="" style="width:80px; height:80px; object-fit:cover; background:#374151; border-radius:50%;">
-                        <label style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem;">
-                            Upload
-                            <input type="file" id="sobreUpload" accept="image/*" style="display:none;">
-                        </label>
-                    </div>
-                    <input type="hidden" id="sobreImage">
-                </div>
-                <button id="saveSobreBtn" style="background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1rem;">Salvar Sobre</button>
-            </div>
-        </div>
+        <!-- Sobre (canvas editor — renderizado por sobre.js) -->
+        <div id="config-sobre" class="sub-tab-content" style="display:none;"></div>
 
         <!-- Portfólio (renderizado pelo portfolio.js) -->
         <div id="config-portfolio" class="sub-tab-content" style="display:none;"></div>
@@ -460,13 +439,20 @@ async function renderSiteContent(container, builderTabsEl) {
 
     // Sobrescrever com valores atuais dos campos visíveis
 
-    // Sobre
-    const sobreTitle = container.querySelector('#sobreTitle');
-    const sobreText = container.querySelector('#sobreText');
-    const sobreImage = container.querySelector('#sobreImage');
-    if (sobreTitle) snap.siteContent.sobre.title = sobreTitle.value;
-    if (sobreText)  snap.siteContent.sobre.text  = sobreText.value;
-    if (sobreImage) snap.siteContent.sobre.image = sobreImage.value;
+    // Sobre Canvas (se aberto)
+    const sobreState = getSobreCanvasState();
+    if (sobreState) {
+      snap.siteContent.sobre = {
+        ...snap.siteContent.sobre,
+        image: sobreState.image,
+        canvasLayers: sobreState.layers,
+      };
+      // Sincronizar título/texto do sidebar do canvas
+      const scTitle = container.querySelector('#scTitle');
+      const scText  = container.querySelector('#scText');
+      if (scTitle) snap.siteContent.sobre.title = scTitle.value;
+      if (scText)  snap.siteContent.sobre.text  = scText.value;
+    }
 
     // Hero Canvas (se aberto)
     if (_heroCanvasEditor) {
@@ -542,21 +528,30 @@ async function renderSiteContent(container, builderTabsEl) {
     // Canvas editors: esconder/mostrar sem destruir (o usuário vai e volta)
     const heroCanvasEl = document.getElementById('hero-canvas-container');
     const portfolioCanvasEl = document.getElementById('portfolio-canvas-container');
+    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const iframe = document.getElementById('builder-iframe');
 
     const target = btn.dataset.target;
     if (target === 'config-hero') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'flex';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = 'none';
     } else if (target === 'config-portfolio') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = 'none';
-    } else {
-      // Esconder ambos os canvas, restaurar iframe
+    } else if (target === 'config-sobre') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'flex';
+      if (iframe) iframe.style.display = 'none';
+    } else {
+      // Esconder todos os canvas, restaurar iframe
+      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
     }
 
@@ -576,6 +571,8 @@ async function renderSiteContent(container, builderTabsEl) {
       renderSecoes();
     } else if (btn.dataset.target === 'config-hero') {
       renderHeroStudio();
+    } else if (btn.dataset.target === 'config-sobre') {
+      renderSobre(targetContainer);
     } else if (btn.dataset.target === 'config-portfolio') {
       renderPortfolio(targetContainer);
     } else if (btn.dataset.target === 'config-servicos') {
@@ -622,48 +619,7 @@ async function renderSiteContent(container, builderTabsEl) {
     });
   };
 
-  // --- SOBRE ---
-  const sobre = siteContent.sobre || {};
-  container.querySelector('#sobreTitle').value = sobre.title || '';
-  container.querySelector('#sobreText').value = sobre.text || '';
-  container.querySelector('#sobreImage').value = sobre.image || '';
-  if(sobre.image) container.querySelector('#sobrePreview').src = resolveImagePath(sobre.image);
-
-  // Capturar valores originais e setup dirty tracking
-  const sobreContainer = container.querySelector('#config-sobre');
-  captureOriginalValues('config-sobre', sobreContainer);
-  setupDirtyTracking('config-sobre', 'Sobre', sobreContainer);
-
-  // Preview em tempo real
-  container.querySelector('#sobreTitle').oninput = () => { postPreviewData(); };
-  container.querySelector('#sobreText').oninput  = () => { postPreviewData(); };
-
-  container.querySelector('#sobreUpload').onchange = async (e) => {
-      const file = e.target.files[0];
-      if(!file) return;
-      const res = await uploadImage(file, appState.authToken);
-      container.querySelector('#sobreImage').value = res.url;
-      container.querySelector('#sobrePreview').src = resolveImagePath(res.url);
-      // Mark dirty manualmente pois upload não dispara input event
-      markDirty('config-sobre', 'Sobre');
-      postPreviewData();
-  };
-
-  container.querySelector('#saveSobreBtn').onclick = async (e) => {
-    await withBtnLoading(e.currentTarget, async () => {
-      const newSobre = {
-        title: container.querySelector('#sobreTitle').value,
-        text: container.querySelector('#sobreText').value,
-        image: container.querySelector('#sobreImage').value
-      };
-      await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, sobre: newSobre } });
-      clearDirty();
-      // Recapturar valores originais após salvar
-      captureOriginalValues('config-sobre', sobreContainer);
-      window.showToast?.('Salvo!', 'success');
-      liveRefresh({ siteContent: { sobre: newSobre } });
-    });
-  };
+  // --- SOBRE --- (canvas editor — setup feito por sobre.js ao abrir a sub-aba)
 
   // --- HERO CANVAS ---
   // Editor visual completo estilo Canva — canvas interativo com layers

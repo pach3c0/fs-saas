@@ -1,165 +1,459 @@
 /**
- * Tab: Sobre
+ * Tab: Sobre — Canvas Editor para foto de retrato
+ * Canvas 3:4 (600×800) — imagens posicionáveis + campos de texto (título/bio).
+ * Segue o mesmo padrão de portfolio.js.
  */
 
-import { appState, saveAppData } from '../state.js';
-import { resolveImagePath, generateId } from '../utils/helpers.js';
-import { uploadImage, showUploadProgress } from '../utils/upload.js';
-import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
+import { appState } from '../state.js';
+import { resolveImagePath } from '../utils/helpers.js';
+import { uploadImage } from '../utils/upload.js';
+import { apiPut } from '../utils/api.js';
+import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
-export async function renderSobre(container) {
-  const about = appState.appData.about || {};
-  if (!about.images) about.images = [];
+// ── Instância global (sobrevive trocas de sub-aba) ───────────────────────────
+export let _sobreCanvasEditor = null;
 
-  // Migrar imagem antiga (campo 'image') para array 'images'
-  if (about.image && about.images.length === 0) {
-    about.images.push({ image: about.image, posX: 50, posY: 50, scale: 1 });
-  }
+// Dimensões do canvas — retrato 3:4
+const SOBRE_W = 600;
+const SOBRE_H = 800;
 
-  let photosHtml = '';
-  about.images.forEach((p, idx) => {
-    const posX = p.posX ?? 50;
-    const posY = p.posY ?? 50;
-    const scale = p.scale ?? 1;
-    photosHtml += `
-      <div class="about-photo-item" data-index="${idx}"
-        style="position:relative; aspect-ratio:1/1; background:#374151; border-radius:0.5rem; overflow:hidden;">
-        <img src="${resolveImagePath(p.image)}" alt="Sobre ${idx + 1}"
-          style="width:100%; height:100%; object-fit:cover; pointer-events:none; object-position:${posX}% ${posY}%; transform:scale(${scale}); transform-origin:${posX}% ${posY}%;">
-        <div class="about-overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
-          <button onclick="event.stopPropagation(); openSobreEditor(${idx})" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Ajustar">
-            ✏️
-          </button>
-          <button onclick="event.stopPropagation(); deleteSobrePhoto(${idx})" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
-            🗑️
-          </button>
-        </div>
-        <div style="position:absolute; bottom:0.5rem; left:0.5rem; background:rgba(0,0,0,0.7); color:white; font-size:0.75rem; padding:0.125rem 0.5rem; border-radius:0.25rem;">${idx + 1}</div>
-      </div>
-    `;
-  });
+async function syncSobreToSite(layers, title, text) {
+  const imgLayer = (layers || []).find(l => l.type === 'image' && l.url);
+  const currentSiteContent = appState.configData?.siteContent || {};
 
-  container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:1.5rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Sobre</h2>
-
-      <div style="border:1px solid #374151; border-radius:0.75rem; background:#1f2937; padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <h3 style="font-size:1rem; font-weight:600; color:#d1d5db;">Conteudo</h3>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:500; color:#9ca3af; margin-bottom:0.25rem;">Titulo da Secao</label>
-          <input type="text" id="aboutTitle" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;"
-            value="${about.title || ''}">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:500; color:#9ca3af; margin-bottom:0.25rem;">Texto (separe paragrafos com linha em branco)</label>
-          <textarea id="aboutText" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6; height:12rem; resize:vertical;"
-            rows="8">${about.text || ''}</textarea>
-        </div>
-      </div>
-
-      <!-- Imagens -->
-      <div style="border:1px solid #374151; border-radius:0.75rem; background:#1f2937; padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="font-size:1rem; font-weight:600; color:#d1d5db;">Imagens</h3>
-            <p style="font-size:0.75rem; color:#9ca3af;">Passe o mouse para editar ou remover</p>
-          </div>
-          <label style="background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer;">
-            Upload de Fotos
-            <input type="file" accept=".jpg,.jpeg,.png" multiple id="aboutUploadInput" style="display:none;">
-          </label>
-        </div>
-        <div id="aboutUploadProgress"></div>
-        <div id="aboutPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:0.75rem;">
-          ${photosHtml}
-        </div>
-        ${about.images.length === 0 ? '<p style="color:#9ca3af; text-align:center; padding:2rem;">Nenhuma imagem. Use o botao acima para adicionar.</p>' : ''}
-      </div>
-
-      <button id="saveAboutBtn" style="background:#2563eb; color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
-        Salvar
-      </button>
-    </div>
-
-    ${photoEditorHtml('sobreEditorModal', '1/1')}
-  `;
-
-  // Hover nos itens
-  container.querySelectorAll('.about-photo-item').forEach(item => {
-    const overlay = item.querySelector('.about-overlay');
-    item.onmouseenter = () => { overlay.style.opacity = '1'; };
-    item.onmouseleave = () => { overlay.style.opacity = '0'; };
-  });
-
-  // Helper: captura titulo e texto atuais dos inputs antes de salvar
-  function getCurrentAbout() {
-    const titleEl = container.querySelector('#aboutTitle');
-    const textEl = container.querySelector('#aboutText');
-    return {
-      title: titleEl ? titleEl.value : (about.title || ''),
-      text: textEl ? textEl.value : (about.text || ''),
-      image: about.images[0]?.image || '',
-      images: about.images
-    };
-  }
-
-  // Upload multiplo
-  container.querySelector('#aboutUploadInput').onchange = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    for (const file of files) {
-      try {
-        showUploadProgress('aboutUploadProgress', Math.round((about.images.length / (about.images.length + files.length)) * 100));
-        const result = await uploadImage(file, appState.authToken);
-        about.images.push({ image: result.url, posX: 50, posY: 50, scale: 1 });
-      } catch (error) {
-        window.showToast?.('Erro: ' + error.message, 'error');
+  await apiPut('/api/site/admin/config', {
+    siteContent: {
+      ...currentSiteContent,
+      sobre: {
+        ...currentSiteContent.sobre,
+        title,
+        text,
+        image: imgLayer?.url || currentSiteContent.sobre?.image || '',
+        canvasLayers: layers || [],
       }
     }
+  });
+}
 
-    showUploadProgress('aboutUploadProgress', 100);
-    e.target.value = '';
-    const currentData = getCurrentAbout();
-    appState.appData.about = currentData;
-    await saveAppData('about', currentData, true);
-    renderSobre(container);
+/**
+ * Monta o canvas do sobre dentro do #builder-iframe-wrap.
+ * Chamado por meu-site.js ao clicar na sub-aba Sobre.
+ */
+export function renderSobre(container) {
+  // Se canvas já existe → apenas mostrar (não recriar)
+  if (_sobreCanvasEditor) {
+    const canvasEl = document.getElementById('sobre-canvas-container');
+    const iframe = document.getElementById('builder-iframe');
+    if (canvasEl) canvasEl.style.display = 'flex';
+    if (iframe) iframe.style.display = 'none';
+    _renderSobreSidebar(container);
+    return;
+  }
+
+  const siteContent = appState.configData?.siteContent || {};
+  const sobreData = siteContent.sobre || {};
+
+  // Layers iniciais — migração: se não tem canvasLayers mas tem image legada
+  let layers = sobreData.canvasLayers || [];
+  if (layers.length === 0 && sobreData.image) {
+    layers = [{
+      id: 'sb_' + Date.now(),
+      type: 'image',
+      url: sobreData.image,
+      name: 'Foto',
+      x: 50,
+      y: 50,
+      width: 70,
+      height: 70,
+      rotation: 0,
+      opacity: 100,
+      borderRadius: 0,
+      shadow: false,
+      shadowBlur: 10,
+      shadowColor: 'rgba(0,0,0,0.5)',
+      flipH: false,
+      flipV: false,
+      presets: {},
+    }];
+  }
+
+  // Substituir iframe pelo canvas
+  const iframeWrap = document.getElementById('builder-iframe-wrap');
+  const iframe = document.getElementById('builder-iframe');
+  if (iframe) iframe.style.display = 'none';
+
+  const canvasContainer = document.createElement('div');
+  canvasContainer.id = 'sobre-canvas-container';
+  canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
+  if (iframeWrap) iframeWrap.appendChild(canvasContainer);
+
+  // Canvas com dimensões de retrato 3:4
+  const canvasEditor = new HeroCanvasEditor(canvasContainer, {
+    onSelect: (layer) => {
+      _renderPropsForLayer(container, layer, canvasEditor);
+    },
+    onChange: () => {
+      window._meuSitePostPreview?.();
+    },
+    resolveImagePath: resolveImagePath,
+  });
+
+  // Sobrescrever DEVICE_SIZES para canvas retrato 3:4
+  // Fazemos isso ajustando o root após criação
+  if (canvasEditor.root) {
+    canvasEditor.root.style.width = SOBRE_W + 'px';
+    canvasEditor.root.style.height = SOBRE_H + 'px';
+  }
+  // Re-fit ao container com as novas dimensões
+  canvasEditor._fitToContainer = function() {
+    const cw = canvasContainer.clientWidth;
+    const ch = canvasContainer.clientHeight;
+    if (!cw || !ch) return;
+    const scaleX = cw / SOBRE_W;
+    const scaleY = ch / SOBRE_H;
+    const scale = Math.min(scaleX, scaleY, 1);
+    canvasEditor.root.style.width  = SOBRE_W + 'px';
+    canvasEditor.root.style.height = SOBRE_H + 'px';
+    canvasEditor.root.style.transform = `scale(${scale})`;
+    canvasEditor.root.style.marginTop = ch > SOBRE_H * scale ? `${(ch - SOBRE_H * scale) / 2 / scale}px` : '0';
+    canvasEditor._scale = scale;
+  };
+  canvasEditor._fitToContainer();
+
+  // Fundo neutro escuro
+  if (canvasEditor.root) canvasEditor.root.style.background = '#1a1a1a';
+  if (canvasEditor.bgEl) {
+    canvasEditor.bgEl.style.backgroundImage = 'none';
+    canvasEditor.bgEl.style.background = '#1a1a1a';
+  }
+  canvasEditor.setOverlay({ opacity: 0, topBarHeight: 0, bottomBarHeight: 0 });
+
+  canvasEditor.setLayers(layers);
+  _sobreCanvasEditor = canvasEditor;
+
+  _renderSobreSidebar(container);
+}
+
+// ── Sidebar de propriedades ───────────────────────────────────────────────────
+function _renderSobreSidebar(container) {
+  const siteContent = appState.configData?.siteContent || {};
+  const sobreData = siteContent.sobre || {};
+
+  container.innerHTML = `
+    <style>
+      #config-sobre { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+      .sc-sidebar { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
+      .sc-sidebar::-webkit-scrollbar { width:4px; }
+      .sc-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
+      .sc-section { border-bottom:1px solid #1f2937; }
+      .sc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; }
+      .sc-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
+      .sc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+      .sc-input { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; }
+      .sc-input:focus { border-color:#3b82f6; }
+      .sc-textarea { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; resize:vertical; min-height:80px; }
+      .sc-range { width:100%; accent-color:#3b82f6; }
+      .sc-range-row { display:flex; align-items:center; gap:0.4rem; }
+      .sc-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.2rem; text-align:right; }
+      .sc-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:#d1d5db; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
+      .sc-btn:hover { background:#374151; color:#fff; }
+      .sc-btn.primary { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+      .sc-btn.primary:hover { background:#2563eb; }
+      .sc-btn.success { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
+      .sc-btn.success:hover { background:#15803d; }
+      .sc-btn-group { display:flex; gap:0.35rem; padding:0.4rem 0.75rem; flex-wrap:wrap; }
+      .sc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
+      .sc-layer-item:hover { background:#2d3748; }
+      .sc-layer-item.active { border-color:#3b82f6; background:#172554; }
+      .sc-layer-item .layer-del { color:#ef4444; cursor:pointer; font-size:0.85rem; opacity:0.6; margin-left:auto; }
+      .sc-layer-item .layer-del:hover { opacity:1; }
+    </style>
+
+    <div class="sc-sidebar">
+
+      <!-- Texto do Sobre -->
+      <div class="sc-section">
+        <div class="sc-section-head">✏️ Conteúdo</div>
+        <div class="sc-row">
+          <span class="sc-label">Título</span>
+          <input type="text" class="sc-input" id="scTitle" value="${(sobreData.title || '').replace(/"/g, '&quot;')}">
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Texto / Bio</span>
+          <textarea class="sc-textarea" id="scText">${sobreData.text || ''}</textarea>
+        </div>
+      </div>
+
+      <!-- Adicionar foto -->
+      <div class="sc-section">
+        <div class="sc-section-head">🖼 Foto</div>
+        <div class="sc-btn-group">
+          <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center;">
+            📷 Adicionar Foto
+            <input type="file" accept=".jpg,.jpeg,.png" id="scAddPhoto" style="display:none;">
+          </label>
+        </div>
+      </div>
+
+      <!-- Props da layer selecionada -->
+      <div id="sc-layer-props" class="sc-section" style="display:none;">
+        <div class="sc-section-head">⚙️ Propriedades da Foto</div>
+        <div id="sc-layer-props-content"></div>
+      </div>
+
+      <!-- Lista de camadas -->
+      <div class="sc-section">
+        <div class="sc-section-head">Camadas</div>
+        <div id="sc-layer-list" style="padding:0.35rem 0; min-height:2rem;"></div>
+      </div>
+
+      <!-- Salvar -->
+      <div style="padding:0.75rem;">
+        <button class="sc-btn success" id="scSaveBtn" style="width:100%; font-size:0.875rem; padding:0.6rem;">
+          💾 Salvar Sobre
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  const canvasEditor = _sobreCanvasEditor;
+  if (!canvasEditor) return;
+
+  // Preview em tempo real ao digitar
+  container.querySelector('#scTitle').oninput = () => window._meuSitePostPreview?.();
+  container.querySelector('#scText').oninput  = () => window._meuSitePostPreview?.();
+
+  // Adicionar foto
+  container.querySelector('#scAddPhoto').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await uploadImage(file, appState.authToken);
+      const layers = canvasEditor.getLayers();
+      const imgCount = layers.filter(l => l.type === 'image').length;
+      canvasEditor.addLayer({
+        id: 'sb_' + Date.now(),
+        type: 'image',
+        url: result.url,
+        name: `Foto ${imgCount + 1}`,
+        x: 50, y: 50,
+        width: 70, height: 70,
+        rotation: 0,
+        opacity: 100,
+        borderRadius: 0,
+        shadow: false,
+        shadowBlur: 10,
+        shadowColor: 'rgba(0,0,0,0.5)',
+        flipH: false, flipV: false,
+        presets: {},
+      });
+      _renderLayerList(container, canvasEditor);
+      e.target.value = '';
+    } catch (err) {
+      window.showToast?.('Erro no upload: ' + err.message, 'error');
+    }
+  });
+
+  // Salvar
+  container.querySelector('#scSaveBtn').addEventListener('click', async () => {
+    const btn = container.querySelector('#scSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    try {
+      const layers = canvasEditor.getLayers();
+      const title = container.querySelector('#scTitle').value;
+      const text  = container.querySelector('#scText').value;
+      await syncSobreToSite(layers, title, text);
+      if (!appState.configData.siteContent) appState.configData.siteContent = {};
+      appState.configData.siteContent.sobre = {
+        ...appState.configData.siteContent.sobre,
+        title, text,
+        image: layers.find(l => l.type === 'image')?.url || '',
+        canvasLayers: layers,
+      };
+      window.showToast?.('Sobre salvo!', 'success');
+    } catch (err) {
+      window.showToast?.('Erro ao salvar: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Salvar Sobre';
+    }
+  });
+
+  _renderLayerList(container, canvasEditor);
+}
+
+// ── Lista de camadas ──────────────────────────────────────────────────────────
+function _renderLayerList(container, canvasEditor) {
+  const listEl = container.querySelector('#sc-layer-list');
+  if (!listEl) return;
+
+  const layers = canvasEditor.getLayers();
+  if (layers.length === 0) {
+    listEl.innerHTML = '<p style="font-size:0.72rem; color:#4b5563; text-align:center; padding:0.5rem; margin:0;">Nenhuma foto. Adicione acima.</p>';
+    return;
+  }
+
+  listEl.innerHTML = [...layers].reverse().map((layer) => {
+    const isSelected = canvasEditor.selectedId === layer.id;
+    const name = layer.name || 'Foto';
+    return `
+      <div class="sc-layer-item${isSelected ? ' active' : ''}" data-layer-id="${layer.id}">
+        <span>🖼</span>
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
+        <span class="layer-del" data-del-layer="${layer.id}" title="Remover">✕</span>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.sc-layer-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.dataset.delLayer) return;
+      const layerId = item.dataset.layerId;
+      canvasEditor.selectLayer(layerId);
+      _renderLayerList(container, canvasEditor);
+      const layer = canvasEditor._getLayer(layerId);
+      _renderPropsForLayer(container, layer, canvasEditor);
+    });
+  });
+
+  listEl.querySelectorAll('[data-del-layer]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const ok = await window.showConfirm?.('Remover esta foto?', { confirmText: 'Remover', danger: true });
+      if (!ok) return;
+      canvasEditor.removeLayer(btn.dataset.delLayer);
+      _renderLayerList(container, canvasEditor);
+      const propsEl = container.querySelector('#sc-layer-props');
+      if (propsEl) propsEl.style.display = 'none';
+    });
+  });
+}
+
+// ── Propriedades da layer ─────────────────────────────────────────────────────
+function _renderPropsForLayer(container, layer, canvasEditor) {
+  const propsSection = container.querySelector('#sc-layer-props');
+  const propsContent = container.querySelector('#sc-layer-props-content');
+  if (!propsSection || !propsContent) return;
+
+  if (!layer || layer.type !== 'image') {
+    propsSection.style.display = 'none';
+    return;
+  }
+
+  propsSection.style.display = 'block';
+
+  propsContent.innerHTML = `
+    <div class="sc-btn-group">
+      <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center; font-size:0.72rem;">
+        🔄 Trocar Foto
+        <input type="file" accept=".jpg,.jpeg,.png" id="scLayerImgReplace" style="display:none;">
+      </label>
+    </div>
+    <div class="sc-row">
+      <span class="sc-label">Opacidade: <span id="scImgOpacityVal">${layer.opacity ?? 100}%</span></span>
+      <input type="range" class="sc-range" id="scImgOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
+    </div>
+    <div class="sc-row">
+      <span class="sc-label">Bordas: <span id="scBorderRadiusVal">${layer.borderRadius || 0}px</span></span>
+      <input type="range" class="sc-range" id="scBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
+    </div>
+    <div class="sc-section-head" style="padding:0.4rem 0.75rem 0.2rem;">Sombra</div>
+    <div style="padding:0 0.75rem 0.5rem;">
+      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.75rem;color:#d1d5db;margin-bottom:0.35rem;">
+        <input type="checkbox" id="scShadowEnabled" ${layer.shadow ? 'checked' : ''}>
+        Ativar sombra
+      </label>
+      <div id="scShadowOptions" style="display:${layer.shadow ? 'flex' : 'none'};flex-direction:column;gap:0.3rem;">
+        <div class="sc-row" style="padding:0;">
+          <span class="sc-label">Intensidade: <span id="scShadowBlurVal">${layer.shadowBlur || 10}px</span></span>
+          <input type="range" class="sc-range" id="scShadowBlur" min="0" max="60" value="${layer.shadowBlur || 10}">
+        </div>
+      </div>
+    </div>
+    <div class="sc-btn-group">
+      <button class="sc-btn${layer.flipH ? ' primary' : ''}" id="scFlipH">↔ H</button>
+      <button class="sc-btn${layer.flipV ? ' primary' : ''}" id="scFlipV">↕ V</button>
+    </div>
+  `;
+
+  container.querySelector('#scImgOpacity').oninput = (e) => {
+    container.querySelector('#scImgOpacityVal').textContent = e.target.value + '%';
+    canvasEditor.updateLayer(layer.id, { opacity: parseInt(e.target.value) });
+  };
+  container.querySelector('#scBorderRadius').oninput = (e) => {
+    container.querySelector('#scBorderRadiusVal').textContent = e.target.value + 'px';
+    canvasEditor.updateLayer(layer.id, { borderRadius: parseInt(e.target.value) });
   };
 
-  // Deletar foto
-  window.deleteSobrePhoto = async (idx) => {
-    if (!confirm('Remover esta imagem?')) return;
-    about.images.splice(idx, 1);
-    const currentData = getCurrentAbout();
-    appState.appData.about = currentData;
-    await saveAppData('about', currentData, true);
-    renderSobre(container);
+  const shadowCheck = container.querySelector('#scShadowEnabled');
+  const shadowOptions = container.querySelector('#scShadowOptions');
+  shadowCheck.onchange = () => {
+    shadowOptions.style.display = shadowCheck.checked ? 'flex' : 'none';
+    canvasEditor.updateLayer(layer.id, { shadow: shadowCheck.checked });
+    _applyShadowToLayer(canvasEditor, layer.id);
+  };
+  container.querySelector('#scShadowBlur').oninput = (e) => {
+    container.querySelector('#scShadowBlurVal').textContent = e.target.value + 'px';
+    canvasEditor.updateLayer(layer.id, { shadowBlur: parseInt(e.target.value) });
+    _applyShadowToLayer(canvasEditor, layer.id);
   };
 
-  // Abrir editor
-  window.openSobreEditor = (idx) => {
-    const photo = about.images[idx];
-    setupPhotoEditor(container, 'sobreEditorModal', photo.image,
-      { scale: photo.scale, posX: photo.posX, posY: photo.posY },
-      async (pos) => {
-        about.images[idx] = { ...about.images[idx], ...pos };
-        const currentData = getCurrentAbout();
-        appState.appData.about = currentData;
-        await saveAppData('about', currentData, true);
-        renderSobre(container);
-      }
-    );
+  container.querySelector('#scFlipH').onclick = () => {
+    canvasEditor.updateLayer(layer.id, { flipH: !layer.flipH });
+    _renderPropsForLayer(container, canvasEditor._getLayer(layer.id), canvasEditor);
+  };
+  container.querySelector('#scFlipV').onclick = () => {
+    canvasEditor.updateLayer(layer.id, { flipV: !layer.flipV });
+    _renderPropsForLayer(container, canvasEditor._getLayer(layer.id), canvasEditor);
   };
 
-  // Salvar tudo
-  container.querySelector('#saveAboutBtn').onclick = async () => {
-    const newAbout = {
-      title: container.querySelector('#aboutTitle').value,
-      text: container.querySelector('#aboutText').value,
-      image: about.images[0]?.image || '',
-      images: about.images
-    };
-    appState.appData.about = newAbout;
-    await saveAppData('about', newAbout);
+  container.querySelector('#scLayerImgReplace').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await uploadImage(file, appState.authToken);
+      canvasEditor.updateLayer(layer.id, { url: result.url });
+      e.target.value = '';
+    } catch (err) {
+      window.showToast?.('Erro no upload: ' + err.message, 'error');
+    }
   };
+
+  _applyShadowToLayer(canvasEditor, layer.id);
+}
+
+function _applyShadowToLayer(canvasEditor, layerId) {
+  const layer = canvasEditor._getLayer(layerId);
+  if (!layer) return;
+  const el = canvasEditor.layersEl?.querySelector(`[data-hc-layer="${layerId}"]`);
+  if (!el) return;
+  if (layer.shadow) {
+    el.style.filter = `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})`;
+  } else {
+    el.style.filter = '';
+  }
+}
+
+/**
+ * Retorna dados atuais para preview (chamado por meu-site.js postPreviewData)
+ */
+export function getSobreCanvasState() {
+  if (!_sobreCanvasEditor) return null;
+  const layers = _sobreCanvasEditor.getLayers();
+  const imgLayer = layers.find(l => l.type === 'image' && l.url);
+  return { layers, image: imgLayer?.url || '' };
+}
+
+/**
+ * Destrói o canvas (chamado ao sair do builder mode)
+ */
+export function destroySobreCanvas() {
+  if (_sobreCanvasEditor) {
+    _sobreCanvasEditor.destroy?.();
+    _sobreCanvasEditor = null;
+  }
+  const el = document.getElementById('sobre-canvas-container');
+  if (el) el.remove();
 }
