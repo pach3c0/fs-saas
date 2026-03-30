@@ -1,7 +1,7 @@
 /**
  * Tab: Sobre — Canvas Editor para foto de retrato
- * Canvas 3:4 (600×800) — imagens posicionáveis + campos de texto (título/bio).
- * Segue o mesmo padrão de portfolio.js.
+ * Canvas 3:4 (600×800) embutido no painel de props (igual ao Hero).
+ * O iframe permanece visível como preview real do site.
  */
 
 import { appState } from '../state.js';
@@ -12,11 +12,11 @@ import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
 // ── Instância global (sobrevive trocas de sub-aba) ───────────────────────────
 export let _sobreCanvasEditor = null;
-let _sobreSidebarContainer = null; // referência ao container do sidebar para coletar estilos
+let _sobreSidebarContainer = null; // referência ao container para coletar estilos
 
 // Dimensões do canvas — retrato 3:4
-const SOBRE_W = 600;
-const SOBRE_H = 800;
+const SOBRE_W = 300;
+const SOBRE_H = 400;
 
 async function syncSobreToSite(layers, title, text, styles = {}) {
   const imgLayer = (layers || []).find(l => l.type === 'image' && l.url);
@@ -38,16 +38,13 @@ async function syncSobreToSite(layers, title, text, styles = {}) {
 }
 
 /**
- * Monta o canvas do sobre dentro do #builder-iframe-wrap.
+ * Monta o canvas do sobre DENTRO do container do props panel (igual ao Hero).
+ * O iframe permanece visível — não é ocultado.
  * Chamado por meu-site.js ao clicar na sub-aba Sobre.
  */
 export function renderSobre(container) {
-  // Se canvas já existe → apenas mostrar (não recriar)
+  // Se canvas já existe → apenas re-renderizar o sidebar (canvas sobrevive)
   if (_sobreCanvasEditor) {
-    const canvasEl = document.getElementById('sobre-canvas-container');
-    const iframe = document.getElementById('builder-iframe');
-    if (canvasEl) canvasEl.style.display = 'flex';
-    if (iframe) iframe.style.display = 'none';
     _renderSobreSidebar(container);
     return;
   }
@@ -79,21 +76,24 @@ export function renderSobre(container) {
     }];
   }
 
-  // Substituir iframe pelo canvas
-  const iframeWrap = document.getElementById('builder-iframe-wrap');
-  const iframe = document.getElementById('builder-iframe');
-  if (iframe) iframe.style.display = 'none';
-
-  const canvasContainer = document.createElement('div');
-  canvasContainer.id = 'sobre-canvas-container';
-  canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
-  if (iframeWrap) iframeWrap.appendChild(canvasContainer);
+  // Canvas instalado DENTRO do container do props panel
+  // Criamos um wrapper dedicado ao canvas (estilo Hero)
+  const canvasWrapper = document.createElement('div');
+  canvasWrapper.id = 'sobre-canvas-wrapper';
+  canvasWrapper.style.cssText = 'width:100%; display:flex; align-items:center; justify-content:center; background:#0a0b10; border-radius:8px; overflow:hidden; margin-bottom:0.5rem;';
+  // Altura proporcional 3:4 num painel de ~360px de largura
+  canvasWrapper.style.aspectRatio = '3/4';
+  canvasWrapper.style.maxHeight = '380px';
 
   // Canvas com dimensões de retrato 3:4 — deviceSizes fixo para todos os devices
-  const sobreSizes = { desktop: { w: SOBRE_W, h: SOBRE_H }, tablet: { w: SOBRE_W, h: SOBRE_H }, mobile: { w: SOBRE_W, h: SOBRE_H } };
-  const canvasEditor = new HeroCanvasEditor(canvasContainer, {
+  const sobreSizes = {
+    desktop: { w: SOBRE_W, h: SOBRE_H },
+    tablet:  { w: SOBRE_W, h: SOBRE_H },
+    mobile:  { w: SOBRE_W, h: SOBRE_H },
+  };
+  const canvasEditor = new HeroCanvasEditor(canvasWrapper, {
     onSelect: (layer) => {
-      _renderPropsForLayer(container, layer, canvasEditor);
+      _renderPropsForLayer(_sobreSidebarContainer, layer, canvasEditor);
     },
     onChange: () => {
       window._meuSitePostPreview?.();
@@ -109,15 +109,15 @@ export function renderSobre(container) {
     canvasEditor.bgEl.style.background = '#1a1a1a';
   }
   canvasEditor.setOverlay({ opacity: 0, topBarHeight: 0, bottomBarHeight: 0 });
-
   canvasEditor.setLayers(layers);
   _sobreCanvasEditor = canvasEditor;
 
-  _renderSobreSidebar(container);
+  // Renderiza o sidebar completo (vai injetar o canvasWrapper dentro)
+  _renderSobreSidebar(container, canvasWrapper);
 }
 
 // ── Sidebar de propriedades ───────────────────────────────────────────────────
-function _renderSobreSidebar(container) {
+function _renderSobreSidebar(container, canvasWrapper) {
   _sobreSidebarContainer = container;
   const siteContent = appState.configData?.siteContent || {};
   const sobreData = siteContent.sobre || {};
@@ -153,6 +153,32 @@ function _renderSobreSidebar(container) {
     </style>
 
     <div class="sc-sidebar">
+
+      <!-- Canvas preview inline -->
+      <div id="sc-canvas-mount" style="padding:0.75rem; padding-bottom:0.25rem;"></div>
+
+      <!-- Foto: adicionar -->
+      <div class="sc-section">
+        <div class="sc-section-head">🖼 Foto</div>
+        <div class="sc-btn-group">
+          <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center;">
+            📷 Adicionar Foto
+            <input type="file" accept=".jpg,.jpeg,.png" id="scAddPhoto" style="display:none;">
+          </label>
+        </div>
+      </div>
+
+      <!-- Props da layer selecionada -->
+      <div id="sc-layer-props" class="sc-section" style="display:none;">
+        <div class="sc-section-head">⚙️ Propriedades da Foto</div>
+        <div id="sc-layer-props-content"></div>
+      </div>
+
+      <!-- Lista de camadas -->
+      <div class="sc-section">
+        <div class="sc-section-head">Camadas</div>
+        <div id="sc-layer-list" style="padding:0.35rem 0; min-height:2rem;"></div>
+      </div>
 
       <!-- Texto do Sobre -->
       <div class="sc-section">
@@ -227,29 +253,6 @@ function _renderSobreSidebar(container) {
         </div>
       </div>
 
-      <!-- Adicionar foto -->
-      <div class="sc-section">
-        <div class="sc-section-head">🖼 Foto</div>
-        <div class="sc-btn-group">
-          <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center;">
-            📷 Adicionar Foto
-            <input type="file" accept=".jpg,.jpeg,.png" id="scAddPhoto" style="display:none;">
-          </label>
-        </div>
-      </div>
-
-      <!-- Props da layer selecionada -->
-      <div id="sc-layer-props" class="sc-section" style="display:none;">
-        <div class="sc-section-head">⚙️ Propriedades da Foto</div>
-        <div id="sc-layer-props-content"></div>
-      </div>
-
-      <!-- Lista de camadas -->
-      <div class="sc-section">
-        <div class="sc-section-head">Camadas</div>
-        <div id="sc-layer-list" style="padding:0.35rem 0; min-height:2rem;"></div>
-      </div>
-
       <!-- Salvar -->
       <div style="padding:0.75rem;">
         <button class="sc-btn success" id="scSaveBtn" style="width:100%; font-size:0.875rem; padding:0.6rem;">
@@ -259,6 +262,19 @@ function _renderSobreSidebar(container) {
 
     </div>
   `;
+
+  // Montar o canvas no mount point
+  const mountEl = container.querySelector('#sc-canvas-mount');
+  if (mountEl && _sobreCanvasEditor) {
+    // Se o canvasWrapper foi recém criado, usá-lo; senão buscar pelo root do editor
+    if (canvasWrapper) {
+      mountEl.appendChild(canvasWrapper);
+    } else {
+      // Reanexar o wrapper existente (ao voltar para a aba)
+      const existingWrapper = document.getElementById('sobre-canvas-wrapper');
+      if (existingWrapper) mountEl.appendChild(existingWrapper);
+    }
+  }
 
   const canvasEditor = _sobreCanvasEditor;
   if (!canvasEditor) return;
@@ -369,6 +385,8 @@ function _renderSobreSidebar(container) {
         canvasLayers: layers,
       };
       window.showToast?.('Sobre salvo!', 'success');
+      // Atualizar preview do iframe
+      window._meuSitePostPreview?.();
     } catch (err) {
       window.showToast?.('Erro ao salvar: ' + err.message, 'error');
     } finally {
@@ -567,6 +585,7 @@ export function destroySobreCanvas() {
     _sobreCanvasEditor.destroy?.();
     _sobreCanvasEditor = null;
   }
-  const el = document.getElementById('sobre-canvas-container');
+  const el = document.getElementById('sobre-canvas-wrapper');
   if (el) el.remove();
+  _sobreSidebarContainer = null;
 }

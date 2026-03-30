@@ -529,30 +529,21 @@ async function renderSiteContent(container, builderTabsEl) {
     // Canvas editors: esconder/mostrar sem destruir (o usuário vai e volta)
     const heroCanvasEl = document.getElementById('hero-canvas-container');
     const portfolioCanvasEl = document.getElementById('portfolio-canvas-container');
-    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const iframe = document.getElementById('builder-iframe');
 
     const target = btn.dataset.target;
     if (target === 'config-hero') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'flex';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = 'none';
     } else if (target === 'config-portfolio') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
-      if (iframe) iframe.style.display = 'none';
-    } else if (target === 'config-sobre') {
-      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'flex';
       if (iframe) iframe.style.display = 'none';
     } else {
-      // Esconder todos os canvas, restaurar iframe
+      // Sobre e demais abas: mostrar iframe, esconder canvas de hero/portfolio
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
     }
 
