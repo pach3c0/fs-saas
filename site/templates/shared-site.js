@@ -134,9 +134,15 @@ function renderSite(data) {
     heroOverlay.style.background = `rgba(0,0,0,${(config.overlayOpacity ?? 30) / 100})`;
   }
   const heroTopBar = document.getElementById('heroTopBar');
-  if (heroTopBar) heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
+  if (heroTopBar) {
+    heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
+    heroTopBar.style.background = config.topBarColor ?? '#000000';
+  }
   const heroBottomBar = document.getElementById('heroBottomBar');
-  if (heroBottomBar) heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
+  if (heroBottomBar) {
+    heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
+    heroBottomBar.style.background = config.bottomBarColor ?? '#000000';
+  }
 
   // Renderizar heroLayers (textos livres posicionados)
   // Migração automática: se não houver layers mas existir heroTitle/heroSubtitle antigos, converte

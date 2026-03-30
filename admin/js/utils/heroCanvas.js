@@ -39,7 +39,7 @@ export class HeroCanvasEditor {
     this.selectedId = null;
     this.device = 'desktop';
     this.bg = { url: '', scale: 1, posX: 50, posY: 50 };
-    this.overlay = { opacity: 30, topBarHeight: 0, bottomBarHeight: 0 };
+    this.overlay = { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' };
 
     // Estado de interação
     this._drag = null;
@@ -450,7 +450,9 @@ export class HeroCanvasEditor {
     this.overlay = { ...this.overlay, ...ov };
     this.overlayEl.style.background = `rgba(0,0,0,${(this.overlay.opacity ?? 30) / 100})`;
     this.topBarEl.style.height = `${this.overlay.topBarHeight ?? 0}%`;
+    this.topBarEl.style.background = this.overlay.topBarColor ?? '#000000';
     this.bottomBarEl.style.height = `${this.overlay.bottomBarHeight ?? 0}%`;
+    this.bottomBarEl.style.background = this.overlay.bottomBarColor ?? '#000000';
   }
 
   setLayers(layers) {
@@ -568,7 +570,9 @@ export class HeroCanvasEditor {
       heroPosY: this.bg.posY,
       overlayOpacity: this.overlay.opacity,
       topBarHeight: this.overlay.topBarHeight,
+      topBarColor: this.overlay.topBarColor,
       bottomBarHeight: this.overlay.bottomBarHeight,
+      bottomBarColor: this.overlay.bottomBarColor,
       heroLayers: this.getLayers(),
     };
   }

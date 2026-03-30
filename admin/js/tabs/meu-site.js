@@ -856,15 +856,23 @@ async function renderSiteContent(container, builderTabsEl) {
           <div class="hc-row">
             <div class="hc-label">Barra superior</div>
             <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcTopBar" min="0" max="20" step="1" value="${cfg.topBarHeight ?? 0}">
+              <input type="range" class="hc-range" id="hcTopBar" min="0" max="40" step="1" value="${cfg.topBarHeight ?? 0}">
               <span class="hc-range-val" id="hcTopBarVal">${cfg.topBarHeight ?? 0}%</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+              <span style="font-size:0.65rem; color:#6b7280;">Cor:</span>
+              <input type="color" id="hcTopBarColor" value="${cfg.topBarColor ?? '#000000'}" style="width:32px;height:22px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;padding:1px;">
             </div>
           </div>
           <div class="hc-row">
             <div class="hc-label">Barra inferior</div>
             <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBottomBar" min="0" max="20" step="1" value="${cfg.bottomBarHeight ?? 0}">
+              <input type="range" class="hc-range" id="hcBottomBar" min="0" max="40" step="1" value="${cfg.bottomBarHeight ?? 0}">
               <span class="hc-range-val" id="hcBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+              <span style="font-size:0.65rem; color:#6b7280;">Cor:</span>
+              <input type="color" id="hcBottomBarColor" value="${cfg.bottomBarColor ?? '#000000'}" style="width:32px;height:22px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;padding:1px;">
             </div>
           </div>
         </div>
@@ -918,8 +926,10 @@ async function renderSiteContent(container, builderTabsEl) {
     const overlayVal = heroContainer.querySelector('#hcOverlayVal');
     const topBarInput = heroContainer.querySelector('#hcTopBar');
     const topBarVal = heroContainer.querySelector('#hcTopBarVal');
+    const topBarColorInput = heroContainer.querySelector('#hcTopBarColor');
     const bottomBarInput = heroContainer.querySelector('#hcBottomBar');
     const bottomBarVal = heroContainer.querySelector('#hcBottomBarVal');
+    const bottomBarColorInput = heroContainer.querySelector('#hcBottomBarColor');
 
     let heroImageUrl = cfg.heroImage || '';
 
@@ -943,14 +953,18 @@ async function renderSiteContent(container, builderTabsEl) {
       canvasEditor.setOverlay({
         opacity: parseInt(overlayInput.value),
         topBarHeight: parseInt(topBarInput.value),
+        topBarColor: topBarColorInput.value,
         bottomBarHeight: parseInt(bottomBarInput.value),
+        bottomBarColor: bottomBarColorInput.value,
       });
       if (_heroReady) markDirty('config-hero', 'Hero');
       window._meuSitePostPreview?.();
     };
     overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; updateOverlay(); };
     topBarInput.oninput = () => { topBarVal.textContent = topBarInput.value + '%'; updateOverlay(); };
+    topBarColorInput.oninput = () => updateOverlay();
     bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; updateOverlay(); };
+    bottomBarColorInput.oninput = () => updateOverlay();
 
     // ── Upload de fundo ──
     heroContainer.querySelector('#hcBgUpload').onchange = async (e) => {
