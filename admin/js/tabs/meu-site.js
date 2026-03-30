@@ -446,8 +446,9 @@ async function renderSiteContent(container, builderTabsEl) {
         ...snap.siteContent.sobre,
         image: sobreState.image,
         canvasLayers: sobreState.layers,
+        ...(sobreState.titleStyle ? { titleStyle: sobreState.titleStyle } : {}),
+        ...(sobreState.textStyle  ? { textStyle:  sobreState.textStyle  } : {}),
       };
-      // Sincronizar título/texto do sidebar do canvas
       const scTitle = container.querySelector('#scTitle');
       const scText  = container.querySelector('#scText');
       if (scTitle) snap.siteContent.sobre.title = scTitle.value;

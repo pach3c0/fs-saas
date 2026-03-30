@@ -12,12 +12,13 @@ import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
 // ── Instância global (sobrevive trocas de sub-aba) ───────────────────────────
 export let _sobreCanvasEditor = null;
+let _sobreSidebarContainer = null; // referência ao container do sidebar para coletar estilos
 
 // Dimensões do canvas — retrato 3:4
 const SOBRE_W = 600;
 const SOBRE_H = 800;
 
-async function syncSobreToSite(layers, title, text) {
+async function syncSobreToSite(layers, title, text, styles = {}) {
   const imgLayer = (layers || []).find(l => l.type === 'image' && l.url);
   const currentSiteContent = appState.configData?.siteContent || {};
 
@@ -28,6 +29,7 @@ async function syncSobreToSite(layers, title, text) {
         ...currentSiteContent.sobre,
         title,
         text,
+        ...styles,
         image: imgLayer?.url || currentSiteContent.sobre?.image || '',
         canvasLayers: layers || [],
       }
@@ -116,6 +118,7 @@ export function renderSobre(container) {
 
 // ── Sidebar de propriedades ───────────────────────────────────────────────────
 function _renderSobreSidebar(container) {
+  _sobreSidebarContainer = container;
   const siteContent = appState.configData?.siteContent || {};
   const sobreData = siteContent.sobre || {};
 
@@ -164,6 +167,66 @@ function _renderSobreSidebar(container) {
         </div>
       </div>
 
+      <!-- Estilo do Título -->
+      <div class="sc-section">
+        <div class="sc-section-head">🔤 Estilo do Título</div>
+        <div class="sc-row">
+          <span class="sc-label">Fonte</span>
+          <select class="sc-input" id="scTitleFont">
+            <option value="" ${!(sobreData.titleStyle?.fontFamily) ? 'selected' : ''}>Padrão do Tema</option>
+            <option value="'Playfair Display', serif" ${sobreData.titleStyle?.fontFamily === "'Playfair Display', serif" ? 'selected' : ''}>Playfair Display</option>
+            <option value="'Inter', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Inter', sans-serif" ? 'selected' : ''}>Inter</option>
+            <option value="'Poppins', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Poppins', sans-serif" ? 'selected' : ''}>Poppins</option>
+            <option value="'Montserrat', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Montserrat', sans-serif" ? 'selected' : ''}>Montserrat</option>
+            <option value="'Lato', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Lato', sans-serif" ? 'selected' : ''}>Lato</option>
+            <option value="'Raleway', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Raleway', sans-serif" ? 'selected' : ''}>Raleway</option>
+            <option value="'Oswald', sans-serif" ${sobreData.titleStyle?.fontFamily === "'Oswald', sans-serif" ? 'selected' : ''}>Oswald</option>
+          </select>
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Tamanho: <span id="scTitleSizeVal">${sobreData.titleStyle?.fontSize || 32}px</span></span>
+          <input type="range" class="sc-range" id="scTitleSize" min="14" max="80" value="${sobreData.titleStyle?.fontSize || 32}">
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Cor</span>
+          <input type="color" id="scTitleColor" value="${sobreData.titleStyle?.color || '#ffffff'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;">
+        </div>
+        <div class="sc-btn-group">
+          <button class="sc-btn${sobreData.titleStyle?.fontWeight === 'bold' ? ' primary' : ''}" id="scTitleBold" style="font-weight:700;">B</button>
+          <button class="sc-btn${sobreData.titleStyle?.fontStyle === 'italic' ? ' primary' : ''}" id="scTitleItalic" style="font-style:italic;">I</button>
+        </div>
+      </div>
+
+      <!-- Estilo do Texto -->
+      <div class="sc-section">
+        <div class="sc-section-head">📝 Estilo do Texto</div>
+        <div class="sc-row">
+          <span class="sc-label">Fonte</span>
+          <select class="sc-input" id="scTextFont">
+            <option value="" ${!(sobreData.textStyle?.fontFamily) ? 'selected' : ''}>Padrão do Tema</option>
+            <option value="'Playfair Display', serif" ${sobreData.textStyle?.fontFamily === "'Playfair Display', serif" ? 'selected' : ''}>Playfair Display</option>
+            <option value="'Inter', sans-serif" ${sobreData.textStyle?.fontFamily === "'Inter', sans-serif" ? 'selected' : ''}>Inter</option>
+            <option value="'Poppins', sans-serif" ${sobreData.textStyle?.fontFamily === "'Poppins', sans-serif" ? 'selected' : ''}>Poppins</option>
+            <option value="'Montserrat', sans-serif" ${sobreData.textStyle?.fontFamily === "'Montserrat', sans-serif" ? 'selected' : ''}>Montserrat</option>
+            <option value="'Lato', sans-serif" ${sobreData.textStyle?.fontFamily === "'Lato', sans-serif" ? 'selected' : ''}>Lato</option>
+            <option value="'Raleway', sans-serif" ${sobreData.textStyle?.fontFamily === "'Raleway', sans-serif" ? 'selected' : ''}>Raleway</option>
+            <option value="'Oswald', sans-serif" ${sobreData.textStyle?.fontFamily === "'Oswald', sans-serif" ? 'selected' : ''}>Oswald</option>
+          </select>
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Tamanho: <span id="scTextSizeVal">${sobreData.textStyle?.fontSize || 16}px</span></span>
+          <input type="range" class="sc-range" id="scTextSize" min="10" max="40" value="${sobreData.textStyle?.fontSize || 16}">
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Cor</span>
+          <input type="color" id="scTextColor" value="${sobreData.textStyle?.color || '#cccccc'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;">
+        </div>
+        <div class="sc-btn-group">
+          <button class="sc-btn${sobreData.textStyle?.fontWeight === 'bold' ? ' primary' : ''}" id="scTextBold" style="font-weight:700;">B</button>
+          <button class="sc-btn${sobreData.textStyle?.fontStyle === 'italic' ? ' primary' : ''}" id="scTextItalic" style="font-style:italic;">I</button>
+        </div>
+      </div>
+
       <!-- Adicionar foto -->
       <div class="sc-section">
         <div class="sc-section-head">🖼 Foto</div>
@@ -204,6 +267,37 @@ function _renderSobreSidebar(container) {
   container.querySelector('#scTitle').oninput = () => window._meuSitePostPreview?.();
   container.querySelector('#scText').oninput  = () => window._meuSitePostPreview?.();
 
+  // ── Estilo do Título ──
+  const pp = () => window._meuSitePostPreview?.();
+  container.querySelector('#scTitleSize').oninput = (e) => {
+    container.querySelector('#scTitleSizeVal').textContent = e.target.value + 'px'; pp();
+  };
+  container.querySelector('#scTitleFont').onchange  = pp;
+  container.querySelector('#scTitleColor').oninput  = pp;
+  container.querySelector('#scTitleBold').onclick = () => {
+    const btn = container.querySelector('#scTitleBold');
+    btn.classList.toggle('primary');
+    pp();
+  };
+  container.querySelector('#scTitleItalic').onclick = () => {
+    const btn = container.querySelector('#scTitleItalic');
+    btn.classList.toggle('primary');
+    pp();
+  };
+
+  // ── Estilo do Texto ──
+  container.querySelector('#scTextSize').oninput = (e) => {
+    container.querySelector('#scTextSizeVal').textContent = e.target.value + 'px'; pp();
+  };
+  container.querySelector('#scTextFont').onchange  = pp;
+  container.querySelector('#scTextColor').oninput  = pp;
+  container.querySelector('#scTextBold').onclick = () => {
+    container.querySelector('#scTextBold').classList.toggle('primary'); pp();
+  };
+  container.querySelector('#scTextItalic').onclick = () => {
+    container.querySelector('#scTextItalic').classList.toggle('primary'); pp();
+  };
+
   // Adicionar foto
   container.querySelector('#scAddPhoto').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -235,6 +329,26 @@ function _renderSobreSidebar(container) {
     }
   });
 
+  // Coleta os estilos atuais dos controles
+  function collectStyles() {
+    return {
+      titleStyle: {
+        fontFamily:  container.querySelector('#scTitleFont')?.value  || '',
+        fontSize:    parseInt(container.querySelector('#scTitleSize')?.value  || 32),
+        color:       container.querySelector('#scTitleColor')?.value || '',
+        fontWeight:  container.querySelector('#scTitleBold')?.classList.contains('primary')  ? 'bold'   : 'normal',
+        fontStyle:   container.querySelector('#scTitleItalic')?.classList.contains('primary') ? 'italic' : 'normal',
+      },
+      textStyle: {
+        fontFamily:  container.querySelector('#scTextFont')?.value  || '',
+        fontSize:    parseInt(container.querySelector('#scTextSize')?.value  || 16),
+        color:       container.querySelector('#scTextColor')?.value || '',
+        fontWeight:  container.querySelector('#scTextBold')?.classList.contains('primary')  ? 'bold'   : 'normal',
+        fontStyle:   container.querySelector('#scTextItalic')?.classList.contains('primary') ? 'italic' : 'normal',
+      },
+    };
+  }
+
   // Salvar
   container.querySelector('#scSaveBtn').addEventListener('click', async () => {
     const btn = container.querySelector('#scSaveBtn');
@@ -242,13 +356,15 @@ function _renderSobreSidebar(container) {
     btn.textContent = 'Salvando...';
     try {
       const layers = canvasEditor.getLayers();
-      const title = container.querySelector('#scTitle').value;
-      const text  = container.querySelector('#scText').value;
-      await syncSobreToSite(layers, title, text);
+      const title  = container.querySelector('#scTitle').value;
+      const text   = container.querySelector('#scText').value;
+      const styles = collectStyles();
+      await syncSobreToSite(layers, title, text, styles);
       if (!appState.configData.siteContent) appState.configData.siteContent = {};
       appState.configData.siteContent.sobre = {
         ...appState.configData.siteContent.sobre,
         title, text,
+        ...styles,
         image: layers.find(l => l.type === 'image')?.url || '',
         canvasLayers: layers,
       };
@@ -423,7 +539,24 @@ export function getSobreCanvasState() {
   if (!_sobreCanvasEditor) return null;
   const layers = _sobreCanvasEditor.getLayers();
   const imgLayer = layers.find(l => l.type === 'image' && l.url);
-  return { layers, image: imgLayer?.url || '' };
+  const c = _sobreSidebarContainer;
+  const styles = c ? {
+    titleStyle: {
+      fontFamily: c.querySelector('#scTitleFont')?.value  || '',
+      fontSize:   parseInt(c.querySelector('#scTitleSize')?.value  || 32),
+      color:      c.querySelector('#scTitleColor')?.value || '',
+      fontWeight: c.querySelector('#scTitleBold')?.classList.contains('primary')  ? 'bold'   : 'normal',
+      fontStyle:  c.querySelector('#scTitleItalic')?.classList.contains('primary') ? 'italic' : 'normal',
+    },
+    textStyle: {
+      fontFamily: c.querySelector('#scTextFont')?.value  || '',
+      fontSize:   parseInt(c.querySelector('#scTextSize')?.value  || 16),
+      color:      c.querySelector('#scTextColor')?.value || '',
+      fontWeight: c.querySelector('#scTextBold')?.classList.contains('primary')  ? 'bold'   : 'normal',
+      fontStyle:  c.querySelector('#scTextItalic')?.classList.contains('primary') ? 'italic' : 'normal',
+    },
+  } : {};
+  return { layers, image: imgLayer?.url || '', ...styles };
 }
 
 /**
