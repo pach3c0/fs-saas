@@ -459,13 +459,9 @@ function renderSite(data) {
           return `<img src="${photoUrl}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`;
         }).join('');
       } else {
-        // Placeholder neutro
-        portfolioGrid.innerHTML = Array.from({ length: 6 }, () => `
-          <div style="aspect-ratio:3/4; background:#1a1a1a; border-radius:0.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; border:2px dashed #333;">
-            <span style="font-size:2rem; opacity:0.3;">📷</span>
-            <span style="font-size:0.75rem; color:#555; text-align:center;">Sua foto aqui</span>
-          </div>
-        `).join('');
+        // Sem fotos: oculta a seção inteira
+        const sectionEl = document.getElementById('section-portfolio');
+        if (sectionEl) sectionEl.style.display = 'none';
       }
     }
   }
