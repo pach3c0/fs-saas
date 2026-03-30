@@ -726,8 +726,11 @@ async function renderSiteContent(container, builderTabsEl) {
     });
 
     canvasEditor.setBackground({ url: cfg.heroImage || '', scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 });
-    canvasEditor.setOverlay({ opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, bottomBarHeight: cfg.bottomBarHeight ?? 0 });
+    canvasEditor.setOverlay({ opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' });
     canvasEditor.setLayers(heroLayers);
+    // Restaurar presets de bg e overlay salvos anteriormente
+    if (cfg.bgPresets) canvasEditor.bgPresets = { ...cfg.bgPresets };
+    if (cfg.overlayPresets) canvasEditor.overlayPresets = { ...cfg.overlayPresets };
 
     _heroCanvasEditor = canvasEditor;
     _heroImageUrlForPreview = cfg.heroImage || '';
@@ -909,6 +912,31 @@ async function renderSiteContent(container, builderTabsEl) {
         heroContainer.querySelectorAll('.hc-device-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         canvasEditor.setDevice(btn.dataset.hcDevice);
+        // Atualizar sliders de bg e overlay com valores do novo device
+        const bg = canvasEditor.bg;
+        const ov = canvasEditor.overlay;
+        const _scale = heroContainer.querySelector('#hcBgScale');
+        const _scaleV = heroContainer.querySelector('#hcBgScaleVal');
+        const _posX = heroContainer.querySelector('#hcBgPosX');
+        const _posXV = heroContainer.querySelector('#hcBgPosXVal');
+        const _posY = heroContainer.querySelector('#hcBgPosY');
+        const _posYV = heroContainer.querySelector('#hcBgPosYVal');
+        const _ov = heroContainer.querySelector('#hcOverlay');
+        const _ovV = heroContainer.querySelector('#hcOverlayVal');
+        const _top = heroContainer.querySelector('#hcTopBar');
+        const _topV = heroContainer.querySelector('#hcTopBarVal');
+        const _topC = heroContainer.querySelector('#hcTopBarColor');
+        const _bot = heroContainer.querySelector('#hcBottomBar');
+        const _botV = heroContainer.querySelector('#hcBottomBarVal');
+        const _botC = heroContainer.querySelector('#hcBottomBarColor');
+        if (_scale)  { _scale.value = bg.scale;          _scaleV.textContent = parseFloat(bg.scale).toFixed(1) + 'x'; }
+        if (_posX)   { _posX.value = bg.posX;            _posXV.textContent = bg.posX + '%'; }
+        if (_posY)   { _posY.value = bg.posY;            _posYV.textContent = bg.posY + '%'; }
+        if (_ov)     { _ov.value = ov.opacity;           _ovV.textContent = ov.opacity + '%'; }
+        if (_top)    { _top.value = ov.topBarHeight;     _topV.textContent = ov.topBarHeight + '%'; }
+        if (_topC)   { _topC.value = ov.topBarColor ?? '#000000'; }
+        if (_bot)    { _bot.value = ov.bottomBarHeight;  _botV.textContent = ov.bottomBarHeight + '%'; }
+        if (_botC)   { _botC.value = ov.bottomBarColor ?? '#000000'; }
         // Atualizar props se layer selecionado
         const sel = canvasEditor.selectedId ? canvasEditor.getLayers().find(l => l.id === canvasEditor.selectedId) : null;
         renderPropsForLayer(sel || null);

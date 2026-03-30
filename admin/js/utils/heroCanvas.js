@@ -40,6 +40,8 @@ export class HeroCanvasEditor {
     this.device = 'desktop';
     this.bg = { url: '', scale: 1, posX: 50, posY: 50 };
     this.overlay = { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' };
+    this.bgPresets = {};      // { desktop: {scale,posX,posY}, tablet: {...}, mobile: {...} }
+    this.overlayPresets = {}; // { desktop: {opacity,topBarHeight,...}, tablet: {...}, mobile: {...} }
 
     // Estado de interação
     this._drag = null;
@@ -531,16 +533,28 @@ export class HeroCanvasEditor {
     const prevDevice = this.device;
     this.device = newDevice;
 
-    // 3) Carregar posições do novo device (fallback: copiar do anterior)
+    // 3) Carregar posições do novo device (fallback: herda do device anterior)
     this.layers.forEach(layer => {
       if (!layer.presets) layer.presets = {};
       const preset = layer.presets[newDevice];
       if (preset) {
-        // Tem preset salvo — aplicar
         PRESET_FIELDS.forEach(f => { if (preset[f] !== undefined) layer[f] = preset[f]; });
       }
-      // Se não tem preset, mantém as posições atuais (herda do device anterior)
     });
+
+    // Carregar bg do novo device
+    const bgPreset = this.bgPresets[newDevice];
+    if (bgPreset) {
+      this.bg = { ...this.bg, ...bgPreset };
+      this.setBackground(this.bg);
+    }
+
+    // Carregar overlay do novo device
+    const overlayPreset = this.overlayPresets[newDevice];
+    if (overlayPreset) {
+      this.overlay = { ...this.overlay, ...overlayPreset };
+      this.setOverlay(this.overlay);
+    }
 
     // 4) Redimensionar canvas e re-renderizar
     this._fitToContainer();
@@ -549,14 +563,19 @@ export class HeroCanvasEditor {
     this.onDeviceChange(newDevice);
   }
 
-  /** Salva as posições atuais de cada layer no preset do device ativo */
+  /** Salva as posições atuais de cada layer + bg + overlay no preset do device ativo */
   _saveCurrentPreset() {
+    // Layers
     this.layers.forEach(layer => {
       if (!layer.presets) layer.presets = {};
       const preset = {};
       PRESET_FIELDS.forEach(f => { if (layer[f] !== undefined) preset[f] = layer[f]; });
       layer.presets[this.device] = preset;
     });
+    // Background
+    this.bgPresets[this.device] = { scale: this.bg.scale, posX: this.bg.posX, posY: this.bg.posY };
+    // Overlay
+    this.overlayPresets[this.device] = { ...this.overlay };
   }
 
   getState() {
@@ -573,6 +592,8 @@ export class HeroCanvasEditor {
       topBarColor: this.overlay.topBarColor,
       bottomBarHeight: this.overlay.bottomBarHeight,
       bottomBarColor: this.overlay.bottomBarColor,
+      bgPresets: { ...this.bgPresets },
+      overlayPresets: { ...this.overlayPresets },
       heroLayers: this.getLayers(),
     };
   }

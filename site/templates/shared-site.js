@@ -116,13 +116,40 @@ function renderSite(data) {
   const heroBg = document.getElementById('heroBg');
   if (heroBg) {
     if (config.heroImage) {
-      const scale = config.heroScale || 1;
-      const posX = config.heroPosX ?? 50;
-      const posY = config.heroPosY ?? 50;
-      heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
-      heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
-      heroBg.style.backgroundSize = scale <= 1 ? 'cover' : `${scale * 100}%`;
-      heroBg.style.backgroundRepeat = 'no-repeat';
+      // Valores desktop (padrão)
+      const bgP = config.bgPresets || {};
+      const dk = bgP.desktop || {};
+      const tb = bgP.tablet  || {};
+      const mb = bgP.mobile  || {};
+
+      const dkScale = dk.scale ?? config.heroScale ?? 1;
+      const dkPosX  = dk.posX  ?? config.heroPosX  ?? 50;
+      const dkPosY  = dk.posY  ?? config.heroPosY  ?? 50;
+
+      heroBg.style.backgroundImage    = `url('${resolvePath(config.heroImage)}')`;
+      heroBg.style.backgroundPosition = `${dkPosX}% ${dkPosY}%`;
+      heroBg.style.backgroundSize     = dkScale <= 1 ? 'cover' : `${dkScale * 100}%`;
+      heroBg.style.backgroundRepeat   = 'no-repeat';
+
+      // Injetar media queries para tablet e mobile se houver presets
+      let bgCss = '';
+      if (Object.keys(tb).length) {
+        const s = tb.scale ?? dkScale;
+        const x = tb.posX  ?? dkPosX;
+        const y = tb.posY  ?? dkPosY;
+        bgCss += `@media(max-width:1024px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s <= 1 ? 'cover' : s * 100 + '%'}!important;}}`;
+      }
+      if (Object.keys(mb).length) {
+        const s = mb.scale ?? dkScale;
+        const x = mb.posX  ?? dkPosX;
+        const y = mb.posY  ?? dkPosY;
+        bgCss += `@media(max-width:480px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s <= 1 ? 'cover' : s * 100 + '%'}!important;}}`;
+      }
+      if (bgCss) {
+        let st = document.getElementById('heroBgResponsive');
+        if (!st) { st = document.createElement('style'); st.id = 'heroBgResponsive'; document.head.appendChild(st); }
+        st.textContent = bgCss;
+      }
     } else {
       heroBg.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
     }
