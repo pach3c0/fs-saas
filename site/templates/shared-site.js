@@ -14,6 +14,9 @@ function buildApiUrl() {
   return '/api/site/config' + (qs.length ? '?' + qs.join('&') : '');
 }
 
+// Desativar scroll restoration automático do browser
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
 // Carregar dados da API
 async function loadAndRenderSite() {
   try {
@@ -37,6 +40,9 @@ async function loadAndRenderSite() {
 
     // Renderizar site
     renderSite(data);
+    // Garantir que a página abre no topo (hero), não no meio
+    // requestAnimationFrame garante que o DOM já foi atualizado antes do scroll
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   } catch (e) {
     console.error('Erro ao carregar site:', e);
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;font-family:sans-serif;"><h1>Site em construção</h1><p>Volte em breve.</p></div>';

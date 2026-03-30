@@ -347,12 +347,22 @@ export class HeroCanvasEditor {
 
     if (type === 'text') {
       // Para texto, resize muda fontSize proporcionalmente
+      // Projeta o delta do mouse no eixo da alça, compensando rotação do layer
       const dir = r.dir;
+      const angle = ((layer.rotation || 0) * Math.PI) / 180;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      // Delta projetado no eixo local do layer
+      const localDx =  dx * cos + dy * sin;
+      const localDy = -dx * sin + dy * cos;
+
+      const sz = DEVICE_SIZES[this.device];
+      const ref = (sz.w + sz.h) / 2; // referência proporcional ao canvas
       let scaleFactor = 1;
-      if (dir.includes('s')) scaleFactor = 1 + dy / 200;
-      else if (dir.includes('n')) scaleFactor = 1 - dy / 200;
-      else if (dir.includes('e')) scaleFactor = 1 + dx / 200;
-      else if (dir.includes('w')) scaleFactor = 1 - dx / 200;
+      if (dir.includes('s')) scaleFactor = 1 + localDy / (ref * 0.25);
+      else if (dir.includes('n')) scaleFactor = 1 - localDy / (ref * 0.25);
+      if (dir.includes('e')) scaleFactor = Math.max(scaleFactor, 1 + localDx / (ref * 0.25));
+      else if (dir.includes('w')) scaleFactor = Math.max(scaleFactor, 1 - localDx / (ref * 0.25));
 
       scaleFactor = Math.max(0.2, Math.min(5, scaleFactor));
       layer.fontSize = Math.max(8, Math.min(400, Math.round(r.origFontSize * scaleFactor)));
