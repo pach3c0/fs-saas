@@ -441,7 +441,7 @@ export class HeroCanvasEditor {
     if (this.bg.url) {
       this.bgEl.style.backgroundImage = `url('${this.resolveImage(this.bg.url)}')`;
       this.bgEl.style.backgroundPosition = `${this.bg.posX}% ${this.bg.posY}%`;
-      this.bgEl.style.backgroundSize = this.bg.scale === 1 ? 'auto' : `${this.bg.scale * 100}%`;
+      this.bgEl.style.backgroundSize = this.bg.scale === 1 ? 'cover' : `${this.bg.scale * 100}%`;
     } else {
       this.bgEl.style.backgroundImage = '';
       this.bgEl.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';

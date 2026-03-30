@@ -722,19 +722,11 @@ npm start            # Iniciar servidor (producao)
 git add . && git commit -m "descricao" && git push
 
 # Na VPS (via SSH):
-cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas
+cd /var/www/cz-saas && git pull && npm install && pm2 reload ecosystem.config.js --env production
 ```
 
-**ATENCAO:** O `ecosystem.config.js` com modo cluster (zero-downtime) ja existe no repositorio
-mas ainda NAO esta ativo na VPS. A migracao para cluster deve ser feita manualmente em momento
-oportuno (sem usuarios online), com os comandos:
-```bash
-pm2 delete cliquezoom-saas
-pm2 start ecosystem.config.js --env production
-pm2 save
-# Deploys futuros com zero downtime:
-pm2 reload ecosystem.config.js --env production
-```
+**ATENCAO:** A VPS ja esta rodando em modo cluster (2 instancias, ids 8 e 9) desde 2026-03-27.
+O `pm2 reload` reinicia as instancias uma por uma — sem downtime para usuarios.
 
 ### Estrutura do servidor:
 ```
@@ -773,7 +765,7 @@ PM2 processos (NAO mexer nos outros):
 - [ ] Se criou novo modelo: verificar `organizationId` + `timestamps: true`
 - [ ] Testar localmente com `npm run dev`
 - [ ] Commit + push GitHub
-- [ ] Na VPS: `cd /var/www/cz-saas && git pull && npm install && pm2 restart cliquezoom-saas`
+- [ ] Na VPS: `cd /var/www/cz-saas && git pull && npm install && pm2 reload ecosystem.config.js --env production`
 
 ---
 
@@ -967,16 +959,16 @@ container.querySelector('#uploadInput').onchange = async (e) => {
 | GET /site-data retorna 404 | Rota sem auth em producao | Rota usa authenticateToken — ja corrigido |
 | Erro 500 no cadastro | ownerId required no Organization | ownerId nao e required — ja corrigido |
 | App nao inicia | MongoDB desligado | `sudo systemctl start mongod` |
-| 502 Bad Gateway | Node.js caiu | `pm2 restart cliquezoom-saas && pm2 logs cliquezoom-saas` |
+| 502 Bad Gateway | Node.js caiu | `pm2 reload ecosystem.config.js --env production && pm2 logs cliquezoom-saas` |
 
 ---
 
 ## INSTRUCOES CRITICAS PARA IAs — INFRAESTRUTURA VPS
 
-1. **NUNCA confunda os apps:** O nosso e `cliquezoom-saas` (id 7, porta 3051, path `/var/www/cz-saas`)
+1. **NUNCA confunda os apps:** O nosso e `cliquezoom-saas` (ids 8 e 9, porta 3051, path `/var/www/cz-saas`)
 2. **NUNCA altere a porta** — e 3051, definida no `.env` da VPS
 3. **NUNCA modifique configs do Nginx** sem autorizacao explicita
-4. **NUNCA faca `pm2 restart all`** — reinicia todos os processos. Use `pm2 restart cliquezoom-saas`
+4. **NUNCA faca `pm2 restart all`** — reinicia todos os processos. Use `pm2 reload ecosystem.config.js --env production`
 5. **NUNCA mexer no site original** (`/var/www/fs-fotografias`, `fsfotografias`)
 6. **NAO ativar o ecosystem.config.js** sem autorizacao explicita — migracao para cluster tem risco
 

@@ -12,6 +12,7 @@ import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
 // ── Instância global do canvas (sobrevive trocas de sub-aba) ─────────────────
 export let _portfolioCanvasEditor = null;
+export let _portfolioBgState = {};
 
 // Sincroniza portfolio para o site
 async function syncPortfolioToSite(layers, background) {
@@ -20,9 +21,13 @@ async function syncPortfolioToSite(layers, background) {
     .filter(l => l.type === 'image' && l.url)
     .map(l => ({ url: l.url }));
 
+  const currentSiteContent = appState.configData?.siteContent || {};
+
   await apiPut('/api/site/admin/config', {
     siteContent: {
+      ...currentSiteContent,
       portfolio: {
+        ...currentSiteContent.portfolio,
         photos,
         canvasLayers: layers || [],
         canvasBg: background || {},
@@ -50,7 +55,7 @@ export function renderPortfolio(container) {
   const portfolioData = siteContent.portfolio || {};
 
   // Background inicial
-  const bg = portfolioData.canvasBg || {};
+  _portfolioBgState = { ...(portfolioData.canvasBg || {}) };
 
   // Layers iniciais — migração: se não tem layers, criar a partir de photos legadas
   let layers = portfolioData.canvasLayers || [];
@@ -106,7 +111,7 @@ export function renderPortfolio(container) {
   });
 
   // Definir background
-  _applyBgToCanvas(canvasEditor, bg);
+  _applyBgToCanvas(canvasEditor, _portfolioBgState);
   canvasEditor.setLayers(layers);
   _portfolioCanvasEditor = canvasEditor;
 
@@ -153,7 +158,7 @@ function _applyBgToCanvas(canvasEditor, bg) {
 function _renderPortfolioSidebar(container) {
   const siteContent = appState.configData?.siteContent || {};
   const portfolioData = siteContent.portfolio || {};
-  const bg = portfolioData.canvasBg || {};
+  const bg = _portfolioBgState;
 
   container.innerHTML = `
     <style>
@@ -293,12 +298,10 @@ function _renderPortfolioSidebar(container) {
   const canvasEditor = _portfolioCanvasEditor;
   if (!canvasEditor) return;
 
-  // Usar bgState mutável que acompanha as alterações na UI
-  const bgState = { ...(appState.configData?.siteContent?.portfolio?.canvasBg || {}) };
 
   // ── Background tabs ───────────────────────────────────────────────────────
   function switchBgTab(type) {
-    bgState.type = type;
+    _portfolioBgState.type = type;
     container.querySelectorAll('[data-bg-tab]').forEach(t => {
       t.classList.toggle('active', t.dataset.bgTab === type);
     });
@@ -306,7 +309,7 @@ function _renderPortfolioSidebar(container) {
     container.querySelector('#pc-bg-image').style.display = type === 'image' ? 'flex' : 'none';
     container.querySelector('#pc-bg-solid').style.display = type === 'solid' ? 'flex' : 'none';
     container.querySelector('#pc-bg-gradient').style.display = type === 'gradient' ? 'flex' : 'none';
-    _applyBgToCanvas(canvasEditor, bgState);
+    _applyBgToCanvas(canvasEditor, _portfolioBgState);
     window._meuSitePostPreview?.();
   }
 
@@ -319,9 +322,9 @@ function _renderPortfolioSidebar(container) {
   const overlayVal = container.querySelector('#pcBgOverlayVal');
   if (overlaySlider) {
     overlaySlider.oninput = () => {
-      bgState.overlayOpacity = parseInt(overlaySlider.value);
+      _portfolioBgState.overlayOpacity = parseInt(overlaySlider.value);
       if (overlayVal) overlayVal.textContent = overlaySlider.value + '%';
-      _applyBgToCanvas(canvasEditor, bgState);
+      _applyBgToCanvas(canvasEditor, _portfolioBgState);
       window._meuSitePostPreview?.();
     };
   }
@@ -332,8 +335,8 @@ function _renderPortfolioSidebar(container) {
     if (!file) return;
     try {
       const result = await uploadImage(file, appState.authToken);
-      bgState.url = result.url;
-      bgState.type = 'image';
+      _portfolioBgState.url = result.url;
+      _portfolioBgState.type = 'image';
       const urlInput = container.querySelector('#pcBgImageUrl');
       if (urlInput) urlInput.value = result.url;
       switchBgTab('image');
@@ -345,19 +348,19 @@ function _renderPortfolioSidebar(container) {
 
   // Cor sólida
   container.querySelector('#pcBgSolidColor')?.addEventListener('input', (e) => {
-    bgState.color = e.target.value;
-    _applyBgToCanvas(canvasEditor, bgState);
+    _portfolioBgState.color = e.target.value;
+    _applyBgToCanvas(canvasEditor, _portfolioBgState);
     window._meuSitePostPreview?.();
   });
 
   // Gradiente
   function updateGradient() {
-    bgState.gradColor1 = container.querySelector('#pcGradColor1')?.value || '#1a1a2e';
-    bgState.gradColor2 = container.querySelector('#pcGradColor2')?.value || '#16213e';
-    bgState.gradAngle = parseInt(container.querySelector('#pcGradAngle')?.value || '135');
+    _portfolioBgState.gradColor1 = container.querySelector('#pcGradColor1')?.value || '#1a1a2e';
+    _portfolioBgState.gradColor2 = container.querySelector('#pcGradColor2')?.value || '#16213e';
+    _portfolioBgState.gradAngle = parseInt(container.querySelector('#pcGradAngle')?.value || '135');
     const angleValEl = container.querySelector('#pcGradAngleVal');
-    if (angleValEl) angleValEl.textContent = bgState.gradAngle + '°';
-    _applyBgToCanvas(canvasEditor, bgState);
+    if (angleValEl) angleValEl.textContent = _portfolioBgState.gradAngle + '°';
+    _applyBgToCanvas(canvasEditor, _portfolioBgState);
     window._meuSitePostPreview?.();
   }
   container.querySelector('#pcGradColor1')?.addEventListener('input', updateGradient);
@@ -427,12 +430,15 @@ function _renderPortfolioSidebar(container) {
     btn.disabled = true;
     btn.textContent = 'Salvando...';
     try {
+      if (canvasEditor._saveCurrentPreset) {
+        canvasEditor._saveCurrentPreset();
+      }
       const layers = canvasEditor.getLayers();
-      await syncPortfolioToSite(layers, bgState);
+      await syncPortfolioToSite(layers, _portfolioBgState);
       if (!appState.configData.siteContent) appState.configData.siteContent = {};
       if (!appState.configData.siteContent.portfolio) appState.configData.siteContent.portfolio = {};
       appState.configData.siteContent.portfolio.canvasLayers = layers;
-      appState.configData.siteContent.portfolio.canvasBg = bgState;
+      appState.configData.siteContent.portfolio.canvasBg = _portfolioBgState;
       window.showToast?.('Portfólio salvo!', 'success');
     } catch (err) {
       window.showToast?.('Erro ao salvar: ' + err.message, 'error');
@@ -777,10 +783,11 @@ function _hexToRgba(hex, alpha) {
  */
 export function getPortfolioCanvasState() {
   if (!_portfolioCanvasEditor) return null;
+  if (_portfolioCanvasEditor._saveCurrentPreset) {
+    _portfolioCanvasEditor._saveCurrentPreset();
+  }
   const layers = _portfolioCanvasEditor.getLayers();
-  const siteContent = appState.configData?.siteContent || {};
-  const bg = siteContent.portfolio?.canvasBg || {};
-  return { layers, bg };
+  return { layers, bg: _portfolioBgState };
 }
 
 /**

@@ -321,7 +321,7 @@ archive.pipe(res); // stream direto para o response
 git add . && git commit -m "descricao" && git push
 
 # VPS (via SSH)
-cd /var/www/fs-saas
+cd /var/www/cz-saas
 git pull
 npm install
 npm run build:css  # se alterou HTML com Tailwind
