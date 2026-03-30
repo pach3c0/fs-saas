@@ -186,6 +186,13 @@ function renderSite(data) {
     // Gerar CSS responsivo para cada layer
     let responsiveCss = '';
 
+    // Sistema de posicionamento ancorado no centro da viewport.
+    // x=50, y=50 = centro exato. Deslocamento em vw/vh a partir do centro.
+    // Isso garante que layouts criados no desktop se mantenham proporcionais
+    // em qualquer tamanho de tela, sem area preta ou layers saindo do container.
+    const toVw = (x) => ((x - 50) * 1).toFixed(3);   // 1% de deslocamento = 1vw
+    const toVh = (y) => ((y - 50) * 1).toFixed(3);   // 1% de deslocamento = 1vh
+
     heroLayersEl.innerHTML = heroLayers.map((layer, idx) => {
       const type = layer.type || 'text';
       const layerClass = `hl-${layer.id || idx}`;
@@ -204,7 +211,13 @@ function renderSite(data) {
         const dkH = getVal(layer, 'height', 'desktop') ?? layer.height ?? 20;
         const flipH = layer.flipH ? 'scaleX(-1)' : '';
         const flipV = layer.flipV ? 'scaleY(-1)' : '';
-        const baseTransform = `translate(-50%, -50%) rotate(VAR_ROT) ${flipH} ${flipV}`.trim();
+
+        // Tamanho em vmin para escalar proporcionalmente em qualquer viewport
+        const wVmin = (dkW * 0.8).toFixed(3);
+        const hVmin = (dkH * 0.8).toFixed(3);
+
+        const makeImgTransform = (rot) =>
+          `translate(calc(-50% + ${toVw(dkX)}vw), calc(-50% + ${toVh(dkY)}vh)) rotate(${rot}deg) ${flipH} ${flipV}`.trim();
 
         if (hasTablet) {
           const tx = getVal(layer, 'x', 'tablet') ?? dkX;
@@ -212,7 +225,9 @@ function renderSite(data) {
           const tw = getVal(layer, 'width', 'tablet') ?? dkW;
           const th = getVal(layer, 'height', 'tablet') ?? dkH;
           const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
-          responsiveCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;width:${tw}%!important;height:${th}%!important;transform:${baseTransform.replace('VAR_ROT', tr+'deg')}!important;}}`;
+          const twVmin = (tw * 0.8).toFixed(3);
+          const thVmin = (th * 0.8).toFixed(3);
+          responsiveCss += `@media(max-width:1024px){.${layerClass}{width:${twVmin}vmin!important;height:${thVmin}vmin!important;transform:translate(calc(-50% + ${toVw(tx)}vw),calc(-50% + ${toVh(ty)}vh)) rotate(${tr}deg) ${flipH} ${flipV}!important;}}`;
         }
         if (hasMobile) {
           const mx = getVal(layer, 'x', 'mobile') ?? dkX;
@@ -220,17 +235,18 @@ function renderSite(data) {
           const mw = getVal(layer, 'width', 'mobile') ?? dkW;
           const mh = getVal(layer, 'height', 'mobile') ?? dkH;
           const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
-          responsiveCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;width:${mw}%!important;height:${mh}%!important;transform:${baseTransform.replace('VAR_ROT', mr+'deg')}!important;}}`;
+          const mwVmin = (mw * 0.8).toFixed(3);
+          const mhVmin = (mh * 0.8).toFixed(3);
+          responsiveCss += `@media(max-width:480px){.${layerClass}{width:${mwVmin}vmin!important;height:${mhVmin}vmin!important;transform:translate(calc(-50% + ${toVw(mx)}vw),calc(-50% + ${toVh(my)}vh)) rotate(${mr}deg) ${flipH} ${flipV}!important;}}`;
         }
 
-        const transforms = `translate(-50%, -50%) rotate(${dkRotation}deg) ${flipH} ${flipV}`.trim();
         return `<div class="${layerClass}" style="
           position: absolute;
-          left: ${dkX}%;
-          top: ${dkY}%;
-          width: ${dkW}%;
-          height: ${dkH}%;
-          transform: ${transforms};
+          left: 50%;
+          top: 50%;
+          width: ${wVmin}vmin;
+          height: ${hVmin}vmin;
+          transform: ${makeImgTransform(dkRotation)};
           opacity: ${(layer.opacity ?? 100) / 100};
           overflow: hidden;
           border-radius: ${layer.borderRadius ?? 0}px;
@@ -239,32 +255,38 @@ function renderSite(data) {
         "><img src="${resolvePath(layer.url || '')}" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""></div>`;
       }
 
-      // Texto
+      // Texto — fontSize escala com vw ancorado em 1440px de referência
       const dkFs = Math.max(12, getVal(layer, 'fontSize', 'desktop') ?? layer.fontSize ?? 48);
       const fsvw = (dkFs / 1440 * 100).toFixed(3);
-      const fsMin = Math.max(12, dkFs * 0.4);
-      const transforms = `translate(-50%, -50%)${dkRotation ? ` rotate(${dkRotation}deg)` : ''}`;
+      const fsMin = Math.max(12, Math.round(dkFs * 0.35));
+
+      const makeTextTransform = (x, y, rot) =>
+        `translate(calc(-50% + ${toVw(x)}vw), calc(-50% + ${toVh(y)}vh))${rot ? ` rotate(${rot}deg)` : ''}`;
 
       if (hasTablet) {
         const tx = getVal(layer, 'x', 'tablet') ?? dkX;
         const ty = getVal(layer, 'y', 'tablet') ?? dkY;
         const tfs = getVal(layer, 'fontSize', 'tablet') ?? dkFs;
         const tr = getVal(layer, 'rotation', 'tablet') ?? dkRotation;
-        responsiveCss += `@media(max-width:1024px){.${layerClass}{left:${tx}%!important;top:${ty}%!important;font-size:${tfs}px!important;transform:translate(-50%,-50%)${tr ? ` rotate(${tr}deg)` : ''}!important;}}`;
+        const tfsvw = (tfs / 1440 * 100).toFixed(3);
+        const tfsMin = Math.max(12, Math.round(tfs * 0.35));
+        responsiveCss += `@media(max-width:1024px){.${layerClass}{font-size:clamp(${tfsMin}px,${tfsvw}vw,${tfs}px)!important;transform:${makeTextTransform(tx, ty, tr)}!important;}}`;
       }
       if (hasMobile) {
         const mx = getVal(layer, 'x', 'mobile') ?? dkX;
         const my = getVal(layer, 'y', 'mobile') ?? dkY;
         const mfs = getVal(layer, 'fontSize', 'mobile') ?? Math.round(dkFs * 0.5);
         const mr = getVal(layer, 'rotation', 'mobile') ?? dkRotation;
-        responsiveCss += `@media(max-width:480px){.${layerClass}{left:${mx}%!important;top:${my}%!important;font-size:${mfs}px!important;transform:translate(-50%,-50%)${mr ? ` rotate(${mr}deg)` : ''}!important;}}`;
+        const mfsvw = (mfs / 1440 * 100).toFixed(3);
+        const mfsMin = Math.max(12, Math.round(mfs * 0.35));
+        responsiveCss += `@media(max-width:480px){.${layerClass}{font-size:clamp(${mfsMin}px,${mfsvw}vw,${mfs}px)!important;transform:${makeTextTransform(mx, my, mr)}!important;}}`;
       }
 
       return `<div class="${layerClass}" style="
         position: absolute;
-        left: ${dkX}%;
-        top: ${dkY}%;
-        transform: ${transforms};
+        left: 50%;
+        top: 50%;
+        transform: ${makeTextTransform(dkX, dkY, dkRotation)};
         color: ${layer.color || '#ffffff'};
         font-size: clamp(${fsMin}px, ${fsvw}vw, ${dkFs}px);
         font-family: ${layer.fontFamily || 'inherit'};
@@ -276,7 +298,7 @@ function renderSite(data) {
         opacity: ${(layer.opacity ?? 100) / 100};
         white-space: pre-wrap;
         word-break: break-word;
-        max-width: 90%;
+        max-width: 90vw;
         pointer-events: none;
         user-select: none;
       ">${esc(layer.text || '')}</div>`;
