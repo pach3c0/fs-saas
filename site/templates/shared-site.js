@@ -397,27 +397,11 @@ function renderSite(data, opts = {}) {
   const sobreTitle = document.getElementById('sobreTitle');
   if (sobreTitle) {
     sobreTitle.textContent = content.sobre?.title || 'Sobre';
-    const ts = content.sobre?.titleStyle;
-    if (ts) {
-      if (ts.fontFamily) sobreTitle.style.fontFamily = ts.fontFamily;
-      if (ts.fontSize)   sobreTitle.style.fontSize   = ts.fontSize + 'px';
-      if (ts.color)      sobreTitle.style.color       = ts.color;
-      if (ts.fontWeight) sobreTitle.style.fontWeight  = ts.fontWeight;
-      if (ts.fontStyle)  sobreTitle.style.fontStyle   = ts.fontStyle;
-    }
   }
 
   const sobreText = document.getElementById('sobreText');
   if (sobreText) {
     sobreText.textContent = content.sobre?.text || '';
-    const xs = content.sobre?.textStyle;
-    if (xs) {
-      if (xs.fontFamily) sobreText.style.fontFamily = xs.fontFamily;
-      if (xs.fontSize)   sobreText.style.fontSize   = xs.fontSize + 'px';
-      if (xs.color)      sobreText.style.color       = xs.color;
-      if (xs.fontWeight) sobreText.style.fontWeight  = xs.fontWeight;
-      if (xs.fontStyle)  sobreText.style.fontStyle   = xs.fontStyle;
-    }
   }
 
   const sobreImage = document.getElementById('sobreImage');

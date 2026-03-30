@@ -446,8 +446,6 @@ async function renderSiteContent(container, builderTabsEl) {
         ...snap.siteContent.sobre,
         image: sobreState.image,
         canvasLayers: sobreState.layers,
-        ...(sobreState.titleStyle ? { titleStyle: sobreState.titleStyle } : {}),
-        ...(sobreState.textStyle  ? { textStyle:  sobreState.textStyle  } : {}),
       };
       const scTitle = container.querySelector('#scTitle');
       const scText  = container.querySelector('#scText');
