@@ -63,7 +63,7 @@ function applyCustomStyle(siteStyle) {
   }
 }
 
-function renderSite(data) {
+function renderSite(data, opts = {}) {
   const config = data.siteConfig || {};
   const content = data.siteContent || {};
   const sections = (data.siteSections && data.siteSections.length)
@@ -125,31 +125,27 @@ function renderSite(data) {
       const dkScale = dk.scale ?? config.heroScale ?? 1;
       const dkPosX  = dk.posX  ?? config.heroPosX  ?? 50;
       const dkPosY  = dk.posY  ?? config.heroPosY  ?? 50;
+      const tbS = (tb.scale ?? dkScale); const tbX = (tb.posX ?? dkPosX); const tbY = (tb.posY ?? dkPosY);
+      const mbS = (mb.scale ?? dkScale); const mbX = (mb.posX ?? dkPosX); const mbY = (mb.posY ?? dkPosY);
+
+      // No preview do admin, aplicar diretamente o preset do device ativo (iframe não tem viewport real)
+      const pd = opts.previewDevice;
+      const apS = pd === 'mobile' ? mbS : pd === 'tablet' ? tbS : dkScale;
+      const apX = pd === 'mobile' ? mbX : pd === 'tablet' ? tbX : dkPosX;
+      const apY = pd === 'mobile' ? mbY : pd === 'tablet' ? tbY : dkPosY;
 
       heroBg.style.backgroundImage    = `url('${resolvePath(config.heroImage)}')`;
-      heroBg.style.backgroundPosition = `${dkPosX}% ${dkPosY}%`;
-      heroBg.style.backgroundSize     = dkScale === 1 ? 'cover' : `${dkScale * 100}%`;
+      heroBg.style.backgroundPosition = `${apX}% ${apY}%`;
+      heroBg.style.backgroundSize     = apS === 1 ? 'cover' : `${apS * 100}%`;
       heroBg.style.backgroundRepeat   = 'no-repeat';
 
-      // Injetar media queries para tablet e mobile se houver presets
-      let bgCss = '';
-      if (Object.keys(tb).length) {
-        const s = tb.scale ?? dkScale;
-        const x = tb.posX  ?? dkPosX;
-        const y = tb.posY  ?? dkPosY;
-        bgCss += `@media(max-width:1024px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s === 1 ? 'cover' : s * 100 + '%'}!important;}}`;
-      }
-      if (Object.keys(mb).length) {
-        const s = mb.scale ?? dkScale;
-        const x = mb.posX  ?? dkPosX;
-        const y = mb.posY  ?? dkPosY;
-        bgCss += `@media(max-width:480px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s === 1 ? 'cover' : s * 100 + '%'}!important;}}`;
-      }
-      if (bgCss) {
-        let st = document.getElementById('heroBgResponsive');
-        if (!st) { st = document.createElement('style'); st.id = 'heroBgResponsive'; document.head.appendChild(st); }
-        st.textContent = bgCss;
-      }
+      // Injetar media queries para tablet e mobile (usadas no site real, não no preview)
+      const bgCss =
+        `@media(max-width:1024px){#heroBg{background-position:${tbX}% ${tbY}%!important;background-size:${tbS === 1 ? 'cover' : tbS * 100 + '%'}!important;}}` +
+        `@media(max-width:480px){#heroBg{background-position:${mbX}% ${mbY}%!important;background-size:${mbS === 1 ? 'cover' : mbS * 100 + '%'}!important;}}`;
+      let st = document.getElementById('heroBgResponsive');
+      if (!st) { st = document.createElement('style'); st.id = 'heroBgResponsive'; document.head.appendChild(st); }
+      st.textContent = bgCss;
     } else {
       heroBg.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
     }
@@ -1108,7 +1104,7 @@ window.addEventListener('message', (e) => {
   if (!data) return;
 
   try {
-    renderSite(data);
+    renderSite(data, { previewDevice: e.data._previewDevice });
   } catch (err) {
     console.warn('[preview] Erro ao aplicar dados:', err);
   }

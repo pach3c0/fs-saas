@@ -185,7 +185,7 @@ window.builderPostPreview = function(data) {
     return;
   }
 
-  iframe.contentWindow.postMessage({ type: 'cz_preview', data }, window.location.origin);
+  iframe.contentWindow.postMessage({ type: 'cz_preview', data, _previewDevice: builderDevice }, window.location.origin);
   builderPendingData = null;
 };
 
