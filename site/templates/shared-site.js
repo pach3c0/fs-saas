@@ -128,7 +128,7 @@ function renderSite(data) {
 
       heroBg.style.backgroundImage    = `url('${resolvePath(config.heroImage)}')`;
       heroBg.style.backgroundPosition = `${dkPosX}% ${dkPosY}%`;
-      heroBg.style.backgroundSize     = dkScale <= 1 ? 'cover' : `${dkScale * 100}%`;
+      heroBg.style.backgroundSize     = dkScale === 1 ? 'auto' : `${dkScale * 100}%`;
       heroBg.style.backgroundRepeat   = 'no-repeat';
 
       // Injetar media queries para tablet e mobile se houver presets
@@ -137,13 +137,13 @@ function renderSite(data) {
         const s = tb.scale ?? dkScale;
         const x = tb.posX  ?? dkPosX;
         const y = tb.posY  ?? dkPosY;
-        bgCss += `@media(max-width:1024px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s <= 1 ? 'cover' : s * 100 + '%'}!important;}}`;
+        bgCss += `@media(max-width:1024px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s === 1 ? 'auto' : s * 100 + '%'}!important;}}`;
       }
       if (Object.keys(mb).length) {
         const s = mb.scale ?? dkScale;
         const x = mb.posX  ?? dkPosX;
         const y = mb.posY  ?? dkPosY;
-        bgCss += `@media(max-width:480px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s <= 1 ? 'cover' : s * 100 + '%'}!important;}}`;
+        bgCss += `@media(max-width:480px){#heroBg{background-position:${x}% ${y}%!important;background-size:${s === 1 ? 'auto' : s * 100 + '%'}!important;}}`;
       }
       if (bgCss) {
         let st = document.getElementById('heroBgResponsive');
