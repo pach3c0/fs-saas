@@ -77,13 +77,15 @@ export function renderSobre(container) {
   }
 
   // Canvas instalado DENTRO do container do props panel
-  // Criamos um wrapper dedicado ao canvas (estilo Hero)
+  // Wrapper externo controla tamanho; o mount interno é passado ao HeroCanvasEditor
+  // (HeroCanvasEditor sobrescreve o cssText do container passado a ele)
   const canvasWrapper = document.createElement('div');
   canvasWrapper.id = 'sobre-canvas-wrapper';
-  canvasWrapper.style.cssText = 'width:100%; display:flex; align-items:center; justify-content:center; background:#0a0b10; border-radius:8px; overflow:hidden; margin-bottom:0.5rem;';
-  // Altura proporcional 3:4 num painel de ~360px de largura
-  canvasWrapper.style.aspectRatio = '3/4';
-  canvasWrapper.style.maxHeight = '380px';
+  canvasWrapper.style.cssText = 'width:100%; height:285px; border-radius:8px; overflow:hidden; margin-bottom:0.5rem; flex-shrink:0;';
+
+  const canvasMount = document.createElement('div');
+  canvasMount.style.cssText = 'width:100%;height:100%;';
+  canvasWrapper.appendChild(canvasMount);
 
   // Canvas com dimensões de retrato 3:4 — deviceSizes fixo para todos os devices
   const sobreSizes = {
@@ -91,7 +93,7 @@ export function renderSobre(container) {
     tablet:  { w: SOBRE_W, h: SOBRE_H },
     mobile:  { w: SOBRE_W, h: SOBRE_H },
   };
-  const canvasEditor = new HeroCanvasEditor(canvasWrapper, {
+  const canvasEditor = new HeroCanvasEditor(canvasMount, {
     onSelect: (layer) => {
       _renderPropsForLayer(_sobreSidebarContainer, layer, canvasEditor);
     },
@@ -263,17 +265,11 @@ function _renderSobreSidebar(container, canvasWrapper) {
     </div>
   `;
 
-  // Montar o canvas no mount point
+  // Montar o canvasWrapper no mount point do sidebar
   const mountEl = container.querySelector('#sc-canvas-mount');
-  if (mountEl && _sobreCanvasEditor) {
-    // Se o canvasWrapper foi recém criado, usá-lo; senão buscar pelo root do editor
-    if (canvasWrapper) {
-      mountEl.appendChild(canvasWrapper);
-    } else {
-      // Reanexar o wrapper existente (ao voltar para a aba)
-      const existingWrapper = document.getElementById('sobre-canvas-wrapper');
-      if (existingWrapper) mountEl.appendChild(existingWrapper);
-    }
+  if (mountEl) {
+    const wrapperEl = canvasWrapper || document.getElementById('sobre-canvas-wrapper');
+    if (wrapperEl) mountEl.appendChild(wrapperEl);
   }
 
   const canvasEditor = _sobreCanvasEditor;
