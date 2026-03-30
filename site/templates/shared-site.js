@@ -121,7 +121,7 @@ function renderSite(data) {
       const posY = config.heroPosY ?? 50;
       heroBg.style.backgroundImage = `url('${resolvePath(config.heroImage)}')`;
       heroBg.style.backgroundPosition = `${posX}% ${posY}%`;
-      heroBg.style.backgroundSize = scale === 1 ? 'cover' : `${scale * 100}%`;
+      heroBg.style.backgroundSize = scale <= 1 ? 'cover' : `${scale * 100}%`;
       heroBg.style.backgroundRepeat = 'no-repeat';
     } else {
       heroBg.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';

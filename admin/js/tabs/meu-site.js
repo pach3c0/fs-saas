@@ -823,7 +823,7 @@ async function renderSiteContent(container, builderTabsEl) {
           <div class="hc-row">
             <div class="hc-label">Zoom</div>
             <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBgScale" min="0.5" max="3" step="0.05" value="${cfg.heroScale ?? 1}">
+              <input type="range" class="hc-range" id="hcBgScale" min="1" max="3" step="0.05" value="${Math.max(1, cfg.heroScale ?? 1)}">
               <span class="hc-range-val" id="hcBgScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(1)}x</span>
             </div>
           </div>
