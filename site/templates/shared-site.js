@@ -408,35 +408,36 @@ function renderSite(data, opts = {}) {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;';
 
-      let sobreCss = '';
-      wrap.innerHTML = sobreCanvasLayers.map((layer, idx) => {
+      wrap.innerHTML = sobreCanvasLayers.map((layer) => {
         if (layer.type !== 'image' || !layer.url) return '';
-        const x  = layer.x  ?? 50;
-        const y  = layer.y  ?? 50;
-        const w  = layer.width  ?? 70;
-        const h  = layer.height ?? 70;
+        const x   = layer.x      ?? 50;
+        const y   = layer.y      ?? 50;
+        const w   = layer.width  ?? 70;
+        const h   = layer.height ?? 70;
         const rot = layer.rotation ?? 0;
         const flipH = layer.flipH ? 'scaleX(-1)' : '';
         const flipV = layer.flipV ? 'scaleY(-1)' : '';
-        const shadow = layer.shadow ? `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})` : '';
-        const cls = `sb-${layer.id || idx}`;
-        return `<div class="${cls}" style="
-          position:absolute;left:${x}%;top:${y}%;
-          width:${w}%;height:${h}%;
-          transform:translate(-50%,-50%) rotate(${rot}deg) ${flipH} ${flipV};
-          opacity:${(layer.opacity ?? 100) / 100};
-          overflow:hidden;
-          border-radius:${layer.borderRadius ?? 0}px;
-          filter:${shadow};
-          pointer-events:none;user-select:none;
-        "><img src="${resolvePath(layer.url)}" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""></div>`;
+        const opacity = (layer.opacity ?? 100) / 100;
+        const radius  = layer.borderRadius ?? 0;
+        // Sombra no wrapper externo (sem overflow:hidden) para não clipar
+        const shadow = layer.shadow
+          ? `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})`
+          : 'none';
+        return `
+          <div style="
+            position:absolute;left:${x}%;top:${y}%;
+            width:${w}%;height:${h}%;
+            transform:translate(-50%,-50%) rotate(${rot}deg) ${flipH} ${flipV};
+            opacity:${opacity};
+            filter:${shadow};
+            pointer-events:none;user-select:none;
+          ">
+            <img src="${resolvePath(layer.url)}" style="
+              width:100%;height:100%;object-fit:cover;display:block;
+              border-radius:${radius}px;
+            " alt="">
+          </div>`;
       }).join('');
-
-      if (sobreCss) {
-        let st = document.getElementById('sobreCanvasStyle');
-        if (!st) { st = document.createElement('style'); st.id = 'sobreCanvasStyle'; document.head.appendChild(st); }
-        st.textContent = sobreCss;
-      }
 
       sobreImage.replaceWith(wrap);
     } else {
