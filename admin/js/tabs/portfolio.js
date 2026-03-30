@@ -14,6 +14,9 @@ import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 export let _portfolioCanvasEditor = null;
 export let _portfolioBgState = {};
 
+// Seleção múltipla de layers
+let _multiSelected = new Set();
+
 // Sincroniza portfolio para o site
 async function syncPortfolioToSite(layers, background) {
   // Extrai fotos das layers de imagem para o campo legado photos
@@ -280,7 +283,10 @@ function _renderPortfolioSidebar(container) {
       <div class="pc-section">
         <div class="pc-section-head">
           <span>Camadas</span>
-          <span style="font-size:0.6rem; color:#4b5563; font-weight:400;">Arraste p/ reordenar · 2× renomear</span>
+          <div style="display:flex;gap:0.3rem;align-items:center;">
+            <button id="pcSelectAll" style="font-size:0.6rem;padding:0.1rem 0.4rem;border:1px solid #374151;border-radius:3px;background:#1f2937;color:#9ca3af;cursor:pointer;">Todas</button>
+            <button id="pcSelectNone" style="font-size:0.6rem;padding:0.1rem 0.4rem;border:1px solid #374151;border-radius:3px;background:#1f2937;color:#9ca3af;cursor:pointer;">Nenhuma</button>
+          </div>
         </div>
         <div id="pc-layer-list" style="padding:0.35rem 0; min-height:2rem;"></div>
       </div>
@@ -457,6 +463,20 @@ function _renderPortfolioSidebar(container) {
 
   // Renderizar lista de layers
   _renderLayerList(container, canvasEditor);
+
+  container.querySelector('#pcSelectAll')?.addEventListener('click', () => {
+    const layers = canvasEditor.getLayers().filter(l => l.type === 'image');
+    _multiSelected = new Set(layers.map(l => l.id));
+    _renderLayerList(container, canvasEditor);
+    _renderPropsForLayer(container, null, canvasEditor);
+  });
+
+  container.querySelector('#pcSelectNone')?.addEventListener('click', () => {
+    _multiSelected = new Set();
+    _renderLayerList(container, canvasEditor);
+    const propsEl = container.querySelector('#pc-layer-props');
+    if (propsEl) propsEl.style.display = 'none';
+  });
 }
 
 // ── Lista de camadas ──────────────────────────────────────────────────────────
@@ -477,14 +497,20 @@ function _renderLayerList(container, canvasEditor) {
     const isLast = i === reversed.length - 1;
     const icon = (layer.type || 'text') === 'image' ? '🖼' : 'T';
     const name = layer.name || (layer.type === 'image' ? `Foto ${i + 1}` : `Texto ${i + 1}`);
-    const isSelected = canvasEditor.selectedId === layer.id;
+    const isSingleSelected = canvasEditor.selectedId === layer.id && _multiSelected.size === 0;
+    const isMultiChecked = _multiSelected.has(layer.id);
+    const isHighlighted = isSingleSelected || isMultiChecked;
     const badge = isFirst
       ? `<span style="font-size:0.55rem;color:#6366f1;background:#1e1b4b;padding:0.1rem 0.3rem;border-radius:2px;margin-left:2px;flex-shrink:0;">Frente</span>`
       : isLast
       ? `<span style="font-size:0.55rem;color:#6b7280;background:#1f2937;padding:0.1rem 0.3rem;border-radius:2px;margin-left:2px;flex-shrink:0;">Fundo</span>`
       : '';
+    const checkbox = layer.type === 'image'
+      ? `<input type="checkbox" class="pc-layer-check" data-check-layer="${layer.id}" ${isMultiChecked ? 'checked' : ''} style="accent-color:#3b82f6;cursor:pointer;flex-shrink:0;" title="Selecionar para edição em grupo">`
+      : '';
     return `
-      <div class="pc-layer-item${isSelected ? ' active' : ''}" draggable="true" data-layer-id="${layer.id}">
+      <div class="pc-layer-item${isHighlighted ? ' active' : ''}" draggable="true" data-layer-id="${layer.id}">
+        ${checkbox}
         <span class="layer-icon">${icon}</span>
         <span class="layer-name" title="${name}">${name}</span>
         ${badge}
@@ -493,11 +519,30 @@ function _renderLayerList(container, canvasEditor) {
     `;
   }).join('');
 
-  // Clique para selecionar
+  // Checkbox para seleção múltipla
+  listEl.querySelectorAll('.pc-layer-check').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const layerId = chk.dataset.checkLayer;
+      if (chk.checked) {
+        _multiSelected.add(layerId);
+        canvasEditor.selectLayer(null);
+      } else {
+        _multiSelected.delete(layerId);
+      }
+      _renderLayerList(container, canvasEditor);
+      _renderPropsForLayer(container, null, canvasEditor);
+    });
+  });
+
+  // Clique para selecionar individualmente
   listEl.querySelectorAll('.pc-layer-item').forEach(item => {
     item.addEventListener('click', (e) => {
       if (e.target.dataset.delLayer) return;
+      if (e.target.classList.contains('pc-layer-check')) return;
       const layerId = item.dataset.layerId;
+      // Clique individual limpa seleção múltipla
+      _multiSelected = new Set();
       canvasEditor.selectLayer(layerId);
       _renderLayerList(container, canvasEditor);
       const layer = canvasEditor._getLayer(layerId);
@@ -584,10 +629,63 @@ function _renderPropsForLayer(container, layer, canvasEditor) {
   const propsContent = container.querySelector('#pc-layer-props-content');
   if (!propsSection || !propsContent) return;
 
+  // Seleção múltipla — mostrar painel em grupo
+  if (_multiSelected.size > 0) {
+    propsSection.style.display = 'block';
+    const head = propsSection.querySelector('.pc-section-head');
+    if (head) head.textContent = `⚙️ Editar ${_multiSelected.size} foto(s)`;
+    propsContent.innerHTML = `
+      <div class="pc-row">
+        <span class="pc-label">Opacidade: <span id="pcMultiOpacityVal">100%</span></span>
+        <input type="range" class="pc-range" id="pcMultiOpacity" min="0" max="100" value="100">
+      </div>
+      <div class="pc-row">
+        <span class="pc-label">Bordas: <span id="pcMultiBorderVal">0px</span></span>
+        <input type="range" class="pc-range" id="pcMultiBorder" min="0" max="100" value="0">
+      </div>
+      <div style="padding:0 0.75rem 0.4rem;">
+        <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.75rem;color:#d1d5db;">
+          <input type="checkbox" id="pcMultiShadow"> Ativar sombra em todas
+        </label>
+      </div>
+      <div class="pc-row">
+        <span class="pc-label">Intensidade sombra: <span id="pcMultiShadowBlurVal">10px</span></span>
+        <input type="range" class="pc-range" id="pcMultiShadowBlur" min="0" max="60" value="10">
+      </div>
+    `;
+
+    container.querySelector('#pcMultiOpacity').oninput = (e) => {
+      container.querySelector('#pcMultiOpacityVal').textContent = e.target.value + '%';
+      _multiSelected.forEach(id => canvasEditor.updateLayer(id, { opacity: parseInt(e.target.value) }));
+    };
+    container.querySelector('#pcMultiBorder').oninput = (e) => {
+      container.querySelector('#pcMultiBorderVal').textContent = e.target.value + 'px';
+      _multiSelected.forEach(id => canvasEditor.updateLayer(id, { borderRadius: parseInt(e.target.value) }));
+    };
+    container.querySelector('#pcMultiShadow').onchange = (e) => {
+      _multiSelected.forEach(id => {
+        canvasEditor.updateLayer(id, { shadow: e.target.checked });
+        _applyShadowToLayer(canvasEditor, id);
+      });
+    };
+    container.querySelector('#pcMultiShadowBlur').oninput = (e) => {
+      container.querySelector('#pcMultiShadowBlurVal').textContent = e.target.value + 'px';
+      _multiSelected.forEach(id => {
+        canvasEditor.updateLayer(id, { shadowBlur: parseInt(e.target.value) });
+        _applyShadowToLayer(canvasEditor, id);
+      });
+    };
+    return;
+  }
+
   if (!layer) {
     propsSection.style.display = 'none';
     return;
   }
+
+  // Restaurar título padrão
+  const head = propsSection.querySelector('.pc-section-head');
+  if (head) head.textContent = '⚙️ Propriedades';
 
   propsSection.style.display = 'block';
   const type = layer.type || 'text';
@@ -805,6 +903,7 @@ export function destroyPortfolioCanvas() {
     _portfolioCanvasEditor.destroy();
     _portfolioCanvasEditor = null;
   }
+  _multiSelected = new Set();
   const el = document.getElementById('portfolio-canvas-container');
   if (el) el.remove();
 }
