@@ -151,21 +151,63 @@ function renderSite(data, opts = {}) {
     }
   }
 
-  // Overlay e barras decorativas
+  // Overlay e barras decorativas — com suporte a presets por device
+  const ovP = config.overlayPresets || {};
+  const ovDk = ovP.desktop || {};
+  const ovTb = ovP.tablet  || {};
+  const ovMb = ovP.mobile  || {};
+
+  // Fallbacks: preset desktop → config direto → default
+  const dkOpacity   = ovDk.opacity        ?? config.overlayOpacity  ?? 30;
+  const dkTopH      = ovDk.topBarHeight   ?? config.topBarHeight    ?? 0;
+  const dkTopC      = ovDk.topBarColor    ?? config.topBarColor     ?? '#000000';
+  const dkBotH      = ovDk.bottomBarHeight ?? config.bottomBarHeight ?? 0;
+  const dkBotC      = ovDk.bottomBarColor ?? config.bottomBarColor  ?? '#000000';
+
+  const tbOpacity   = ovTb.opacity        ?? dkOpacity;
+  const tbTopH      = ovTb.topBarHeight   ?? dkTopH;
+  const tbTopC      = ovTb.topBarColor    ?? dkTopC;
+  const tbBotH      = ovTb.bottomBarHeight ?? dkBotH;
+  const tbBotC      = ovTb.bottomBarColor ?? dkBotC;
+
+  const mbOpacity   = ovMb.opacity        ?? dkOpacity;
+  const mbTopH      = ovMb.topBarHeight   ?? dkTopH;
+  const mbTopC      = ovMb.topBarColor    ?? dkTopC;
+  const mbBotH      = ovMb.bottomBarHeight ?? dkBotH;
+  const mbBotC      = ovMb.bottomBarColor ?? dkBotC;
+
+  // No preview do admin, aplicar o device ativo diretamente
+  const pd = opts.previewDevice;
+  const apOpacity = pd === 'mobile' ? mbOpacity : pd === 'tablet' ? tbOpacity : dkOpacity;
+  const apTopH    = pd === 'mobile' ? mbTopH    : pd === 'tablet' ? tbTopH    : dkTopH;
+  const apTopC    = pd === 'mobile' ? mbTopC    : pd === 'tablet' ? tbTopC    : dkTopC;
+  const apBotH    = pd === 'mobile' ? mbBotH    : pd === 'tablet' ? tbBotH    : dkBotH;
+  const apBotC    = pd === 'mobile' ? mbBotC    : pd === 'tablet' ? tbBotC    : dkBotC;
+
   const heroOverlay = document.getElementById('heroOverlay');
-  if (heroOverlay) {
-    heroOverlay.style.background = `rgba(0,0,0,${(config.overlayOpacity ?? 30) / 100})`;
-  }
+  if (heroOverlay) heroOverlay.style.background = `rgba(0,0,0,${apOpacity / 100})`;
+
   const heroTopBar = document.getElementById('heroTopBar');
-  if (heroTopBar) {
-    heroTopBar.style.height = `${config.topBarHeight ?? 0}%`;
-    heroTopBar.style.background = config.topBarColor ?? '#000000';
-  }
+  if (heroTopBar) { heroTopBar.style.height = `${apTopH}%`; heroTopBar.style.background = apTopC; }
+
   const heroBottomBar = document.getElementById('heroBottomBar');
-  if (heroBottomBar) {
-    heroBottomBar.style.height = `${config.bottomBarHeight ?? 0}%`;
-    heroBottomBar.style.background = config.bottomBarColor ?? '#000000';
-  }
+  if (heroBottomBar) { heroBottomBar.style.height = `${apBotH}%`; heroBottomBar.style.background = apBotC; }
+
+  // Media queries para site real (responsive)
+  const ovCss =
+    `@media(max-width:1024px){` +
+      `#heroOverlay{background:rgba(0,0,0,${tbOpacity / 100})!important;}` +
+      `#heroTopBar{height:${tbTopH}%!important;background:${tbTopC}!important;}` +
+      `#heroBottomBar{height:${tbBotH}%!important;background:${tbBotC}!important;}` +
+    `}` +
+    `@media(max-width:480px){` +
+      `#heroOverlay{background:rgba(0,0,0,${mbOpacity / 100})!important;}` +
+      `#heroTopBar{height:${mbTopH}%!important;background:${mbTopC}!important;}` +
+      `#heroBottomBar{height:${mbBotH}%!important;background:${mbBotC}!important;}` +
+    `}`;
+  let ovSt = document.getElementById('heroOverlayResponsive');
+  if (!ovSt) { ovSt = document.createElement('style'); ovSt.id = 'heroOverlayResponsive'; document.head.appendChild(ovSt); }
+  ovSt.textContent = ovCss;
 
   // Renderizar heroLayers (textos livres posicionados)
   // Migração automática: se não houver layers mas existir heroTitle/heroSubtitle antigos, converte
