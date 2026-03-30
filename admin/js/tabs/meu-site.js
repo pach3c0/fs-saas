@@ -531,19 +531,27 @@ async function renderSiteContent(container, builderTabsEl) {
     const portfolioCanvasEl = document.getElementById('portfolio-canvas-container');
     const iframe = document.getElementById('builder-iframe');
 
+    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const target = btn.dataset.target;
     if (target === 'config-hero') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'flex';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = 'none';
     } else if (target === 'config-portfolio') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = 'none';
-    } else {
-      // Sobre e demais abas: mostrar iframe, esconder canvas de hero/portfolio
+    } else if (target === 'config-sobre') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'flex';
+      if (iframe) iframe.style.display = 'none';
+    } else {
+      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
+      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
     }
 
