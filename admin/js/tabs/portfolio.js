@@ -265,7 +265,7 @@ function _renderPortfolioSidebar(container) {
           <button class="pc-btn primary" id="pcAddText" style="flex:1;">T+ Texto</button>
           <label class="pc-btn primary" style="flex:1; cursor:pointer; justify-content:center;">
             🖼 Foto
-            <input type="file" accept=".jpg,.jpeg,.png" id="pcAddImageInput" style="display:none;">
+            <input type="file" accept=".jpg,.jpeg,.png" id="pcAddImageInput" multiple style="display:none;">
           </label>
         </div>
       </div>
@@ -390,38 +390,45 @@ function _renderPortfolioSidebar(container) {
     _renderLayerList(container, canvasEditor);
   });
 
-  // ── Adicionar imagem ──────────────────────────────────────────────────────
+  // ── Adicionar imagens (múltiplas) ─────────────────────────────────────────
   container.querySelector('#pcAddImageInput')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const result = await uploadImage(file, appState.authToken);
-      const layers = canvasEditor.getLayers();
-      const imgCount = layers.filter(l => l.type === 'image').length;
-      const id = 'pl_' + Date.now();
-      canvasEditor.addLayer({
-        id,
-        type: 'image',
-        url: result.url,
-        name: `Foto ${imgCount + 1}`,
-        x: 50, y: 50,
-        width: 25,
-        height: 30,
-        rotation: 0,
-        opacity: 100,
-        borderRadius: 0,
-        shadow: false,
-        shadowBlur: 10,
-        shadowColor: 'rgba(0,0,0,0.5)',
-        flipH: false,
-        flipV: false,
-        presets: {},
-      });
-      _renderLayerList(container, canvasEditor);
-      e.target.value = '';
-    } catch (err) {
-      window.showToast?.('Erro no upload: ' + err.message, 'error');
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const btn = container.querySelector('#pcAddImageInput')?.closest('label');
+    if (btn) btn.style.opacity = '0.6';
+    let erros = 0;
+    for (const file of files) {
+      try {
+        const result = await uploadImage(file, appState.authToken);
+        const layers = canvasEditor.getLayers();
+        const imgCount = layers.filter(l => l.type === 'image').length;
+        canvasEditor.addLayer({
+          id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+          type: 'image',
+          url: result.url,
+          name: `Foto ${imgCount + 1}`,
+          x: 50, y: 50,
+          width: 25,
+          height: 30,
+          rotation: 0,
+          opacity: 100,
+          borderRadius: 0,
+          shadow: false,
+          shadowBlur: 10,
+          shadowColor: 'rgba(0,0,0,0.5)',
+          flipH: false,
+          flipV: false,
+          presets: {},
+        });
+        _renderLayerList(container, canvasEditor);
+      } catch (err) {
+        erros++;
+      }
     }
+    if (btn) btn.style.opacity = '';
+    e.target.value = '';
+    if (erros > 0) window.showToast?.(`${erros} foto(s) falharam no upload`, 'error');
+    else window.showToast?.(`${files.length} foto(s) adicionada(s)!`, 'success');
   });
 
   // ── Salvar ────────────────────────────────────────────────────────────────
