@@ -34,6 +34,8 @@ export class HeroCanvasEditor {
     this.onChange = opts.onChange || (() => {});
     this.onDeviceChange = opts.onDeviceChange || (() => {});
     this.resolveImage = opts.resolveImagePath || (u => u);
+    // Permite sobrescrever os tamanhos de canvas por device
+    this._deviceSizes = opts.deviceSizes || null;
 
     this.layers = [];
     this.selectedId = null;
@@ -60,7 +62,7 @@ export class HeroCanvasEditor {
     this.container.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;overflow:hidden;position:relative;';
 
     // Wrapper que mantém aspect ratio e escala conforme device
-    const size = DEVICE_SIZES[this.device];
+    const size = (this._deviceSizes || DEVICE_SIZES)[this.device];
     this.root = document.createElement('div');
     this.root.id = 'hc-root';
     this.root.style.cssText = `position:relative;width:${size.w}px;height:${size.h}px;overflow:hidden;transform-origin:top center;background:#111;flex-shrink:0;`;
@@ -108,7 +110,7 @@ export class HeroCanvasEditor {
     const ch = this.container.clientHeight;
     if (!cw || !ch) return;
 
-    const size = DEVICE_SIZES[this.device];
+    const size = (this._deviceSizes || DEVICE_SIZES)[this.device];
     const scaleX = cw / size.w;
     const scaleY = ch / size.h;
     const scale = Math.min(scaleX, scaleY, 1);
@@ -210,7 +212,7 @@ export class HeroCanvasEditor {
     if (this._drag) {
       const dx = this._toCanvasX(e) - this._drag.startX;
       const dy = this._toCanvasY(e) - this._drag.startY;
-      const size = DEVICE_SIZES[this.device];
+      const size = (this._deviceSizes || DEVICE_SIZES)[this.device];
       const pctX = (dx / size.w) * 100;
       const pctY = (dy / size.h) * 100;
       const layer = this._getLayer(this._drag.layerId);
@@ -356,7 +358,7 @@ export class HeroCanvasEditor {
       const localDx =  dx * cos + dy * sin;
       const localDy = -dx * sin + dy * cos;
 
-      const sz = DEVICE_SIZES[this.device];
+      const sz = (this._deviceSizes || DEVICE_SIZES)[this.device];
       const ref = (sz.w + sz.h) / 2; // referência proporcional ao canvas
       let scaleFactor = 1;
       if (dir.includes('s')) scaleFactor = 1 + localDy / (ref * 0.25);
@@ -372,7 +374,7 @@ export class HeroCanvasEditor {
     } else if (type === 'image') {
       // Para imagem, resize muda width/height em %
       const dir = r.dir;
-      const sz = DEVICE_SIZES[this.device];
+      const sz = (this._deviceSizes || DEVICE_SIZES)[this.device];
       const dpctX = (dx / sz.w) * 100;
       const dpctY = (dy / sz.h) * 100;
 
@@ -625,7 +627,7 @@ export class HeroCanvasEditor {
   _getLayerRect(layer) {
     // Retorna posição e tamanho em pixels no canvas
     const type = layer.type || 'text';
-    const size = DEVICE_SIZES[this.device];
+    const size = (this._deviceSizes || DEVICE_SIZES)[this.device];
     const cx = (layer.x ?? 50) / 100 * size.w;
     const cy = (layer.y ?? 50) / 100 * size.h;
 

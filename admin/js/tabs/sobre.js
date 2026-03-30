@@ -87,7 +87,8 @@ export function renderSobre(container) {
   canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
   if (iframeWrap) iframeWrap.appendChild(canvasContainer);
 
-  // Canvas com dimensões de retrato 3:4
+  // Canvas com dimensões de retrato 3:4 — deviceSizes fixo para todos os devices
+  const sobreSizes = { desktop: { w: SOBRE_W, h: SOBRE_H }, tablet: { w: SOBRE_W, h: SOBRE_H }, mobile: { w: SOBRE_W, h: SOBRE_H } };
   const canvasEditor = new HeroCanvasEditor(canvasContainer, {
     onSelect: (layer) => {
       _renderPropsForLayer(container, layer, canvasEditor);
@@ -96,29 +97,8 @@ export function renderSobre(container) {
       window._meuSitePostPreview?.();
     },
     resolveImagePath: resolveImagePath,
+    deviceSizes: sobreSizes,
   });
-
-  // Sobrescrever DEVICE_SIZES para canvas retrato 3:4
-  // Fazemos isso ajustando o root após criação
-  if (canvasEditor.root) {
-    canvasEditor.root.style.width = SOBRE_W + 'px';
-    canvasEditor.root.style.height = SOBRE_H + 'px';
-  }
-  // Re-fit ao container com as novas dimensões
-  canvasEditor._fitToContainer = function() {
-    const cw = canvasContainer.clientWidth;
-    const ch = canvasContainer.clientHeight;
-    if (!cw || !ch) return;
-    const scaleX = cw / SOBRE_W;
-    const scaleY = ch / SOBRE_H;
-    const scale = Math.min(scaleX, scaleY, 1);
-    canvasEditor.root.style.width  = SOBRE_W + 'px';
-    canvasEditor.root.style.height = SOBRE_H + 'px';
-    canvasEditor.root.style.transform = `scale(${scale})`;
-    canvasEditor.root.style.marginTop = ch > SOBRE_H * scale ? `${(ch - SOBRE_H * scale) / 2 / scale}px` : '0';
-    canvasEditor._scale = scale;
-  };
-  canvasEditor._fitToContainer();
 
   // Fundo neutro escuro
   if (canvasEditor.root) canvasEditor.root.style.background = '#1a1a1a';
