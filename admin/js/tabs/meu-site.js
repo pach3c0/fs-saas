@@ -17,7 +17,7 @@ import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 export async function renderMeuSite(container) {
   // Registrar cleanup de canvas ao sair do builder (feito aqui para garantir
   // que o módulo portfolio.js já foi carregado quando o cleanup for chamado)
-  window._cleanupBuilderCanvases = function() {
+  window._cleanupBuilderCanvases = function () {
     destroyPortfolioCanvas();
     destroySobreCanvas();
     const heroEl = document.getElementById('hero-canvas-container');
@@ -102,7 +102,7 @@ async function renderSiteContent(container, builderTabsEl) {
             <div style="display:flex; flex-direction:column; gap:2rem;">
                 <div>
                     <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem;">Escolha o Tema do Seu Site</h3>
-                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Clique em <strong style="color:#d1d5db;">👁️ Visualizar</strong> para ver como seu site ficará com cada tema. Quando decidir, clique no card e salve.</p>
+                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
                     <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem;">
                         <!-- Templates inseridos via JS -->
                     </div>
@@ -181,11 +181,11 @@ async function renderSiteContent(container, builderTabsEl) {
 
   // Renderizar galeria de templates
   const templates = [
-    { id: 'elegante',    name: 'Elegante',    desc: 'Clássico com dourado e serif',    colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
-    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco',   colors: ['#000000', '#666666', '#ffffff'] },
-    { id: 'moderno',     name: 'Moderno',     desc: 'Azul com gradientes e cards',     colors: ['#3b82f6', '#667eea', '#f8fafc'] },
-    { id: 'escuro',      name: 'Escuro',      desc: 'Dark mode com laranja',           colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
-    { id: 'galeria',     name: 'Galeria',     desc: 'Masonry grid foco em fotos',      colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
+    { id: 'elegante', name: 'Elegante', desc: 'Clássico com dourado e serif', colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
+    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco', colors: ['#000000', '#666666', '#ffffff'] },
+    { id: 'moderno', name: 'Moderno', desc: 'Azul com gradientes e cards', colors: ['#3b82f6', '#667eea', '#f8fafc'] },
+    { id: 'escuro', name: 'Escuro', desc: 'Dark mode com laranja', colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
+    { id: 'galeria', name: 'Galeria', desc: 'Masonry grid foco em fotos', colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
   ];
 
   function buildPreviewUrl(themeId) {
@@ -299,19 +299,19 @@ async function renderSiteContent(container, builderTabsEl) {
   function hasRealChanges(sectionId, container) {
     const inputs = container.querySelectorAll('input, textarea, select');
     const original = _originalValues[sectionId] || {};
-    
+
     for (let input of inputs) {
       const key = input.id || input.name || input.getAttribute('data-field');
       if (!key) continue;
       const currentValue = input.type === 'checkbox' ? input.checked : input.value;
       const originalValue = original[key];
-      
+
       // Se o valor mudou comparado ao original, retorna true
       if (currentValue !== originalValue) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -319,7 +319,7 @@ async function renderSiteContent(container, builderTabsEl) {
     _dirtySection = sectionId;
     _dirtySectionLabel = label;
   }
-  
+
   function clearDirty() {
     _dirtySection = null;
     _dirtySectionLabel = '';
@@ -423,9 +423,9 @@ async function renderSiteContent(container, builderTabsEl) {
         canvasLayers: sobreState.layers,
       };
       const scTitle = container.querySelector('#scTitle');
-      const scText  = container.querySelector('#scText');
+      const scText = container.querySelector('#scText');
       if (scTitle) snap.siteContent.sobre.title = scTitle.value;
-      if (scText)  snap.siteContent.sobre.text  = scText.value;
+      if (scText) snap.siteContent.sobre.text = scText.value;
     }
 
     // Hero Canvas (se aberto)
@@ -458,8 +458,8 @@ async function renderSiteContent(container, builderTabsEl) {
     const contatoTitle = container.querySelector('#contatoTitle');
     const contatoText = container.querySelector('#contatoText');
     const contatoAddress = container.querySelector('#contatoAddress');
-    if (contatoTitle)   snap.siteContent.contato.title   = contatoTitle.value;
-    if (contatoText)    snap.siteContent.contato.text    = contatoText.value;
+    if (contatoTitle) snap.siteContent.contato.title = contatoTitle.value;
+    if (contatoText) snap.siteContent.contato.text = contatoText.value;
     if (contatoAddress) snap.siteContent.contato.address = contatoAddress.value;
 
     // Estilo visual (Personalizar)
@@ -468,9 +468,9 @@ async function renderSiteContent(container, builderTabsEl) {
     const textColor = container.querySelector('#styleTextColor');
     const fontFamily = container.querySelector('#styleFontFamily');
     if (accentColor) snap.siteStyle.accentColor = accentColor.value;
-    if (bgColor)     snap.siteStyle.bgColor     = bgColor.value;
-    if (textColor)   snap.siteStyle.textColor   = textColor.value;
-    if (fontFamily)  snap.siteStyle.fontFamily  = fontFamily.value;
+    if (bgColor) snap.siteStyle.bgColor = bgColor.value;
+    if (textColor) snap.siteStyle.textColor = textColor.value;
+    if (fontFamily) snap.siteStyle.fontFamily = fontFamily.value;
 
     window.builderPostPreview(snap);
   }
@@ -490,7 +490,7 @@ async function renderSiteContent(container, builderTabsEl) {
       configData.siteStyle = { ...(configData.siteStyle || {}), ...patch.siteStyle };
     }
     if (patch.siteSections) configData.siteSections = patch.siteSections;
-    if (patch.siteTheme)    configData.siteTheme    = patch.siteTheme;
+    if (patch.siteTheme) configData.siteTheme = patch.siteTheme;
     postPreviewData();
   }
 
@@ -635,7 +635,7 @@ async function renderSiteContent(container, builderTabsEl) {
       : [];
     if (heroLayers.length === 0) {
       if (cfg.heroTitle) heroLayers.push({ id: 'l_' + Date.now(), type: 'text', text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
-      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now()+1), type: 'text', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
+      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now() + 1), type: 'text', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
     }
 
     // ── Tomar conta da área de preview (substituir iframe pelo canvas) ──
@@ -864,14 +864,14 @@ async function renderSiteContent(container, builderTabsEl) {
         const _bot = heroContainer.querySelector('#hcBottomBar');
         const _botV = heroContainer.querySelector('#hcBottomBarVal');
         const _botC = heroContainer.querySelector('#hcBottomBarColor');
-        if (_scale)  { _scale.value = bg.scale;          _scaleV.textContent = parseFloat(bg.scale).toFixed(1) + 'x'; }
-        if (_posX)   { _posX.value = bg.posX;            _posXV.textContent = bg.posX + '%'; }
-        if (_posY)   { _posY.value = bg.posY;            _posYV.textContent = bg.posY + '%'; }
-        if (_ov)     { _ov.value = ov.opacity;           _ovV.textContent = ov.opacity + '%'; }
-        if (_top)    { _top.value = ov.topBarHeight;     _topV.textContent = ov.topBarHeight + '%'; }
-        if (_topC)   { _topC.value = ov.topBarColor ?? '#000000'; }
-        if (_bot)    { _bot.value = ov.bottomBarHeight;  _botV.textContent = ov.bottomBarHeight + '%'; }
-        if (_botC)   { _botC.value = ov.bottomBarColor ?? '#000000'; }
+        if (_scale) { _scale.value = bg.scale; _scaleV.textContent = parseFloat(bg.scale).toFixed(1) + 'x'; }
+        if (_posX) { _posX.value = bg.posX; _posXV.textContent = bg.posX + '%'; }
+        if (_posY) { _posY.value = bg.posY; _posYV.textContent = bg.posY + '%'; }
+        if (_ov) { _ov.value = ov.opacity; _ovV.textContent = ov.opacity + '%'; }
+        if (_top) { _top.value = ov.topBarHeight; _topV.textContent = ov.topBarHeight + '%'; }
+        if (_topC) { _topC.value = ov.topBarColor ?? '#000000'; }
+        if (_bot) { _bot.value = ov.bottomBarHeight; _botV.textContent = ov.bottomBarHeight + '%'; }
+        if (_botC) { _botC.value = ov.bottomBarColor ?? '#000000'; }
         // Atualizar props se layer selecionado
         const sel = canvasEditor.selectedId ? canvasEditor.getLayers().find(l => l.id === canvasEditor.selectedId) : null;
         renderPropsForLayer(sel || null);
@@ -1380,8 +1380,8 @@ async function renderSiteContent(container, builderTabsEl) {
 
           <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.5rem;">
             ${ordered.map((sec, idx) => {
-              const active = activeSet.has(sec.id);
-              return `
+        const active = activeSet.has(sec.id);
+        return `
                 <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
                   style="display:flex; align-items:center; gap:0.75rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none;">
                   <span style="cursor:grab; color:#6b7280; font-size:1.1rem; flex-shrink:0;">⠿</span>
@@ -1393,7 +1393,7 @@ async function renderSiteContent(container, builderTabsEl) {
                   </div>
                 </div>
               `;
-            }).join('')}
+      }).join('')}
           </div>
 
           <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1.25rem;">Salvar Seções</button>
@@ -1553,7 +1553,7 @@ async function renderSiteContent(container, builderTabsEl) {
     try {
       const resp = await apiGet('/api/site/admin/depoimentos-pendentes');
       pendentes = resp.pending || [];
-    } catch(e) {}
+    } catch (e) { }
 
     const renderPendentes = () => {
       if (pendentes.length === 0) return '';
@@ -1590,7 +1590,7 @@ async function renderSiteContent(container, builderTabsEl) {
         const resp2 = await apiGet('/api/site/admin/config');
         configData.siteContent = resp2.siteContent || configData.siteContent;
         renderDepoimentos();
-      } catch(e) { window.showToast?.('Erro: ' + e.message, 'error'); }
+      } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
 
     window.rejeitarDepoimento = async (id) => {
@@ -1600,7 +1600,7 @@ async function renderSiteContent(container, builderTabsEl) {
         await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
         pendentes = pendentes.filter(p => p.id !== id);
         renderDepoimentos();
-      } catch(e) { window.showToast?.('Erro: ' + e.message, 'error'); }
+      } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
 
     const renderList = () => {
@@ -2053,8 +2053,8 @@ async function renderSiteContent(container, builderTabsEl) {
     setupDirtyTracking('config-contato', 'Contato', contatoContainer);
 
     // Preview em tempo real
-    contatoContainer.querySelector('#contatoTitle').oninput   = () => { window._meuSitePostPreview?.(); };
-    contatoContainer.querySelector('#contatoText').oninput    = () => { window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoTitle').oninput = () => { window._meuSitePostPreview?.(); };
+    contatoContainer.querySelector('#contatoText').oninput = () => { window._meuSitePostPreview?.(); };
     contatoContainer.querySelector('#contatoAddress').oninput = () => { window._meuSitePostPreview?.(); };
 
     contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
