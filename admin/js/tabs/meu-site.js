@@ -79,19 +79,20 @@ async function renderSiteContent(container, builderTabsEl) {
       <div style="display:flex; gap:0; flex:1; min-height:0;">
 
         <!-- Nav vertical -->
-        <div style="width:110px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid #374151; padding-right:0.5rem;">
-          <button class="sub-tab-btn active" data-target="config-geral" style="background:#1e3a5f; border:none; color:#93c5fd; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left; font-weight:600;">🎨 Geral</button>
-          <button class="sub-tab-btn" data-target="config-secoes" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📋 Seções</button>
-          <button class="sub-tab-btn" data-target="config-hero" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">🖼️ Hero</button>
-          <button class="sub-tab-btn" data-target="config-sobre" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">👤 Sobre</button>
-          <button class="sub-tab-btn" data-target="config-portfolio" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📷 Portfólio</button>
-          <button class="sub-tab-btn" data-target="config-servicos" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">💼 Serviços</button>
-          <button class="sub-tab-btn" data-target="config-depoimentos" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">⭐ Depoimentos</button>
-          <button class="sub-tab-btn" data-target="config-albuns" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📁 Álbuns</button>
-          <button class="sub-tab-btn" data-target="config-estudio" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">🏠 Estúdio</button>
-          <button class="sub-tab-btn" data-target="config-contato" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">📞 Contato</button>
-          <button class="sub-tab-btn" data-target="config-faq" style="background:none; border:none; color:#9ca3af; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left;">❓ FAQ</button>
-          <button class="sub-tab-btn" data-target="config-personalizar" style="background:none; border:none; color:#c084fc; padding:0.45rem 0.5rem; cursor:pointer; border-radius:6px; font-size:0.75rem; text-align:left; font-weight:600;">✦ Personalizar</button>
+        <div style="width:148px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border,#30363d); padding-right:0.5rem;">
+          <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span>Geral</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span>Seções</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span>Hero</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-sobre"><span class="material-symbols-outlined">person</span>Sobre</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-portfolio"><span class="material-symbols-outlined">collections</span>Portfólio</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-servicos"><span class="material-symbols-outlined">handyman</span>Serviços</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-depoimentos"><span class="material-symbols-outlined">chat</span>Depoimentos</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-albuns"><span class="material-symbols-outlined">photo_library</span>Álbuns</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-estudio"><span class="material-symbols-outlined">apartment</span>Estúdio</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-contato"><span class="material-symbols-outlined">mail</span>Contato</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-faq"><span class="material-symbols-outlined">help</span>FAQ</button>
+          <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span>Personalizar</button>
         </div>
 
         <!-- Conteúdo das Abas -->
@@ -102,13 +103,13 @@ async function renderSiteContent(container, builderTabsEl) {
                 <div>
                     <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem;">Escolha o Tema do Seu Site</h3>
                     <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Clique em <strong style="color:#d1d5db;">👁️ Visualizar</strong> para ver como seu site ficará com cada tema. Quando decidir, clique no card e salve.</p>
-                    <div id="templateGallery" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:2rem;">
+                    <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem;">
                         <!-- Templates inseridos via JS -->
                     </div>
                     <input type="hidden" id="siteTheme">
                 </div>
-                <div style="max-width:300px;">
-                    <button id="saveGeralBtn" style="width:100%; background:#16a34a; color:white; padding:0.75rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Tema</button>
+                <div>
+                    <button id="saveGeralBtn" class="builder-save-btn">Salvar Tema</button>
                 </div>
             </div>
         </div>
@@ -197,41 +198,28 @@ async function renderSiteContent(container, builderTabsEl) {
     templateGallery.innerHTML = templates.map(t => {
       const isActive = siteTheme === t.id;
       const isSelected = selectedTheme === t.id;
-      const borderColor = isSelected ? '#2563eb' : '#374151';
       return `
-        <div class="template-card" data-theme="${t.id}" style="
-          background:#1f2937;
-          border:2px solid ${borderColor};
-          border-radius:0.5rem;
-          padding:1rem;
-          cursor:pointer;
-          transition:all 0.2s;
-          position:relative;
-          display:flex;
-          flex-direction:column;
-          gap:0.5rem;
-        ">
-          ${isActive ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#16a34a; color:white; padding:0.2rem 0.5rem; border-radius:0.25rem; font-size:0.7rem; font-weight:700;">✓ Ativo</div>' : ''}
-          ${isSelected && !isActive ? '<div style="position:absolute; top:0.5rem; right:0.5rem; background:#2563eb; color:white; padding:0.2rem 0.5rem; border-radius:0.25rem; font-size:0.7rem; font-weight:700;">Selecionado</div>' : ''}
-
-          <div style="height:100px; background:linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 100%); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; color:${t.colors[2]}; font-size:1.75rem; font-weight:bold; opacity:0.85;">
-            ${t.name[0]}
+        <div class="template-card builder-theme-card ${isSelected ? 'active' : ''}" data-theme="${t.id}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+            <div>
+              <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0 0 0.2rem;">${t.name}</h4>
+              <p style="color:var(--text-secondary,#8b949e); font-size:0.75rem; margin:0;">${t.desc}</p>
+            </div>
+            ${isActive ? `<span class="material-symbols-outlined" style="color:var(--green,#3fb950); font-size:20px; font-variation-settings:'FILL' 1;">check_circle</span>` : ''}
           </div>
 
-          <div style="display:flex; gap:0.25rem;">
-            ${t.colors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid #374151;"></div>`).join('')}
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; gap:0.375rem;">
+              ${t.colors.map(c => `<div style="width:1rem; height:1rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.1);"></div>`).join('')}
+            </div>
+            <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
+              onclick="event.stopPropagation()"
+              style="padding:0.3rem 0.875rem; background:var(--bg-elevated,#1c2128); color:var(--text-secondary,#8b949e); border-radius:999px; font-size:0.75rem; font-weight:600; text-decoration:none; border:1px solid var(--border,#30363d); transition:color 0.15s, border-color 0.15s;"
+              onmouseenter="this.style.color='var(--text-primary,#e6edf3)'; this.style.borderColor='var(--accent,#2f81f7)'"
+              onmouseleave="this.style.color='var(--text-secondary,#8b949e)'; this.style.borderColor='var(--border,#30363d)'">
+              Visualizar
+            </a>
           </div>
-
-          <h4 style="color:#f3f4f6; font-weight:600; font-size:0.9rem; margin:0;">${t.name}</h4>
-          <p style="color:#9ca3af; font-size:0.75rem; margin:0;">${t.desc}</p>
-
-          <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
-            onclick="event.stopPropagation()"
-            style="display:block; text-align:center; margin-top:0.25rem; padding:0.375rem; background:#374151; color:#d1d5db; border-radius:0.375rem; font-size:0.75rem; font-weight:600; text-decoration:none; transition:background 0.15s;"
-            onmouseenter="this.style.background='#4b5563'"
-            onmouseleave="this.style.background='#374151'">
-            👁️ Visualizar
-          </a>
         </div>
       `;
     }).join('');
@@ -241,20 +229,7 @@ async function renderSiteContent(container, builderTabsEl) {
       card.onclick = () => {
         selectedTheme = card.dataset.theme;
         container.querySelector('#siteTheme').value = selectedTheme;
-        renderTemplateCards(); // re-renderiza com novo estado visual
-      };
-
-      card.onmouseenter = () => {
-        if (card.dataset.theme !== selectedTheme) {
-          card.style.borderColor = '#60a5fa';
-          card.style.transform = 'translateY(-2px)';
-        }
-      };
-      card.onmouseleave = () => {
-        if (card.dataset.theme !== selectedTheme) {
-          card.style.borderColor = '#374151';
-          card.style.transform = 'translateY(0)';
-        }
+        renderTemplateCards();
       };
     });
   }
@@ -612,6 +587,12 @@ async function renderSiteContent(container, builderTabsEl) {
       selectedTheme = newTheme;
       renderTemplateCards();
       window.showToast?.('Tema salvo!', 'success');
+      // Atualiza label do preview
+      const themeLabel = document.getElementById('builder-preview-theme-label');
+      if (themeLabel) themeLabel.textContent = `Tema: ${templates.find(t => t.id === newTheme)?.name || newTheme}`;
+      // Atualiza URL na barra do browser chrome
+      const browserUrl = document.getElementById('builder-browser-url');
+      if (browserUrl && orgSlug) browserUrl.textContent = `${orgSlug}.cliquezoom.com.br`;
       // Troca de tema requer reload completo do iframe (templates diferentes)
       window.builderScheduleRefresh?.();
     });

@@ -268,6 +268,10 @@ async function builderLoadPreview() {
   if (openLink) openLink.href = siteUrl;
   if (loading) loading.classList.remove('hidden');
 
+  // Atualiza browser chrome com slug real
+  const browserUrl = document.getElementById('builder-browser-url');
+  if (browserUrl && appState.orgSlug) browserUrl.textContent = `${appState.orgSlug}.cliquezoom.com.br`;
+
   builderIframeReady = false;
   iframe.src = '';
   requestAnimationFrame(() => {
