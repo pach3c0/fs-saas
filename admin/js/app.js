@@ -44,9 +44,9 @@ function showSkeleton(container) {
 
 // ── Preview Modal ─────────────────────────────────────────────────────────
 const PREVIEW_DEVICES = {
-  desktop: { w: 1280, h: 900,  label: 'Desktop',  frameClass: '' },
-  tablet:  { w: 768,  h: 1024, label: 'Tablet',   frameClass: '' },
-  mobile:  { w: 390,  h: 844,  label: 'Mobile',   frameClass: 'mobile' },
+  desktop: { w: 1280, h: 900, label: 'Desktop', frameClass: '' },
+  tablet: { w: 768, h: 1024, label: 'Tablet', frameClass: '' },
+  mobile: { w: 390, h: 844, label: 'Mobile', frameClass: 'mobile' },
 };
 
 function getSiteUrl() {
@@ -62,7 +62,7 @@ function applyDeviceFrame(device) {
   if (!frame || !body) return;
 
   // Available space
-  const bw = body.clientWidth  - 32;
+  const bw = body.clientWidth - 32;
   const bh = body.clientHeight - 32;
 
   let targetW = cfg.w;
@@ -71,24 +71,24 @@ function applyDeviceFrame(device) {
   // Scale down if doesn't fit
   const scaleX = bw / targetW;
   const scaleY = bh / targetH;
-  const scale  = Math.min(1, scaleX, scaleY);
+  const scale = Math.min(1, scaleX, scaleY);
 
   // iframe renders at native size, frame is scaled with CSS transform
-  iframe.style.width  = targetW + 'px';
+  iframe.style.width = targetW + 'px';
   iframe.style.height = targetH + 'px';
-  frame.style.width  = targetW + 'px';
+  frame.style.width = targetW + 'px';
   frame.style.height = targetH + 'px';
   frame.style.transform = `scale(${scale})`;
   frame.style.transformOrigin = 'top center';
   frame.className = 'pv-frame ' + (cfg.frameClass || '');
 
   // Adjust body height to show scaled frame correctly
-  body.style.paddingBottom = (targetH * scale > bh ? '1rem' : '') ;
+  body.style.paddingBottom = (targetH * scale > bh ? '1rem' : '');
 }
 
-window.toggleSitePreview = function() {
+window.toggleSitePreview = function () {
   const modal = document.getElementById('preview-modal');
-  const btn   = document.getElementById('previewToggleBtn');
+  const btn = document.getElementById('previewToggleBtn');
   if (!modal) return;
 
   previewOpen = !previewOpen;
@@ -107,14 +107,14 @@ window.toggleSitePreview = function() {
   }
 };
 
-window.refreshSitePreview = function() {
+window.refreshSitePreview = function () {
   if (previewOpen) loadSitePreview();
 };
 
 function loadSitePreview() {
-  const iframe  = document.getElementById('preview-iframe');
+  const iframe = document.getElementById('preview-iframe');
   const loading = document.getElementById('preview-loading');
-  const urlBar  = document.getElementById('preview-url-bar');
+  const urlBar = document.getElementById('preview-url-bar');
   const newTabA = document.getElementById('openSiteNewTab');
   if (!iframe) return;
 
@@ -138,7 +138,7 @@ function loadSitePreview() {
   requestAnimationFrame(() => applyDeviceFrame(previewDevice));
 }
 
-window.setPreviewDevice = function(device) {
+window.setPreviewDevice = function (device) {
   previewDevice = device;
   document.querySelectorAll('.pv-device-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.device === device);
@@ -147,7 +147,7 @@ window.setPreviewDevice = function(device) {
 };
 
 // withSaveLoading: wrapper para botões de salvar com loading state
-window.withSaveLoading = async function(btn, asyncFn) {
+window.withSaveLoading = async function (btn, asyncFn) {
   const orig = btn.innerHTML;
   const origDisabled = btn.disabled;
   btn.disabled = true;
@@ -175,7 +175,7 @@ function getSiteUrlBuilder() {
 }
 
 // Enviar dados ao iframe via postMessage (sem reload)
-window.builderPostPreview = function(data) {
+window.builderPostPreview = function (data) {
   const iframe = document.getElementById('builder-iframe');
   if (!iframe || !iframe.contentWindow) return;
 
@@ -206,7 +206,7 @@ window.addEventListener('message', (e) => {
   }
 });
 
-window.enterBuilderMode = function() {
+window.enterBuilderMode = function () {
   const panel = document.getElementById('adminPanel');
   const workspace = document.getElementById('workspace');
   const builderProps = document.getElementById('builder-props');
@@ -223,7 +223,7 @@ window.enterBuilderMode = function() {
   builderLoadPreview();
 };
 
-window.exitBuilderMode = function(skipNav = false) {
+window.exitBuilderMode = function (skipNav = false) {
   const panel = document.getElementById('adminPanel');
   if (!panel?.classList.contains('builder-mode')) return;
 
@@ -291,12 +291,12 @@ async function builderLoadPreview() {
   builderApplyDevice(builderDevice);
 }
 
-window.builderRefreshPreview = function() {
+window.builderRefreshPreview = function () {
   builderLoadPreview();
 };
 
 // Debounced auto-refresh after saves
-window.builderScheduleRefresh = function() {
+window.builderScheduleRefresh = function () {
   clearTimeout(builderRefreshTimer);
   const indicator = document.getElementById('builder-save-indicator');
   if (indicator) indicator.style.display = 'inline-flex';
@@ -315,6 +315,7 @@ function builderApplyDevice(device) {
 
   const wrap = document.getElementById('builder-iframe-wrap');
   const iframe = document.getElementById('builder-iframe');
+  const chrome = document.getElementById('builder-browser-chrome');
   if (!wrap || !iframe) return;
 
   const ww = wrap.clientWidth;
@@ -322,8 +323,8 @@ function builderApplyDevice(device) {
 
   const sizes = {
     desktop: { w: 1280, h: 900 },
-    tablet:  { w: 768,  h: 1024 },
-    mobile:  { w: 390,  h: 844  },
+    tablet: { w: 768, h: 1024 },
+    mobile: { w: 390, h: 844 },
   };
 
   const s = sizes[device];
@@ -337,9 +338,16 @@ function builderApplyDevice(device) {
     iframe.style.transform = '';
     iframe.style.transformOrigin = 'top center';
     iframe.style.marginTop = '0';
+
+    if (chrome) {
+      chrome.style.width = 'auto';
+      chrome.style.transform = '';
+      chrome.style.marginTop = '0';
+    }
+
     // Permitir scroll vertical no wrap para desktop
     wrap.style.overflowY = 'auto';
-    wrap.style.alignItems = 'flex-start';
+    wrap.style.alignItems = 'stretch';
   } else {
     // Tablet/Mobile: escalar para caber sem cortar
     wrap.style.overflowY = 'hidden';
@@ -350,15 +358,27 @@ function builderApplyDevice(device) {
     const scaledH = s.h * scale;
     const topOffset = Math.max(0, (wh - scaledH) / 2);
 
-    iframe.style.width = s.w + 'px';
-    iframe.style.height = s.h + 'px';
-    iframe.style.transform = `scale(${scale})`;
-    iframe.style.transformOrigin = 'top center';
-    iframe.style.marginTop = topOffset + 'px';
+    if (chrome) {
+      chrome.style.width = s.w + 'px';
+      chrome.style.transform = `scale(${scale})`;
+      chrome.style.transformOrigin = 'top center';
+      chrome.style.marginTop = topOffset + 'px';
+
+      iframe.style.width = '100%';
+      iframe.style.height = s.h + 'px';
+      iframe.style.transform = '';
+      iframe.style.marginTop = '0';
+    } else {
+      iframe.style.width = s.w + 'px';
+      iframe.style.height = s.h + 'px';
+      iframe.style.transform = `scale(${scale})`;
+      iframe.style.transformOrigin = 'top center';
+      iframe.style.marginTop = topOffset + 'px';
+    }
   }
 }
 
-window.builderSetDevice = function(device) {
+window.builderSetDevice = function (device) {
   builderApplyDevice(device);
 };
 
@@ -466,7 +486,7 @@ async function loadSidebarStorage() {
     label.textContent = storage.storageMB + ' MB';
     pctEl.textContent = pct + '% de 5 GB';
     widget.style.display = 'block';
-  } catch(e) { /* silencioso */ }
+  } catch (e) { /* silencioso */ }
 }
 
 async function loadOrgSlug() {
