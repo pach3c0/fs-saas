@@ -77,3 +77,41 @@ app.get('/site', async (req, res) => {
 - fallback → `OWNER_SLUG` do `.env`
 
 Aplicado em: `/api/client`, `/api/organization/public`, `/api/site/config`, `/api/site/depoimento`.
+
+---
+
+## Modernizacao Visual — Template Elegante (v2)
+
+A partir de **abril/2026**, o template `elegante` recebeu modernizacao visual com:
+
+### CSS Variables ampliadas
+```css
+--shadow-sm, --shadow-md, --shadow-lg    /* Sombras bem definidas */
+--radius-card                             /* Border radius padrao */
+--transition-fast, --transition-base      /* Transicoes fluidas */
+--accent-rgb                              /* Para usar em rgba dinamico */
+```
+
+### Micro-interacoes modernas
+- **Cards de servicos**: Gradiente sutil no hover via `::before`
+- **Depoimentos**: Aspas decorativas (4rem, opacity 0.15)
+- **Portfolio**: Overlay gradiente + zoom com cubic-bezier
+- **Nav**: Underline animado (scaleX) nos links
+- **Inputs**: Focus ring com box-shadow de 3px
+- **Botoes**: Box-shadow aprimorado + estado `:active`
+
+### Animacoes de Entrada (IntersectionObserver)
+Script inline em `elegante/index.html` que:
+- Aplica fade-in + translateY nas secoes (threshold 0.12)
+- Delay escalonado nos cards (50–80ms entre items)
+- Classes: `.reveal`, `.reveal-left`, `.reveal-right`, `.reveal-scale`
+- Respeita `prefers-reduced-motion` do SO
+- Fallback para browsers sem IntersectionObserver
+
+### Bugs corrigidos
+1. WhatsApp duplicado (z-index 50 vs 9999) — unificado
+2. FAQ border invisivel no tema claro — adicionado `!important`
+3. Album-card placeholder escuro — agora usa `var(--bg-alt)`
+4. Breakpoints 640px duplicados — mescla em um bloco
+
+**Arquivo afetado**: `site/templates/elegante/css/style.css` (~750 linhas), `site/templates/elegante/index.html` (script inline adicionado)

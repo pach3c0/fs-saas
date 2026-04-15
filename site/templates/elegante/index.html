@@ -196,6 +196,91 @@
     <button id="lbNext" class="lb-arrow lb-next">›</button>
   </div>
 
+  <!-- SCROLL ANIMATIONS -->
+  <script>
+(function() {
+  // Injetar CSS das classes de animação
+  var style = document.createElement('style');
+  style.textContent = [
+    '.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }',
+    '.reveal.visible { opacity: 1; transform: translateY(0); }',
+    '.reveal-left { opacity: 0; transform: translateX(-24px); transition: opacity 0.6s ease, transform 0.6s ease; }',
+    '.reveal-left.visible { opacity: 1; transform: translateX(0); }',
+    '.reveal-right { opacity: 0; transform: translateX(24px); transition: opacity 0.6s ease, transform 0.6s ease; }',
+    '.reveal-right.visible { opacity: 1; transform: translateX(0); }',
+    '.reveal-scale { opacity: 0; transform: scale(0.96); transition: opacity 0.5s ease, transform 0.5s ease; }',
+    '.reveal-scale.visible { opacity: 1; transform: scale(1); }',
+  ].join('');
+  document.head.appendChild(style);
+
+  // Aguardar o DOM carregar
+  document.addEventListener('DOMContentLoaded', function() {
+    // Delay para o renderSite() popular os elementos
+    setTimeout(function() {
+      applyRevealClasses();
+      startObserver();
+    }, 200);
+  });
+
+  function applyRevealClasses() {
+    // Cabeçalhos de seção
+    document.querySelectorAll('.section-header').forEach(function(el) {
+      el.classList.add('reveal');
+    });
+    // Cards individuais com delay escalonado
+    document.querySelectorAll('.servico-card').forEach(function(el, i) {
+      el.classList.add('reveal');
+      el.style.transitionDelay = (i * 80) + 'ms';
+    });
+    document.querySelectorAll('.depoimento-card').forEach(function(el, i) {
+      el.classList.add('reveal');
+      el.style.transitionDelay = (i * 60) + 'ms';
+    });
+    document.querySelectorAll('.portfolio-item').forEach(function(el, i) {
+      el.classList.add('reveal-scale');
+      el.style.transitionDelay = (i * 50) + 'ms';
+    });
+    document.querySelectorAll('.album-card').forEach(function(el, i) {
+      el.classList.add('reveal-scale');
+      el.style.transitionDelay = (i * 60) + 'ms';
+    });
+    // Grid sobre/contato — coluna esquerda e direita
+    var sobreImage = document.querySelector('.sobre-image');
+    var sobreText = document.querySelector('.sobre-text');
+    if (sobreImage) sobreImage.classList.add('reveal-left');
+    if (sobreText) sobreText.classList.add('reveal-right');
+    // FAQ items
+    document.querySelectorAll('.faq-item').forEach(function(el, i) {
+      el.classList.add('reveal');
+      el.style.transitionDelay = (i * 40) + 'ms';
+    });
+  }
+
+  function startObserver() {
+    if (!('IntersectionObserver' in window)) {
+      // Fallback: mostrar tudo imediatamente em browsers antigos
+      document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(function(el) {
+        el.classList.add('visible');
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(function(el) {
+      observer.observe(el);
+    });
+  }
+})();
+  </script>
+
   <script src="/site/templates/shared-site.js"></script>
 </body>
 </html>
