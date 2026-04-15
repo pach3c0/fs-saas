@@ -82,7 +82,7 @@ async function renderSiteContent(container, builderTabsEl) {
         <div style="width:148px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border,#30363d); padding-right:0.5rem;">
           <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span>Geral</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span>Seções</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span>Hero</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span>Capa</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-sobre"><span class="material-symbols-outlined">person</span>Sobre</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-portfolio"><span class="material-symbols-outlined">collections</span>Portfólio</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-servicos"><span class="material-symbols-outlined">handyman</span>Serviços</button>
@@ -829,11 +829,14 @@ async function renderSiteContent(container, builderTabsEl) {
           <div id="hcLayerList"></div>
         </div>
 
-        <!-- SALVAR -->
-        <div style="padding:0.5rem 0.75rem; margin-top:auto;">
+        <!-- SALVAR e RESTAURAR -->
+        <div style="padding:0.5rem 0.75rem; margin-top:auto; display:flex; flex-direction:column; gap:0.5rem;">
           <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.65rem;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Salvar Hero
+            Salvar Capa
+          </button>
+          <button class="hc-btn" id="hcRestoreBtn" style="width:100%; padding:0.5rem; background:transparent; border:1px solid #374151; color:#9ca3af; font-size:0.7rem;">
+            Restaurar Padrão
           </button>
         </div>
       </div>
@@ -1342,13 +1345,7 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     // ── Restaurar Padrão ──
-    const restoreBtn = document.createElement('button');
-    restoreBtn.className = 'hc-btn';
-    restoreBtn.style.cssText = 'background:transparent; color:var(--text-secondary); border:1px solid var(--border); margin-top:0.5rem; width:100%;';
-    restoreBtn.textContent = 'Restaurar Padrão';
-    heroContainer.querySelector('.hc-side-actions')?.appendChild(restoreBtn);
-
-    restoreBtn.onclick = async () => {
+    heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
       const ok = await window.showConfirm?.('Deseja restaurar as camadas e fundo para o padrão?', {
         title: 'Restaurar Capa',
         confirmText: 'Restaurar',
@@ -1357,15 +1354,14 @@ async function renderSiteContent(container, builderTabsEl) {
       });
       if (!ok) return;
 
-      // Resetar para as vars default (conformeOrganization.js)
       canvasEditor.setState({
         heroScale: 1,
         heroPosX: 50,
         heroPosY: 50,
-        heroLayers: [] // Ou recriar as 2 camadas básicas se preferir, mas [] limpa tudo
+        heroLayers: [] 
       });
       window.showToast?.('Ajustes resetados!', 'info');
-      markDirty('config-hero', 'Hero');
+      markDirty('config-hero', 'Capa');
     };
 
     // ── Init ──
