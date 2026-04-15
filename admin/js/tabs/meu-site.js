@@ -12,7 +12,8 @@ import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
-import { HeroCanvasEditor } from '../utils/heroCanvas.js';
+// import { HeroCanvasEditor } from '../utils/heroCanvas.js'; // Removido: agora usa preview real
+
 
 export async function renderMeuSite(container) {
   // Registrar cleanup de canvas ao sair do builder (feito aqui para garantir
@@ -381,7 +382,8 @@ async function renderSiteContent(container, builderTabsEl) {
 
   // ── Preview em tempo real ─────────────────────────────────────────────
   // Referência ao canvas editor (quando hero está aberto)
-  let _heroCanvasEditor = null;
+  // let _heroCanvasEditor = null; // Removido
+
   let _heroImageUrlForPreview = '';
 
   // Monta snapshot dos dados atuais (campos do form + configData) e envia
@@ -428,17 +430,14 @@ async function renderSiteContent(container, builderTabsEl) {
       if (scText) snap.siteContent.sobre.text = scText.value;
     }
 
-    // Hero Canvas (se aberto)
-    if (_heroCanvasEditor) {
-      const cs = _heroCanvasEditor.getState();
-      Object.assign(snap.siteConfig, cs);
-      // Manter campos legados para templates antigos
-      const layers = cs.heroLayers || [];
-      snap.siteConfig.heroTitle = layers[0]?.text || '';
-      snap.siteConfig.heroSubtitle = layers[1]?.text || '';
-    } else if (_heroImageUrlForPreview) {
+    // Hero (sempre enviar a partir do configData atualizado pelos inputs)
+    if (_heroImageUrlForPreview) {
       snap.siteConfig.heroImage = _heroImageUrlForPreview;
     }
+    // Manter campos legados para templates antigos
+    const layers = snap.siteConfig.heroLayers || [];
+    if (!snap.siteConfig.heroTitle && layers[0]?.text) snap.siteConfig.heroTitle = layers[0]?.text;
+    if (!snap.siteConfig.heroSubtitle && layers[1]?.text) snap.siteConfig.heroSubtitle = layers[1]?.text;
 
     // Portfolio Canvas (se aberto)
     const portfolioState = getPortfolioCanvasState();
@@ -506,12 +505,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const target = btn.dataset.target;
-    if (target === 'config-hero') {
-      if (heroCanvasEl) heroCanvasEl.style.display = 'flex';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
-      if (iframe) iframe.style.display = 'none';
-    } else if (target === 'config-portfolio') {
+    if (target === 'config-portfolio') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
       if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
@@ -616,58 +610,22 @@ async function renderSiteContent(container, builderTabsEl) {
 
   const renderHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
-
-    // Se o canvas já existe, apenas mostrar (não recriar)
-    if (_heroCanvasEditor) {
-      const canvasEl = document.getElementById('hero-canvas-container');
-      const iframe = document.getElementById('builder-iframe');
-      if (canvasEl) canvasEl.style.display = 'flex';
-      if (iframe) iframe.style.display = 'none';
-      return;
-    }
-
-    const cfg = siteConfig || {};
+    const cfg = configData.siteConfig || {};
     let _heroReady = false;
+    let _activeDevice = 'desktop';
 
     // Migração: se não há layers, criar a partir dos campos antigos
-    let heroLayers = (cfg.heroLayers && cfg.heroLayers.length > 0)
-      ? cfg.heroLayers.map(l => ({ ...l }))
-      : [];
-    if (heroLayers.length === 0) {
-      if (cfg.heroTitle) heroLayers.push({ id: 'l_' + Date.now(), type: 'text', text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
-      if (cfg.heroSubtitle) heroLayers.push({ id: 'l_' + (Date.now() + 1), type: 'text', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
+    if (!cfg.heroLayers || cfg.heroLayers.length === 0) {
+      cfg.heroLayers = [];
+      if (cfg.heroTitle) cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'text', name: 'Título', text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
+      if (cfg.heroSubtitle) cfg.heroLayers.push({ id: 'l_' + (Date.now() + 1), type: 'text', name: 'Subtítulo', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
     }
 
-    // ── Tomar conta da área de preview (substituir iframe pelo canvas) ──
-    const iframeWrap = document.getElementById('builder-iframe-wrap');
-    const iframe = document.getElementById('builder-iframe');
-    if (iframe) iframe.style.display = 'none';
+    // Garantir presets de device
+    if (!cfg.bgPresets) cfg.bgPresets = {};
+    if (!cfg.overlayPresets) cfg.overlayPresets = {};
 
-    const canvasContainer = document.createElement('div');
-    canvasContainer.id = 'hero-canvas-container';
-    canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
-    if (iframeWrap) iframeWrap.appendChild(canvasContainer);
-
-    // ── Instanciar Canvas Editor ──
-    const canvasEditor = new HeroCanvasEditor(canvasContainer, {
-      onSelect: (layer) => {
-        renderPropsForLayer(layer);
-      },
-      onChange: () => {
-        if (_heroReady) markDirty('config-hero', 'Hero');
-        window._meuSitePostPreview?.();
-      },
-      resolveImagePath: resolveImagePath,
-    });
-
-    canvasEditor.setBackground({ url: cfg.heroImage || '', scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 });
-    canvasEditor.setOverlay({ opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' });
-    canvasEditor.setLayers(heroLayers);
-    // Restaurar presets de bg e overlay salvos anteriormente
-    if (cfg.bgPresets) canvasEditor.bgPresets = { ...cfg.bgPresets };
-    if (cfg.overlayPresets) canvasEditor.overlayPresets = { ...cfg.overlayPresets };
-
-    _heroCanvasEditor = canvasEditor;
+    let _selectedLayerId = null;
     _heroImageUrlForPreview = cfg.heroImage || '';
 
     // ── Sidebar: Painel de Propriedades ──
@@ -694,7 +652,6 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-btn.success:hover { background:#15803d; }
         .hc-btn.danger { border-color:#dc2626; color:#ef4444; }
         .hc-btn.danger:hover { background:#dc2626; color:#fff; }
-        .hc-btn-group { display:flex; gap:0.35rem; padding:0.4rem 0.75rem; flex-wrap:wrap; }
         .hc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
         .hc-layer-item:hover { background:#2d3748; }
         .hc-layer-item.active { border-color:#3b82f6; background:#172554; }
@@ -706,39 +663,23 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.35rem; }
         .hc-device-bar { display:flex; gap:2px; padding:0.5rem 0.75rem; background:#0d1117; border-bottom:1px solid #1f2937; }
         .hc-device-btn { flex:1; padding:0.35rem 0; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; color:#9ca3af; font-size:0.7rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.25rem; transition:all 0.15s; }
-        .hc-device-btn:hover { color:#d1d5db; border-color:#4b5563; }
         .hc-device-btn.active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
       </style>
 
       <div class="hc-sidebar">
         <!-- DEVICE SELECTOR -->
         <div class="hc-device-bar">
-          <button class="hc-device-btn active" data-hc-device="desktop" title="Desktop (1440×810)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Desktop
-          </button>
-          <button class="hc-device-btn" data-hc-device="tablet" title="Tablet (768×500)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            Tablet
-          </button>
-          <button class="hc-device-btn" data-hc-device="mobile" title="Mobile (390×680)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            Mobile
-          </button>
+          <button class="hc-device-btn active" data-hc-device="desktop" title="Ajustes para Desktop">Desktop</button>
+          <button class="hc-device-btn" data-hc-device="tablet" title="Ajustes para Tablet">Tablet</button>
+          <button class="hc-device-btn" data-hc-device="mobile" title="Ajustes para Mobile">Mobile</button>
         </div>
 
-        <!-- AÇÕES -->
+        <!-- ADICIONAR -->
         <div class="hc-section">
           <div class="hc-section-head">Adicionar</div>
-          <div class="hc-btn-group">
-            <button class="hc-btn primary" id="hcAddText" title="Adicionar texto">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
-              Texto
-            </button>
-            <button class="hc-btn primary" id="hcAddImage" title="Adicionar imagem">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-              Imagem
-            </button>
+          <div style="display:flex; gap:0.35rem; padding:0.4rem 0.75rem;">
+            <button class="hc-btn primary" id="hcAddText" style="flex:1;">+ Texto</button>
+            <button class="hc-btn primary" id="hcAddImage" style="flex:1;">+ Imagem</button>
           </div>
           <input type="file" id="hcImageUpload" accept="image/*" style="display:none;">
         </div>
@@ -746,22 +687,17 @@ async function renderSiteContent(container, builderTabsEl) {
         <!-- FUNDO -->
         <div class="hc-section">
           <div class="hc-section-head">Imagem de Fundo</div>
-          <div class="hc-btn-group">
-            <label class="hc-btn primary" style="cursor:pointer;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload
-              <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
+          <div style="display:flex; gap:0.35rem; padding:0.4rem 0.75rem;">
+            <label class="hc-btn primary" style="flex:1; cursor:pointer;">
+              Upload <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
             </label>
-            <button class="hc-btn" id="hcBgCrop">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
-              Cortar
-            </button>
+            <button class="hc-btn" id="hcBgCrop" style="flex:1;">Cortar</button>
           </div>
           <div id="hcBgProgress"></div>
           <div class="hc-row">
             <div class="hc-label">Zoom</div>
             <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBgScale" min="1" max="3" step="0.05" value="${Math.max(1, cfg.heroScale ?? 1)}">
+              <input type="range" class="hc-range" id="hcBgScale" min="1" max="3" step="0.05" value="${cfg.heroScale ?? 1}">
               <span class="hc-range-val" id="hcBgScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(1)}x</span>
             </div>
           </div>
@@ -785,9 +721,9 @@ async function renderSiteContent(container, builderTabsEl) {
         <div class="hc-section">
           <div class="hc-section-head">Efeitos</div>
           <div class="hc-row">
-            <div class="hc-label">Overlay escuro</div>
+            <div class="hc-label">Escurecer fundo</div>
             <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcOverlay" min="0" max="80" step="5" value="${cfg.overlayOpacity ?? 30}">
+              <input type="range" class="hc-range" id="hcOverlay" min="0" max="90" step="5" value="${cfg.overlayOpacity ?? 30}">
               <span class="hc-range-val" id="hcOverlayVal">${cfg.overlayOpacity ?? 30}%</span>
             </div>
           </div>
@@ -797,10 +733,7 @@ async function renderSiteContent(container, builderTabsEl) {
               <input type="range" class="hc-range" id="hcTopBar" min="0" max="40" step="1" value="${cfg.topBarHeight ?? 0}">
               <span class="hc-range-val" id="hcTopBarVal">${cfg.topBarHeight ?? 0}%</span>
             </div>
-            <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
-              <span style="font-size:0.65rem; color:#6b7280;">Cor:</span>
-              <input type="color" id="hcTopBarColor" value="${cfg.topBarColor ?? '#000000'}" style="width:32px;height:22px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;padding:1px;">
-            </div>
+            <input type="color" id="hcTopBarColor" value="${cfg.topBarColor ?? '#000000'}" style="width:100%;height:22px;margin-top:0.25rem;">
           </div>
           <div class="hc-row">
             <div class="hc-label">Barra inferior</div>
@@ -808,565 +741,283 @@ async function renderSiteContent(container, builderTabsEl) {
               <input type="range" class="hc-range" id="hcBottomBar" min="0" max="40" step="1" value="${cfg.bottomBarHeight ?? 0}">
               <span class="hc-range-val" id="hcBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
             </div>
-            <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
-              <span style="font-size:0.65rem; color:#6b7280;">Cor:</span>
-              <input type="color" id="hcBottomBarColor" value="${cfg.bottomBarColor ?? '#000000'}" style="width:32px;height:22px;border:1px solid #374151;border-radius:4px;background:none;cursor:pointer;padding:1px;">
-            </div>
+            <input type="color" id="hcBottomBarColor" value="${cfg.bottomBarColor ?? '#000000'}" style="width:100%;height:22px;margin-top:0.25rem;">
           </div>
         </div>
 
-        <!-- PROPRIEDADES DO LAYER SELECIONADO -->
+        <!-- PROPRIEDADES DO ITEM -->
         <div class="hc-section" id="hcLayerProps" style="display:none;">
-          <div class="hc-section-head">
-            <span id="hcPropTitle">Propriedades</span>
-          </div>
+          <div class="hc-section-head" id="hcPropTitle">Propriedades</div>
           <div id="hcPropContent"></div>
         </div>
 
-        <!-- LAYERS -->
-        <div class="hc-section" style="border-bottom:none;">
+        <!-- LISTA DE CAMADAS -->
+        <div class="hc-section">
           <div class="hc-section-head">Camadas</div>
           <div id="hcLayerList"></div>
         </div>
 
-        <!-- SALVAR e RESTAURAR -->
-        <div style="padding:0.5rem 0.75rem; margin-top:auto; display:flex; flex-direction:column; gap:0.5rem;">
-          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.65rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Salvar Capa
-          </button>
-          <button class="hc-btn" id="hcRestoreBtn" style="width:100%; padding:0.5rem; background:transparent; border:1px solid #374151; color:#9ca3af; font-size:0.7rem;">
-            Restaurar Padrão
-          </button>
+        <!-- SALVAR -->
+        <div style="padding:1rem 0.75rem; margin-top:auto;">
+          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.75rem;">Salvar Capa</button>
+          <button class="hc-btn" id="hcRestoreBtn" style="width:100%; margin-top:0.5rem; background:none; border:none; font-size:0.7rem;">Restaurar Padrão</button>
         </div>
       </div>
-
       ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
 
-    // ── Device selector ──
+    // ── Funções de Estado e Preview ──
+    const liveNotify = () => {
+      if (_heroReady) markDirty('config-hero', 'Capa');
+      window._meuSitePostPreview?.();
+    };
+
+    const updateConfigFromUI = () => {
+      // Background / Overlay
+      const bg = {
+        scale: parseFloat(heroContainer.querySelector('#hcBgScale').value),
+        posX: parseInt(heroContainer.querySelector('#hcBgPosX').value),
+        posY: parseInt(heroContainer.querySelector('#hcBgPosY').value),
+      };
+      const ov = {
+        opacity: parseInt(heroContainer.querySelector('#hcOverlay').value),
+        topBarHeight: parseInt(heroContainer.querySelector('#hcTopBar').value),
+        topBarColor: heroContainer.querySelector('#hcTopBarColor').value,
+        bottomBarHeight: parseInt(heroContainer.querySelector('#hcBottomBar').value),
+        bottomBarColor: heroContainer.querySelector('#hcBottomBarColor').value,
+      };
+
+      if (_activeDevice === 'desktop') {
+        Object.assign(cfg, { heroScale: bg.scale, heroPosX: bg.posX, heroPosY: bg.posY, overlayOpacity: ov.opacity, topBarHeight: ov.topBarHeight, topBarColor: ov.topBarColor, bottomBarHeight: ov.bottomBarHeight, bottomBarColor: ov.bottomBarColor });
+      } else {
+        cfg.bgPresets[_activeDevice] = bg;
+        cfg.overlayPresets[_activeDevice] = ov;
+      }
+      liveNotify();
+    };
+
+    // ── Device Switch ──
     heroContainer.querySelectorAll('.hc-device-btn').forEach(btn => {
       btn.onclick = () => {
         heroContainer.querySelectorAll('.hc-device-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        canvasEditor.setDevice(btn.dataset.hcDevice);
-        // Atualizar sliders de bg e overlay com valores do novo device
-        const bg = canvasEditor.bg;
-        const ov = canvasEditor.overlay;
-        const _scale = heroContainer.querySelector('#hcBgScale');
-        const _scaleV = heroContainer.querySelector('#hcBgScaleVal');
-        const _posX = heroContainer.querySelector('#hcBgPosX');
-        const _posXV = heroContainer.querySelector('#hcBgPosXVal');
-        const _posY = heroContainer.querySelector('#hcBgPosY');
-        const _posYV = heroContainer.querySelector('#hcBgPosYVal');
-        const _ov = heroContainer.querySelector('#hcOverlay');
-        const _ovV = heroContainer.querySelector('#hcOverlayVal');
-        const _top = heroContainer.querySelector('#hcTopBar');
-        const _topV = heroContainer.querySelector('#hcTopBarVal');
-        const _topC = heroContainer.querySelector('#hcTopBarColor');
-        const _bot = heroContainer.querySelector('#hcBottomBar');
-        const _botV = heroContainer.querySelector('#hcBottomBarVal');
-        const _botC = heroContainer.querySelector('#hcBottomBarColor');
-        if (_scale) { _scale.value = bg.scale; _scaleV.textContent = parseFloat(bg.scale).toFixed(1) + 'x'; }
-        if (_posX) { _posX.value = bg.posX; _posXV.textContent = bg.posX + '%'; }
-        if (_posY) { _posY.value = bg.posY; _posYV.textContent = bg.posY + '%'; }
-        if (_ov) { _ov.value = ov.opacity; _ovV.textContent = ov.opacity + '%'; }
-        if (_top) { _top.value = ov.topBarHeight; _topV.textContent = ov.topBarHeight + '%'; }
-        if (_topC) { _topC.value = ov.topBarColor ?? '#000000'; }
-        if (_bot) { _bot.value = ov.bottomBarHeight; _botV.textContent = ov.bottomBarHeight + '%'; }
-        if (_botC) { _botC.value = ov.bottomBarColor ?? '#000000'; }
-        // Atualizar props se layer selecionado
-        const sel = canvasEditor.selectedId ? canvasEditor.getLayers().find(l => l.id === canvasEditor.selectedId) : null;
-        renderPropsForLayer(sel || null);
+        _activeDevice = btn.dataset.hcDevice;
+
+        // Carregar valores para este device
+        let bg = (_activeDevice === 'desktop') ? { scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 } : (cfg.bgPresets[_activeDevice] || { scale: 1, posX: 50, posY: 50 });
+        let ov = (_activeDevice === 'desktop') ? { opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' } : (cfg.overlayPresets[_activeDevice] || { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' });
+
+        const setV = (id, val, suffix = '') => {
+          const el = heroContainer.querySelector('#' + id);
+          if (el) el.value = val;
+          const vEl = heroContainer.querySelector('#' + id + 'Val');
+          if (vEl) vEl.textContent = (typeof val === 'number' && suffix === 'x' ? val.toFixed(1) : val) + suffix;
+        };
+        setV('hcBgScale', bg.scale, 'x');
+        setV('hcBgPosX', bg.posX, '%');
+        setV('hcBgPosY', bg.posY, '%');
+        setV('hcOverlay', ov.opacity, '%');
+        setV('hcTopBar', ov.topBarHeight, '%');
+        heroContainer.querySelector('#hcTopBarColor').value = ov.topBarColor || '#000000';
+        setV('hcBottomBar', ov.bottomBarHeight, '%');
+        heroContainer.querySelector('#hcBottomBarColor').value = ov.bottomBarColor || '#000000';
+
+        renderPropsForLayer(_selectedLayerId ? cfg.heroLayers.find(l => l.id === _selectedLayerId) : null);
       };
     });
 
-    // ── Refs ──
-    const bgScaleInput = heroContainer.querySelector('#hcBgScale');
-    const bgScaleVal = heroContainer.querySelector('#hcBgScaleVal');
-    const bgPosXInput = heroContainer.querySelector('#hcBgPosX');
-    const bgPosXVal = heroContainer.querySelector('#hcBgPosXVal');
-    const bgPosYInput = heroContainer.querySelector('#hcBgPosY');
-    const bgPosYVal = heroContainer.querySelector('#hcBgPosYVal');
-    const overlayInput = heroContainer.querySelector('#hcOverlay');
-    const overlayVal = heroContainer.querySelector('#hcOverlayVal');
-    const topBarInput = heroContainer.querySelector('#hcTopBar');
-    const topBarVal = heroContainer.querySelector('#hcTopBarVal');
-    const topBarColorInput = heroContainer.querySelector('#hcTopBarColor');
-    const bottomBarInput = heroContainer.querySelector('#hcBottomBar');
-    const bottomBarVal = heroContainer.querySelector('#hcBottomBarVal');
-    const bottomBarColorInput = heroContainer.querySelector('#hcBottomBarColor');
+    // ── Sliders Bind ──
+    ['hcBgScale', 'hcBgPosX', 'hcBgPosY', 'hcOverlay', 'hcTopBar', 'hcBottomBar'].forEach(id => {
+      heroContainer.querySelector('#' + id).oninput = (e) => {
+        const val = e.target.value;
+        const suffix = id === 'hcBgScale' ? 'x' : '%';
+        heroContainer.querySelector('#' + id + 'Val').textContent = (id === 'hcBgScale' ? parseFloat(val).toFixed(1) : val) + suffix;
+        updateConfigFromUI();
+      };
+    });
+    heroContainer.querySelector('#hcTopBarColor').onchange = updateConfigFromUI;
+    heroContainer.querySelector('#hcBottomBarColor').onchange = updateConfigFromUI;
 
-    let heroImageUrl = cfg.heroImage || '';
-
-    // ── Sliders de fundo ──
-    const updateBg = () => {
-      canvasEditor.setBackground({
-        url: heroImageUrl,
-        scale: parseFloat(bgScaleInput.value),
-        posX: parseInt(bgPosXInput.value),
-        posY: parseInt(bgPosYInput.value),
-      });
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      window._meuSitePostPreview?.();
-    };
-    bgScaleInput.oninput = () => { bgScaleVal.textContent = parseFloat(bgScaleInput.value).toFixed(1) + 'x'; updateBg(); };
-    bgPosXInput.oninput = () => { bgPosXVal.textContent = bgPosXInput.value + '%'; updateBg(); };
-    bgPosYInput.oninput = () => { bgPosYVal.textContent = bgPosYInput.value + '%'; updateBg(); };
-
-    // ── Sliders de efeitos ──
-    const updateOverlay = () => {
-      canvasEditor.setOverlay({
-        opacity: parseInt(overlayInput.value),
-        topBarHeight: parseInt(topBarInput.value),
-        topBarColor: topBarColorInput.value,
-        bottomBarHeight: parseInt(bottomBarInput.value),
-        bottomBarColor: bottomBarColorInput.value,
-      });
-      if (_heroReady) markDirty('config-hero', 'Hero');
-      window._meuSitePostPreview?.();
-    };
-    overlayInput.oninput = () => { overlayVal.textContent = overlayInput.value + '%'; updateOverlay(); };
-    topBarInput.oninput = () => { topBarVal.textContent = topBarInput.value + '%'; updateOverlay(); };
-    topBarColorInput.oninput = () => updateOverlay();
-    bottomBarInput.oninput = () => { bottomBarVal.textContent = bottomBarInput.value + '%'; updateOverlay(); };
-    bottomBarColorInput.oninput = () => updateOverlay();
-
-    // ── Upload de fundo ──
+    // ── Background Upload ──
     heroContainer.querySelector('#hcBgUpload').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
         const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('hcBgProgress', p));
-        heroImageUrl = result.url;
-        _heroImageUrlForPreview = heroImageUrl;
-        canvasEditor.setBackground({ url: heroImageUrl });
-        if (_heroReady) markDirty('config-hero', 'Hero');
-        window._meuSitePostPreview?.();
-        e.target.value = '';
-      } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
+        cfg.heroImage = result.url;
+        _heroImageUrlForPreview = result.url;
+        liveNotify();
+      } catch (err) { window.showToast?.('Erro no upload', 'error'); }
     };
-
-    // ── Cortar fundo ──
     heroContainer.querySelector('#hcBgCrop').onclick = () => {
-      if (!heroImageUrl) { window.showToast?.('Faça upload de uma imagem primeiro.', 'warning'); return; }
-      setupPhotoEditor(heroContainer, 'heroPhotoEditorModal', resolveImagePath(heroImageUrl), {}, async ({ url }) => {
-        heroImageUrl = url;
+      if (!cfg.heroImage) return window.showToast?.('Sem imagem de fundo', 'warning');
+      setupPhotoEditor(heroContainer, 'heroPhotoEditorModal', resolveImagePath(cfg.heroImage), {}, async ({ url }) => {
+        cfg.heroImage = url;
         _heroImageUrlForPreview = url;
-        canvasEditor.setBackground({ url: heroImageUrl });
-        if (_heroReady) markDirty('config-hero', 'Hero');
-        window._meuSitePostPreview?.();
+        liveNotify();
       });
     };
 
-    // ── Contador para nomes automáticos ──
-    let _textCount = heroLayers.filter(l => (l.type || 'text') === 'text').length;
-    let _imgCount = heroLayers.filter(l => l.type === 'image').length;
-
-    // ── Adicionar texto ──
-    heroContainer.querySelector('#hcAddText').onclick = () => {
-      _textCount++;
-      const newLayer = { id: 'l_' + Date.now(), type: 'text', name: 'Texto ' + _textCount, text: 'Novo Texto', x: 50, y: 50, fontSize: 60, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true, rotation: 0, opacity: 100 };
-      canvasEditor.addLayer(newLayer);
-      renderLayerList();
+    // ── Camadas ──
+    const getLayer = (id) => cfg.heroLayers.find(l => l.id === id);
+    const updateLayer = (id, props) => {
+      const l = getLayer(id);
+      if (!l) return;
+      if (_activeDevice === 'desktop') {
+        Object.assign(l, props);
+      } else {
+        if (!l.presets) l.presets = {};
+        if (!l.presets[_activeDevice]) l.presets[_activeDevice] = {};
+        Object.assign(l.presets[_activeDevice], props);
+      }
+      liveNotify();
     };
-
-    // ── Adicionar imagem ──
-    const imgUploadInput = heroContainer.querySelector('#hcImageUpload');
-    heroContainer.querySelector('#hcAddImage').onclick = () => imgUploadInput.click();
-    imgUploadInput.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        _imgCount++;
-        const result = await uploadImage(file, appState.authToken);
-        const newLayer = { id: 'l_' + Date.now(), type: 'image', name: 'Imagem ' + _imgCount, url: result.url, x: 50, y: 50, width: 25, height: 30, rotation: 0, flipH: false, flipV: false, opacity: 100, borderRadius: 0 };
-        canvasEditor.addLayer(newLayer);
-        renderLayerList();
-        e.target.value = '';
-      } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
-    };
-
-    // ── Renderizar lista de layers (com drag-to-reorder e rename) ──
-    // Ordem: topo da lista = frente (z-index maior), baixo = atrás
-    let _dragLayerId = null;
 
     const renderLayerList = () => {
       const list = heroContainer.querySelector('#hcLayerList');
-      if (!list) return;
-      const layers = canvasEditor.getLayers();
-      if (layers.length === 0) {
-        list.innerHTML = '<div style="padding:0.5rem 0.75rem; font-size:0.75rem; color:#4b5563; text-align:center;">Nenhuma camada</div>';
-        return;
-      }
+      const layers = [...cfg.heroLayers].reverse();
+      list.innerHTML = layers.map(l => `
+        <div class="hc-layer-item ${l.id === _selectedLayerId ? 'active' : ''}" data-id="${l.id}">
+          <span class="layer-icon">${l.type === 'text' ? 'T' : '🖼️'}</span>
+          <span class="layer-name">${l.name || (l.type === 'text' ? 'Texto' : 'Imagem')}</span>
+          <span class="layer-del" data-del="${l.id}">✕</span>
+        </div>
+      `).join('') || '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma camada</div>';
 
-      // Topo da lista = última do array (z-index mais alto = frente)
-      const reversed = [...layers].reverse();
-      list.innerHTML = reversed.map((l, idx) => {
-        const icon = (l.type === 'image') ? '🖼️' : '✏️';
-        const displayName = l.name || ((l.type === 'image') ? 'Imagem' : (l.text?.substring(0, 20) || '(vazio)'));
-        const isActive = canvasEditor.selectedId === l.id;
-        const pos = idx === 0 ? 'Frente' : idx === reversed.length - 1 ? 'Fundo' : '';
-        return `<div class="hc-layer-item ${isActive ? 'active' : ''}" data-layer-id="${l.id}" draggable="true"
-          style="cursor:grab; position:relative;">
-          <span style="cursor:grab; color:#4b5563; font-size:0.7rem; padding:0 2px;" title="Arrastar para reordenar">⠿</span>
-          <span class="layer-icon">${icon}</span>
-          <span class="layer-name" data-rename-id="${l.id}" title="Clique duplo para renomear">${displayName}</span>
-          ${pos ? `<span style="font-size:0.55rem; color:#6b7280; background:#1a1f2e; padding:1px 4px; border-radius:3px;">${pos}</span>` : ''}
-          <span class="layer-del" data-del-id="${l.id}" title="Remover">✕</span>
-        </div>`;
-      }).join('');
-
-      // ── Clicks ──
-      list.querySelectorAll('.hc-layer-item').forEach(item => {
-        item.onclick = (e) => {
-          if (e.target.closest('.layer-del') || e.target.closest('.layer-name')?.isContentEditable) return;
-          canvasEditor.selectLayer(item.dataset.layerId);
+      list.querySelectorAll('.hc-layer-item').forEach(el => {
+        el.onclick = (e) => {
+          if (e.target.classList.contains('layer-del')) {
+            cfg.heroLayers = cfg.heroLayers.filter(l => l.id !== el.dataset.id);
+            if (_selectedLayerId === el.dataset.id) _selectedLayerId = null;
+            renderLayerList();
+            renderPropsForLayer(null);
+            liveNotify();
+            return;
+          }
+          _selectedLayerId = el.dataset.id;
           renderLayerList();
-        };
-      });
-
-      // ── Double-click para renomear ──
-      list.querySelectorAll('.layer-name[data-rename-id]').forEach(nameEl => {
-        nameEl.ondblclick = (e) => {
-          e.stopPropagation();
-          nameEl.contentEditable = 'true';
-          nameEl.style.outline = '1px solid #3b82f6';
-          nameEl.style.borderRadius = '2px';
-          nameEl.style.padding = '0 2px';
-          nameEl.style.cursor = 'text';
-          nameEl.style.background = '#1f2937';
-          nameEl.focus();
-          const range = document.createRange();
-          range.selectNodeContents(nameEl);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-
-          const finish = () => {
-            nameEl.contentEditable = 'false';
-            nameEl.style.outline = '';
-            nameEl.style.padding = '';
-            nameEl.style.cursor = '';
-            nameEl.style.background = '';
-            const newName = nameEl.textContent.trim();
-            if (newName) {
-              canvasEditor.updateLayer(nameEl.dataset.renameId, { name: newName });
-            }
-            nameEl.removeEventListener('blur', finish);
-          };
-          nameEl.addEventListener('blur', finish);
-          nameEl.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
-            if (ev.key === 'Escape') { ev.preventDefault(); nameEl.blur(); }
-          });
-        };
-      });
-
-      // ── Deletar ──
-      list.querySelectorAll('.layer-del').forEach(del => {
-        del.onclick = async (e) => {
-          e.stopPropagation();
-          const ok = await window.showConfirm?.('Remover esta camada?', { confirmText: 'Remover', danger: true });
-          if (!ok) return;
-          canvasEditor.removeLayer(del.dataset.delId);
-          renderLayerList();
-          renderPropsForLayer(null);
-        };
-      });
-
-      // ── Drag-to-reorder ──
-      list.querySelectorAll('.hc-layer-item[draggable]').forEach(item => {
-        item.ondragstart = (e) => {
-          _dragLayerId = item.dataset.layerId;
-          item.style.opacity = '0.4';
-          e.dataTransfer.effectAllowed = 'move';
-        };
-        item.ondragend = () => {
-          item.style.opacity = '';
-          _dragLayerId = null;
-          list.querySelectorAll('.hc-layer-item').forEach(el => el.style.borderTop = '');
-        };
-        item.ondragover = (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          // Indicar posição de drop
-          list.querySelectorAll('.hc-layer-item').forEach(el => el.style.borderTop = '');
-          item.style.borderTop = '2px solid #3b82f6';
-        };
-        item.ondragleave = () => {
-          item.style.borderTop = '';
-        };
-        item.ondrop = (e) => {
-          e.preventDefault();
-          item.style.borderTop = '';
-          if (!_dragLayerId || _dragLayerId === item.dataset.layerId) return;
-
-          // Recalcular a nova ordem
-          // A lista visual é invertida (topo = frente), precisamos converter para a ordem do array
-          const currentLayers = canvasEditor.getLayers();
-          const reversedIds = [...currentLayers].reverse().map(l => l.id);
-
-          // Mover _dragLayerId para antes de item.dataset.layerId na lista visual
-          const fromIdx = reversedIds.indexOf(_dragLayerId);
-          const toIdx = reversedIds.indexOf(item.dataset.layerId);
-          if (fromIdx === -1 || toIdx === -1) return;
-
-          reversedIds.splice(fromIdx, 1);
-          reversedIds.splice(toIdx, 0, _dragLayerId);
-
-          // Reverter de volta para a ordem do array (index 0 = fundo, último = frente)
-          const newOrder = [...reversedIds].reverse();
-          canvasEditor.reorderLayers(newOrder);
-          renderLayerList();
+          renderPropsForLayer(getLayer(_selectedLayerId));
         };
       });
     };
 
-    // ── Renderizar propriedades do layer selecionado ──
-    const renderPropsForLayer = (layer) => {
-      const propsSection = heroContainer.querySelector('#hcLayerProps');
-      const propTitle = heroContainer.querySelector('#hcPropTitle');
-      const propContent = heroContainer.querySelector('#hcPropContent');
-      if (!propsSection || !propContent) return;
+    const renderPropsForLayer = (l) => {
+      const p = heroContainer.querySelector('#hcLayerProps');
+      const c = heroContainer.querySelector('#hcPropContent');
+      if (!l) { p.style.display = 'none'; return; }
+      p.style.display = 'block';
 
-      renderLayerList();
+      // Pegar valores considerando device
+      const getV = (field, def) => {
+        if (_activeDevice === 'desktop') return l[field] ?? def;
+        return (l.presets?.[_activeDevice]?.[field]) ?? (l[field] ?? def);
+      };
 
-      if (!layer) {
-        propsSection.style.display = 'none';
-        return;
-      }
-
-      propsSection.style.display = '';
-      const type = layer.type || 'text';
-
-      if (type === 'text') {
-        propTitle.textContent = 'Texto';
-        propContent.innerHTML = `
-          <div class="hc-row">
-            <div class="hc-label">Conteúdo</div>
-            <textarea class="hc-input" id="hcPropText" rows="2" style="resize:vertical;">${layer.text || ''}</textarea>
+      if (l.type === 'text') {
+        c.innerHTML = `
+          <div class="hc-row"><div class="hc-label">Texto</div><input type="text" class="hc-input" id="lpText" value="${l.text || ''}"></div>
+          <div class="hc-grid2">
+            <div class="hc-row"><div class="hc-label">Pos X (%)</div><input type="range" class="hc-range" id="lpX" value="${getV('x', 50)}"></div>
+            <div class="hc-row"><div class="hc-label">Pos Y (%)</div><input type="range" class="hc-range" id="lpY" value="${getV('y', 50)}"></div>
           </div>
           <div class="hc-row">
-            <div class="hc-label">Tamanho: <span id="hcPropFontSizeVal">${layer.fontSize || 48}px</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropFontSize" min="8" max="400" value="${layer.fontSize || 48}">
-            </div>
+            <div class="hc-label">Tamanho: <span id="lpSizeVal">${getV('fontSize', 60)}px</span></div>
+            <input type="range" class="hc-range" id="lpSize" min="10" max="300" value="${getV('fontSize', 60)}">
           </div>
+          <div class="hc-row"><div class="hc-label">Cor</div><input type="color" id="lpColor" value="${l.color || '#ffffff'}" style="width:100%;"></div>
           <div class="hc-row">
-            <div class="hc-label">Cor</div>
-            <input type="color" id="hcPropColor" value="${layer.color || '#ffffff'}" style="width:100%;height:32px;border:1px solid #374151;border-radius:0.375rem;background:#1f2937;cursor:pointer;padding:2px;">
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Fonte</div>
-            <select class="hc-input" id="hcPropFont">
-              ${HERO_FONTS.map(f => `<option value="${f.value}" ${layer.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+            <div class="hc-label">Alinhamento</div>
+            <select class="hc-input" id="lpAlign">
+              <option value="left" ${getV('align', 'center') === 'left' ? 'selected' : ''}>Esquerda</option>
+              <option value="center" ${getV('align', 'center') === 'center' ? 'selected' : ''}>Centro</option>
+              <option value="right" ${getV('align', 'center') === 'right' ? 'selected' : ''}>Direita</option>
             </select>
           </div>
-          <div class="hc-row">
-            <div class="hc-grid3">
-              <div>
-                <div class="hc-label">Peso</div>
-                <select class="hc-input" id="hcPropWeight">
-                  <option value="300" ${layer.fontWeight === '300' ? 'selected' : ''}>Leve</option>
-                  <option value="normal" ${layer.fontWeight === 'normal' ? 'selected' : ''}>Normal</option>
-                  <option value="600" ${layer.fontWeight === '600' ? 'selected' : ''}>Semibold</option>
-                  <option value="bold" ${(layer.fontWeight === 'bold' || !layer.fontWeight) ? 'selected' : ''}>Negrito</option>
-                  <option value="900" ${layer.fontWeight === '900' ? 'selected' : ''}>Black</option>
-                </select>
-              </div>
-              <div>
-                <div class="hc-label">Alinhar</div>
-                <select class="hc-input" id="hcPropAlign">
-                  <option value="left" ${layer.align === 'left' ? 'selected' : ''}>Esq</option>
-                  <option value="center" ${(layer.align || 'center') === 'center' ? 'selected' : ''}>Centro</option>
-                  <option value="right" ${layer.align === 'right' ? 'selected' : ''}>Dir</option>
-                </select>
-              </div>
-              <div>
-                <div class="hc-label">Rotação: <span id="hcPropRotationVal">${layer.rotation || 0}°</span></div>
-                <div class="hc-range-row">
-                  <input type="range" class="hc-range" id="hcPropRotation" min="-360" max="360" value="${layer.rotation || 0}">
-                </div>
-              </div>
-            </div>
+        `;
+        heroContainer.querySelector('#lpText').oninput = (e) => { l.text = e.target.value; liveNotify(); };
+        heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
+        heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
+        heroContainer.querySelector('#lpSize').oninput = (e) => {
+          const val = parseInt(e.target.value);
+          heroContainer.querySelector('#lpSizeVal').textContent = val + 'px';
+          updateLayer(l.id, { fontSize: val });
+        };
+        heroContainer.querySelector('#lpColor').onchange = (e) => updateLayer(l.id, { color: e.target.value });
+        heroContainer.querySelector('#lpAlign').onchange = (e) => updateLayer(l.id, { align: e.target.value });
+      } else {
+        c.innerHTML = `
+          <div class="hc-row"><div class="hc-label">Imagem</div><button class="hc-btn" id="lpSwapImg">Trocar Imagem</button></div>
+          <div class="hc-grid2">
+            <div class="hc-row"><div class="hc-label">Pos X (%)</div><input type="range" class="hc-range" id="lpX" value="${getV('x', 50)}"></div>
+            <div class="hc-row"><div class="hc-label">Pos Y (%)</div><input type="range" class="hc-range" id="lpY" value="${getV('y', 50)}"></div>
           </div>
           <div class="hc-row">
-            <div class="hc-label">Opacidade: <span id="hcPropOpacityVal">${layer.opacity ?? 100}%</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Espaçamento: <span id="hcPropLetterSpacingVal">${layer.letterSpacing || 0}px</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropLetterSpacing" min="-10" max="50" value="${layer.letterSpacing || 0}">
-            </div>
-          </div>
-          <div class="hc-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
-            <input type="checkbox" id="hcPropShadow" ${layer.shadow !== false ? 'checked' : ''}>
-            <label for="hcPropShadow" style="font-size:0.72rem; color:#9ca3af; cursor:pointer;">Sombra no texto</label>
+            <div class="hc-label">Largura: <span id="lpWidthVal">${getV('width', 30)}%</span></div>
+            <input type="range" class="hc-range" id="lpWidth" min="5" max="100" value="${getV('width', 30)}">
           </div>
         `;
-
-        // Bind events para texto
-        const bind = (id, field, parse, valId, suffix) => {
-          const el = heroContainer.querySelector(id);
-          if (!el) return;
-          el.oninput = () => {
-            const val = parse ? parse(el.value) : el.value;
-            canvasEditor.updateLayer(layer.id, { [field]: val });
-            if (valId) {
-              const valEl = heroContainer.querySelector(valId);
-              if (valEl) valEl.textContent = val + (suffix || '');
-            }
+        heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
+        heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
+        heroContainer.querySelector('#lpWidth').oninput = (e) => {
+          const val = parseInt(e.target.value);
+          heroContainer.querySelector('#lpWidthVal').textContent = val + '%';
+          updateLayer(l.id, { width: val });
+        };
+        heroContainer.querySelector('#lpSwapImg').onclick = () => {
+          const inpt = heroContainer.querySelector('#hcImageUpload');
+          inpt.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+              const res = await uploadImage(file, appState.authToken);
+              l.url = res.url;
+              liveNotify();
+            } catch (err) { window.showToast?.('Erro no upload', 'error'); }
           };
-          el.onchange = el.oninput;
-        };
-        bind('#hcPropText', 'text');
-        bind('#hcPropFontSize', 'fontSize', Number, '#hcPropFontSizeVal', 'px');
-        bind('#hcPropColor', 'color');
-        bind('#hcPropFont', 'fontFamily');
-        bind('#hcPropWeight', 'fontWeight');
-        bind('#hcPropAlign', 'align');
-        bind('#hcPropRotation', 'rotation', Number, '#hcPropRotationVal', '°');
-        bind('#hcPropOpacity', 'opacity', Number, '#hcPropOpacityVal', '%');
-        bind('#hcPropLetterSpacing', 'letterSpacing', Number, '#hcPropLetterSpacingVal', 'px');
-        bind('#hcPropShadow', 'shadow', null);
-        // Checkbox especial
-        const shadowEl = heroContainer.querySelector('#hcPropShadow');
-        if (shadowEl) {
-          shadowEl.onchange = () => canvasEditor.updateLayer(layer.id, { shadow: shadowEl.checked });
-        }
-
-      } else if (type === 'image') {
-        propTitle.textContent = 'Imagem';
-        propContent.innerHTML = `
-          <div class="hc-btn-group">
-            <label class="hc-btn primary" style="cursor:pointer;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Trocar
-              <input type="file" id="hcPropImgUpload" accept="image/*" style="display:none;">
-            </label>
-            <button class="hc-btn" id="hcPropFlipH" title="Espelhar horizontal">↔ Flip H</button>
-            <button class="hc-btn" id="hcPropFlipV" title="Espelhar vertical">↕ Flip V</button>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Largura: <span id="hcPropWidthVal">${Math.round(layer.width ?? 20)}%</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropWidth" min="2" max="100" value="${Math.round(layer.width ?? 20)}">
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Altura: <span id="hcPropHeightVal">${Math.round(layer.height ?? 20)}%</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropHeight" min="2" max="100" value="${Math.round(layer.height ?? 20)}">
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Rotação: <span id="hcPropImgRotationVal">${layer.rotation || 0}°</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropImgRotation" min="-360" max="360" value="${layer.rotation || 0}">
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Borda arred.: <span id="hcPropBorderRadiusVal">${layer.borderRadius || 0}px</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Opacidade: <span id="hcPropImgOpacityVal">${layer.opacity ?? 100}%</span></div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcPropImgOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
-            </div>
-          </div>
-        `;
-
-        // Binds para imagem
-        const ibind = (id, field, parse, valId, suffix) => {
-          const el = heroContainer.querySelector(id);
-          if (!el) return;
-          el.oninput = () => {
-            const val = parse ? parse(el.value) : el.value;
-            canvasEditor.updateLayer(layer.id, { [field]: val });
-            if (valId) {
-              const valEl = heroContainer.querySelector(valId);
-              if (valEl) valEl.textContent = val + (suffix || '');
-            }
-          };
-          el.onchange = el.oninput;
-        };
-        ibind('#hcPropWidth', 'width', Number, '#hcPropWidthVal', '%');
-        ibind('#hcPropHeight', 'height', Number, '#hcPropHeightVal', '%');
-        ibind('#hcPropImgRotation', 'rotation', Number, '#hcPropImgRotationVal', '°');
-        ibind('#hcPropBorderRadius', 'borderRadius', Number, '#hcPropBorderRadiusVal', 'px');
-        ibind('#hcPropImgOpacity', 'opacity', Number, '#hcPropImgOpacityVal', '%');
-
-        // Flip
-        heroContainer.querySelector('#hcPropFlipH').onclick = () => {
-          canvasEditor.updateLayer(layer.id, { flipH: !layer.flipH });
-        };
-        heroContainer.querySelector('#hcPropFlipV').onclick = () => {
-          canvasEditor.updateLayer(layer.id, { flipV: !layer.flipV });
-        };
-
-        // Trocar imagem
-        heroContainer.querySelector('#hcPropImgUpload').onchange = async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          try {
-            const result = await uploadImage(file, appState.authToken);
-            canvasEditor.updateLayer(layer.id, { url: result.url });
-            e.target.value = '';
-          } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
+          inpt.click();
         };
       }
     };
 
-    // ── Salvar ──
-    heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
-      await withBtnLoading(e.currentTarget, async () => {
-        const state = canvasEditor.getState();
-        const newHeroConfig = {
-          ...siteConfig,
-          ...state,
-          // Manter campos antigos para compatibilidade
-          heroTitle: state.heroLayers[0]?.text || '',
-          heroSubtitle: state.heroLayers[1]?.text || '',
-        };
-        await apiPut('/api/site/admin/config', { siteConfig: newHeroConfig });
-        // Atualizar configData local
-        configData.siteConfig = { ...configData.siteConfig, ...state };
-        clearDirty();
-        window.showToast?.('Hero salvo!', 'success');
-        liveRefresh({ siteConfig: newHeroConfig });
-      });
+    // ── Botões Adicionar ──
+    heroContainer.querySelector('#hcAddText').onclick = () => {
+      cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'text', name: 'Novo Texto', text: 'Novo Texto', x: 50, y: 50, fontSize: 40, color: '#ffffff', align: 'center', shadow: true });
+      renderLayerList();
+      liveNotify();
+    };
+    heroContainer.querySelector('#hcAddImage').onclick = () => {
+      const inpt = heroContainer.querySelector('#hcImageUpload');
+      inpt.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const res = await uploadImage(file, appState.authToken);
+          cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'image', name: 'Nova Imagem', url: res.url, x: 50, y: 50, width: 20 });
+          renderLayerList();
+          liveNotify();
+        } catch (err) { window.showToast?.('Erro upload', 'error'); }
+      };
+      inpt.click();
     };
 
-    // ── Restaurar Padrão ──
+    // ── Salvar / Restaurar ──
+    heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
+      await withBtnLoading(e.currentTarget, async () => {
+        await apiPut('/api/site/admin/config', { siteConfig: cfg });
+        configData.siteConfig = JSON.parse(JSON.stringify(cfg));
+        clearDirty();
+        window.showToast?.('Capa salva!', 'success');
+        liveRefresh({ siteConfig: cfg });
+      });
+    };
     heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
-      const ok = await window.showConfirm?.('Deseja restaurar as camadas e fundo para o padrão?', {
-        title: 'Restaurar Capa',
-        confirmText: 'Restaurar',
-        danger: true,
-        desc: 'Isso resetará o layout deste módulo. O conteúdo dos textos originais não será perdido, mas as posições e camadas voltarão ao início.'
-      });
-      if (!ok) return;
-
-      canvasEditor.setState({
-        heroScale: 1,
-        heroPosX: 50,
-        heroPosY: 50,
-        overlayOpacity: 30,
-        topBarHeight: 0,
-        bottomBarHeight: 0,
-        bgPresets: {},
-        overlayPresets: {},
-        heroLayers: [] 
-      });
+      if (!await window.showConfirm?.('Restaurar padrão?', { danger: true })) return;
+      cfg.heroLayers = [];
+      cfg.heroScale = 1; cfg.heroPosX = 50; cfg.heroPosY = 50;
+      cfg.overlayOpacity = 30; cfg.topBarHeight = 0; cfg.bottomBarHeight = 0;
+      cfg.bgPresets = {}; cfg.overlayPresets = {};
+      renderLayerList(); renderPropsForLayer(null); liveNotify();
       window.showToast?.('Ajustes resetados!', 'info');
-      markDirty('config-hero', 'Capa');
     };
 
     // ── Init ──

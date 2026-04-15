@@ -34,3 +34,8 @@ Ao selecionar uma camada, o painel `#hcLayerProps` é exibido com:
 - **Botão:** `Restaurar`
 - **Ação:** Restaura o Hero para o padrão do tema atual.
 - **Requisito:** Exibir um alerta claro informando que a ação redefine apenas a posição das seções e que nenhum conteúdo do site será apagado.
+
+
+# ajuste
+
+Padronizar a guia Capa (Hero) para exibir o preview real do site em tempo real, eliminando o Canvas exclusivo e mantendo a consistência visual com as guias "Geral" e "Sessões".

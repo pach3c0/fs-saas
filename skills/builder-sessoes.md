@@ -128,3 +128,8 @@ Botão "Restaurar Posições": Implementar funcionalidade para resetar a ordem d
 Requisito: Exibir um alerta claro informando que a ação redefine apenas a posição das seções e que nenhum conteúdo do site será apagado.
 Melhoria de UX (Drag & Drop): Adicionar um indicador visual (placeholder ou destaque) durante o arraste.
 Objetivo: Mostrar exatamente onde a seção será solta antes do usuário liberar o mouse, evitando erros de posicionamento.
+
+
+# nova correcao: 
+botao "salvar secoes" retira o titulo e coloque icone de salvar e no botao de restaurar coloque um icone de restaurar, quando o usuario passar o mouse em cima do icone de restaurar mostre um "tooltip" escrito "Restaurar Padrão" e quando passar o mouse em cima do icone de salvar mostre um "tooltip" escrito "Salvar Ordem"
+
