@@ -610,6 +610,37 @@ export class HeroCanvasEditor {
     };
   }
 
+  /**
+   * Atualiza todo o estado do canvas de uma vez.
+   * Útil para restauração de padrões.
+   */
+  setState(state) {
+    if (state.heroImage !== undefined || state.heroScale !== undefined) {
+      this.setBackground({
+        url: state.heroImage,
+        scale: state.heroScale,
+        posX: state.heroPosX,
+        posY: state.heroPosY
+      });
+    }
+    if (state.overlayOpacity !== undefined) {
+      this.setOverlay({
+        opacity: state.overlayOpacity,
+        topBarHeight: state.topBarHeight,
+        topBarColor: state.topBarColor,
+        bottomBarHeight: state.bottomBarHeight,
+        bottomBarColor: state.bottomBarColor
+      });
+    }
+    if (state.heroLayers !== undefined) {
+      this.setLayers(state.heroLayers);
+    }
+    if (state.bgPresets) this.bgPresets = { ...state.bgPresets };
+    if (state.overlayPresets) this.overlayPresets = { ...state.overlayPresets };
+    
+    this.onChange();
+  }
+
   destroy() {
     this._ro?.disconnect();
     document.removeEventListener('pointermove', this._moveHandler);

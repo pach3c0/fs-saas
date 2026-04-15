@@ -1358,6 +1358,11 @@ async function renderSiteContent(container, builderTabsEl) {
         heroScale: 1,
         heroPosX: 50,
         heroPosY: 50,
+        overlayOpacity: 30,
+        topBarHeight: 0,
+        bottomBarHeight: 0,
+        bgPresets: {},
+        overlayPresets: {},
         heroLayers: [] 
       });
       window.showToast?.('Ajustes resetados!', 'info');
