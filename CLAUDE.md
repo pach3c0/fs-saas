@@ -24,7 +24,7 @@ Path na VPS: `/var/www/cz-saas`
 
 3. **Admin tabs usam INLINE STYLES com CSS variables do tema.** O admin tem tema GitHub dark. Use as CSS variables: `var(--bg-surface)`, `var(--text-primary)`, etc. (ver paleta abaixo). Nunca use classes Tailwind como `bg-white`, `text-gray-600` — ficam invisiveis.
 
-4. **Upload de imagens salva no disco local** em `/uploads/`. Retorna URL relativa `/uploads/filename.jpg`. NAO usar servicos externos (Cloudinary, S3, etc).
+4. **Upload de imagens salva SOMENTE no disco local** em `/uploads/`. Retorna URL relativa `/uploads/filename.jpg`. Sem servicos externos (Cloudinary, S3, Atlas, etc — sempre local no servidor VPS).
 
 5. **Sempre rode `npm run build:css` antes de deploy** se alterar qualquer HTML que use classes Tailwind. O Tailwind v4 compila de `assets/css/tailwind-input.css` para `assets/css/tailwind.css`.
 
