@@ -117,3 +117,14 @@ await notify('selection_submitted', session._id, session.name, `${session.name} 
 ```
 
 Polling no admin a cada 30 segundos (`admin/js/utils/notifications.js`).
+
+
+## Ajustes em Sessoes
+
+Correção de Layout (Overflow): Impedir a barra de rolagem horizontal nos itens de seção.
+Ação: Reduzir o tamanho da fonte e ajustar o espaçamento para que o nome da seção e os botões de subir/descer caibam perfeitamente no container.
+Renomeação: Alterar o título da seção "Hero/capa" para apenas "Capa".
+Botão "Restaurar Posições": Implementar funcionalidade para resetar a ordem das seções para o padrão de fábrica.
+Requisito: Exibir um alerta claro informando que a ação redefine apenas a posição das seções e que nenhum conteúdo do site será apagado.
+Melhoria de UX (Drag & Drop): Adicionar um indicador visual (placeholder ou destaque) durante o arraste.
+Objetivo: Mostrar exatamente onde a seção será solta antes do usuário liberar o mouse, evitando erros de posicionamento.

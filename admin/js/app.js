@@ -332,21 +332,23 @@ function builderApplyDevice(device) {
   // Para todos os dispositivos: escalar para caber no espaço disponível,
   // respeitando o aspect ratio. Desktop usa largura total se couber.
   if (device === 'desktop') {
-    // Desktop: preencher largura disponível, altura scrollável
+    // Desktop: preencher largura disponível, scroll interno no iframe
     iframe.style.width = '100%';
-    iframe.style.height = Math.max(wh, 900) + 'px';
+    iframe.style.height = '100%';
     iframe.style.transform = '';
     iframe.style.transformOrigin = 'top center';
     iframe.style.marginTop = '0';
 
     if (chrome) {
       chrome.style.width = 'auto';
+      chrome.style.height = '100%';
       chrome.style.transform = '';
       chrome.style.marginTop = '0';
+      chrome.style.flex = '1';
     }
 
-    // Permitir scroll vertical no wrap para desktop
-    wrap.style.overflowY = 'auto';
+    // O scroll agora deve ser DENTRO do iframe para manter elementos fixos (header) no topo
+    wrap.style.overflowY = 'hidden';
     wrap.style.alignItems = 'stretch';
   } else {
     // Tablet/Mobile: escalar para caber sem cortar

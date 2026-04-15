@@ -1341,6 +1341,33 @@ async function renderSiteContent(container, builderTabsEl) {
       });
     };
 
+    // ── Restaurar Padrão ──
+    const restoreBtn = document.createElement('button');
+    restoreBtn.className = 'hc-btn';
+    restoreBtn.style.cssText = 'background:transparent; color:var(--text-secondary); border:1px solid var(--border); margin-top:0.5rem; width:100%;';
+    restoreBtn.textContent = 'Restaurar Padrão';
+    heroContainer.querySelector('.hc-side-actions')?.appendChild(restoreBtn);
+
+    restoreBtn.onclick = async () => {
+      const ok = await window.showConfirm?.('Deseja restaurar as camadas e fundo para o padrão?', {
+        title: 'Restaurar Capa',
+        confirmText: 'Restaurar',
+        danger: true,
+        desc: 'Isso resetará o layout deste módulo. O conteúdo dos textos originais não será perdido, mas as posições e camadas voltarão ao início.'
+      });
+      if (!ok) return;
+
+      // Resetar para as vars default (conformeOrganization.js)
+      canvasEditor.setState({
+        heroScale: 1,
+        heroPosX: 50,
+        heroPosY: 50,
+        heroLayers: [] // Ou recriar as 2 camadas básicas se preferir, mas [] limpa tudo
+      });
+      window.showToast?.('Ajustes resetados!', 'info');
+      markDirty('config-hero', 'Hero');
+    };
+
     // ── Init ──
     renderLayerList();
     requestAnimationFrame(() => { _heroReady = true; });
@@ -1351,7 +1378,7 @@ async function renderSiteContent(container, builderTabsEl) {
     const secoesContainer = container.querySelector('#config-secoes');
     const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
     const allSectionDefs = [
-      { id: 'hero', label: 'Hero / Capa' },
+      { id: 'hero', label: 'Capa' },
       { id: 'portfolio', label: 'Portfólio' },
       { id: 'albuns', label: 'Álbuns' },
       { id: 'servicos', label: 'Serviços' },
@@ -1383,20 +1410,23 @@ async function renderSiteContent(container, builderTabsEl) {
         const active = activeSet.has(sec.id);
         return `
                 <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
-                  style="display:flex; align-items:center; gap:0.75rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none;">
-                  <span style="cursor:grab; color:#6b7280; font-size:1.1rem; flex-shrink:0;">⠿</span>
-                  <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:16px; height:16px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
-                  <span style="flex:1; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.875rem;">${sec.label}</span>
-                  <div style="display:flex; gap:0.25rem;">
-                    <button onclick="moveSection(${idx}, -1)" style="background:#374151; border:none; color:#9ca3af; width:1.75rem; height:1.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.875rem;" ${idx === 0 ? 'disabled style="opacity:0.3;background:#374151;border:none;color:#9ca3af;width:1.75rem;height:1.75rem;border-radius:0.25rem;cursor:not-allowed;font-size:0.875rem;"' : ''}>▲</button>
-                    <button onclick="moveSection(${idx}, 1)" style="background:#374151; border:none; color:#9ca3af; width:1.75rem; height:1.75rem; border-radius:0.25rem; cursor:pointer; font-size:0.875rem;" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.3;background:#374151;border:none;color:#9ca3af;width:1.75rem;height:1.75rem;border-radius:0.25rem;cursor:not-allowed;font-size:0.875rem;"' : ''}>▼</button>
+                  style="display:flex; align-items:center; gap:0.625rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none;">
+                  <span style="cursor:grab; color:#4b5563; font-size:1rem; flex-shrink:0;">⠿</span>
+                  <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:14px; height:14px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
+                  <span style="flex:1; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
+                  <div style="display:flex; gap:0.25rem; flex-shrink:0;">
+                    <button onclick="moveSection(${idx}, -1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === 0 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▲</button>
+                    <button onclick="moveSection(${idx}, 1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▼</button>
                   </div>
                 </div>
               `;
       }).join('')}
           </div>
 
-          <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:1.25rem;">Salvar Seções</button>
+          <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+            <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; flex:1;">Salvar Seções</button>
+            <button id="restoreSectionsBtn" style="background:transparent; color:#9ca3af; padding:0.75rem 1rem; border:1px solid #374151; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.8125rem;">Restaurar</button>
+          </div>
         </div>
       `;
 
@@ -1415,18 +1445,33 @@ async function renderSiteContent(container, builderTabsEl) {
         renderList();
       };
 
-      // Drag & drop
+      // Drag & drop com indicador visual
       let dragIdx = null;
       secoesContainer.querySelectorAll('.sec-drag-item').forEach(item => {
         item.addEventListener('dragstart', (e) => {
           dragIdx = parseInt(item.dataset.secIdx);
-          item.style.opacity = '0.5';
+          item.style.opacity = '0.4';
+          item.style.transform = 'scale(0.98)';
           e.dataTransfer.effectAllowed = 'move';
         });
-        item.addEventListener('dragend', () => { item.style.opacity = '1'; });
-        item.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        item.addEventListener('dragend', () => { 
+          item.style.opacity = '1'; 
+          item.style.transform = '';
+          secoesContainer.querySelectorAll('.sec-drag-item').forEach(el => el.style.borderTop = '');
+        });
+        item.addEventListener('dragover', (e) => { 
+          e.preventDefault(); 
+          e.dataTransfer.dropEffect = 'move';
+          // Indicador visual de drop
+          secoesContainer.querySelectorAll('.sec-drag-item').forEach(el => el.style.borderTop = '');
+          item.style.borderTop = '2px solid var(--accent, #2f81f7)';
+        });
+        item.addEventListener('dragleave', () => {
+          item.style.borderTop = '';
+        });
         item.addEventListener('drop', (e) => {
           e.preventDefault();
+          item.style.borderTop = '';
           const targetIdx = parseInt(item.dataset.secIdx);
           if (dragIdx === null || dragIdx === targetIdx) return;
           const moved = ordered.splice(dragIdx, 1)[0];
@@ -1444,6 +1489,26 @@ async function renderSiteContent(container, builderTabsEl) {
           window.showToast?.('Seções salvas!', 'success');
           liveRefresh({ siteSections: selected });
         });
+      };
+
+      // Restaurar
+      secoesContainer.querySelector('#restoreSectionsBtn').onclick = async () => {
+        const ok = await window.showConfirm?.('Deseja restaurar a ordem padrão das seções?', { 
+          title: 'Restaurar Padrão',
+          confirmText: 'Restaurar',
+          danger: true,
+          desc: 'Isso redefinirá apenas a ordem e visibilidade. Nenhum conteúdo será apagado.'
+        });
+        if (!ok) return;
+
+        const DEFAULTS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
+        activeSet = new Set(DEFAULTS);
+        ordered = [
+          ...DEFAULTS.map(id => allSectionDefs.find(s => s.id === id)).filter(Boolean),
+          ...allSectionDefs.filter(s => !DEFAULTS.includes(s.id))
+        ];
+        renderList();
+        window.showToast?.('Padrão restaurado (clique em Salvar para aplicar)', 'info');
       };
     };
 
