@@ -961,6 +961,8 @@ async function renderSiteContent(container, builderTabsEl) {
         clearDirty();
         liveRefresh({ siteConfig: cfg });
         window.showToast?.('Padrão restaurado!', 'success');
+      } catch (err) { window.showToast?.('Erro ao salvar. Tente novamente.', 'error'); }
+    };
 
     // ── Init — expor funções internas para syncHeroStudioUI ──
     heroRenderLayerList = renderLayerList;
