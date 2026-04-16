@@ -65,10 +65,9 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
     if (req.body.siteContent !== undefined) {
       Object.entries(req.body.siteContent).forEach(([key, value]) => {
         // Para portfolio.photos, usar dot notation profunda para garantir que o array seja salvo
-        if (key === 'portfolio' && value && value.photos !== undefined) {
-          updateData['siteContent.portfolio.photos'] = value.photos;
-          if (value.title !== undefined) updateData['siteContent.portfolio.title'] = value.title;
-          if (value.subtitle !== undefined) updateData['siteContent.portfolio.subtitle'] = value.subtitle;
+        if (key === 'portfolio') {
+          // Salvar o objeto portfolio inteiro para evitar conflito de dot notation no MongoDB
+          updateData['siteContent.portfolio'] = value;
         } else if (key === 'customSections') {
           updateData['siteContent.customSections'] = value;
         } else {
