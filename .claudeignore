@@ -1,0 +1,26 @@
+# Arquivos e pastas ignorados pelo Claude para economizar contexto
+
+# Dependências
+node_modules/
+
+# Uploads de usuários (binários, imagens)
+uploads/
+
+# Build e assets gerados
+assets/css/tailwind.css
+public/
+
+# Logs e temporários
+*.log
+*.tmp
+.DS_Store
+
+# Arquivos de lock (raramente precisam ser lidos)
+package-lock.json
+
+# Documentos de arquitetura legados (substituídos pelo CLAUDE.md)
+ARCHITECTURE.md
+PROJECT_OVERVIEW.md
+Organization.js
+gallery.js
+perfil.js
