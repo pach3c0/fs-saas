@@ -122,6 +122,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | `@apply` nao funciona em runtime | So funciona no build | Nao usar fora de `tailwind-input.css` |
 | Portfolio sumido no site | Classe arbitraria nao compilada | Use `style="aspect-ratio:3/4;"`, nao `aspect-[3/4]` |
 | Secao salva no admin mas nao aparece no site publico | `saveAppData` salva em `SiteData` (legado); site publico le de `Organization.siteContent` | Usar `apiPut('/api/site/admin/config', { siteContent: { ... } })` para qualquer dado que o site precisa exibir |
+| Erro 500 "Cannot create field X in element" no MongoDB | Dot notation aninhada no `$set` (`siteContent.portfolio.photos`) conflita com campo pai ja existente como `Mixed` | Sempre fazer `$set` no objeto pai inteiro: `updateData['siteContent.portfolio'] = value` em vez de `updateData['siteContent.portfolio.photos'] = value.photos` |
 | Upload 413 | Payload grande | Verificar `client_max_body_size` Nginx |
 | Preview branco no Meu Site | Race condition slug | `await loadOrgSlug()` antes de `builderLoadPreview` |
 | Preview "Site em construcao" | `siteEnabled=false` | Sempre `_preview=1` no iframe builder |
