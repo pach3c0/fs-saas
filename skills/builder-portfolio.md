@@ -1,42 +1,52 @@
-# Módulo: Portfólio
+# Roadmap de UX: Módulo Portfólio
 
-Gerenciamento da galeria principal de trabalhos do fotógrafo.
+Este documento descreve a visão e a evolução da experiência do usuário para a galeria de portfólio, focando em velocidade, estética premium e SEO.
 
----
-
-## 1. Upload e Gestão
-
-- **Input:** `#pUploadInput` (suporta múltiplos arquivos).
-- **Processamento:** Validação (imagem/*) → Compressão via Canvas → Upload paralelo com `Promise.allSettled`.
-- **Progresso:** `showUploadProgress('pUploadProgress', percent)` exibido durante uploads.
-- **Grid de Fotos:** `#pPhotoGrid` (3 colunas, aspect-ratio 1:1).
+## Visão Geral
+Transformar a gestão do portfólio em uma tarefa prazerosa e instantânea, onde o fotógrafo gasta segundos para atualizar seu site com máxima qualidade visual.
 
 ---
 
-## 2. Interações
+## 🚀 Fase 1: Fundação (Atual)
+*Foco: Velocidade e Simplicidade*
 
-- **Remover individual:** Botão `.p-del` em cada miniatura — remove do array e salva.
-- **Limpar tudo:** Botão `#pClearBtn` com confirmação via `window.showConfirm`.
-- **Reordenar:** Drag and Drop nativo (HTML5) nas miniaturas — reordena o array e salva.
-
----
-
-## 3. Dados
-
-- **Fonte:** `appState.appData.portfolio.photos` — array de objetos `{ url: string }`.
-- **Persistência:** `saveAppData('portfolio', appState.appData.portfolio)` após cada ação (com toast de sucesso).
+- [x] **Upload Múltiplo Paralelo**: Carregamento simultâneo com `Promise.allSettled`.
+- [x] **Compressão Client-side**: Economia de banda e carregamento instantâneo.
+- [x] **Drag & Drop Intuitivo**: Reordenação visual direta com feedback no preview.
+- [x] **Preview em Tempo Real**: Visualização imediata no site real via iframe.
+- [x] **Auto-Save**: Persistência automática sem botões de "Salvar".
 
 ---
 
-## 4. Preview em Tempo Real
+## 🛠️ Fase 2: Gestão & Contexto (Próximo Passo)
+*Foco: Organização e SEO*
 
-- Cada alteração (upload, remoção, reordenação) chama `window._meuSitePostPreview?.()`.
-- Isso dispara `postPreviewData()` em `meu-site.js`, que envia snapshot via `postMessage` ao iframe.
+- [ ] **Legendas e Alt-Text**: Interface para adicionar contexto a cada foto, melhorando o SEO do site.
+- [ ] **Seleção em Massa**: Checkbox para deletar várias fotos de uma vez.
+- [ ] **Modo "Rascunho" (Visibilidade)**: Botão de olho para ocultar uma foto do site sem precisar deletá-la do banco.
+- [ ] **Tags de Categorização**: Permitir filtrar fotos por "Casamento", "Ensaios", etc. (Suporte a múltiplas galerias).
 
 ---
 
-## 5. Integração com meu-site.js
+## ✨ Fase 3: Refinamento Premium
+*Foco: Micro-interações e Fluidez*
 
-- **Import:** `import { renderPortfolio } from './portfolio.js'`
-- **Renderização:** Chamada em `doSwitchSubTab` quando `btn.dataset.target === 'config-portfolio'`.
-- **postPreviewData:** Injeta `appState.appData.portfolio.photos` em `snap.siteContent.portfolio.photos` antes de enviar ao iframe.
+- [ ] **Animações de Drop**: Efeito visual de "encaixe" suave ao reordenar fotos.
+- [ ] **Filtros de Edição Rápida**: Integração com o `photoEditor.js` para cortes rápidos (aspect ratio).
+- [ ] **Silent Reordering**: Desativar toasts de sucesso durante a reordenação para não poluir a interface, mantendo apenas o feedback visual.
+- [ ] **Placeholder Inteligente**: Skeleton screens durante o upload para manter o layout estável.
+
+---
+
+## 🧠 Fase 4: Inteligência & Performance
+*Foco: Automação e Dados*
+
+- [ ] **Smart Focus Point**: Escolha automática do centro da foto para miniaturas mobile.
+- [ ] **Lazy Loading Admin**: Carregamento sob demanda para portfólios com centenas de fotos.
+- [ ] **Métricas de Engajamento**: Contador de visualizações/cliques por foto no painel admin.
+- [ ] **Sincronização com Álbuns**: Opção de importar fotos diretamente de Sessões já aprovadas.
+
+---
+
+> [!IMPORTANT]
+> **Regra de Ouro**: A interface deve sempre parecer limpa. Funcionalidades avançadas (como SEO) devem estar escondidas em modais ou menus de contexto para não poluir o grid principal.
