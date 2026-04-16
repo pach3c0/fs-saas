@@ -13,7 +13,7 @@
     /uploads/     /assets/      /* (proxy)
     (static)      (static)         |
                                    v
-                            Node.js/Express (:3002)
+                            Node.js/Express (:3051)
                                    |
                             MongoDB (local :27017)
 ```
@@ -339,6 +339,3 @@ pm2 restart fsfotografias-saas
 ---
 
 *Ultima atualizacao: 15/02/2026 - Fase 1 (Perfil + Identidade Visual) concluida*
-
-ssh root@5.189.174.18
-senha:zypvo2gacCuwpecnod

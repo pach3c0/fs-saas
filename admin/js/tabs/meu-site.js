@@ -641,27 +641,18 @@ async function renderSiteContent(container, builderTabsEl) {
     { value: "Georgia, serif", label: 'Georgia' },
   ];
 
-  // Estado do Hero — compartilhado entre initHeroStudio e syncHeroStudioUI
+  // Estado do Hero — versão básica (sem dispositivos)
   let _heroSelectedLayerId = null;
-  let _heroActiveDevice = 'desktop';
 
   const syncHeroStudioUI = () => {
     const heroContainer = container.querySelector('#config-hero');
     if (!heroContainer) return;
-    const cfg = configData.siteConfig;
-    if (!cfg) return;
+    const cfg = configData.siteConfig || {};
 
-    // Resetar seleção e device ao voltar para a aba
     _heroSelectedLayerId = null;
-    _heroActiveDevice = 'desktop';
     _heroImageUrlForPreview = cfg.heroImage || '';
 
-    // Atualizar botões de device
-    heroContainer.querySelectorAll('.hc-device-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.hcDevice === 'desktop');
-    });
-
-    // Atualizar sliders e valores de exibição
+    // Atualizar sliders e valores de exibição (Global)
     const setV = (id, val, suffix, isFloat = false) => {
       const el = heroContainer.querySelector('#' + id);
       if (el) el.value = val;
@@ -671,13 +662,6 @@ async function renderSiteContent(container, builderTabsEl) {
     setV('hcBgScale', cfg.heroScale ?? 1, 'x', true);
     setV('hcBgPosX', cfg.heroPosX ?? 50, '%');
     setV('hcBgPosY', cfg.heroPosY ?? 50, '%');
-    setV('hcOverlay', cfg.overlayOpacity ?? 30, '%');
-    setV('hcTopBar', cfg.topBarHeight ?? 0, '%');
-    setV('hcBottomBar', cfg.bottomBarHeight ?? 0, '%');
-    const topColorEl = heroContainer.querySelector('#hcTopBarColor');
-    if (topColorEl) topColorEl.value = cfg.topBarColor ?? '#000000';
-    const botColorEl = heroContainer.querySelector('#hcBottomBarColor');
-    if (botColorEl) botColorEl.value = cfg.bottomBarColor ?? '#000000';
 
     // Re-renderizar lista de camadas e esconder painel de propriedades
     heroRenderLayerList();
@@ -685,32 +669,22 @@ async function renderSiteContent(container, builderTabsEl) {
     if (p) p.style.display = 'none';
   };
 
-  // Funções internas do Hero — definidas no escopo do módulo para sync poder chamá-las
+  // Funções internas do Hero
   let heroRenderLayerList = () => {};
   let heroRenderPropsForLayer = (l) => {};
 
   const initHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
-    // Garantir que siteConfig existe em configData antes de criar a referência
     if (!configData.siteConfig) configData.siteConfig = {};
     const cfg = configData.siteConfig;
 
-    // Migração: se não há layers, criar a partir dos campos antigos
-    if (!cfg.heroLayers || cfg.heroLayers.length === 0) {
-      cfg.heroLayers = [];
-      if (cfg.heroTitle) cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'text', name: 'Título', text: cfg.heroTitle, x: cfg.titlePosX ?? 50, y: cfg.titlePosY ?? 40, fontSize: cfg.titleFontSize ?? 80, fontFamily: '', color: '#ffffff', fontWeight: 'bold', align: 'center', shadow: true });
-      if (cfg.heroSubtitle) cfg.heroLayers.push({ id: 'l_' + (Date.now() + 1), type: 'text', name: 'Subtítulo', text: cfg.heroSubtitle, x: cfg.subtitlePosX ?? 50, y: cfg.subtitlePosY ?? 58, fontSize: cfg.subtitleFontSize ?? 32, fontFamily: '', color: '#e5e7eb', fontWeight: 'normal', align: 'center', shadow: true });
-    }
-
-    // Garantir presets de device
-    if (!cfg.bgPresets) cfg.bgPresets = {};
-    if (!cfg.overlayPresets) cfg.overlayPresets = {};
-
+    // Migração/Limpeza: garantir que heroLayers existe
+    if (!cfg.heroLayers) cfg.heroLayers = [];
+    
     _heroSelectedLayerId = null;
-    _heroActiveDevice = 'desktop';
     _heroImageUrlForPreview = cfg.heroImage || '';
 
-    // ── Sidebar: Painel de Propriedades ──
+    // ── Sidebar: Painel de Propriedades (Versão Básica) ──
     heroContainer.innerHTML = `
       <style>
         #config-hero { display:flex; flex-direction:column; height:100%; overflow:hidden; }
@@ -732,8 +706,6 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-btn.primary:hover { background:#2563eb; }
         .hc-btn.success { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
         .hc-btn.success:hover { background:#15803d; }
-        .hc-btn.danger { border-color:#dc2626; color:#ef4444; }
-        .hc-btn.danger:hover { background:#dc2626; color:#fff; }
         .hc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
         .hc-layer-item:hover { background:#2d3748; }
         .hc-layer-item.active { border-color:#3b82f6; background:#172554; }
@@ -742,33 +714,15 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-layer-item .layer-del { color:#ef4444; cursor:pointer; font-size:0.85rem; opacity:0.6; }
         .hc-layer-item .layer-del:hover { opacity:1; }
         .hc-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; }
-        .hc-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.35rem; }
-        .hc-device-bar { display:flex; gap:2px; padding:0.5rem 0.75rem; background:#0d1117; border-bottom:1px solid #1f2937; }
-        .hc-device-btn { flex:1; padding:0.35rem 0; border:1px solid #374151; border-radius:0.375rem; background:#1f2937; color:#9ca3af; font-size:0.7rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.25rem; transition:all 0.15s; }
-        .hc-device-btn.active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
       </style>
 
       <div class="hc-sidebar">
-        <!-- DEVICE SELECTOR -->
-        <div class="hc-device-bar">
-          <button class="hc-device-btn active" data-hc-device="desktop" title="Ajustes para Desktop">Desktop</button>
-          <button class="hc-device-btn" data-hc-device="tablet" title="Ajustes para Tablet">Tablet</button>
-          <button class="hc-device-btn" data-hc-device="mobile" title="Ajustes para Mobile">Mobile</button>
-        </div>
-
-        <!-- DICA DEVICE -->
-        <div style="padding:0.4rem 0.75rem; background:#0d1117; border-bottom:1px solid #1f2937;">
-          <p style="font-size:0.65rem; color:#4b5563; margin:0; line-height:1.4;">Estes botões definem o <strong style="color:#6b7280;">posicionamento da imagem de fundo</strong> por dispositivo, independente do preview.</p>
-        </div>
-
         <!-- ADICIONAR -->
         <div class="hc-section">
           <div class="hc-section-head">Adicionar</div>
           <div style="display:flex; gap:0.35rem; padding:0.4rem 0.75rem;">
             <button class="hc-btn primary" id="hcAddText" style="flex:1;">+ Texto</button>
-            <button class="hc-btn primary" id="hcAddImage" style="flex:1;">+ Imagem</button>
           </div>
-          <input type="file" id="hcImageUpload" accept="image/*" style="display:none;">
         </div>
 
         <!-- FUNDO -->
@@ -778,10 +732,9 @@ async function renderSiteContent(container, builderTabsEl) {
             <label class="hc-btn primary" style="flex:1; cursor:pointer;">
               Upload <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
             </label>
-            <button class="hc-btn" id="hcBgCrop" style="flex:1;">Cortar</button>
           </div>
           <div id="hcBgProgress"></div>
-          <details style="margin:0;">
+          <details style="margin:0;" open>
             <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between;">
               Ajustes da Imagem <span style="font-size:0.6rem; opacity:0.6;">▼</span>
             </summary>
@@ -809,34 +762,6 @@ async function renderSiteContent(container, builderTabsEl) {
           </details>
         </div>
 
-        <!-- EFEITOS -->
-        <div class="hc-section">
-          <div class="hc-section-head">Efeitos</div>
-          <div class="hc-row">
-            <div class="hc-label">Escurecer fundo</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcOverlay" min="0" max="90" step="5" value="${cfg.overlayOpacity ?? 30}">
-              <span class="hc-range-val" id="hcOverlayVal">${cfg.overlayOpacity ?? 30}%</span>
-            </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Barra superior</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcTopBar" min="0" max="40" step="1" value="${cfg.topBarHeight ?? 0}">
-              <span class="hc-range-val" id="hcTopBarVal">${cfg.topBarHeight ?? 0}%</span>
-            </div>
-            <input type="color" id="hcTopBarColor" value="${cfg.topBarColor ?? '#000000'}" style="width:100%;height:22px;margin-top:0.25rem;">
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Barra inferior</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBottomBar" min="0" max="40" step="1" value="${cfg.bottomBarHeight ?? 0}">
-              <span class="hc-range-val" id="hcBottomBarVal">${cfg.bottomBarHeight ?? 0}%</span>
-            </div>
-            <input type="color" id="hcBottomBarColor" value="${cfg.bottomBarColor ?? '#000000'}" style="width:100%;height:22px;margin-top:0.25rem;">
-          </div>
-        </div>
-
         <!-- PROPRIEDADES DO ITEM -->
         <div class="hc-section" id="hcLayerProps" style="display:none;">
           <div class="hc-section-head" id="hcPropTitle">Propriedades</div>
@@ -855,7 +780,6 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="hc-btn" id="hcRestoreBtn" style="width:100%; margin-top:0.5rem; background:none; border:none; font-size:0.7rem;">Restaurar Padrão</button>
         </div>
       </div>
-      ${photoEditorHtml('heroPhotoEditorModal', 'livre')}
     `;
 
     // ── Funções de Estado e Preview ──
@@ -865,61 +789,14 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     const updateConfigFromUI = () => {
-      // Background / Overlay
-      const bg = {
-        scale: parseFloat(heroContainer.querySelector('#hcBgScale').value),
-        posX: parseInt(heroContainer.querySelector('#hcBgPosX').value),
-        posY: parseInt(heroContainer.querySelector('#hcBgPosY').value),
-      };
-      const ov = {
-        opacity: parseInt(heroContainer.querySelector('#hcOverlay').value),
-        topBarHeight: parseInt(heroContainer.querySelector('#hcTopBar').value),
-        topBarColor: heroContainer.querySelector('#hcTopBarColor').value,
-        bottomBarHeight: parseInt(heroContainer.querySelector('#hcBottomBar').value),
-        bottomBarColor: heroContainer.querySelector('#hcBottomBarColor').value,
-      };
-
-      if (_heroActiveDevice === 'desktop') {
-        Object.assign(cfg, { heroScale: bg.scale, heroPosX: bg.posX, heroPosY: bg.posY, overlayOpacity: ov.opacity, topBarHeight: ov.topBarHeight, topBarColor: ov.topBarColor, bottomBarHeight: ov.bottomBarHeight, bottomBarColor: ov.bottomBarColor });
-      } else {
-        cfg.bgPresets[_heroActiveDevice] = bg;
-        cfg.overlayPresets[_heroActiveDevice] = ov;
-      }
+      cfg.heroScale = parseFloat(heroContainer.querySelector('#hcBgScale').value);
+      cfg.heroPosX = parseInt(heroContainer.querySelector('#hcBgPosX').value);
+      cfg.heroPosY = parseInt(heroContainer.querySelector('#hcBgPosY').value);
       liveNotify();
     };
 
-    // ── Device Switch ──
-    heroContainer.querySelectorAll('.hc-device-btn').forEach(btn => {
-      btn.onclick = () => {
-        heroContainer.querySelectorAll('.hc-device-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        _heroActiveDevice = btn.dataset.hcDevice;
-
-        // Carregar valores para este device
-        let bg = (_heroActiveDevice === 'desktop') ? { scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 } : (cfg.bgPresets[_heroActiveDevice] || { scale: 1, posX: 50, posY: 50 });
-        let ov = (_heroActiveDevice === 'desktop') ? { opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' } : (cfg.overlayPresets[_heroActiveDevice] || { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' });
-
-        const setV = (id, val, suffix = '') => {
-          const el = heroContainer.querySelector('#' + id);
-          if (el) el.value = val;
-          const vEl = heroContainer.querySelector('#' + id + 'Val');
-          if (vEl) vEl.textContent = (typeof val === 'number' && suffix === 'x' ? val.toFixed(1) : val) + suffix;
-        };
-        setV('hcBgScale', bg.scale, 'x');
-        setV('hcBgPosX', bg.posX, '%');
-        setV('hcBgPosY', bg.posY, '%');
-        setV('hcOverlay', ov.opacity, '%');
-        setV('hcTopBar', ov.topBarHeight, '%');
-        heroContainer.querySelector('#hcTopBarColor').value = ov.topBarColor || '#000000';
-        setV('hcBottomBar', ov.bottomBarHeight, '%');
-        heroContainer.querySelector('#hcBottomBarColor').value = ov.bottomBarColor || '#000000';
-
-        renderPropsForLayer(_heroSelectedLayerId ? cfg.heroLayers.find(l => l.id === _heroSelectedLayerId) : null);
-      };
-    });
-
     // ── Sliders Bind ──
-    ['hcBgScale', 'hcBgPosX', 'hcBgPosY', 'hcOverlay', 'hcTopBar', 'hcBottomBar'].forEach(id => {
+    ['hcBgScale', 'hcBgPosX', 'hcBgPosY'].forEach(id => {
       heroContainer.querySelector('#' + id).oninput = (e) => {
         const val = e.target.value;
         const suffix = id === 'hcBgScale' ? 'x' : '%';
@@ -927,8 +804,6 @@ async function renderSiteContent(container, builderTabsEl) {
         updateConfigFromUI();
       };
     });
-    heroContainer.querySelector('#hcTopBarColor').onchange = updateConfigFromUI;
-    heroContainer.querySelector('#hcBottomBarColor').onchange = updateConfigFromUI;
 
     // ── Background Upload ──
     heroContainer.querySelector('#hcBgUpload').onchange = async (e) => {
@@ -941,27 +816,13 @@ async function renderSiteContent(container, builderTabsEl) {
         liveNotify();
       } catch (err) { window.showToast?.('Erro no upload', 'error'); }
     };
-    heroContainer.querySelector('#hcBgCrop').onclick = () => {
-      if (!cfg.heroImage) return window.showToast?.('Sem imagem de fundo', 'warning');
-      setupPhotoEditor(heroContainer, 'heroPhotoEditorModal', resolveImagePath(cfg.heroImage), {}, async ({ url }) => {
-        cfg.heroImage = url;
-        _heroImageUrlForPreview = url;
-        liveNotify();
-      });
-    };
 
     // ── Camadas ──
     const getLayer = (id) => cfg.heroLayers.find(l => l.id === id);
     const updateLayer = (id, props) => {
       const l = getLayer(id);
       if (!l) return;
-      if (_heroActiveDevice === 'desktop') {
-        Object.assign(l, props);
-      } else {
-        if (!l.presets) l.presets = {};
-        if (!l.presets[_heroActiveDevice]) l.presets[_heroActiveDevice] = {};
-        Object.assign(l.presets[_heroActiveDevice], props);
-      }
+      Object.assign(l, props);
       liveNotify();
     };
 
@@ -969,15 +830,15 @@ async function renderSiteContent(container, builderTabsEl) {
       const list = heroContainer.querySelector('#hcLayerList');
       const layers = [...cfg.heroLayers].reverse();
       if (!layers.length) {
-        list.innerHTML = '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma camada</div>';
+        list.innerHTML = '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhum texto adicionado</div>';
         return;
       }
 
       list.innerHTML = layers.map((l, idx) => `
         <div class="hc-layer-item ${l.id === _heroSelectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
           <span class="layer-drag" style="cursor:grab; color:#4b5563; font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
-          <span class="layer-icon">${l.type === 'text' ? 'T' : '🖼️'}</span>
-          <span class="layer-name">${l.name || (l.type === 'text' ? 'Texto' : 'Imagem')}</span>
+          <span class="layer-icon">T</span>
+          <span class="layer-name">${l.name || 'Texto'}</span>
           <span class="layer-del" data-del="${l.id}">✕</span>
         </div>
       `).join('');
@@ -990,22 +851,14 @@ async function renderSiteContent(container, builderTabsEl) {
           el.style.opacity = '0.4';
           e.dataTransfer.effectAllowed = 'move';
         });
-        el.addEventListener('dragend', () => {
-          el.style.opacity = '1';
-          list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = '');
-        });
-        el.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = '');
-          el.style.borderTop = '2px solid #3b82f6';
-        });
+        el.addEventListener('dragend', () => { el.style.opacity = '1'; list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = ''); });
+        el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.borderTop = '2px solid #3b82f6'; });
         el.addEventListener('dragleave', () => { el.style.borderTop = ''; });
         el.addEventListener('drop', (e) => {
           e.preventDefault();
           el.style.borderTop = '';
           const targetIdx = parseInt(el.dataset.idx);
           if (dragLayerIdx === null || dragLayerIdx === targetIdx) return;
-          // A lista está exibida em ordem reversa; converter para índices reais do array
           const realLen = cfg.heroLayers.length;
           const realDrag = realLen - 1 - dragLayerIdx;
           const realTarget = realLen - 1 - targetIdx;
@@ -1039,82 +892,41 @@ async function renderSiteContent(container, builderTabsEl) {
       if (!l) { p.style.display = 'none'; return; }
       p.style.display = 'block';
 
-      // Pegar valores considerando device
-      const getV = (field, def) => {
-        if (_heroActiveDevice === 'desktop') return l[field] ?? def;
-        return (l.presets?.[_heroActiveDevice]?.[field]) ?? (l[field] ?? def);
+      c.innerHTML = `
+        <div class="hc-row"><div class="hc-label">Texto</div><input type="text" class="hc-input" id="lpText" value="${l.text || ''}"></div>
+        <div class="hc-grid2">
+          <div class="hc-row"><div class="hc-label">Pos X (%)</div><input type="range" class="hc-range" id="lpX" value="${l.x ?? 50}"></div>
+          <div class="hc-row"><div class="hc-label">Pos Y (%)</div><input type="range" class="hc-range" id="lpY" value="${l.y ?? 50}"></div>
+        </div>
+        <div class="hc-row">
+          <div class="hc-label">Tamanho: <span id="lpSizeVal">${l.fontSize ?? 60}px</span></div>
+          <input type="range" class="hc-range" id="lpSize" min="10" max="300" value="${l.fontSize ?? 60}">
+        </div>
+        <div class="hc-row"><div class="hc-label">Cor</div><input type="color" id="lpColor" value="${l.color || '#ffffff'}" style="width:100%;"></div>
+        <div class="hc-row">
+          <div class="hc-label">Alinhamento</div>
+          <select class="hc-input" id="lpAlign">
+            <option value="left" ${l.align === 'left' ? 'selected' : ''}>Esquerda</option>
+            <option value="center" ${l.align === 'center' ? 'selected' : ''}>Centro</option>
+            <option value="right" ${l.align === 'right' ? 'selected' : ''}>Direita</option>
+          </select>
+        </div>
+      `;
+      heroContainer.querySelector('#lpText').oninput = (e) => {
+        l.text = e.target.value;
+        l.name = e.target.value ? e.target.value.substring(0, 20) : 'Texto';
+        renderLayerList();
+        liveNotify();
       };
-
-      if (l.type === 'text') {
-        c.innerHTML = `
-          <div class="hc-row"><div class="hc-label">Texto</div><input type="text" class="hc-input" id="lpText" value="${l.text || ''}"></div>
-          <div class="hc-grid2">
-            <div class="hc-row"><div class="hc-label">Pos X (%)</div><input type="range" class="hc-range" id="lpX" value="${getV('x', 50)}"></div>
-            <div class="hc-row"><div class="hc-label">Pos Y (%)</div><input type="range" class="hc-range" id="lpY" value="${getV('y', 50)}"></div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Tamanho: <span id="lpSizeVal">${getV('fontSize', 60)}px</span></div>
-            <input type="range" class="hc-range" id="lpSize" min="10" max="300" value="${getV('fontSize', 60)}">
-          </div>
-          <div class="hc-row"><div class="hc-label">Cor</div><input type="color" id="lpColor" value="${l.color || '#ffffff'}" style="width:100%;"></div>
-          <div class="hc-row">
-            <div class="hc-label">Alinhamento</div>
-            <select class="hc-input" id="lpAlign">
-              <option value="left" ${getV('align', 'center') === 'left' ? 'selected' : ''}>Esquerda</option>
-              <option value="center" ${getV('align', 'center') === 'center' ? 'selected' : ''}>Centro</option>
-              <option value="right" ${getV('align', 'center') === 'right' ? 'selected' : ''}>Direita</option>
-            </select>
-          </div>
-        `;
-        heroContainer.querySelector('#lpText').oninput = (e) => {
-          l.text = e.target.value;
-          // Atualiza nome da camada com as primeiras 20 letras do texto
-          l.name = e.target.value ? e.target.value.substring(0, 20) : 'Texto';
-          renderLayerList();
-          liveNotify();
-        };
-        heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
-        heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
-        heroContainer.querySelector('#lpSize').oninput = (e) => {
-          const val = parseInt(e.target.value);
-          heroContainer.querySelector('#lpSizeVal').textContent = val + 'px';
-          updateLayer(l.id, { fontSize: val });
-        };
-        heroContainer.querySelector('#lpColor').onchange = (e) => updateLayer(l.id, { color: e.target.value });
-        heroContainer.querySelector('#lpAlign').onchange = (e) => updateLayer(l.id, { align: e.target.value });
-      } else {
-        c.innerHTML = `
-          <div class="hc-row"><div class="hc-label">Imagem</div><button class="hc-btn" id="lpSwapImg">Trocar Imagem</button></div>
-          <div class="hc-grid2">
-            <div class="hc-row"><div class="hc-label">Pos X (%)</div><input type="range" class="hc-range" id="lpX" value="${getV('x', 50)}"></div>
-            <div class="hc-row"><div class="hc-label">Pos Y (%)</div><input type="range" class="hc-range" id="lpY" value="${getV('y', 50)}"></div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Largura: <span id="lpWidthVal">${getV('width', 30)}%</span></div>
-            <input type="range" class="hc-range" id="lpWidth" min="5" max="100" value="${getV('width', 30)}">
-          </div>
-        `;
-        heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
-        heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
-        heroContainer.querySelector('#lpWidth').oninput = (e) => {
-          const val = parseInt(e.target.value);
-          heroContainer.querySelector('#lpWidthVal').textContent = val + '%';
-          updateLayer(l.id, { width: val });
-        };
-        heroContainer.querySelector('#lpSwapImg').onclick = () => {
-          const inpt = heroContainer.querySelector('#hcImageUpload');
-          inpt.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            try {
-              const res = await uploadImage(file, appState.authToken);
-              l.url = res.url;
-              liveNotify();
-            } catch (err) { window.showToast?.('Erro no upload', 'error'); }
-          };
-          inpt.click();
-        };
-      }
+      heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
+      heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
+      heroContainer.querySelector('#lpSize').oninput = (e) => {
+        const val = parseInt(e.target.value);
+        heroContainer.querySelector('#lpSizeVal').textContent = val + 'px';
+        updateLayer(l.id, { fontSize: val });
+      };
+      heroContainer.querySelector('#lpColor').onchange = (e) => updateLayer(l.id, { color: e.target.value });
+      heroContainer.querySelector('#lpAlign').onchange = (e) => updateLayer(l.id, { align: e.target.value });
     };
 
     // ── Botões Adicionar ──
@@ -1123,26 +935,11 @@ async function renderSiteContent(container, builderTabsEl) {
       renderLayerList();
       liveNotify();
     };
-    heroContainer.querySelector('#hcAddImage').onclick = () => {
-      const inpt = heroContainer.querySelector('#hcImageUpload');
-      inpt.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const res = await uploadImage(file, appState.authToken);
-          cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'image', name: 'Nova Imagem', url: res.url, x: 50, y: 50, width: 20 });
-          renderLayerList();
-          liveNotify();
-        } catch (err) { window.showToast?.('Erro upload', 'error'); }
-      };
-      inpt.click();
-    };
 
     // ── Salvar / Restaurar ──
     heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
       await withBtnLoading(e.currentTarget, async () => {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
-        // Sincronizar configData sem quebrar a referência de cfg
         Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
         clearDirty();
         window.showToast?.('Capa salva!', 'success');
@@ -1151,40 +948,19 @@ async function renderSiteContent(container, builderTabsEl) {
     };
     heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
       if (!await window.showConfirm?.('Restaurar padrão? As camadas, imagem de fundo e ajustes serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
-      // Limpar TUDO incluindo imagem de fundo
       cfg.heroLayers = [];
       cfg.heroImage = '';
       cfg.heroScale = 1; cfg.heroPosX = 50; cfg.heroPosY = 50;
       cfg.overlayOpacity = 30; cfg.topBarHeight = 0; cfg.bottomBarHeight = 0;
-      cfg.topBarColor = '#000000'; cfg.bottomBarColor = '#000000';
       cfg.bgPresets = {}; cfg.overlayPresets = {};
-      // Limpar referência local da imagem de preview
       _heroImageUrlForPreview = '';
-      // Atualizar sliders na UI para refletir valores padrão
-      const setSlider = (id, val, suffix, isFloat) => {
-        const el = heroContainer.querySelector('#' + id);
-        if (el) el.value = val;
-        const vEl = heroContainer.querySelector('#' + id + 'Val');
-        if (vEl) vEl.textContent = (isFloat ? parseFloat(val).toFixed(1) : val) + suffix;
-      };
-      setSlider('hcBgScale', 1, 'x', true);
-      setSlider('hcBgPosX', 50, '%');
-      setSlider('hcBgPosY', 50, '%');
-      setSlider('hcOverlay', 30, '%');
-      setSlider('hcTopBar', 0, '%');
-      setSlider('hcBottomBar', 0, '%');
-      renderLayerList(); renderPropsForLayer(null);
+      syncHeroStudioUI();
       try {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
-        // Sincronizar sem quebrar referência de cfg
         Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
         clearDirty();
         liveRefresh({ siteConfig: cfg });
         window.showToast?.('Padrão restaurado!', 'success');
-      } catch (err) {
-        window.showToast?.('Erro ao salvar. Tente novamente.', 'error');
-      }
-    };
 
     // ── Init — expor funções internas para syncHeroStudioUI ──
     heroRenderLayerList = renderLayerList;

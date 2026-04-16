@@ -351,10 +351,18 @@ Leia o arquivo da skill APENAS ao trabalhar na area correspondente:
 
 | Skill | Quando usar |
 |-------|-------------|
-| `skills/admin-builder.md` | Builder mode, sub-abas do Meu Site, postMessage, dirty tracking |
-| `skills/sessoes.md` | Sessoes de clientes, selecao de fotos, galeria do cliente |
+| `skills/obsidian_master_sync.md` | Visao geral do projeto — primeira leitura de qualquer sessao |
+| `skills/geral-site.md` | Builder mode, sub-abas do Meu Site, postMessage, dirty tracking |
+| `skills/design-system.md` | Tokens de design, CSS variables, paleta GitHub Dark |
+| `skills/builder-templates.md` | Templates do site (elegante, minimalista, moderno, escuro, galeria), shared-site.js |
+| `skills/builder-personalizar.md` | Customizacao de cores, fontes, layout do site |
+| `skills/builder-hero.md` | Secao Hero (Capa) do site |
+| `skills/builder-portfolio.md` | Portfolio de fotos no site |
+| `skills/builder-estudio.md` | Secao Estudio (sobre o estudio) |
+| `skills/builder-sobre.md` | Secao Sobre |
+| `skills/builder-forms.md` | Formularios e contato |
+| `skills/builder-sessoes.md` | Sessoes de clientes, selecao de fotos, galeria do cliente |
 | `skills/albums-prova.md` | Albums de prova, aprovacao, revisao pelo cliente |
-| `skills/site-templates.md` | Templates do site, shared-site.js, IDs padrao, novo template |
 | `skills/billing.md` | Planos, limites, Stripe, assinatura |
 
 **Regra:** Ao finalizar qualquer implementacao que afete uma area coberta por uma skill, atualizar o arquivo correspondente.

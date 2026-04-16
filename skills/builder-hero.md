@@ -1,41 +1,64 @@
-# Módulo: Hero / Capa
+# Módulo: Hero / Capa (Versão Básica)
 
-Editor visual da seção de abertura (Hero) do site.
-
----
-
-## 1. Interface do Editor
-- **Canvas Principal:** `#hero-canvas-container`
-- **Controles de Fundo:**
-    - Zoom: `#hcBgScale` (1x a 3x)
-    - Posição: `#hcBgPosX` e `#hcBgPosY` (0% a 100%)
-    - Upload: `#hcBgUpload` (dispara o editor de corte antes de aplicar)
-- **Gestão de Camadas (Layers):**
-    - Adicionar Texto: `#hcAddText`
-    - Adicionar Imagem: `#hcAddImage`
-    - Lista de Camadas: `.hc-layer-item` (suporta reordenação via drag-and-drop)
+Editor simplificado para a seção de abertura do site. Focado em imagem de fundo única e camadas de texto.
 
 ---
 
-## 2. Propriedades de Camada
-Ao selecionar uma camada, o painel `#hcLayerProps` é exibido com:
-- **Texto:** Fonte, tamanho, cor, alinhamento.
-- **Imagem:** Escala, rotação, filtros.
+## 1. Arquivo Principal
+`admin/js/tabs/meu-site.js` — função `renderHeroStudio()`
 
 ---
 
-## 3. Lógica Técnica
-- **Renderização:** O canvas no admin simula o layout final.
-- **Persistência:** O botão `#hcSaveBtn` salva o array de layers e as configurações de fundo no campo `hero` do banco de dados.
-- **Preview:** Utiliza o `postMessage` para atualizar o título e fundo no site sem recarregar.
+## 2. Interface do Editor (Simplificada)
 
+### Sidebar de Propriedades (`#config-hero`)
 
-## Restaurar Padrão
-- **Botão:** `Restaurar`
-- **Ação:** Restaura o Hero para o padrão do tema atual.
-- **Requisito:** Exibir um alerta claro informando que a ação redefine apenas a posição das seções e que nenhum conteúdo do site será apagado.
+**Seção: Adicionar**
+- Botão: `+ Texto` (`#hcAddText`) — Adiciona uma nova camada de texto.
+- *Nota: Função "+ Imagem" removida para simplificação.*
 
+**Seção: Imagem de Fundo**
+- Botão: `Upload` (`#hcBgUpload`) — Altera a imagem de fundo principal.
+- *Nota: Botão "Cortar" removido.*
+- **Ajustes da Imagem** (Dropdown `<details>`):
+  - Zoom: `#hcBgScale` (1x a 3x)
+  - Posição X: `#hcBgPosX` (0–100%)
+  - Posição Y: `#hcBgPosY` (0–100%)
 
-# ajuste
+**Seção: Propriedades da Camada Texto** (`#hcLayerProps`)
+- Conteúdo do texto: `#lpText`
+- Posição X/Y (%), Tamanho da Fonte, Cor, Alinhamento.
 
-Padronizar a guia Capa (Hero) para exibir o preview real do site em tempo real, eliminando o Canvas exclusivo e mantendo a consistência visual com as guias "Geral" e "Sessões".
+**Seção: Camadas** (`#hcLayerList`)
+- Lista de textos adicionados à capa.
+- Suporta reordenação via Drag & Drop.
+- Clique para selecionar e editar propriedades.
+- Botão `✕` para remover a camada.
+
+**Seção: Ações**
+- Botão `Salvar` (`#hcSaveBtn`): Persiste as configurações.
+- Botão `Restaurar Padrão` (`#hcRestoreBtn`): Reseta a capa para o estado inicial.
+
+---
+
+## 3. Estrutura de Dados (`cfg`)
+
+```javascript
+cfg = {
+  heroImage: '/uploads/orgId/file.jpg',
+  heroScale: 1,
+  heroPosX: 50,
+  heroPosY: 50,
+  heroLayers: [
+    { id, type: 'text', name, text, x, y, fontSize, color, align, ... }
+  ]
+}
+```
+
+---
+
+## 4. O que foi removido (Simplificação)
+- [x] Botões de Device (Desktop/Tablet/Mobile): Agora o posicionamento é global.
+- [x] Seção de Efeitos: Overlay (escurecer), Barra Superior e Barra Inferior removidos.
+- [x] Camadas de Imagem: Apenas texto é permitido sobre a capa.
+- [x] Ferramenta de Corte (Crop): Foco em upload direto e ajuste de zoom/posição.
