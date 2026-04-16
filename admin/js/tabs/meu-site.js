@@ -518,7 +518,7 @@ async function renderSiteContent(container, builderTabsEl) {
   const tabs = container.querySelectorAll('.sub-tab-btn');
   const contents = container.querySelectorAll('.sub-tab-content');
 
-  function doSwitchSubTab(btn, targetContainer) {
+  async function doSwitchSubTab(btn, targetContainer) {
     const heroCanvasEl = document.getElementById('hero-canvas-container');
     const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const iframe = document.getElementById('builder-iframe');
@@ -559,7 +559,7 @@ async function renderSiteContent(container, builderTabsEl) {
     } else if (btn.dataset.target === 'config-sobre') {
       renderSobre(targetContainer);
     } else if (btn.dataset.target === 'config-portfolio') {
-      renderPortfolio(targetContainer);
+      await renderPortfolio(targetContainer);
     } else if (btn.dataset.target === 'config-servicos') {
       renderServicos();
     } else if (btn.dataset.target === 'config-depoimentos') {

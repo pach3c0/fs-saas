@@ -3,9 +3,18 @@
  * Gerenciamento de galeria de fotos com preview em tempo real no iframe.
  */
 
-import { appState, saveAppData } from '../state.js';
+import { appState } from '../state.js';
+import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
+
+async function savePortfolio(silent = false) {
+  const ok = await apiPut('/api/site/admin/config', {
+    siteContent: { portfolio: appState.appData.portfolio }
+  });
+  if (!silent && ok !== false) window.showToast?.('Portfólio salvo!', 'success');
+  return ok;
+}
 
 
 function ensurePortfolio() {
@@ -15,7 +24,14 @@ function ensurePortfolio() {
   }
 }
 
-export function renderPortfolio(container) {
+export async function renderPortfolio(container) {
+  // Carregar portfolio de siteContent (onde o site público lê)
+  try {
+    const config = await apiGet('/api/site/admin/config');
+    const photos = config?.siteContent?.portfolio?.photos;
+    if (!appState.appData.portfolio) appState.appData.portfolio = {};
+    if (Array.isArray(photos)) appState.appData.portfolio.photos = photos;
+  } catch (_) { /* usa appState atual */ }
   ensurePortfolio();
 
   // Estado local para seleção em massa
@@ -179,7 +195,7 @@ function setupEvents(container) {
   const updateAndSave = () => {
     renderPhotos(container);
     window._meuSitePostPreview?.();
-    saveAppData('portfolio', appState.appData.portfolio);
+    savePortfolio();
   };
 
   uploadInput.onchange = async (e) => {
@@ -280,7 +296,7 @@ function setupEvents(container) {
   // Salvar legenda efetivamente ao sair do campo
   grid.onchange = (e) => {
     if (e.target.classList.contains('p-edit-input')) {
-      saveAppData('portfolio', appState.appData.portfolio, true);
+      savePortfolio(true);
     }
   };
 

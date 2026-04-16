@@ -105,6 +105,8 @@ Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart a
 | Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` em `server.js` |
 | Novo modelo | Incluir `organizationId: { type: ObjectId, ref: 'Organization', required: true }` + `{ timestamps: true }` |
 | Upload imagem | `import { uploadImage, showUploadProgress } from '../utils/upload.js'` → comprime 1200px/85% → `POST /api/admin/upload` → `{ url: '/uploads/orgId/file.jpg' }` |
+| Dados que aparecem no site publico | Salvar com `apiPut('/api/site/admin/config', { siteContent: { chave: valor } })`. Carregar com `apiGet('/api/site/admin/config')` → `.siteContent.chave`. NUNCA usar `saveAppData` para dados do site publico — ela salva em SiteData (legado) que o site nao le. |
+| Dados internos do admin (hero, faq, etc) | Usar `saveAppData(section, data)` → `/api/site-data` (SiteData). So para dados que o site publico le via SiteData (hero canvas, faq). Verificar qual modelo o `shared-site.js` consome antes de escolher qual rota usar. |
 | Alterar layout de secao nos templates | Editar `site/templates/shared.css` (estrutura: grid, aspect-ratio, breakpoints). Regras visuais (cores, bordas, sombras, animacoes) em cada `style.css` individual |
 | Editor visual de imagem com drag/resize/borda/sombra | Usar `HeroCanvasEditor` de `admin/js/utils/heroCanvas.js` (apelido interno: CanvasLayerEditor). Ja usado em Hero e Sobre. Aplicar em qualquer secao que precise compor imagem livremente (posicionar, escalar, arredondar, adicionar sombra). NAO aplicar em grades de fotos simples (ex: Portfolio). |
 
@@ -119,6 +121,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | Conteudo invisivel no admin | Classes Tailwind no tema dark | Sempre CSS variables |
 | `@apply` nao funciona em runtime | So funciona no build | Nao usar fora de `tailwind-input.css` |
 | Portfolio sumido no site | Classe arbitraria nao compilada | Use `style="aspect-ratio:3/4;"`, nao `aspect-[3/4]` |
+| Secao salva no admin mas nao aparece no site publico | `saveAppData` salva em `SiteData` (legado); site publico le de `Organization.siteContent` | Usar `apiPut('/api/site/admin/config', { siteContent: { ... } })` para qualquer dado que o site precisa exibir |
 | Upload 413 | Payload grande | Verificar `client_max_body_size` Nginx |
 | Preview branco no Meu Site | Race condition slug | `await loadOrgSlug()` antes de `builderLoadPreview` |
 | Preview "Site em construcao" | `siteEnabled=false` | Sempre `_preview=1` no iframe builder |
