@@ -2,12 +2,15 @@
  * Tab: FAQ
  */
 
-import { appState, saveAppData } from '../state.js';
+import { appState } from '../state.js';
 import { generateId } from '../utils/helpers.js';
-import { apiPut } from '../utils/api.js';
+import { apiGet, apiPut } from '../utils/api.js';
 
-async function syncFaqToSite(faqs) {
-  await apiPut('/api/site/admin/config', { siteContent: { faq: faqs } });
+let _faqItems = null;
+
+async function saveFaq(silent = false) {
+  await apiPut('/api/site/admin/config', { siteContent: { faq: _faqItems } });
+  if (!silent) window.showToast?.('FAQ salvo!', 'success');
 }
 
 const DEFAULT_FAQS = [
@@ -20,10 +23,17 @@ const DEFAULT_FAQS = [
 ];
 
 export async function renderFaq(container) {
-  let faqData = appState.appData.faq || { faqs: [] };
-  if (!faqData.faqs || faqData.faqs.length === 0) {
-    faqData = { faqs: DEFAULT_FAQS.map(f => ({ id: generateId(), ...f })) };
+  // Carregar de siteContent na primeira vez
+  if (_faqItems === null) {
+    try {
+      const config = await apiGet('/api/site/admin/config');
+      _faqItems = config?.siteContent?.faq || [];
+    } catch (_) { _faqItems = []; }
   }
+  if (_faqItems.length === 0) {
+    _faqItems = DEFAULT_FAQS.map(f => ({ id: generateId(), ...f }));
+  }
+  const faqData = { faqs: _faqItems };
 
   let html = `
     <div style="display:flex; flex-direction:column; gap:1rem;">
@@ -64,31 +74,25 @@ export async function renderFaq(container) {
   window.deleteFaq = async (index) => {
     const ok = await window.showConfirm?.('Remover esta pergunta?', { confirmText: 'Remover', danger: true }) ?? true;
     if (!ok) return;
-    faqData.faqs.splice(index, 1);
-    appState.appData.faq = faqData;
-    await saveAppData('faq', faqData, true);
+    _faqItems.splice(index, 1);
+    await saveFaq(true);
     renderFaq(container);
   };
 
   container.querySelector('#addFaqBtn').onclick = () => {
-    faqData.faqs.push({ id: generateId(), question: 'Nova pergunta', answer: '' });
+    _faqItems.push({ id: generateId(), question: 'Nova pergunta', answer: '' });
     renderFaq(container);
   };
 
   container.querySelector('#saveFaqBtn').onclick = async () => {
-    const updated = { faqs: [] };
-
+    _faqItems = [];
     container.querySelectorAll('[data-faq-question]').forEach((input, index) => {
-      const question = input.value;
-      const answer = container.querySelector(`[data-faq-answer="${index}"]`)?.value || '';
-      updated.faqs.push({
-        id: faqData.faqs[index]?.id || generateId(),
-        question,
-        answer
+      _faqItems.push({
+        id: generateId(),
+        question: input.value,
+        answer: container.querySelector(`[data-faq-answer="${index}"]`)?.value || ''
       });
     });
-
-    await saveAppData('faq', updated);
-    await syncFaqToSite(updated.faqs);
+    await saveFaq();
   };
 }

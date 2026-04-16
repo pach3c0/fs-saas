@@ -565,13 +565,13 @@ async function renderSiteContent(container, builderTabsEl) {
     } else if (btn.dataset.target === 'config-depoimentos') {
       renderDepoimentos();
     } else if (btn.dataset.target === 'config-albuns') {
-      renderAlbuns(targetContainer);
+      await renderAlbuns(targetContainer);
     } else if (btn.dataset.target === 'config-estudio') {
       renderEstudio(targetContainer);
     } else if (btn.dataset.target === 'config-contato') {
       renderContato();
     } else if (btn.dataset.target === 'config-faq') {
-      renderFaq(targetContainer);
+      await renderFaq(targetContainer);
     } else if (btn.dataset.target === 'config-personalizar') {
       renderPersonalizar();
     }

@@ -2,17 +2,27 @@
  * Tab: Álbuns
  */
 
-import { appState, saveAppData } from '../state.js';
-import { apiPut } from '../utils/api.js';
+import { appState } from '../state.js';
+import { apiGet, apiPut } from '../utils/api.js';
 
-async function syncAlbunsToSite(albums) {
-  await apiPut('/api/site/admin/config', { siteContent: { albums } });
+let _albums = null;
+
+async function saveAlbuns(silent = false) {
+  await apiPut('/api/site/admin/config', { siteContent: { albums: _albums } });
+  if (!silent) window.showToast?.('Álbuns salvos!', 'success');
 }
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 export async function renderAlbuns(container) {
-  const albums = appState.appData.albums || [];
+  // Carregar de siteContent na primeira vez
+  if (_albums === null) {
+    try {
+      const config = await apiGet('/api/site/admin/config');
+      _albums = config?.siteContent?.albums || [];
+    } catch (_) { _albums = []; }
+  }
+  const albums = _albums;
 
   let albumsHtml = '';
   albums.forEach((album, idx) => {
@@ -127,16 +137,14 @@ export async function renderAlbuns(container) {
       }
 
       showUploadProgress(`albumUploadProgress${albumIdx}`, 100);
-      appState.appData.albums = albums;
-      await saveAppData('albums', albums, true);
-      await syncAlbunsToSite(albums);
+      await saveAlbuns(true);
       renderAlbuns(container);
     };
   });
 
   // Adicionar album
   container.querySelector('#addAlbumBtn').onclick = () => {
-    albums.unshift({
+    _albums.unshift({
       id: generateId(),
       title: '',
       subtitle: '',
@@ -144,21 +152,18 @@ export async function renderAlbuns(container) {
       photos: [],
       createdAt: new Date().toISOString()
     });
-    appState.appData.albums = albums;
     renderAlbuns(container);
   };
 
   // Salvar título/subtítulo automaticamente ao perder foco
   const saveAlbumFields = async () => {
     container.querySelectorAll('[data-album-title]').forEach((input, idx) => {
-      if (albums[idx]) albums[idx].title = input.value;
+      if (_albums[idx]) _albums[idx].title = input.value;
     });
     container.querySelectorAll('[data-album-subtitle]').forEach((input, idx) => {
-      if (albums[idx]) albums[idx].subtitle = input.value;
+      if (_albums[idx]) _albums[idx].subtitle = input.value;
     });
-    appState.appData.albums = albums;
-    await saveAppData('albums', albums, true);
-    await syncAlbunsToSite(albums);
+    await saveAlbuns(true);
   };
 
   container.querySelectorAll('[data-album-title], [data-album-subtitle]').forEach(input => {
@@ -175,33 +180,25 @@ export async function renderAlbuns(container) {
   window.removeAlbum = async (idx) => {
     const ok = await window.showConfirm?.('Remover este álbum e todas as fotos?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este álbum e todas as fotos?');
     if (!ok) return;
-    albums.splice(idx, 1);
-    appState.appData.albums = albums;
-    await saveAppData('albums', albums, true);
-    await syncAlbunsToSite(albums);
+    _albums.splice(idx, 1);
+    await saveAlbuns(true);
     renderAlbuns(container);
   };
 
   // Definir capa
   window.setAlbumCover = async (albumIdx, photoIdx) => {
-    albums[albumIdx].cover = albums[albumIdx].photos[photoIdx];
-    appState.appData.albums = albums;
-    await saveAppData('albums', albums, true);
-    await syncAlbunsToSite(albums);
+    _albums[albumIdx].cover = _albums[albumIdx].photos[photoIdx];
+    await saveAlbuns(true);
     renderAlbuns(container);
   };
 
   // Remover foto
   window.removeAlbumPhoto = async (albumIdx, photoIdx) => {
-    const album = albums[albumIdx];
+    const album = _albums[albumIdx];
     const removed = album.photos[photoIdx];
     album.photos.splice(photoIdx, 1);
-    if (album.cover === removed) {
-      album.cover = album.photos[0] || '';
-    }
-    appState.appData.albums = albums;
-    await saveAppData('albums', albums, true);
-    await syncAlbunsToSite(albums);
+    if (album.cover === removed) album.cover = album.photos[0] || '';
+    await saveAlbuns(true);
     renderAlbuns(container);
   };
 }
