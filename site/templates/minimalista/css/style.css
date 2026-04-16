@@ -185,28 +185,13 @@ body {
   text-align: center;
 }
 
+/* Minimalista usa 2 colunas (diferente do padrão de 3) */
 .portfolio-grid {
-  display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 3rem;
 }
-
-.portfolio-item {
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.portfolio-item:hover {
-  opacity: 0.85;
-}
-
-.portfolio-grid img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.portfolio-item { transition: opacity 0.3s; }
+.portfolio-item:hover { opacity: 0.85; }
 
 /* SERVICES */
 .section-services {

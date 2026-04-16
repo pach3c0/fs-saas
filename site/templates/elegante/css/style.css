@@ -316,17 +316,9 @@ body.theme-escuro .nav-links.open {
    PORTFOLIO
    ============================================ */
 .section-portfolio { background: var(--bg-alt); }
-.portfolio-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
+.portfolio-grid { gap: 1rem; }
 .portfolio-item {
-  aspect-ratio: 16/9;
-  overflow: hidden;
   border-radius: 0.75rem;
-  cursor: pointer;
-  position: relative;
   background: var(--bg-alt);
 }
 .portfolio-item::after {
@@ -339,15 +331,9 @@ body.theme-escuro .nav-links.open {
   border-radius: 0.75rem;
 }
 .portfolio-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  display: block;
 }
-.portfolio-item:hover::after {
-  opacity: 1;
-}
+.portfolio-item:hover::after { opacity: 1; }
 .portfolio-item:hover img { transform: scale(1.07); }
 
 /* ============================================
