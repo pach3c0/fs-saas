@@ -519,26 +519,17 @@ async function renderSiteContent(container, builderTabsEl) {
   const contents = container.querySelectorAll('.sub-tab-content');
 
   function doSwitchSubTab(btn, targetContainer) {
-    // Canvas editors: esconder/mostrar sem destruir (o usuário vai e volta)
     const heroCanvasEl = document.getElementById('hero-canvas-container');
-    const portfolioCanvasEl = document.getElementById('portfolio-canvas-container');
+    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const iframe = document.getElementById('builder-iframe');
 
-    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const target = btn.dataset.target;
-    if (target === 'config-portfolio') {
+    if (target === 'config-sobre') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none'; // Agora o portfólio usa o iframe
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
-      if (iframe) iframe.style.display = ''; // Mostrar iframe para o portfólio
-    } else if (target === 'config-sobre') {
-      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
       if (sobreCanvasEl) sobreCanvasEl.style.display = 'flex';
       if (iframe) iframe.style.display = 'none';
     } else {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';
       if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
       if (iframe) iframe.style.display = '';
     }
