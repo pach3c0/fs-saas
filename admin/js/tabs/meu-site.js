@@ -60,12 +60,15 @@ async function renderSiteContent(container, builderTabsEl) {
         </div>
       </div>` : ''}
 
-      <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; align-items:center; justify-content:space-between;">
-        <div>
-            <h3 style="color:#f3f4f6; font-weight:600;">Status do Site</h3>
-            <p style="color:#9ca3af; font-size:0.875rem;">Quando desativado, exibe uma página de "Em breve".</p>
+      <div id="siteStatusCard" style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+        <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <h3 style="color:#f3f4f6; font-weight:600; margin:0;">Status do Site</h3>
+              <span id="siteStatusBadge" style="display:none; font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px; background:#7f1d1d; color:#fca5a5;">● DESATIVADO</span>
+            </div>
+            <p style="color:#9ca3af; font-size:0.875rem; margin:0.25rem 0 0;">Quando desativado, visitantes veem uma página de "Em breve".</p>
         </div>
-        <label style="position:relative; display:inline-block; width:3.5rem; height:1.75rem;">
+        <label style="position:relative; display:inline-block; width:3.5rem; height:1.75rem; flex-shrink:0;">
             <input type="checkbox" id="siteEnabledToggle" style="opacity:0; width:0; height:0;">
             <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#374151; transition:.4s; border-radius:9999px;"></span>
             <span style="position:absolute; content:''; height:1.25rem; width:1.25rem; left:0.25rem; bottom:0.25rem; background-color:white; transition:.4s; border-radius:50%;" id="toggleKnob"></span>
@@ -80,7 +83,7 @@ async function renderSiteContent(container, builderTabsEl) {
       <div style="display:flex; gap:0; flex:1; min-height:0;">
 
         <!-- Nav vertical -->
-        <div style="width:148px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border,#30363d); padding-right:0.5rem;">
+        <div style="width:110px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border,#30363d); padding-right:0.5rem;">
           <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span>Geral</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span>Seções</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span>Capa</button>
@@ -238,18 +241,37 @@ async function renderSiteContent(container, builderTabsEl) {
   renderTemplateCards();
   container.querySelector('#siteTheme').value = selectedTheme;
 
+  // Atualiza label da topbar do builder com o tema atual ao carregar
+  const _themeLabel = document.getElementById('builder-preview-theme-label');
+  if (_themeLabel) {
+    const _themeName = templates.find(t => t.id === selectedTheme)?.name || selectedTheme;
+    _themeLabel.textContent = `Tema: ${_themeName}`;
+  }
+
   // Status Toggle
   const toggle = container.querySelector('#siteEnabledToggle');
-  toggle.checked = siteEnabled;
+  const statusBadge = container.querySelector('#siteStatusBadge');
+  const statusCard = container.querySelector('#siteStatusCard');
+
+  const updateStatusUI = (enabled) => {
+    if (statusBadge) statusBadge.style.display = enabled ? 'none' : 'inline-block';
+    if (statusCard) statusCard.style.borderColor = enabled ? '#374151' : '#7f1d1d';
+  };
+
+  toggle.checked = !!siteEnabled;
+  updateStatusUI(!!siteEnabled);
+
   toggle.onchange = async () => {
     try {
       await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
       configData.siteEnabled = toggle.checked;
-      window.showToast?.(toggle.checked ? 'Site ativado!' : 'Site desativado.', toggle.checked ? 'success' : 'warning');
+      updateStatusUI(toggle.checked);
+      window.showToast?.(toggle.checked ? 'Site ativado! Visitantes já podem acessar.' : 'Site desativado. Visitantes verão "Em breve".', toggle.checked ? 'success' : 'warning');
       liveRefresh({});
     } catch (e) {
       window.showToast?.('Erro ao salvar status do site', 'error');
-      toggle.checked = !toggle.checked; // reverte
+      toggle.checked = !toggle.checked;
+      updateStatusUI(toggle.checked);
     }
   };
 
@@ -886,16 +908,55 @@ async function renderSiteContent(container, builderTabsEl) {
     const renderLayerList = () => {
       const list = heroContainer.querySelector('#hcLayerList');
       const layers = [...cfg.heroLayers].reverse();
-      list.innerHTML = layers.map(l => `
-        <div class="hc-layer-item ${l.id === _selectedLayerId ? 'active' : ''}" data-id="${l.id}">
+      if (!layers.length) {
+        list.innerHTML = '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma camada</div>';
+        return;
+      }
+
+      list.innerHTML = layers.map((l, idx) => `
+        <div class="hc-layer-item ${l.id === _selectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
+          <span class="layer-drag" style="cursor:grab; color:#4b5563; font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
           <span class="layer-icon">${l.type === 'text' ? 'T' : '🖼️'}</span>
           <span class="layer-name">${l.name || (l.type === 'text' ? 'Texto' : 'Imagem')}</span>
           <span class="layer-del" data-del="${l.id}">✕</span>
         </div>
-      `).join('') || '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma camada</div>';
+      `).join('');
 
+      // Drag & Drop nas camadas
+      let dragLayerIdx = null;
       list.querySelectorAll('.hc-layer-item').forEach(el => {
-        el.onclick = (e) => {
+        el.addEventListener('dragstart', (e) => {
+          dragLayerIdx = parseInt(el.dataset.idx);
+          el.style.opacity = '0.4';
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        el.addEventListener('dragend', () => {
+          el.style.opacity = '1';
+          list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = '');
+        });
+        el.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = '');
+          el.style.borderTop = '2px solid #3b82f6';
+        });
+        el.addEventListener('dragleave', () => { el.style.borderTop = ''; });
+        el.addEventListener('drop', (e) => {
+          e.preventDefault();
+          el.style.borderTop = '';
+          const targetIdx = parseInt(el.dataset.idx);
+          if (dragLayerIdx === null || dragLayerIdx === targetIdx) return;
+          // A lista está exibida em ordem reversa; converter para índices reais do array
+          const realLen = cfg.heroLayers.length;
+          const realDrag = realLen - 1 - dragLayerIdx;
+          const realTarget = realLen - 1 - targetIdx;
+          const moved = cfg.heroLayers.splice(realDrag, 1)[0];
+          cfg.heroLayers.splice(realTarget, 0, moved);
+          dragLayerIdx = null;
+          renderLayerList();
+          liveNotify();
+        });
+
+        el.addEventListener('click', (e) => {
           if (e.target.classList.contains('layer-del')) {
             cfg.heroLayers = cfg.heroLayers.filter(l => l.id !== el.dataset.id);
             if (_selectedLayerId === el.dataset.id) _selectedLayerId = null;
@@ -904,10 +965,11 @@ async function renderSiteContent(container, builderTabsEl) {
             liveNotify();
             return;
           }
+          if (e.target.classList.contains('layer-drag')) return;
           _selectedLayerId = el.dataset.id;
           renderLayerList();
           renderPropsForLayer(getLayer(_selectedLayerId));
-        };
+        });
       });
     };
 
@@ -944,7 +1006,13 @@ async function renderSiteContent(container, builderTabsEl) {
             </select>
           </div>
         `;
-        heroContainer.querySelector('#lpText').oninput = (e) => { l.text = e.target.value; liveNotify(); };
+        heroContainer.querySelector('#lpText').oninput = (e) => {
+          l.text = e.target.value;
+          // Atualiza nome da camada com as primeiras 20 letras do texto
+          l.name = e.target.value ? e.target.value.substring(0, 20) : 'Texto';
+          renderLayerList();
+          liveNotify();
+        };
         heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
         heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
         heroContainer.querySelector('#lpSize').oninput = (e) => {

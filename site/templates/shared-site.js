@@ -1169,18 +1169,37 @@ function initNavBehavior() {
   const navLinks = document.getElementById('navLinks');
 
   if (nav) {
+    // Remover listener antigo para evitar duplicatas (uso de AbortController)
+    if (nav._scrollAbort) nav._scrollAbort.abort();
+    nav._scrollAbort = new AbortController();
     window.addEventListener('scroll', () => {
       nav.classList.toggle('scrolled', window.scrollY > 40);
-    }, { passive: true });
+    }, { passive: true, signal: nav._scrollAbort.signal });
   }
 
   if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      navLinks.classList.toggle('open');
+    // Remover listeners antigos clonando os elementos
+    const newHamburger = hamburger.cloneNode(true);
+    hamburger.parentNode.replaceChild(newHamburger, hamburger);
+    const newNavLinks = navLinks.cloneNode(true);
+    navLinks.parentNode.replaceChild(newNavLinks, navLinks);
+
+    newHamburger.addEventListener('click', () => {
+      newNavLinks.classList.toggle('open');
     });
-    // Fechar ao clicar em link
-    navLinks.addEventListener('click', (e) => {
-      if (e.target.tagName === 'A') navLinks.classList.remove('open');
+
+    // Fechar menu e fazer scroll suave ao clicar em link
+    newNavLinks.addEventListener('click', (e) => {
+      const link = e.target.closest('a[href^="#"]');
+      if (!link) return;
+      e.preventDefault();
+      newNavLinks.classList.remove('open');
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        const navHeight = nav ? nav.offsetHeight : 0;
+        const top = target.getBoundingClientRect().top + window.scrollY - navHeight;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
     });
   }
 }
@@ -1198,6 +1217,8 @@ window.addEventListener('message', (e) => {
 
   try {
     renderSite(data, { previewDevice: e.data._previewDevice });
+    // Re-inicializar comportamento do nav após renderSite reescrever os links
+    initNavBehavior();
   } catch (err) {
     console.warn('[preview] Erro ao aplicar dados:', err);
   }
