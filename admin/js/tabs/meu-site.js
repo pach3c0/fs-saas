@@ -500,15 +500,20 @@ async function renderSiteContent(container, builderTabsEl) {
   window._meuSitePostPreview = postPreviewData;
 
   // Atualiza configData localmente e dispara postMessage — sem reload do iframe
+  // IMPORTANTE: usar Object.assign em vez de spread para preservar referências
+  // (cfg = configData.siteConfig — se criar novo objeto, cfg fica desincronizado)
   function liveRefresh(patch = {}) {
     if (patch.siteContent) {
-      configData.siteContent = { ...(configData.siteContent || {}), ...patch.siteContent };
+      if (!configData.siteContent) configData.siteContent = {};
+      Object.assign(configData.siteContent, patch.siteContent);
     }
     if (patch.siteConfig) {
-      configData.siteConfig = { ...(configData.siteConfig || {}), ...patch.siteConfig };
+      if (!configData.siteConfig) configData.siteConfig = {};
+      Object.assign(configData.siteConfig, patch.siteConfig);
     }
     if (patch.siteStyle) {
-      configData.siteStyle = { ...(configData.siteStyle || {}), ...patch.siteStyle };
+      if (!configData.siteStyle) configData.siteStyle = {};
+      Object.assign(configData.siteStyle, patch.siteStyle);
     }
     if (patch.siteSections) configData.siteSections = patch.siteSections;
     if (patch.siteTheme) configData.siteTheme = patch.siteTheme;
@@ -559,7 +564,13 @@ async function renderSiteContent(container, builderTabsEl) {
     if (btn.dataset.target === 'config-secoes') {
       renderSecoes();
     } else if (btn.dataset.target === 'config-hero') {
-      renderHeroStudio();
+      const heroEl = container.querySelector('#config-hero');
+      if (!heroEl.dataset.hcInitialized) {
+        initHeroStudio();
+        heroEl.dataset.hcInitialized = 'true';
+      } else {
+        syncHeroStudioUI();
+      }
     } else if (btn.dataset.target === 'config-sobre') {
       renderSobre(targetContainer);
     } else if (btn.dataset.target === 'config-portfolio') {
@@ -630,13 +641,59 @@ async function renderSiteContent(container, builderTabsEl) {
     { value: "Georgia, serif", label: 'Georgia' },
   ];
 
-  const renderHeroStudio = () => {
+  // Estado do Hero — compartilhado entre initHeroStudio e syncHeroStudioUI
+  let _heroSelectedLayerId = null;
+  let _heroActiveDevice = 'desktop';
+
+  const syncHeroStudioUI = () => {
+    const heroContainer = container.querySelector('#config-hero');
+    if (!heroContainer) return;
+    const cfg = configData.siteConfig;
+    if (!cfg) return;
+
+    // Resetar seleção e device ao voltar para a aba
+    _heroSelectedLayerId = null;
+    _heroActiveDevice = 'desktop';
+    _heroImageUrlForPreview = cfg.heroImage || '';
+
+    // Atualizar botões de device
+    heroContainer.querySelectorAll('.hc-device-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.hcDevice === 'desktop');
+    });
+
+    // Atualizar sliders e valores de exibição
+    const setV = (id, val, suffix, isFloat = false) => {
+      const el = heroContainer.querySelector('#' + id);
+      if (el) el.value = val;
+      const vEl = heroContainer.querySelector('#' + id + 'Val');
+      if (vEl) vEl.textContent = (isFloat ? parseFloat(val).toFixed(1) : val) + suffix;
+    };
+    setV('hcBgScale', cfg.heroScale ?? 1, 'x', true);
+    setV('hcBgPosX', cfg.heroPosX ?? 50, '%');
+    setV('hcBgPosY', cfg.heroPosY ?? 50, '%');
+    setV('hcOverlay', cfg.overlayOpacity ?? 30, '%');
+    setV('hcTopBar', cfg.topBarHeight ?? 0, '%');
+    setV('hcBottomBar', cfg.bottomBarHeight ?? 0, '%');
+    const topColorEl = heroContainer.querySelector('#hcTopBarColor');
+    if (topColorEl) topColorEl.value = cfg.topBarColor ?? '#000000';
+    const botColorEl = heroContainer.querySelector('#hcBottomBarColor');
+    if (botColorEl) botColorEl.value = cfg.bottomBarColor ?? '#000000';
+
+    // Re-renderizar lista de camadas e esconder painel de propriedades
+    heroRenderLayerList();
+    const p = heroContainer.querySelector('#hcLayerProps');
+    if (p) p.style.display = 'none';
+  };
+
+  // Funções internas do Hero — definidas no escopo do módulo para sync poder chamá-las
+  let heroRenderLayerList = () => {};
+  let heroRenderPropsForLayer = (l) => {};
+
+  const initHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
     // Garantir que siteConfig existe em configData antes de criar a referência
     if (!configData.siteConfig) configData.siteConfig = {};
     const cfg = configData.siteConfig;
-    let _heroReady = false;
-    let _activeDevice = 'desktop';
 
     // Migração: se não há layers, criar a partir dos campos antigos
     if (!cfg.heroLayers || cfg.heroLayers.length === 0) {
@@ -649,7 +706,8 @@ async function renderSiteContent(container, builderTabsEl) {
     if (!cfg.bgPresets) cfg.bgPresets = {};
     if (!cfg.overlayPresets) cfg.overlayPresets = {};
 
-    let _selectedLayerId = null;
+    _heroSelectedLayerId = null;
+    _heroActiveDevice = 'desktop';
     _heroImageUrlForPreview = cfg.heroImage || '';
 
     // ── Sidebar: Painel de Propriedades ──
@@ -802,7 +860,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
     // ── Funções de Estado e Preview ──
     const liveNotify = () => {
-      if (_heroReady) markDirty('config-hero', 'Capa');
+      markDirty('config-hero', 'Capa');
       window._meuSitePostPreview?.();
     };
 
@@ -821,11 +879,11 @@ async function renderSiteContent(container, builderTabsEl) {
         bottomBarColor: heroContainer.querySelector('#hcBottomBarColor').value,
       };
 
-      if (_activeDevice === 'desktop') {
+      if (_heroActiveDevice === 'desktop') {
         Object.assign(cfg, { heroScale: bg.scale, heroPosX: bg.posX, heroPosY: bg.posY, overlayOpacity: ov.opacity, topBarHeight: ov.topBarHeight, topBarColor: ov.topBarColor, bottomBarHeight: ov.bottomBarHeight, bottomBarColor: ov.bottomBarColor });
       } else {
-        cfg.bgPresets[_activeDevice] = bg;
-        cfg.overlayPresets[_activeDevice] = ov;
+        cfg.bgPresets[_heroActiveDevice] = bg;
+        cfg.overlayPresets[_heroActiveDevice] = ov;
       }
       liveNotify();
     };
@@ -835,11 +893,11 @@ async function renderSiteContent(container, builderTabsEl) {
       btn.onclick = () => {
         heroContainer.querySelectorAll('.hc-device-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        _activeDevice = btn.dataset.hcDevice;
+        _heroActiveDevice = btn.dataset.hcDevice;
 
         // Carregar valores para este device
-        let bg = (_activeDevice === 'desktop') ? { scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 } : (cfg.bgPresets[_activeDevice] || { scale: 1, posX: 50, posY: 50 });
-        let ov = (_activeDevice === 'desktop') ? { opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' } : (cfg.overlayPresets[_activeDevice] || { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' });
+        let bg = (_heroActiveDevice === 'desktop') ? { scale: cfg.heroScale ?? 1, posX: cfg.heroPosX ?? 50, posY: cfg.heroPosY ?? 50 } : (cfg.bgPresets[_heroActiveDevice] || { scale: 1, posX: 50, posY: 50 });
+        let ov = (_heroActiveDevice === 'desktop') ? { opacity: cfg.overlayOpacity ?? 30, topBarHeight: cfg.topBarHeight ?? 0, topBarColor: cfg.topBarColor ?? '#000000', bottomBarHeight: cfg.bottomBarHeight ?? 0, bottomBarColor: cfg.bottomBarColor ?? '#000000' } : (cfg.overlayPresets[_heroActiveDevice] || { opacity: 30, topBarHeight: 0, topBarColor: '#000000', bottomBarHeight: 0, bottomBarColor: '#000000' });
 
         const setV = (id, val, suffix = '') => {
           const el = heroContainer.querySelector('#' + id);
@@ -856,7 +914,7 @@ async function renderSiteContent(container, builderTabsEl) {
         setV('hcBottomBar', ov.bottomBarHeight, '%');
         heroContainer.querySelector('#hcBottomBarColor').value = ov.bottomBarColor || '#000000';
 
-        renderPropsForLayer(_selectedLayerId ? cfg.heroLayers.find(l => l.id === _selectedLayerId) : null);
+        renderPropsForLayer(_heroSelectedLayerId ? cfg.heroLayers.find(l => l.id === _heroSelectedLayerId) : null);
       };
     });
 
@@ -897,12 +955,12 @@ async function renderSiteContent(container, builderTabsEl) {
     const updateLayer = (id, props) => {
       const l = getLayer(id);
       if (!l) return;
-      if (_activeDevice === 'desktop') {
+      if (_heroActiveDevice === 'desktop') {
         Object.assign(l, props);
       } else {
         if (!l.presets) l.presets = {};
-        if (!l.presets[_activeDevice]) l.presets[_activeDevice] = {};
-        Object.assign(l.presets[_activeDevice], props);
+        if (!l.presets[_heroActiveDevice]) l.presets[_heroActiveDevice] = {};
+        Object.assign(l.presets[_heroActiveDevice], props);
       }
       liveNotify();
     };
@@ -916,7 +974,7 @@ async function renderSiteContent(container, builderTabsEl) {
       }
 
       list.innerHTML = layers.map((l, idx) => `
-        <div class="hc-layer-item ${l.id === _selectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
+        <div class="hc-layer-item ${l.id === _heroSelectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
           <span class="layer-drag" style="cursor:grab; color:#4b5563; font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
           <span class="layer-icon">${l.type === 'text' ? 'T' : '🖼️'}</span>
           <span class="layer-name">${l.name || (l.type === 'text' ? 'Texto' : 'Imagem')}</span>
@@ -961,16 +1019,16 @@ async function renderSiteContent(container, builderTabsEl) {
         el.addEventListener('click', (e) => {
           if (e.target.classList.contains('layer-del')) {
             cfg.heroLayers = cfg.heroLayers.filter(l => l.id !== el.dataset.id);
-            if (_selectedLayerId === el.dataset.id) _selectedLayerId = null;
+            if (_heroSelectedLayerId === el.dataset.id) _heroSelectedLayerId = null;
             renderLayerList();
             renderPropsForLayer(null);
             liveNotify();
             return;
           }
           if (e.target.classList.contains('layer-drag')) return;
-          _selectedLayerId = el.dataset.id;
+          _heroSelectedLayerId = el.dataset.id;
           renderLayerList();
-          renderPropsForLayer(getLayer(_selectedLayerId));
+          renderPropsForLayer(getLayer(_heroSelectedLayerId));
         });
       });
     };
@@ -983,8 +1041,8 @@ async function renderSiteContent(container, builderTabsEl) {
 
       // Pegar valores considerando device
       const getV = (field, def) => {
-        if (_activeDevice === 'desktop') return l[field] ?? def;
-        return (l.presets?.[_activeDevice]?.[field]) ?? (l[field] ?? def);
+        if (_heroActiveDevice === 'desktop') return l[field] ?? def;
+        return (l.presets?.[_heroActiveDevice]?.[field]) ?? (l[field] ?? def);
       };
 
       if (l.type === 'text') {
@@ -1118,7 +1176,8 @@ async function renderSiteContent(container, builderTabsEl) {
       renderLayerList(); renderPropsForLayer(null);
       try {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
-        configData.siteConfig = JSON.parse(JSON.stringify(cfg));
+        // Sincronizar sem quebrar referência de cfg
+        Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
         clearDirty();
         liveRefresh({ siteConfig: cfg });
         window.showToast?.('Padrão restaurado!', 'success');
@@ -1127,9 +1186,10 @@ async function renderSiteContent(container, builderTabsEl) {
       }
     };
 
-    // ── Init ──
+    // ── Init — expor funções internas para syncHeroStudioUI ──
+    heroRenderLayerList = renderLayerList;
+    heroRenderPropsForLayer = renderPropsForLayer;
     renderLayerList();
-    requestAnimationFrame(() => { _heroReady = true; });
   };
 
   // --- SEÇÕES (Ativar/Desativar) ---
