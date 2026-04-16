@@ -6,7 +6,7 @@ import { appState } from '../state.js';
 import { apiGet, apiPut, apiPost, apiDelete } from '../utils/api.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 import { resolveImagePath } from '../utils/helpers.js';
-import { renderPortfolio, destroyPortfolioCanvas, getPortfolioCanvasState } from './portfolio.js';
+import { renderPortfolio } from './portfolio.js';
 import { renderSobre, destroySobreCanvas, getSobreCanvasState } from './sobre.js';
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
@@ -19,7 +19,6 @@ export async function renderMeuSite(container) {
   // Registrar cleanup de canvas ao sair do builder (feito aqui para garantir
   // que o módulo portfolio.js já foi carregado quando o cleanup for chamado)
   window._cleanupBuilderCanvases = function () {
-    destroyPortfolioCanvas();
     destroySobreCanvas();
     const heroEl = document.getElementById('hero-canvas-container');
     if (heroEl) heroEl.remove();
@@ -461,17 +460,12 @@ async function renderSiteContent(container, builderTabsEl) {
     if (!snap.siteConfig.heroTitle && layers[0]?.text) snap.siteConfig.heroTitle = layers[0]?.text;
     if (!snap.siteConfig.heroSubtitle && layers[1]?.text) snap.siteConfig.heroSubtitle = layers[1]?.text;
 
-    // Portfolio Canvas (se aberto)
-    const portfolioState = getPortfolioCanvasState();
-    if (portfolioState) {
-      const photos = portfolioState.layers
-        .filter(l => l.type === 'image' && l.url)
-        .map(l => ({ url: l.url }));
+    // Portfolio (sempre usar do appData)
+    const portfolio = appState.appData?.portfolio || {};
+    if (portfolio.photos) {
       snap.siteContent.portfolio = {
         ...snap.siteContent.portfolio,
-        photos,
-        canvasLayers: portfolioState.layers,
-        canvasBg: portfolioState.bg,
+        photos: portfolio.photos
       };
     }
 
@@ -534,9 +528,9 @@ async function renderSiteContent(container, builderTabsEl) {
     const target = btn.dataset.target;
     if (target === 'config-portfolio') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'flex';
+      if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none'; // Agora o portfólio usa o iframe
       if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
-      if (iframe) iframe.style.display = 'none';
+      if (iframe) iframe.style.display = ''; // Mostrar iframe para o portfólio
     } else if (target === 'config-sobre') {
       if (heroCanvasEl) heroCanvasEl.style.display = 'none';
       if (portfolioCanvasEl) portfolioCanvasEl.style.display = 'none';

@@ -158,7 +158,7 @@ const ok = await window.showConfirm('Remover?', { title: 'Confirmar', confirmTex
 
 ## FLUXO DE DADOS
 
-- **Admin (abas legado):** `saveAppData('secao', dados)` → `PUT /api/site-data` → MongoDB `SiteData` (upsert)
+- **Admin (Modo Builder):** Abas como Hero, Sobre e Portfólio usam `saveAppData('secao', dados)` → `PUT /api/site-data` → MongoDB `SiteData`. O preview é atualizado via `postMessage` para o iframe com os dados do `SiteData` injetados.
 - **Meu Site:** `apiPut('/api/site/admin/config', payload)` → `Organization.findOneAndUpdate` → `liveRefresh(patch)` envia postMessage ao iframe
 - **Site publico:** `shared-site.js` → `GET /api/site/config` → `renderSite(data)` preenche IDs do template
 - **Upload:** `uploadImage(file, token, onProgress)` → comprime (1200px, 85%) → `POST /api/admin/upload` → `/uploads/{orgId}/filename.jpg`
