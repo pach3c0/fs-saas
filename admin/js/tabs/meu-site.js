@@ -674,6 +674,11 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="hc-device-btn" data-hc-device="mobile" title="Ajustes para Mobile">Mobile</button>
         </div>
 
+        <!-- DICA DEVICE -->
+        <div style="padding:0.4rem 0.75rem; background:#0d1117; border-bottom:1px solid #1f2937;">
+          <p style="font-size:0.65rem; color:#4b5563; margin:0; line-height:1.4;">Estes botões definem o <strong style="color:#6b7280;">posicionamento da imagem de fundo</strong> por dispositivo, independente do preview.</p>
+        </div>
+
         <!-- ADICIONAR -->
         <div class="hc-section">
           <div class="hc-section-head">Adicionar</div>
@@ -694,27 +699,32 @@ async function renderSiteContent(container, builderTabsEl) {
             <button class="hc-btn" id="hcBgCrop" style="flex:1;">Cortar</button>
           </div>
           <div id="hcBgProgress"></div>
-          <div class="hc-row">
-            <div class="hc-label">Zoom</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBgScale" min="1" max="3" step="0.05" value="${cfg.heroScale ?? 1}">
-              <span class="hc-range-val" id="hcBgScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(1)}x</span>
+          <details style="margin:0;">
+            <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between;">
+              Ajustes da Imagem <span style="font-size:0.6rem; opacity:0.6;">▼</span>
+            </summary>
+            <div class="hc-row">
+              <div class="hc-label">Zoom</div>
+              <div class="hc-range-row">
+                <input type="range" class="hc-range" id="hcBgScale" min="1" max="3" step="0.05" value="${cfg.heroScale ?? 1}">
+                <span class="hc-range-val" id="hcBgScaleVal">${parseFloat(cfg.heroScale ?? 1).toFixed(1)}x</span>
+              </div>
             </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Posição X</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBgPosX" min="0" max="100" step="1" value="${cfg.heroPosX ?? 50}">
-              <span class="hc-range-val" id="hcBgPosXVal">${cfg.heroPosX ?? 50}%</span>
+            <div class="hc-row">
+              <div class="hc-label">Posição X</div>
+              <div class="hc-range-row">
+                <input type="range" class="hc-range" id="hcBgPosX" min="0" max="100" step="1" value="${cfg.heroPosX ?? 50}">
+                <span class="hc-range-val" id="hcBgPosXVal">${cfg.heroPosX ?? 50}%</span>
+              </div>
             </div>
-          </div>
-          <div class="hc-row">
-            <div class="hc-label">Posição Y</div>
-            <div class="hc-range-row">
-              <input type="range" class="hc-range" id="hcBgPosY" min="0" max="100" step="1" value="${cfg.heroPosY ?? 50}">
-              <span class="hc-range-val" id="hcBgPosYVal">${cfg.heroPosY ?? 50}%</span>
+            <div class="hc-row">
+              <div class="hc-label">Posição Y</div>
+              <div class="hc-range-row">
+                <input type="range" class="hc-range" id="hcBgPosY" min="0" max="100" step="1" value="${cfg.heroPosY ?? 50}">
+                <span class="hc-range-val" id="hcBgPosYVal">${cfg.heroPosY ?? 50}%</span>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <!-- EFEITOS -->
@@ -759,7 +769,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- SALVAR -->
         <div style="padding:1rem 0.75rem; margin-top:auto;">
-          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.75rem;">Salvar Capa</button>
+          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.75rem;">Salvar</button>
           <button class="hc-btn" id="hcRestoreBtn" style="width:100%; margin-top:0.5rem; background:none; border:none; font-size:0.7rem;">Restaurar Padrão</button>
         </div>
       </div>
@@ -1011,13 +1021,21 @@ async function renderSiteContent(container, builderTabsEl) {
       });
     };
     heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
-      if (!await window.showConfirm?.('Restaurar padrão?', { danger: true })) return;
+      if (!await window.showConfirm?.('Restaurar padrão? As camadas e ajustes de posição serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
       cfg.heroLayers = [];
       cfg.heroScale = 1; cfg.heroPosX = 50; cfg.heroPosY = 50;
       cfg.overlayOpacity = 30; cfg.topBarHeight = 0; cfg.bottomBarHeight = 0;
       cfg.bgPresets = {}; cfg.overlayPresets = {};
-      renderLayerList(); renderPropsForLayer(null); liveNotify();
-      window.showToast?.('Ajustes resetados!', 'info');
+      renderLayerList(); renderPropsForLayer(null);
+      try {
+        await apiPut('/api/site/admin/config', { siteConfig: cfg });
+        configData.siteConfig = JSON.parse(JSON.stringify(cfg));
+        clearDirty();
+        liveRefresh({ siteConfig: cfg });
+        window.showToast?.('Padrão restaurado!', 'success');
+      } catch (err) {
+        window.showToast?.('Erro ao salvar. Tente novamente.', 'error');
+      }
     };
 
     // ── Init ──
@@ -1062,10 +1080,10 @@ async function renderSiteContent(container, builderTabsEl) {
         const active = activeSet.has(sec.id);
         return `
                 <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
-                  style="display:flex; align-items:center; gap:0.625rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none;">
+                  style="display:flex; align-items:center; gap:0.625rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none; min-width:0; overflow:hidden;">
                   <span style="cursor:grab; color:#4b5563; font-size:1rem; flex-shrink:0;">⠿</span>
                   <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:14px; height:14px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
-                  <span style="flex:1; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
+                  <span style="flex:1; min-width:0; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
                   <div style="display:flex; gap:0.25rem; flex-shrink:0;">
                     <button onclick="moveSection(${idx}, -1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === 0 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▲</button>
                     <button onclick="moveSection(${idx}, 1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▼</button>
@@ -1076,7 +1094,7 @@ async function renderSiteContent(container, builderTabsEl) {
           </div>
 
           <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
-            <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; flex:1;">Salvar Seções</button>
+            <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; flex:1;">Salvar</button>
             <button id="restoreSectionsBtn" style="background:transparent; color:#9ca3af; padding:0.75rem 1rem; border:1px solid #374151; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.8125rem;">Restaurar</button>
           </div>
         </div>
@@ -1145,7 +1163,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
       // Restaurar
       secoesContainer.querySelector('#restoreSectionsBtn').onclick = async () => {
-        const ok = await window.showConfirm?.('Deseja restaurar a ordem padrão das seções?', { 
+        const ok = await window.showConfirm?.('Deseja restaurar a ordem padrão das seções?', {
           title: 'Restaurar Padrão',
           confirmText: 'Restaurar',
           danger: true,
@@ -1160,7 +1178,14 @@ async function renderSiteContent(container, builderTabsEl) {
           ...allSectionDefs.filter(s => !DEFAULTS.includes(s.id))
         ];
         renderList();
-        window.showToast?.('Padrão restaurado (clique em Salvar para aplicar)', 'info');
+        try {
+          await apiPut('/api/site/admin/config', { siteSections: DEFAULTS });
+          configData.siteSections = [...DEFAULTS];
+          liveRefresh({ siteSections: DEFAULTS });
+          window.showToast?.('Padrão restaurado!', 'success');
+        } catch (err) {
+          window.showToast?.('Erro ao salvar. Tente novamente.', 'error');
+        }
       };
     };
 
