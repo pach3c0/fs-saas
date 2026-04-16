@@ -632,7 +632,9 @@ async function renderSiteContent(container, builderTabsEl) {
 
   const renderHeroStudio = () => {
     const heroContainer = container.querySelector('#config-hero');
-    const cfg = configData.siteConfig || {};
+    // Garantir que siteConfig existe em configData antes de criar a referência
+    if (!configData.siteConfig) configData.siteConfig = {};
+    const cfg = configData.siteConfig;
     let _heroReady = false;
     let _activeDevice = 'desktop';
 
@@ -1082,18 +1084,37 @@ async function renderSiteContent(container, builderTabsEl) {
     heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
       await withBtnLoading(e.currentTarget, async () => {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
-        configData.siteConfig = JSON.parse(JSON.stringify(cfg));
+        // Sincronizar configData sem quebrar a referência de cfg
+        Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
         clearDirty();
         window.showToast?.('Capa salva!', 'success');
         liveRefresh({ siteConfig: cfg });
       });
     };
     heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
-      if (!await window.showConfirm?.('Restaurar padrão? As camadas e ajustes de posição serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
+      if (!await window.showConfirm?.('Restaurar padrão? As camadas, imagem de fundo e ajustes serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
+      // Limpar TUDO incluindo imagem de fundo
       cfg.heroLayers = [];
+      cfg.heroImage = '';
       cfg.heroScale = 1; cfg.heroPosX = 50; cfg.heroPosY = 50;
       cfg.overlayOpacity = 30; cfg.topBarHeight = 0; cfg.bottomBarHeight = 0;
+      cfg.topBarColor = '#000000'; cfg.bottomBarColor = '#000000';
       cfg.bgPresets = {}; cfg.overlayPresets = {};
+      // Limpar referência local da imagem de preview
+      _heroImageUrlForPreview = '';
+      // Atualizar sliders na UI para refletir valores padrão
+      const setSlider = (id, val, suffix, isFloat) => {
+        const el = heroContainer.querySelector('#' + id);
+        if (el) el.value = val;
+        const vEl = heroContainer.querySelector('#' + id + 'Val');
+        if (vEl) vEl.textContent = (isFloat ? parseFloat(val).toFixed(1) : val) + suffix;
+      };
+      setSlider('hcBgScale', 1, 'x', true);
+      setSlider('hcBgPosX', 50, '%');
+      setSlider('hcBgPosY', 50, '%');
+      setSlider('hcOverlay', 30, '%');
+      setSlider('hcTopBar', 0, '%');
+      setSlider('hcBottomBar', 0, '%');
       renderLayerList(); renderPropsForLayer(null);
       try {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
