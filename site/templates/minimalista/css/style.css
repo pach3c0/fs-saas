@@ -514,13 +514,6 @@ section { scroll-margin-top: 5rem; }
 
 /* Álbuns */
 .section-albuns { background: inherit; }
-.albums-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-.album-card { transition: transform 0.2s; }
-.album-card:hover { transform: translateY(-4px); }
 
 /* Estúdio */
 .section-estudio { background: inherit; }
@@ -535,7 +528,6 @@ section { scroll-margin-top: 5rem; }
 .studio-info a { color: inherit; text-decoration: underline; }
 
 @media (max-width: 640px) {
-  .albums-grid { grid-template-columns: repeat(2, 1fr); }
   .studio-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

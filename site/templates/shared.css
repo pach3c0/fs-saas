@@ -40,6 +40,16 @@
   margin-bottom: 1rem;
 }
 
+/* --- ÁLBUNS GRID --- */
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.album-card { transition: transform 0.2s; }
+.album-card:hover { transform: translateY(-4px); }
+
 /* --- RESPONSIVO --- */
 @media (max-width: 1024px) {
   .portfolio-grid { grid-template-columns: repeat(2, 1fr); }
@@ -48,4 +58,5 @@
 @media (max-width: 640px) {
   .portfolio-grid { grid-template-columns: 1fr; }
   .portfolio-masonry { column-count: 1; }
+  .albums-grid { grid-template-columns: repeat(2, 1fr); }
 }

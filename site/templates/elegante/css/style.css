@@ -588,7 +588,6 @@ section { scroll-margin-top: 5rem; }
   .contato-grid { grid-template-columns: 1fr; }
   .sobre-grid { grid-template-columns: 1fr; }
   .nav-inner { padding: 0.75rem 1rem; }
-  .albums-grid { grid-template-columns: repeat(2, 1fr); }
   .studio-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -681,11 +680,6 @@ section { scroll-margin-top: 5rem; }
 
 /* Álbuns */
 .section-albuns { background: inherit; }
-.albums-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
 .album-card {
   background: var(--bg-alt) !important;
   border-radius: 0.75rem;
