@@ -10,28 +10,28 @@ import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 async function savePortfolio(silent = false) {
   const ok = await apiPut('/api/site/admin/config', {
-    siteContent: { portfolio: appState.appData.portfolio }
+    siteContent: { portfolio: { photos: _portfolioPhotos } }
   });
   if (!silent && ok !== false) window.showToast?.('Portfólio salvo!', 'success');
   return ok;
 }
 
 
+// Estado local isolado do SiteData legado
+let _portfolioPhotos = null;
+
 function ensurePortfolio() {
-  if (!appState.appData.portfolio) appState.appData.portfolio = {};
-  if (!Array.isArray(appState.appData.portfolio.photos)) {
-    appState.appData.portfolio.photos = [];
-  }
+  if (!Array.isArray(_portfolioPhotos)) _portfolioPhotos = [];
 }
 
 export async function renderPortfolio(container) {
-  // Carregar portfolio de siteContent (onde o site público lê)
+  // Carregar de siteContent (onde o site público lê), isolado do SiteData legado
   try {
     const config = await apiGet('/api/site/admin/config');
-    const photos = config?.siteContent?.portfolio?.photos;
-    if (!appState.appData.portfolio) appState.appData.portfolio = {};
-    if (Array.isArray(photos)) appState.appData.portfolio.photos = photos;
-  } catch (_) { /* usa appState atual */ }
+    _portfolioPhotos = config?.siteContent?.portfolio?.photos || [];
+  } catch (_) {
+    if (!Array.isArray(_portfolioPhotos)) _portfolioPhotos = [];
+  }
   ensurePortfolio();
 
   // Estado local para seleção em massa
@@ -143,7 +143,7 @@ function renderPhotos(container) {
   const clearBtn = container.querySelector('#pClearBtn');
   const bulkBar = container.querySelector('#pBulkActions');
   const bulkCount = container.querySelector('#pBulkCount');
-  const photos = appState.appData.portfolio.photos || [];
+  const photos = _portfolioPhotos || [];
   const selected = container._selectedIndices || new Set();
 
   if (photos.length === 0) {
@@ -210,7 +210,7 @@ function setupEvents(container) {
     let uploaded = 0;
     for (const r of results) {
       if (r.status === 'fulfilled') {
-        appState.appData.portfolio.photos.push({ url: r.value.url, caption: '' });
+        _portfolioPhotos.push({ url: r.value.url, caption: '' });
         uploaded++;
       } else {
         window.showToast?.('Erro ao subir uma foto', 'error');
@@ -227,7 +227,7 @@ function setupEvents(container) {
     });
     if (!ok) return;
     ensurePortfolio();
-    appState.appData.portfolio.photos = [];
+    _portfolioPhotos = [];
     updateAndSave();
   };
 
@@ -245,7 +245,7 @@ function setupEvents(container) {
       const ok = await window.showConfirm?.('Deseja remover esta foto?', { danger: true });
       if (ok) {
         ensurePortfolio();
-        appState.appData.portfolio.photos.splice(idx, 1);
+        _portfolioPhotos.splice(idx, 1);
         container._selectedIndices?.delete(idx);
         updateAndSave();
       }
@@ -286,7 +286,7 @@ function setupEvents(container) {
     if (e.target.classList.contains('p-edit-input')) {
       ensurePortfolio();
       const idx = parseInt(e.target.dataset.index);
-      appState.appData.portfolio.photos[idx].caption = e.target.value;
+      _portfolioPhotos[idx].caption = e.target.value;
       // Salvar com debounce seria ideal, mas saveAppData já é eficiente. 
       // Por ser SEO, salvar ao terminar de digitar é ok.
       window._meuSitePostPreview?.();
@@ -313,8 +313,8 @@ function setupEvents(container) {
 
     // Filtrar fotos que NÃO estão nos selecionados
     ensurePortfolio();
-    const newPhotos = appState.appData.portfolio.photos.filter((_, i) => !container._selectedIndices.has(i));
-    appState.appData.portfolio.photos = newPhotos;
+    const newPhotos = _portfolioPhotos.filter((_, i) => !container._selectedIndices.has(i));
+    _portfolioPhotos = newPhotos;
     container._selectedIndices.clear();
     updateAndSave();
   };
@@ -344,7 +344,7 @@ function setupEvents(container) {
     if (draggedIdx === dropIdx) return;
     
     ensurePortfolio();
-    const photos = appState.appData.portfolio.photos;
+    const photos = _portfolioPhotos;
     const [moved] = photos.splice(draggedIdx, 1);
     photos.splice(dropIdx, 0, moved);
     
