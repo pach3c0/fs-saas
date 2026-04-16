@@ -600,7 +600,8 @@ function renderSite(data, opts = {}) {
       if (photos && photos.length > 0) {
         portfolioGrid.innerHTML = photos.map((p, i) => {
           const photoUrl = resolvePath(p.url || p.image || p);
-          return `<img src="${photoUrl}" alt="Portfolio ${i+1}" onclick="openLightbox(${i})" loading="lazy">`;
+          const altText = p.caption || `Portfolio ${i + 1}`;
+          return `<div class="portfolio-item" onclick="openLightbox(${i})"><img src="${photoUrl}" alt="${esc(altText)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"></div>`;
         }).join('');
       } else {
         // Sem fotos: oculta a seção inteira

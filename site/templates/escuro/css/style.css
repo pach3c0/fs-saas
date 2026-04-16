@@ -237,11 +237,21 @@ body {
   gap: 2rem;
 }
 
+.portfolio-item {
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.5s;
+}
+
+.portfolio-item:hover {
+  box-shadow: var(--shadow);
+}
+
 .portfolio-grid img {
   width: 100%;
-  aspect-ratio: 3/4;
+  height: 100%;
   object-fit: cover;
-  cursor: pointer;
   transition: all 0.5s;
   filter: grayscale(0.3) brightness(0.8);
 }
@@ -249,7 +259,6 @@ body {
 .portfolio-grid img:hover {
   filter: grayscale(0) brightness(1);
   transform: scale(1.05);
-  box-shadow: var(--shadow);
 }
 
 /* SERVIÇOS (lista com ícones dourados) */

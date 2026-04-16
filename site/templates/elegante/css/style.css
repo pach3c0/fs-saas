@@ -322,7 +322,7 @@ body.theme-escuro .nav-links.open {
   gap: 1rem;
 }
 .portfolio-item {
-  aspect-ratio: 1;
+  aspect-ratio: 16/9;
   overflow: hidden;
   border-radius: 0.75rem;
   cursor: pointer;

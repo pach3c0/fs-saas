@@ -7,6 +7,20 @@ import { appState, saveAppData } from '../state.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
+function checkAspectRatio(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const ratio = img.width / img.height;
+      resolve(Math.abs(ratio - 16 / 9) < 0.05);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+    img.src = url;
+  });
+}
+
 function ensurePortfolio() {
   if (!appState.appData.portfolio) appState.appData.portfolio = {};
   if (!Array.isArray(appState.appData.portfolio.photos)) {
@@ -24,7 +38,7 @@ export function renderPortfolio(container) {
     <style>
       .p-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .p-item {
-        position: relative; aspect-ratio: 1/1; border-radius: 6px; overflow: hidden;
+        position: relative; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
         background: var(--bg-elevated); border: 1px solid var(--border); cursor: grab;
         transition: transform 0.2s, box-shadow 0.2s;
       }
@@ -185,8 +199,24 @@ function setupEvents(container) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
+    // Validar proporção 16:9 antes de subir
+    const validFiles = [];
+    let rejectedCount = 0;
+    for (const file of files) {
+      const ok = await checkAspectRatio(file);
+      if (ok) {
+        validFiles.push(file);
+      } else {
+        rejectedCount++;
+      }
+    }
+    if (rejectedCount > 0) {
+      window.showToast?.(`${rejectedCount} foto(s) ignorada(s): use imagens em proporção 16:9.`, 'error');
+    }
+    if (!validFiles.length) { uploadInput.value = ''; return; }
+
     const results = await Promise.allSettled(
-      files.map(file => uploadImage(file, appState.authToken, (p) => showUploadProgress('pUploadProgress', p)))
+      validFiles.map(file => uploadImage(file, appState.authToken, (p) => showUploadProgress('pUploadProgress', p)))
     );
 
     ensurePortfolio();

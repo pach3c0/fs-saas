@@ -191,16 +191,21 @@ body {
   gap: 3rem;
 }
 
-.portfolio-grid img {
-  width: 100%;
-  aspect-ratio: 3/4;
-  object-fit: cover;
+.portfolio-item {
+  aspect-ratio: 16/9;
+  overflow: hidden;
   cursor: pointer;
   transition: opacity 0.3s;
 }
 
-.portfolio-grid img:hover {
+.portfolio-item:hover {
   opacity: 0.85;
+}
+
+.portfolio-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* SERVICES */
