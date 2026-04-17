@@ -108,7 +108,7 @@ app.get('/preview', (req, res) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // MongoDB connection
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fsfotografias';
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cliquezoom';
 let isConnected = false;
 
 const connectWithRetry = async () => {

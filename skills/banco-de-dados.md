@@ -6,9 +6,10 @@
 
 ## STACK
 
-- **Banco:** MongoDB (local, porta 27017, db `fssaas`)
+- **Banco:** MongoDB (local, porta 27017, db `cliquezoom`)
 - **ODM:** Mongoose
 - **Conexão:** `mongoose.connect(process.env.MONGODB_URI)` em `src/server.js`
+- **IMPORTANTE:** `MONGODB_URI` deve estar explícito no `.env` da VPS (`mongodb://localhost:27017/cliquezoom`). O fallback no código também aponta para `cliquezoom`. O banco `fsfotografias` foi deletado em 2026-04-17 após migração completa.
 
 ---
 
