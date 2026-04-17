@@ -21,8 +21,8 @@ Transformar a gestão do portfólio em uma tarefa prazerosa e instantânea, onde
 ## 🛠️ Fase 2: Gestão & Contexto (Próximo Passo)
 *Foco: Organização e SEO*
 
-- [ ] **Legendas e Alt-Text**: Interface para adicionar contexto a cada foto, melhorando o SEO do site.
-- [ ] **Seleção em Massa**: Checkbox para deletar várias fotos de uma vez.
+- [x] **Legendas e Alt-Text**: Interface para adicionar contexto a cada foto, melhorando o SEO do site.
+- [x] **Seleção em Massa**: Checkbox para deletar várias fotos de uma vez.
 - [ ] **Modo "Rascunho" (Visibilidade)**: Botão de olho para ocultar uma foto do site sem precisar deletá-la do banco.
 - [ ] **Tags de Categorização**: Permitir filtrar fotos por "Casamento", "Ensaios", etc. (Suporte a múltiplas galerias).
 

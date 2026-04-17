@@ -53,13 +53,20 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
 router.put('/site/admin/config', authenticateToken, async (req, res) => {
   try {
     const updateData = {};
-    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteConfig', 'siteSections', 'siteStyle'];
+    const allowedKeys = ['siteEnabled', 'siteTheme', 'siteSections', 'siteStyle'];
 
     allowedKeys.forEach(key => {
       if (req.body[key] !== undefined) {
         updateData[key] = req.body[key];
       }
     });
+
+    // siteConfig: merge por sub-chave para não apagar campos não enviados (ex: title, description)
+    if (req.body.siteConfig !== undefined) {
+      Object.entries(req.body.siteConfig).forEach(([key, value]) => {
+        updateData[`siteConfig.${key}`] = value;
+      });
+    }
 
     // siteContent: merge por sub-chave para não apagar outros campos (sobre, servicos, etc)
     if (req.body.siteContent !== undefined) {

@@ -71,3 +71,7 @@ Para detalhes técnicos de cada módulo, consulte seu respectivo arquivo:
 
 ## Ajustes Globais Pendentes
 - **Header Preview:** Ao navegar via links do header dentro do iframe, o header desaparece. Precisa permanecer fixo (sticky) nos 3 modos de visualização em todos os templates.
+
+
+
+

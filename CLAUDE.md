@@ -136,9 +136,20 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 ## SKILLS (ler sob demanda)
 
+`skills/frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/backend.md` (rotas, middlewares, auth, env) · `skills/banco-de-dados.md` (modelos, Mixed, fontes de verdade)
+
 `skills/obsidian_master_sync.md` (visao geral) · `geral-site.md` (builder, postMessage, dirty) · `design-system.md` · `builder-templates.md` · `builder-personalizar.md` · `builder-hero.md` · `builder-portfolio.md` · `builder-estudio.md` · `builder-sobre.md` · `builder-forms.md` · `builder-sessoes.md` · `albums-prova.md` · `billing.md`
 
 **Regra:** ao alterar area coberta por skill, atualizar a skill correspondente. Apos features que adicionam pasta/rota/modelo/padrao, atualizar este `CLAUDE.md`.
+
+---
+
+## FUNCIONALIDADES REMOVIDAS — NAO RECRIAR
+
+| Funcionalidade | Removida de | Motivo |
+|---|---|---|
+| Newsletter | `footer.js`, `shared-site.js` (labels, allSections, bloco de codigo) | Nao existe mais no app |
+| Tab Logo (`logo.js`) | `admin/js/tabs/logo.js` deletado | Codigo morto; logo gerenciado via Perfil → `Organization.logo` |
 
 ---
 
@@ -155,3 +166,55 @@ Antes de alterar codigo, leia o modulo correspondente e valide a alteracao contr
 1. **Analise:** o que este botao/funcao faz hoje?
 2. **Impacto:** o que muda no estado global?
 3. **Rastreabilidade:** para onde esse comando vai e quem consome?
+
+
+---
+
+## AJUSTES PENDENTES — Consistencia entre modulos admin
+
+> Auditoria realizada em 2026-04-17. Corrigir modulo por modulo antes de novas features.
+
+### 3 padroes canonicos (referencia: `portfolio.js`)
+
+| Padrao | Correto | Errado |
+|---|---|---|
+| Estado isolado | `let _modulo = null` (carrega na primeira render) | `appState.appData.X` |
+| Save de dados do site | `apiPut('/api/site/admin/config', { siteContent: {...} })` | `saveAppData('X', data)` |
+| CSS | `var(--bg-surface)`, `var(--text-primary)` | `#hexcodes` hardcoded |
+| Preview sync | `window._meuSitePostPreview?.()` apos cada save | ausente |
+
+### Status por modulo
+
+| Arquivo | Estado isolado | Save correto | CSS variables | Preview sync |
+|---|---|---|---|---|
+| `portfolio.js` | ✅ | ✅ | ✅ | ✅ |
+| `sobre.js` | ✅ | ✅ | ✅ | ✅ |
+| `perfil.js` | ✅ | ✅ | ✅ | — (nao precisa) |
+| `faq.js` | ✅ | ✅ | ✅ | ✅ |
+| `albuns.js` | ✅ | ✅ | ✅ | ✅ |
+| `integracoes.js` | ✅ | ✅ (usa /api/organization/profile — correto) | ✅ | — (nao precisa; nao e visual no site) |
+| `estudio.js` | ✅ | ✅ | ✅ | ✅ |
+| `logo.js` | ✅ deletado — código morto. Logo via `Organization.logo` (Perfil) → `shared-site.js` exibe na navbar/footer | | | |
+| `footer.js` | ✅ | ✅ | ✅ | ✅ |
+| `hero.js` | ✅ | ✅ siteConfig (nao siteContent) | ✅ | ✅ |
+
+*hero.js salva em `siteConfig` (nao `siteContent`) pois `shared-site.js` le de `data.siteConfig`. Backend `PUT /api/site/admin/config` atualizado para fazer merge de siteConfig por sub-chave (igual ao siteContent), evitando sobrescrever campos como `title` e `description`.*
+
+### Escopo da refatoracao
+
+Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **todos os modulos** nas 3 camadas:
+
+| Camada | Skill de referencia | Status |
+|---|---|---|
+| Frontend (`admin/js/tabs/`) | `skills/frontend.md` | 🔄 Em andamento |
+| Backend (`src/routes/`) | `skills/backend.md` | ⏳ Pendente |
+| Banco de dados (`src/models/`) | `skills/banco-de-dados.md` | ⏳ Pendente |
+
+### Ordem de correcao — Frontend (atual)
+
+1. `estudio.js` — ✅ concluido
+2. `logo.js` — ✅ deletado (codigo morto); logo via `Organization.logo` → `shared-site.js`
+3. `albuns.js` — ✅ concluido
+4. `footer.js` — ✅ concluido (migrado para siteContent.footer; shared-site.js atualizado para redes sociais, copyright e quickLinks; newsletter removida completamente do app)
+5. `hero.js` — ✅ concluido (migrado para siteConfig; backend atualizado com merge por sub-chave; 35 cores → CSS variables; preview sync adicionado)
+6. `faq.js`, `integracoes.js` — ✅ concluido (CSS variables + preview sync no faq; integracoes sem preview sync pois nao e secao visual)

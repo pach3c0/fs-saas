@@ -3,7 +3,6 @@
  * Gerenciamento de galeria de fotos com preview em tempo real no iframe.
  */
 
-import { appState } from '../state.js';
 import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';

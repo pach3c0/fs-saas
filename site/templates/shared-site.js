@@ -105,11 +105,17 @@ function renderSite(data, opts = {}) {
 
   // Preencher Nav
   const navLogo = document.getElementById('navLogo');
-  if (navLogo) navLogo.textContent = data.name || 'Estúdio';
+  if (navLogo) {
+    if (data.logo) {
+      navLogo.innerHTML = `<img src="${data.logo}" alt="${data.name || 'Logo'}" style="height:40px; max-width:160px; object-fit:contain; display:block;">`;
+    } else {
+      navLogo.textContent = data.name || 'Estúdio';
+    }
+  }
 
   const navLinks = document.getElementById('navLinks');
   if (navLinks) {
-    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', newsletter: 'Newsletter', contato: 'Contato'};
+    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
     const standardLinks = sections.map(s => `<a href="#section-${s}">${labels[s] || s}</a>`);
     // Adicionar seções customizadas ao nav
     const customLinks = (content.customSections || []).map(sec =>
@@ -810,18 +816,42 @@ function renderSite(data, opts = {}) {
 
   // Preencher Footer
   const footerLogo = document.getElementById('footerLogo');
-  if (footerLogo) footerLogo.textContent = data.name || '';
+  if (footerLogo) {
+    if (data.logo) {
+      footerLogo.innerHTML = `<img src="${data.logo}" alt="${data.name || 'Logo'}" style="height:36px; max-width:140px; object-fit:contain; display:block;">`;
+    } else {
+      footerLogo.textContent = data.name || '';
+    }
+  }
 
   const footerSocial = document.getElementById('footerSocial');
   if (footerSocial) {
-    let html = '';
-    if (config.instagramUrl) html += `<a href="${esc(config.instagramUrl)}" target="_blank">Instagram</a>`;
-    if (config.facebookUrl) html += `<a href="${esc(config.facebookUrl)}" target="_blank">Facebook</a>`;
-    footerSocial.innerHTML = html;
+    const sm = content.footer?.socialMedia || {};
+    const links = [
+      sm.instagram && `<a href="${esc(sm.instagram)}" target="_blank">Instagram</a>`,
+      sm.facebook && `<a href="${esc(sm.facebook)}" target="_blank">Facebook</a>`,
+      sm.linkedin && `<a href="${esc(sm.linkedin)}" target="_blank">LinkedIn</a>`,
+      sm.tiktok && `<a href="${esc(sm.tiktok)}" target="_blank">TikTok</a>`,
+      sm.youtube && `<a href="${esc(sm.youtube)}" target="_blank">YouTube</a>`,
+      sm.email && `<a href="mailto:${esc(sm.email)}">${esc(sm.email)}</a>`,
+    ].filter(Boolean);
+    footerSocial.innerHTML = links.join('');
+  }
+
+  const footerCopyright = document.getElementById('footerCopyright');
+  if (footerCopyright && content.footer?.copyright) {
+    footerCopyright.textContent = content.footer.copyright;
+  }
+
+  const footerLinks = document.getElementById('footerLinks');
+  if (footerLinks && Array.isArray(content.footer?.quickLinks)) {
+    footerLinks.innerHTML = content.footer.quickLinks
+      .map(l => `<a href="${esc(l.url || '#')}">${esc(l.label || '')}</a>`)
+      .join('');
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'newsletter', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'contato'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el) {
@@ -941,32 +971,6 @@ function renderSite(data, opts = {}) {
     if (icon) icon.textContent = open ? '+' : '−';
   };
 
-  // Newsletter
-  const newsletterSection = document.getElementById('section-newsletter');
-  if (newsletterSection && sections.includes('newsletter')) newsletterSection.style.display = '';
-  const newsletterTitle = document.getElementById('newsletterTitle');
-  const newsletterDesc = document.getElementById('newsletterDesc');
-  if (newsletterTitle && content.newsletter?.title) newsletterTitle.textContent = content.newsletter.title;
-  if (newsletterDesc && content.newsletter?.description) newsletterDesc.textContent = content.newsletter.description;
-  const newsletterSiteForm = document.getElementById('newsletterSiteForm');
-  if (newsletterSiteForm) {
-    newsletterSiteForm.onsubmit = async function(e) {
-      e.preventDefault();
-      const email = document.getElementById('newsletterSiteEmail')?.value;
-      const msg = document.getElementById('newsletterSiteMsg');
-      try {
-        const res = await fetch('/api/newsletter/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        if (msg) { msg.textContent = 'Inscrito com sucesso!'; msg.style.display = 'block'; msg.style.color = '#22c55e'; }
-        newsletterSiteForm.reset();
-      } catch(err) {
-        if (msg) { msg.textContent = 'Erro ao inscrever. Tente novamente.'; msg.style.display = 'block'; msg.style.color = '#ef4444'; }
-      }
-    };
-  }
 
   // Formulário de depoimento — visibilidade e posição controladas pelo bloco de reordenação acima
   const depoimentoForm = document.getElementById('depoimentoForm');

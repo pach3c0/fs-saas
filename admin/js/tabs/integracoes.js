@@ -1,7 +1,7 @@
 import { apiGet, apiPut } from '../utils/api.js';
 
 export async function renderIntegracoes(container) {
-  container.innerHTML = '<div style="color:#9ca3af;">Carregando...</div>';
+  container.innerHTML = '<div style="color:var(--text-secondary);">Carregando...</div>';
 
   try {
     // Busca dados da organização (perfil) que contém o campo 'integrations'
@@ -17,71 +17,71 @@ export async function renderIntegracoes(container) {
 
     renderForm(container, integrations);
   } catch (error) {
-    container.innerHTML = `<div style="color:#f87171;">Erro ao carregar: ${error.message}</div>`;
+    container.innerHTML = `<div style="color:var(--red);">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
 function renderForm(container, data) {
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:2rem; max-width:800px;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Integrações & Marketing</h2>
+      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Integrações & Marketing</h2>
 
       <!-- WhatsApp Widget -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-          <h3 style="font-size:1.1rem; font-weight:bold; color:#f3f4f6;">WhatsApp Flutuante</h3>
+          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary);">WhatsApp Flutuante</h3>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="waEnabled" ${data.whatsapp?.enabled ? 'checked' : ''}>
-            <span style="color:#d1d5db;">Ativar</span>
+            <span style="color:var(--text-primary);">Ativar</span>
           </label>
         </div>
         <div style="display:grid; gap:1rem;">
           <div>
-            <label style="display:block; color:#9ca3af; margin-bottom:0.25rem;">Número (com DDD)</label>
+            <label style="display:block; color:var(--text-secondary); margin-bottom:0.25rem;">Número (com DDD)</label>
             <input type="text" id="waNumber" value="${data.whatsapp?.number || ''}" placeholder="5511999999999"
-              style="width:100%; background:#111827; border:1px solid #374151; color:#f3f4f6; padding:0.5rem; border-radius:0.375rem;">
+              style="width:100%; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem;">
           </div>
           <div>
-            <label style="display:block; color:#9ca3af; margin-bottom:0.25rem;">Mensagem Padrão</label>
+            <label style="display:block; color:var(--text-secondary); margin-bottom:0.25rem;">Mensagem Padrão</label>
             <input type="text" id="waMessage" value="${data.whatsapp?.message || ''}" placeholder="Olá! Gostaria de mais informações."
-              style="width:100%; background:#111827; border:1px solid #374151; color:#f3f4f6; padding:0.5rem; border-radius:0.375rem;">
+              style="width:100%; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem;">
           </div>
         </div>
       </div>
 
       <!-- Google Analytics 4 -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-          <h3 style="font-size:1.1rem; font-weight:bold; color:#f3f4f6;">Google Analytics 4</h3>
+          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary);">Google Analytics 4</h3>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="gaEnabled" ${data.googleAnalytics?.enabled ? 'checked' : ''}>
-            <span style="color:#d1d5db;">Ativar</span>
+            <span style="color:var(--text-primary);">Ativar</span>
           </label>
         </div>
         <div>
-          <label style="display:block; color:#9ca3af; margin-bottom:0.25rem;">Measurement ID (G-XXXXXXXX)</label>
+          <label style="display:block; color:var(--text-secondary); margin-bottom:0.25rem;">Measurement ID (G-XXXXXXXX)</label>
           <input type="text" id="gaId" value="${data.googleAnalytics?.measurementId || ''}" placeholder="G-ABC123456"
-            style="width:100%; background:#111827; border:1px solid #374151; color:#f3f4f6; padding:0.5rem; border-radius:0.375rem;">
+            style="width:100%; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem;">
         </div>
       </div>
 
       <!-- Meta Pixel (Facebook) -->
-      <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; border:1px solid #374151;">
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-          <h3 style="font-size:1.1rem; font-weight:bold; color:#f3f4f6;">Meta Pixel (Facebook)</h3>
+          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary);">Meta Pixel (Facebook)</h3>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="pixelEnabled" ${data.metaPixel?.enabled ? 'checked' : ''}>
-            <span style="color:#d1d5db;">Ativar</span>
+            <span style="color:var(--text-primary);">Ativar</span>
           </label>
         </div>
         <div>
-          <label style="display:block; color:#9ca3af; margin-bottom:0.25rem;">Pixel ID</label>
+          <label style="display:block; color:var(--text-secondary); margin-bottom:0.25rem;">Pixel ID</label>
           <input type="text" id="pixelId" value="${data.metaPixel?.pixelId || ''}" placeholder="1234567890"
-            style="width:100%; background:#111827; border:1px solid #374151; color:#f3f4f6; padding:0.5rem; border-radius:0.375rem;">
+            style="width:100%; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem;">
         </div>
       </div>
 
-      <button id="saveBtn" style="background:#2563eb; color:white; padding:0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold; font-size:1rem;">
+      <button id="saveBtn" style="background:var(--accent); color:white; padding:0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold; font-size:1rem;">
         Salvar Configurações
       </button>
     </div>
