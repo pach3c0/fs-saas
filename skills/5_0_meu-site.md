@@ -35,3 +35,19 @@ editor visual (builder), templates do site público, ou persistência de dados d
 1. Leia **5_1** para entender o fluxo global (builder mode, postMessage, dados).
 2. Leia a skill do módulo específico que vai alterar (5_2 a 5_11).
 3. Não duplique nas skills 5_x o que já está nas skills 1_x.
+
+---
+
+## Regra obrigatória ao escrever/reescrever skills 5_2 a 5_11
+
+Toda skill de módulo **deve conter uma seção "Fluxo do usuário"** descrevendo o passo a passo desde o clique do usuário até a persistência no banco. Exemplo:
+
+```
+## Fluxo do usuário
+1. Usuário edita o campo X → valor atualizado no DOM
+2. Clica "Salvar" → apiPut('/api/site/admin/config', { siteContent: { X: valor } })
+3. Backend faz $set em Organization.siteContent.X
+4. window._meuSitePostPreview?.() → iframe atualiza em tempo real
+```
+
+Sem esse fluxo documentado, bugs de integração são difíceis de rastrear.
