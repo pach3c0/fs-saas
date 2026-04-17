@@ -112,3 +112,4 @@ O site público lê tudo via `GET /api/site/config` → `Organization`. Nunca sa
 | Preview mostra "Site em construção" | `siteEnabled=false` na org | Sempre incluir `?_preview=1` na URL do iframe |
 | Seções renderizadas fora de ordem | `appendChild` em vez de inserir antes do footer | `insertBefore(el, siteFooter)`, nunca `appendChild` |
 | Sub-tab não abre após mudança | Dirty tracking bloqueando | `checkDirtyBeforeSwitch()` retorna `false` — salvar ou descartar antes de trocar |
+| `slug.cliquezoom.com.br` sempre mostra "Site em construção" | Subdomínio público nunca configurado — `_tenant` sem `_preview` é ignorado em produção; tenant middleware resolve pelo host | **Pendente:** configurar DNS de subdomínio e validar fluxo completo. Ver `src/middleware/tenant.js:65`. |
