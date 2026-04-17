@@ -4,6 +4,7 @@ const Organization = require('../models/Organization');
 
 const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 const { authenticateToken } = require('../middleware/auth');
+const { clearOrgCache } = require('../middleware/tenant');
 const { createUploader } = require('../utils/multerConfig');
 const sharp = require('sharp');
 const fs = require('fs');
@@ -42,6 +43,7 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
     const org = await Organization.findById(req.user.organizationId)
       .select('siteEnabled siteTheme siteConfig siteSections siteContent siteStyle');
     const result = org ? org.toObject() : {};
+    if (result.siteEnabled == null) result.siteEnabled = true;
     if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
     res.json(result);
   } catch (error) {
@@ -89,6 +91,7 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
       { new: true, strict: false }
     );
 
+    if (org?.slug) clearOrgCache(org.slug);
     res.json({ success: true, org });
   } catch (error) {
     res.status(500).json({ error: error.message });

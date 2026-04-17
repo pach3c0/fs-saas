@@ -89,4 +89,8 @@ async function resolveTenant(req, res, next) {
   }
 }
 
-module.exports = { resolveTenant };
+function clearOrgCache(slug) {
+  if (slug) cache.delete(`org:${slug.toLowerCase()}`);
+}
+
+module.exports = { resolveTenant, clearOrgCache };
