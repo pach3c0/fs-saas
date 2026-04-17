@@ -136,9 +136,9 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 ## SKILLS (ler sob demanda)
 
-`skills/frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/backend.md` (rotas, middlewares, auth, env) · `skills/banco-de-dados.md` (modelos, Mixed, fontes de verdade)
+`skills/1_1_backend.md` (rotas, middlewares, auth, env) · `skills/1_2_frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/1_3_banco-de-dados.md` (modelos, Mixed, fontes de verdade)
 
-`skills/obsidian_master_sync.md` (visao geral) · `geral-site.md` (builder, postMessage, dirty) · `design-system.md` · `builder-templates.md` · `builder-personalizar.md` · `builder-hero.md` · `builder-portfolio.md` · `builder-estudio.md` · `builder-sobre.md` · `builder-forms.md` · `builder-sessoes.md` · `albums-prova.md` · `billing.md`
+`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md`
 
 **Regra:** ao alterar area coberta por skill, atualizar a skill correspondente. Apos features que adicionam pasta/rota/modelo/padrao, atualizar este `CLAUDE.md`.
 
@@ -206,9 +206,9 @@ Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **tod
 
 | Camada | Skill de referencia | Status |
 |---|---|---|
-| Frontend (`admin/js/tabs/`) | `skills/frontend.md` | 🔄 Em andamento |
-| Backend (`src/routes/`) | `skills/backend.md` | ⏳ Pendente |
-| Banco de dados (`src/models/`) | `skills/banco-de-dados.md` | ✅ Concluido |
+| Frontend (`admin/js/tabs/`) | `skills/1_2_frontend.md` | 🔄 Em andamento |
+| Backend (`src/routes/`) | `skills/1_1_backend.md` | ✅ Concluido |
+| Banco de dados (`src/models/`) | `skills/1_3_banco-de-dados.md` | ✅ Concluido |
 
 ### Ordem de correcao — Frontend (atual)
 
@@ -218,3 +218,5 @@ Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **tod
 4. `footer.js` — ✅ concluido (migrado para siteContent.footer; shared-site.js atualizado para redes sociais, copyright e quickLinks; newsletter removida completamente do app)
 5. `hero.js` — ✅ concluido (migrado para siteConfig; backend atualizado com merge por sub-chave; 35 cores → CSS variables; preview sync adicionado)
 6. `faq.js`, `integracoes.js` — ✅ concluido (CSS variables + preview sync no faq; integracoes sem preview sync pois nao e secao visual)
+
+

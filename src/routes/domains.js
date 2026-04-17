@@ -3,7 +3,7 @@ const router = express.Router();
 const Organization = require('../models/Organization');
 const { authenticateToken } = require('../middleware/auth');
 const { verifyDomain } = require('../utils/dnsVerifier');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const path = require('path');
 
 // Obter status do domínio
@@ -79,12 +79,10 @@ router.post('/domains/verify', authenticateToken, async (req, res) => {
 
       // Gerar certificado SSL automático (executar script)
       const scriptPath = path.join(__dirname, '../scripts/generate-ssl.sh');
-      exec(`bash ${scriptPath} ${org.customDomain}`, (error, stdout, stderr) => {
+      execFile('bash', [scriptPath, org.customDomain], (error, stdout, stderr) => {
         if (error) {
           console.error(`Erro SSL: ${error.message}`);
-          return;
         }
-        console.log(`SSL Gerado: ${stdout}`);
       });
 
       res.json({ success: true, message: 'Domínio verificado com sucesso! O SSL será gerado em instantes.' });

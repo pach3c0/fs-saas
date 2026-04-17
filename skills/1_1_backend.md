@@ -144,7 +144,7 @@ Campos em `Subscription`: `limits.maxSessions`, `usage.sessions`, etc. Free plan
 ```
 PORT=3051
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/fssaas
+MONGODB_URI=mongodb://localhost:27017/cliquezoom
 JWT_SECRET=your-secret-here
 BASE_DOMAIN=app.cliquezoom.com.br
 OWNER_SLUG=cz
