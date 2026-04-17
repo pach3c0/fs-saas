@@ -112,4 +112,20 @@ O site público lê tudo via `GET /api/site/config` → `Organization`. Nunca sa
 | Preview mostra "Site em construção" | `siteEnabled=false` na org | Sempre incluir `?_preview=1` na URL do iframe |
 | Seções renderizadas fora de ordem | `appendChild` em vez de inserir antes do footer | `insertBefore(el, siteFooter)`, nunca `appendChild` |
 | Sub-tab não abre após mudança | Dirty tracking bloqueando | `checkDirtyBeforeSwitch()` retorna `false` — salvar ou descartar antes de trocar |
+
+---
+
+## 7. Regra obrigatória para skills 5_x
+
+Toda skill de módulo (5_2 a 5_11) **deve conter uma seção "Fluxo do usuário"** descrevendo o passo a passo desde o clique do usuário até a persistência no banco. Exemplo:
+
+```
+## Fluxo do usuário
+1. Usuário edita o campo X → valor atualizado no DOM
+2. Clica "Salvar" → apiPut('/api/site/admin/config', { siteContent: { X: valor } })
+3. Backend faz $set em Organization.siteContent.X
+4. window._meuSitePostPreview?.() → iframe atualiza em tempo real
+```
+
+Sem esse fluxo documentado, bugs de integração são difíceis de rastrear.
 | `slug.cliquezoom.com.br` sempre mostra "Site em construção" | Subdomínio público nunca configurado — `_tenant` sem `_preview` é ignorado em produção; tenant middleware resolve pelo host | **Pendente:** configurar DNS de subdomínio e validar fluxo completo. Ver `src/middleware/tenant.js:65`. |
