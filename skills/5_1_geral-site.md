@@ -1,77 +1,114 @@
-# Guia Mestre: Arquitetura do Site Builder
+# Meu Site — Módulo Builder
 
-Este arquivo é a fonte de verdade para o funcionamento global do editor de sites ("Meu Site").
-
----
-
-## 1. Arquitetura e Modo Builder
-O painel opera no **Builder Mode** (controlado pela classe `.builder-mode` no `#adminPanel`).
-- **Navegação:** `#sidebar` e `#topbar` são ocultados para focar no editor.
-- **Divisão:** `#builder-props` (Painel Lateral de 360px) e `#builder-preview` (Iframe Interativo).
-- **Dispositivos:** Suporta Desktop, Tablet e Mobile através de transformações de escala no iframe.
+> Leia quando alterar `meu-site.js`, sub-tabs do builder, fluxo de preview ou persistência de dados do site público.
+> Padrões gerais (CSS variables, apiGet/apiPut, estado isolado): ver `1_2_frontend.md`.
 
 ---
 
-## 2. Protocolos de Comunicação (Snapshots & Iframe)
-O editor não reinicia o site a cada mudança (exceto na troca de tema).
-1. **Snapshots Locais (`appData`):** Uma variável JS que espelha o estado atual de todos os inputs.
-2. **PostMessage (`window.builderPostPreview(data)`):** Envia o snapshot para o iframe.
-3. **Iframe Listener:** Escuta mensagens do tipo `cz_preview` e atualiza o DOM em tempo real via `shared-site.js`.
+## 1. Entrada no Builder Mode
 
----
+```js
+// admin/js/tabs/meu-site.js
+export async function renderMeuSite(container) {
+  window._cleanupBuilderCanvases = function () { ... };
 
-## 3. Padrões de Persistência e Segurança
-### 3.1 Padrão Auto-Save
-Priorize o salvamento instantâneo via `oninput` no HTML:
-```javascript
-oninput="appData.secao.campo = this.value; updatePreview(); saveDados();"
+  if (typeof window.enterBuilderMode === 'function') {
+    window.enterBuilderMode();
+    const propsContent = document.getElementById('builder-props-content');
+    const propsTabs   = document.getElementById('builder-props-tabs');
+    if (propsContent && propsTabs) {
+      container.innerHTML = '...'; // placeholder "Editor aberto ao lado →"
+      await renderBuilderContent(propsContent, propsTabs);
+      return;
+    }
+  }
+  // Fallback: render normal (sem builder disponível)
+  await renderSiteContent(container, null);
+}
 ```
-- **updatePreview():** Dispara o `postMessage` imediatamente.
-- **saveDados():** Requisição assíncrona para `/api/admin/updateSiteData` (MongoDB).
 
-### 3.2 Dirty Tracking (Mudanças Não Salvas)
-- Impeça a troca de sub-abas se houver mudanças pendentes usando `checkDirtyBeforeSwitch()`.
-- Use `markDirty(sectionId, label)` para sinalizar campos modificados.
+- `#builder-props-content` — painel lateral esquerdo (360px) onde as propriedades são renderizadas
+- `#builder-props-tabs` — nav vertical de sub-tabs dentro do painel
+- `#builder-preview` — iframe de preview à direita
 
 ---
 
-## 4. Design Aesthetics (Stitch Inspiration)
-O design deve seguir a estética refinada do **Google Stitch**:
+## 2. Sub-tabs e responsáveis
 
-### 4.1 UI Tokens (Stitch → Admin CSS)
-- **Background Base:** `#0d1117` (`var(--bg-base)`)
-- **Surface Panels:** `#161b22` (`var(--bg-surface)`)
-- **Accent/Visual:** `#2f81f7` (`var(--accent)`)
-- **Ícones:** Use exclusivamente `Material Symbols Outlined`.
+| Sub-tab | `data-target` | Renderizado por |
+|---|---|---|
+| Geral | `config-geral` | `meu-site.js` (inline) |
+| Seções | `config-secoes` | `meu-site.js` (inline) |
+| Capa | `config-hero` | `hero.js` |
+| Sobre | `config-sobre` | `sobre.js` |
+| Portfólio | `config-portfolio` | `portfolio.js` |
+| Serviços | `config-servicos` | `meu-site.js` (inline) |
+| Depoimentos | `config-depoimentos` | `meu-site.js` (inline) |
+| Álbuns | `config-albuns` | `albuns.js` |
+| Estúdio | `config-estudio` | `estudio.js` |
+| Contato | `config-contato` | `meu-site.js` (inline) |
+| FAQ | `config-faq` | `faq.js` |
+| Personalizar | `config-personalizar` | `meu-site.js` (inline) |
 
-### 4.2 Componentes Visuais
-- **Nav Vertical:** Itens com `border-radius: 0.75rem` e ícone vetorial 20px.
-- **Cards de Tema:** Efeito glass (`builder-glass`), bordas sutis e paleta de cores circular para preview.
-- **Browser Chrome:** O preview deve ser encapsulado em uma janela de navegador simulada com `#builder-browser-chrome`.
-
----
-
-## 5. Módulos do Sistema
-Para detalhes técnicos de cada módulo, consulte seu respectivo arquivo:
-- **Temas:** `builder-templates.md`
-- **Seções:** `builder-sessoes.md`
-- **Hero:** `builder-hero.md`
-- **Sobre:** `builder-sobre.md`
-- **Estúdio & Mídia:** `builder-estudio.md`
-- **Formulários (Serviços/FAQ/etc):** `builder-forms.md`
-- **Personalização:** `builder-personalizar.md`
+Módulos externos (`hero.js`, `sobre.js`, etc.) recebem o container `#config-X` e se auto-renderizam. São importados no topo de `meu-site.js`.
 
 ---
 
-## 6. Padrão de Upload
-- **Fotos:** Sempre passar pelo `compressImage` (Canvas) para garantir performance.
-- **Vídeos:** Limite de 300MB, mostrar progresso via `XMLHttpRequest`.
+## 3. Protocolo postMessage (preview ao vivo)
+
+```js
+// Envia snapshot para o iframe — chamado após qualquer mudança de dados
+window.builderPostPreview(data);
+// → postMessage({ type: 'cz_preview', data }) para #site-preview-frame
+
+// iframe (shared-site.js) escuta:
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'cz_preview') applyPreviewData(e.data.data);
+});
+```
+
+**`window._meuSitePostPreview`** — função registrada por `meu-site.js` que busca os dados atuais da org e dispara `builderPostPreview`. Módulos filhos a chamam após salvar:
+
+```js
+window._meuSitePostPreview?.(); // após apiPut em hero.js, sobre.js, faq.js etc.
+```
 
 ---
 
-## Ajustes Globais Pendentes
-- **Header Preview:** Ao navegar via links do header dentro do iframe, o header desaparece. Precisa permanecer fixo (sticky) nos 3 modos de visualização em todos os templates.
+## 4. Cleanup de canvas
 
+```js
+window._cleanupBuilderCanvases = function () {
+  destroySobreCanvas();
+  const heroEl = document.getElementById('hero-canvas-container');
+  if (heroEl) heroEl.remove();
+};
+```
 
+Registrado em `renderMeuSite` para garantir que `portfolio.js` já foi carregado. Chamado automaticamente ao sair do builder mode (em `app.js`).
 
+---
 
+## 5. Dados: o que vai onde
+
+| Campo | Modelo / campo | Rota |
+|---|---|---|
+| `siteTheme` | `Organization.siteTheme` | `PUT /api/site/admin/config` |
+| `siteEnabled` | `Organization.siteEnabled` | `PUT /api/site/admin/config` |
+| `siteSections` | `Organization.siteSections` | `PUT /api/site/admin/config` |
+| Hero (layers, posição, overlay) | `Organization.siteConfig` | `PUT /api/site/admin/config` |
+| Sobre, Serviços, Depoimentos, Contato | `Organization.siteContent.X` | `PUT /api/site/admin/config` |
+| Portfolio, FAQ, Álbuns, Estúdio | Módulo próprio — ver skill `5_x` correspondente | — |
+
+O site público lê tudo via `GET /api/site/config` → `Organization`. Nunca salvar dados do site em `SiteData` (legado) — o site público não lê de lá (exceto `hero` canvas layers, que ainda usa `SiteData`).
+
+---
+
+## 6. Armadilhas conhecidas
+
+| Sintoma | Causa | Fix |
+|---|---|---|
+| Preview branco ao abrir builder | Race condition de slug | `await loadOrgSlug()` antes de `builderLoadPreview()` |
+| Preview mostra "Site em construção" | `siteEnabled=false` na org | Sempre incluir `?_preview=1` na URL do iframe |
+| Seções renderizadas fora de ordem | `appendChild` em vez de inserir antes do footer | `insertBefore(el, siteFooter)`, nunca `appendChild` |
+| Sub-tab não abre após mudança | Dirty tracking bloqueando | `checkDirtyBeforeSwitch()` retorna `false` — salvar ou descartar antes de trocar |
