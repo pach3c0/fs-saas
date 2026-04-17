@@ -208,7 +208,7 @@ Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **tod
 |---|---|---|
 | Frontend (`admin/js/tabs/`) | `skills/frontend.md` | 🔄 Em andamento |
 | Backend (`src/routes/`) | `skills/backend.md` | ⏳ Pendente |
-| Banco de dados (`src/models/`) | `skills/banco-de-dados.md` | ⏳ Pendente |
+| Banco de dados (`src/models/`) | `skills/banco-de-dados.md` | ✅ Concluido |
 
 ### Ordem de correcao — Frontend (atual)
 

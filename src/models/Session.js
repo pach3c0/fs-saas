@@ -37,7 +37,7 @@ const sessionSchema = new mongoose.Schema({
     watermark: { type: Boolean, default: true },
     canShare: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
-    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
+    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     // CRM: cliente vinculado
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
     // Multi-selecao: participantes individuais (modo multi_selection)
