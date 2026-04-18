@@ -53,15 +53,15 @@ export async function renderAlbuns(container) {
         <div style="position:relative; aspect-ratio:3/4; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden;">
           <img src="${resolveImagePath(photoObj.url)}" alt="Foto ${photoIdx + 1}" style="width:100%; height:100%; object-fit:cover; object-position:${photoObj.transform.x}% ${photoObj.transform.y}%; transform:scale(${photoObj.transform.scale});">
           <div class="album-photo-overlay" data-album="${idx}" data-photo="${photoIdx}"
-            style="position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
-            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" style="background:var(--accent); color:white; padding:0.4rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.875rem;" title="Definir como capa">
-              📷
+            style="position:absolute; inset:0; background:rgba(0,0,0,0.6); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem;">
+            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" style="background:var(--accent); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Definir como capa">
+              📷 Capa
             </button>
-            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" style="background:var(--blue); color:white; padding:0.4rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.875rem;" title="Editar">
-              ✏️
+            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" style="background:var(--blue); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Editar">
+              ✏️ Editar
             </button>
-            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="background:var(--red); color:white; padding:0.4rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.875rem;" title="Remover">
-              🗑️
+            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="background:var(--red); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Remover">
+              🗑️ Remover
             </button>
           </div>
         </div>
@@ -114,7 +114,7 @@ export async function renderAlbuns(container) {
 
         <div id="albumUploadProgress${idx}"></div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:0.5rem; margin-top:0.5rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:0.75rem; margin-top:0.5rem;">
           ${photosGridHtml}
         </div>
       </div>

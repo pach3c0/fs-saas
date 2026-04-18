@@ -431,6 +431,8 @@ async function renderSiteContent(container, builderTabsEl) {
         contato: { ...(configData.siteContent?.contato || {}) },
         faq: configData.siteContent?.faq || [],
         customSections: configData.siteContent?.customSections || [],
+        albums: configData.siteContent?.albums || [],
+        studio: configData.siteContent?.studio || {},
       },
       integrations: configData.integrations || {},
     };
