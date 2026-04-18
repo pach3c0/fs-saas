@@ -25,15 +25,14 @@ Editor visual de biografia e fotos de apresentação. Diferente de versões ante
 
 ---
 
-## 2. Fluxo de Edição
+## 2. Fluxo do usuário
 
-1. **Seleção**: Ao abrir a aba, o preview rola automaticamente para a seção `#section-sobre`.
-2. **Edição de Texto**: Alterações em `#scTitle` e `#scText` disparam `window._meuSitePostPreview?.()` instantaneamente.
-3. **Fotos (Camadas)**:
-   - As fotos são renderizadas no site público como elementos de `position: absolute` dentro de um container de proporção 3:4.
-   - Os controles na barra lateral (sliders) alteram as propriedades da camada em `siteContent.sobre.canvasLayers`.
-   - Cada movimento de slider sincroniza o estado e atualiza o iframe.
-4. **Persistência**: O botão **Salvar Sobre** envia o objeto completo via `apiPut('/api/site/admin/config')`.
+1. Usuário edita Título/Bio ou Sliders → sobreData é atualizado no estado local.
+2. Cada alteração chama liveNotify() → window._meuSitePostPreview?.() → postPreviewData()
+3. postPreviewData() usa getSobreCanvasState() para capturar camadas e envia via PostMessage.
+4. shared-site.js recebe mensagem e re-renderiza a seção #section-sobre com as novas camadas.
+5. Clique em "Salvar Sobre" → apiPut('/api/site/admin/config', { siteContent: { sobre: ... } })
+6. Backend faz $set em Organization.siteContent.sobre (preservando outros campos).
 
 ---
 
