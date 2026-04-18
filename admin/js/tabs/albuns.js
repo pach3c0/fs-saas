@@ -92,24 +92,23 @@ export async function renderAlbuns(container) {
           </button>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
-          <div style="display:flex; align-items:center; gap:1rem;">
+        <div style="display:flex; flex-direction:column; gap:0.75rem; border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Catálogo (${photos.length} fotos)</span>
-            
-            <div style="display:flex; background:var(--bg-elevated); border-radius:0.375rem; overflow:hidden; border:1px solid var(--border);">
-              <button onclick="setAlbumGridStyle(${idx}, 'standard')" style="padding:0.4rem 0.75rem; font-size:0.75rem; cursor:pointer; border:none; background:${album.gridStyle !== 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle !== 'mixed' ? 'white' : 'var(--text-secondary)'};">
-                Grid Padrão
-              </button>
-              <button onclick="setAlbumGridStyle(${idx}, 'mixed')" style="padding:0.4rem 0.75rem; font-size:0.75rem; cursor:pointer; border:none; background:${album.gridStyle === 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle === 'mixed' ? 'white' : 'var(--text-secondary)'};">
-                Grid Misto
-              </button>
-            </div>
+            <label style="background:var(--accent); color:white; padding:0.4rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.25rem;">
+              Upload
+              <input type="file" accept=".jpg,.jpeg,.png" multiple class="albumUploadInput" data-album-idx="${idx}" style="display:none;">
+            </label>
           </div>
-
-          <label style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.25rem;">
-            Upload de Fotos
-            <input type="file" accept=".jpg,.jpeg,.png" multiple class="albumUploadInput" data-album-idx="${idx}" style="display:none;">
-          </label>
+          
+          <div style="display:flex; background:var(--bg-elevated); border-radius:0.375rem; overflow:hidden; border:1px solid var(--border); align-self:stretch;">
+            <button onclick="setAlbumGridStyle(${idx}, 'standard')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:500; cursor:pointer; border:none; background:${album.gridStyle !== 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle !== 'mixed' ? 'white' : 'var(--text-secondary)'};">
+              Grid Padrão
+            </button>
+            <button onclick="setAlbumGridStyle(${idx}, 'mixed')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:500; cursor:pointer; border:none; background:${album.gridStyle === 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle === 'mixed' ? 'white' : 'var(--text-secondary)'};">
+              Grid Misto
+            </button>
+          </div>
         </div>
 
         <div id="albumUploadProgress${idx}"></div>

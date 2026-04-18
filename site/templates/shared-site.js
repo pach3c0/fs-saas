@@ -701,6 +701,11 @@ function renderSite(data, opts = {}) {
     } else {
       albumsGrid.innerHTML = '<p style="color:#666; text-align:center; padding:2rem;">Nenhum álbum cadastrado ainda.</p>';
     }
+    
+    // Atualiza modal se estiver aberto
+    if (document.getElementById('albumModal') && typeof window.currentOpenAlbumIdx !== 'undefined') {
+      window.openAlbumModal(window.currentOpenAlbumIdx);
+    }
   }
 
   // Modal de álbum
@@ -708,6 +713,7 @@ function renderSite(data, opts = {}) {
   window.albumLightboxPhotos = [];
 
   window.openAlbumModal = function(albumIdx) {
+    window.currentOpenAlbumIdx = albumIdx;
     const album = window.allAlbums[albumIdx];
     if (!album) return;
     const photos = album.photos || [];
