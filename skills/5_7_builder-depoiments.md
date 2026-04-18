@@ -102,7 +102,16 @@ O site público itera sobre `data.siteContent.depoimentos` e gera o HTML:
 
 ---
 
-## 6. Regras e Validações
+## 6. Bug Conhecido — Formulário Público Nunca Testado em Produção
+
+- O formulário de depoimento do site público **não foi testado fora do preview do builder**.
+- Testes feitos com `?_preview=1` no iframe do builder não são válidos para validar o fluxo real do visitante.
+- **Pendência:** testar acessando `slug.cliquezoom.com.br` numa aba separada (sem `_preview`), preencher e enviar, e verificar se o depoimento aparece em `pendingDepoimentos` no banco.
+- Também verificar se o formulário deve ser **ocultado no modo preview** (`_preview=1`), pois o fotógrafo não deveria conseguir enviar depoimento para si mesmo enquanto edita o site.
+
+---
+
+## 7. Regras e Validações
 - **Nota:** Deve ser entre 1 e 5.
 - **Auto-save:** Atualmente este módulo **não** usa auto-save completo (depende do botão Salvar), mas o `dirty tracking` impede que o usuário saia sem salvar.
 - **Imagens:** Devem ser comprimidas via `uploadImage` (padrão 1200px/85%).

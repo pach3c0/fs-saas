@@ -1028,10 +1028,12 @@ function renderSite(data, opts = {}) {
             rating: depoimentoForm.rating?.value || 5
           })
         });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         if (msg) { msg.textContent = 'Depoimento enviado! Aguardando aprovação.'; msg.style.display = 'block'; msg.style.color = '#22c55e'; }
         depoimentoForm.reset();
       } catch(err) {
         if (msg) { msg.textContent = 'Erro ao enviar. Tente novamente.'; msg.style.display = 'block'; msg.style.color = '#ef4444'; }
+        console.error('[Depoimento] Erro no envio:', err.message);
       }
       if (btn) btn.disabled = false;
     };
