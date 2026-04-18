@@ -413,6 +413,10 @@ window.switchTab = (tab) => {
     document.querySelectorAll('.tab-btn')[2].classList.add('active');
     document.getElementById('tabLanding').classList.add('active');
     loadLandingEditor();
+  } else if (tab === 'componentes') {
+    document.querySelectorAll('.tab-btn')[3].classList.add('active');
+    document.getElementById('tabComponentes').classList.add('active');
+    if (window.loadComponentesLibrary) window.loadComponentesLibrary();
   } else {
     document.querySelectorAll('.tab-btn')[0].classList.add('active');
     document.getElementById('tabOrgs').classList.add('active');

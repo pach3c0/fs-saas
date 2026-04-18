@@ -185,6 +185,7 @@
             <button class="tab-btn active" onclick="switchTab('orgs')">Organizacoes</button>
             <button class="tab-btn" onclick="switchTab('trash')">Lixeira <span id="trashCount"></span></button>
             <button class="tab-btn" onclick="switchTab('landing')">Landing Page</button>
+            <button class="tab-btn" onclick="switchTab('componentes')">Componentes (Site)</button>
         </div>
 
         <!-- Tab: Organizações -->
@@ -236,6 +237,13 @@
         <div class="tab-content" id="tabLanding">
             <div id="landingEditor" style="max-width:56rem;">
                 <div class="loading">Carregando editor...</div>
+            </div>
+        </div>
+
+        <!-- Tab: Componentes do Site Builder -->
+        <div class="tab-content" id="tabComponentes">
+            <div id="componentesEditor" style="max-width:64rem; margin:0 auto;">
+                <div class="loading">Carregando biblioteca de componentes...</div>
             </div>
         </div>
     </div>
@@ -356,8 +364,7 @@
             </div>
         </div>
     </div>
-</div>
-
+<script src="/saas-admin/js/componentes.js"></script>
 <script type="module" src="/saas-admin/js/app.js"></script>
 </body>
 </html>
