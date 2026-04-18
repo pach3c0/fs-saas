@@ -40,7 +40,7 @@ export async function renderPortfolio(container) {
 
   container.innerHTML = `
     <style>
-      .p-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .p-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
       .p-item {
         position: relative; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
         background: var(--bg-elevated); border: 1px solid var(--border); cursor: grab;
@@ -196,6 +196,12 @@ function setupEvents(container) {
 
   const updateAndSave = () => {
     renderPhotos(container);
+    if (appState.configData && appState.configData.siteContent) {
+      appState.configData.siteContent.portfolio = {
+        photos: _portfolioPhotos,
+        gridStyle: _gridStyle
+      };
+    }
     window._meuSitePostPreview?.();
     savePortfolio();
   };
@@ -374,7 +380,7 @@ function openPhotoEditor(idx, container) {
   modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(4px);';
   
   modal.innerHTML = `
-    <div style="background:var(--bg-surface); width:100%; max-width:800px; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; max-height:90vh;">
+    <div style="background:var(--bg-surface); width:100%; max-width:1200px; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; max-height:90vh;">
       <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated);">
         <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto</h3>
         <button id="pModalClose" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:1.5rem;">✕</button>
@@ -382,8 +388,8 @@ function openPhotoEditor(idx, container) {
       
       <div style="display:flex; flex:1; overflow:hidden; flex-direction:column; md:flex-direction:row;">
         <!-- Preview area -->
-        <div style="flex:1; background:#000; padding:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; min-height:300px;">
-          <div id="pModalPreviewWrapper" style="width:100%; max-width:400px; aspect-ratio:${photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9'}; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s;">
+        <div style="flex:1; background:#000; padding:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; min-height:400px;">
+          <div id="pModalPreviewWrapper" style="width:100%; max-width:800px; aspect-ratio:${photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9'}; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s;">
             <img id="pModalImg" src="${resolveImagePath(photo.url)}" style="width:100%; height:100%; object-fit:cover; object-position:${photo.transform.x}% ${photo.transform.y}%; transform:scale(${photo.transform.scale});">
           </div>
         </div>
@@ -443,13 +449,22 @@ function openPhotoEditor(idx, container) {
     img.style.transform = `scale(${photo.transform.scale})`;
     img.style.objectPosition = `${photo.transform.x}% ${photo.transform.y}%`;
     wrapper.style.aspectRatio = photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9';
+    if (appState.configData && appState.configData.siteContent) {
+      appState.configData.siteContent.portfolio = { photos: _portfolioPhotos, gridStyle: _gridStyle };
+    }
     window._meuSitePostPreview?.();
   };
 
   zoomSlider.oninput = (e) => { photo.transform.scale = parseFloat(e.target.value); modal.querySelector('#pValZoom').textContent = photo.transform.scale; updateVisuals(); };
   xSlider.oninput = (e) => { photo.transform.x = parseInt(e.target.value); modal.querySelector('#pValX').textContent = photo.transform.x; updateVisuals(); };
   ySlider.oninput = (e) => { photo.transform.y = parseInt(e.target.value); modal.querySelector('#pValY').textContent = photo.transform.y; updateVisuals(); };
-  captionInput.oninput = (e) => { photo.caption = e.target.value; window._meuSitePostPreview?.(); };
+  captionInput.oninput = (e) => { 
+    photo.caption = e.target.value; 
+    if (appState.configData && appState.configData.siteContent) {
+      appState.configData.siteContent.portfolio = { photos: _portfolioPhotos, gridStyle: _gridStyle };
+    }
+    window._meuSitePostPreview?.(); 
+  };
   
   modal.querySelectorAll('.p-fmt-btn').forEach(btn => {
     btn.onclick = (e) => {

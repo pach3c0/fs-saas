@@ -460,14 +460,7 @@ async function renderSiteContent(container, builderTabsEl) {
     if (!snap.siteConfig.heroTitle && layers[0]?.text) snap.siteConfig.heroTitle = layers[0]?.text;
     if (!snap.siteConfig.heroSubtitle && layers[1]?.text) snap.siteConfig.heroSubtitle = layers[1]?.text;
 
-    // Portfolio (sempre usar do appData)
-    const portfolio = appState.appData?.portfolio || {};
-    if (portfolio.photos) {
-      snap.siteContent.portfolio = {
-        ...snap.siteContent.portfolio,
-        photos: portfolio.photos
-      };
-    }
+    // Portfolio agora usa nativamente configData.siteContent.portfolio
 
     // Contato
     const contatoTitle = container.querySelector('#contatoTitle');

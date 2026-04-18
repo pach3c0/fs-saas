@@ -139,3 +139,14 @@ portfolioGrid.innerHTML = photos.map((p, i) => `
 - Se `photos` vazio → `#section-portfolio` recebe `display:none`
 - Lightbox: `openLightbox(i)` → `#portfolioLightbox` + `#lbImage` com navegação por seta/teclado
 - `window.lightboxPhotos` = array de fotos (populado ao renderizar)
+
+
+# Ajuste
+
+Aumentar a thymbnail em propriedade de cada imagem o dobro pelo menis 
+
+Quando reposicionada a imagem no drag and drop , no preview tem que ser em tempo real, atualmente tem que recarregar a pagina pra ver a ordem correta
+
+zoom e possicoes so estao acontecendo no modal nao esta sendo refletido para o preview 
+
+na verdade em resumo nas thumbnails estao acontencendo mais nao esta indo para o preview, quando vai é quando recarrega a pagina novamente
