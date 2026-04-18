@@ -172,4 +172,38 @@ Sempre use as variáveis de CSS definidas em `admin/index.html` para os componen
 * Bordas: `var(--border)`
 * Destaques: `var(--accent)` e `var(--accent-hover)`
 
+---
+
+## 6. Padrão de Editor Visual de Camadas (Canvas/Layers CSS)
+
+O módulo **Sobre** (e potencialmente outros) utiliza um sistema de edição de imagens baseada em camadas manipuladas via CSS Transform diretamente no preview (sem usar `<canvas>` real do HTML).
+
+### Estrutura de Propriedades de Camada Padrão
+Toda camada (imagem) gerenciada deve seguir este formato no array de dados:
+
+```javascript
+{
+  id: "id_unico_timestamp",
+  type: "image",
+  url: "https://...",
+  name: "Nome da Foto",
+  x: 50, y: 50,          // posição central em % (0 a 100)
+  width: 70, height: 70, // tamanho em % em relação ao container (5 a 150)
+  rotation: 0,           // rotação em graus (-180 a 180)
+  opacity: 100,          // % (0 a 100)
+  borderRadius: 0,       // px (0 a 200)
+  shadow: false,         // boolean
+  shadowBlur: 10,        // intensidade
+  shadowColor: "rgba(0,0,0,0.5)",
+  flipH: false,          // espelhamento horizontal
+  flipV: false           // espelhamento vertical
+}
+```
+
+### Regras de Ouro para o Editor de Camadas
+1. **Highlight Visual:** Clicar em uma camada na lista (Sidebar) deve destacar o item no preview com uma borda azul ou piscar, usando o padrão `cz_highlight_layer`.
+2. **SortableJS:** A lista de camadas no painel deve permitir Drag & Drop para alterar o z-index (a ordem no array dita a ordem no eixo Z).
+3. **Renderização no Site (`shared-site.js`):** A renderização ocorre posicionando as divs com `position: absolute`, e o ajuste fino (x/y) usa `transform: translate(-50%, -50%)` para centralizar a imagem no ponto âncora antes de aplicar as outras transformações (rotate, scale, flip).
+4. **Limite de Arquivos:** Módulos que compõem imagens (como Sobre) geralmente têm um limite hardcoded (ex: 4 fotos) para evitar degradação de performance e sobreposição excessiva.
+
 *(Para visualização interativa destes componentes, abra a aba "Componentes (Site)" no painel saas-admin).*

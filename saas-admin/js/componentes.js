@@ -107,6 +107,76 @@ window.loadComponentesLibrary = function() {
         </div>
       </div>
 
+      <!-- PADRÃO EDITOR DE CAMADAS (CANVAS CSS) -->
+      <div style="background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1.5rem;">
+        <h3 style="font-size:0.875rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1.25rem;">6. Editor Visual de Camadas (Canvas CSS)</h3>
+        
+        <p style="font-size:0.75rem; color:#64748b; margin-bottom:1rem;">Usado no módulo "Sobre" e "Capa". Lista com drag & drop (Sortable) e painel de propriedades avançadas.</p>
+        
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+          
+          <!-- Lista de Camadas -->
+          <div style="flex:1; min-width:250px;">
+            <div style="font-size:0.75rem; font-weight:600; color:#94a3b8; margin-bottom:0.5rem; text-transform:uppercase;">Camadas (Máx: 4)</div>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; background:#0f172a; padding:0.5rem; border-radius:0.5rem; border:1px solid #334155;">
+              <div style="display:flex; align-items:center; justify-content:space-between; background:#1e293b; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid #6366f1; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span style="cursor:grab; color:#64748b;">⠿</span>
+                  <span style="font-size:0.8125rem; color:#f1f5f9;">Foto Principal (Ativa)</span>
+                </div>
+                <span style="color:#ef4444; font-size:1rem; cursor:pointer;">&times;</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; background:#161b22; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span style="cursor:grab; color:#64748b;">⠿</span>
+                  <span style="font-size:0.8125rem; color:#e2e8f0;">Detalhe Fundo</span>
+                </div>
+                <span style="color:#ef4444; font-size:1rem; cursor:pointer;">&times;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Painel de Propriedades -->
+          <div style="flex:2; min-width:300px; background:#0f172a; padding:1.25rem; border-radius:0.5rem; border:1px solid #334155;">
+            <div style="font-size:0.75rem; font-weight:600; color:#6366f1; margin-bottom:1rem; text-transform:uppercase;">Ajustes da Camada Ativa</div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+              <div>
+                <label style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem;">
+                  <span>Eixo X</span> <span>50%</span>
+                </label>
+                <input type="range" min="0" max="100" value="50" style="width:100%; accent-color:#6366f1;">
+              </div>
+              <div>
+                <label style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem;">
+                  <span>Eixo Y</span> <span>50%</span>
+                </label>
+                <input type="range" min="0" max="100" value="50" style="width:100%; accent-color:#6366f1;">
+              </div>
+              <div>
+                <label style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem;">
+                  <span>Largura</span> <span>70%</span>
+                </label>
+                <input type="range" min="5" max="150" value="70" style="width:100%; accent-color:#6366f1;">
+              </div>
+              <div>
+                <label style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem;">
+                  <span>Rotação</span> <span>15°</span>
+                </label>
+                <input type="range" min="-180" max="180" value="15" style="width:100%; accent-color:#6366f1;">
+              </div>
+            </div>
+
+            <div style="margin-top:1.25rem; display:flex; gap:0.5rem;">
+              <button style="flex:1; background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Horiz.</button>
+              <button style="flex:1; background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Vert.</button>
+            </div>
+            
+          </div>
+          
+        </div>
+      </div>
+
     </div>
   `;
 };
