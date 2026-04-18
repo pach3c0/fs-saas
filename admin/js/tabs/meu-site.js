@@ -19,9 +19,10 @@ export async function renderMeuSite(container) {
   // Registrar cleanup de canvas ao sair do builder (feito aqui para garantir
   // que o módulo portfolio.js já foi carregado quando o cleanup for chamado)
   window._cleanupBuilderCanvases = function () {
-    destroySobreCanvas();
     const heroEl = document.getElementById('hero-canvas-container');
     if (heroEl) heroEl.remove();
+    // Sobre agora não usa canvas isolado, limpeza feita pelo destroySobreCanvas em sobre.js se necessário
+    destroySobreCanvas();
   };
 
   // Enter builder mode — render properties into the builder panel
@@ -518,21 +519,37 @@ async function renderSiteContent(container, builderTabsEl) {
   const tabs = container.querySelectorAll('.sub-tab-btn');
   const contents = container.querySelectorAll('.sub-tab-content');
 
+  // Enviar comando de scroll ao iframe
+  function scrollToSection(sectionId) {
+    const iframe = document.getElementById('builder-iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'cz_scroll_to', sectionId }, window.location.origin);
+    }
+  }
+
   async function doSwitchSubTab(btn, targetContainer) {
     const heroCanvasEl = document.getElementById('hero-canvas-container');
-    const sobreCanvasEl = document.getElementById('sobre-canvas-container');
     const iframe = document.getElementById('builder-iframe');
 
     const target = btn.dataset.target;
-    if (target === 'config-sobre') {
-      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'flex';
-      if (iframe) iframe.style.display = 'none';
-    } else {
-      if (heroCanvasEl) heroCanvasEl.style.display = 'none';
-      if (sobreCanvasEl) sobreCanvasEl.style.display = 'none';
-      if (iframe) iframe.style.display = '';
-    }
+    // Hero ainda usa canvas opcional (HeroCanvasEditor), outros usam iframe real
+    if (heroCanvasEl) heroCanvasEl.style.display = 'none';
+    if (iframe) iframe.style.display = '';
+
+    // Rolar preview para a seção correspondente
+    const sectionMap = {
+      'config-hero': 'hero',
+      'config-secoes': 'hero',
+      'config-sobre': 'sobre',
+      'config-portfolio': 'portfolio',
+      'config-servicos': 'servicos',
+      'config-depoimentos': 'depoimentos',
+      'config-albuns': 'albuns',
+      'config-estudio': 'estudio',
+      'config-contato': 'contato',
+      'config-faq': 'faq'
+    };
+    if (sectionMap[target]) scrollToSection(sectionMap[target]);
 
     tabs.forEach(t => {
       t.style.background = 'none';

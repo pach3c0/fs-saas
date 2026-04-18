@@ -1,125 +1,38 @@
 /**
- * Tab: Sobre — Canvas Editor para foto de retrato
- * Canvas 3:4 (300×400) na área de preview (iframeWrap), igual ao Hero.
- * O iframe é ocultado enquanto o canvas está ativo.
- * O preview do site atualiza via postMessage em tempo real.
+ * Tab: Sobre — Edição direta no preview real do site
+ * Substitui o Canvas Editor isolado por controles na barra lateral
+ * que refletem instantaneamente no iframe do site.
  */
 
 import { appState } from '../state.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage } from '../utils/upload.js';
 import { apiPut } from '../utils/api.js';
-import { HeroCanvasEditor } from '../utils/heroCanvas.js';
 
-// ── Instância global (sobrevive trocas de sub-aba) ───────────────────────────
-export let _sobreCanvasEditor = null;
 let _sobreSidebarContainer = null;
-
-// Dimensões do canvas — retrato 3:4
-const SOBRE_W = 600;
-const SOBRE_H = 800;
-
-async function syncSobreToSite(layers, title, text) {
-  const imgLayer = (layers || []).find(l => l.type === 'image' && l.url);
-  const currentSiteContent = appState.configData?.siteContent || {};
-
-  await apiPut('/api/site/admin/config', {
-    siteContent: {
-      ...currentSiteContent,
-      sobre: {
-        ...currentSiteContent.sobre,
-        title,
-        text,
-        image: imgLayer?.url || currentSiteContent.sobre?.image || '',
-        canvasLayers: layers || [],
-      }
-    }
-  });
-}
+let _sobreSelectedLayerId = null;
 
 /**
- * Monta o canvas do sobre na área de preview (igual ao Hero).
- * Sidebar de controles vai no container (painel de props).
+ * Renderiza a interface do módulo Sobre na barra lateral.
+ * Diferente da versão anterior, não oculta o iframe e não cria canvas próprio.
  */
 export function renderSobre(container) {
-  // Se canvas já existe → apenas re-renderizar o sidebar
-  if (_sobreCanvasEditor) {
-    const canvasEl = document.getElementById('sobre-canvas-container');
-    const iframe = document.getElementById('builder-iframe');
-    if (canvasEl) canvasEl.style.display = 'flex';
-    if (iframe) iframe.style.display = 'none';
-    _renderSobreSidebar(container);
-    return;
-  }
-
+  _sobreSidebarContainer = container;
   const siteContent = appState.configData?.siteContent || {};
-  const sobreData = siteContent.sobre || {};
+  
+  if (!siteContent.sobre) siteContent.sobre = {};
+  const sobreData = siteContent.sobre;
 
-  // Layers iniciais
-  let layers = sobreData.canvasLayers || [];
-  if (layers.length === 0 && sobreData.image) {
-    layers = [{
-      id: 'sb_' + Date.now(),
-      type: 'image',
-      url: sobreData.image,
-      name: 'Foto',
-      x: 50, y: 50,
-      width: 70, height: 70,
-      rotation: 0,
-      opacity: 100,
-      borderRadius: 0,
-      shadow: false,
-      shadowBlur: 10,
-      shadowColor: 'rgba(0,0,0,0.5)',
-      flipH: false, flipV: false,
-      presets: {},
-    }];
-  }
-
-  // Substituir iframe pelo canvas (igual ao Hero)
-  const iframeWrap = document.getElementById('builder-iframe-wrap');
-  const iframe = document.getElementById('builder-iframe');
-  if (iframe) iframe.style.display = 'none';
-
-  const canvasContainer = document.createElement('div');
-  canvasContainer.id = 'sobre-canvas-container';
-  canvasContainer.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0a0b10;position:absolute;inset:0;z-index:2;';
-  if (iframeWrap) iframeWrap.appendChild(canvasContainer);
-
-  const sobreSizes = {
-    desktop: { w: SOBRE_W, h: SOBRE_H },
-    tablet:  { w: SOBRE_W, h: SOBRE_H },
-    mobile:  { w: SOBRE_W, h: SOBRE_H },
-  };
-
-  const canvasEditor = new HeroCanvasEditor(canvasContainer, {
-    onSelect: (layer) => {
-      _renderPropsForLayer(_sobreSidebarContainer, layer, canvasEditor);
-    },
-    onChange: () => {
-      window._meuSitePostPreview?.();
-    },
-    resolveImagePath: resolveImagePath,
-    deviceSizes: sobreSizes,
-  });
-
-  if (canvasEditor.root) canvasEditor.root.style.background = '#1a1a1a';
-  if (canvasEditor.bgEl) {
-    canvasEditor.bgEl.style.backgroundImage = 'none';
-    canvasEditor.bgEl.style.background = '#1a1a1a';
-  }
-  canvasEditor.setOverlay({ opacity: 0, topBarHeight: 0, bottomBarHeight: 0 });
-  canvasEditor.setLayers(layers);
-  _sobreCanvasEditor = canvasEditor;
-
+  // Garantir que canvasLayers existe
+  if (!sobreData.canvasLayers) sobreData.canvasLayers = [];
+  
   _renderSobreSidebar(container);
 }
 
-// ── Sidebar de propriedades ───────────────────────────────────────────────────
 function _renderSobreSidebar(container) {
-  _sobreSidebarContainer = container;
   const siteContent = appState.configData?.siteContent || {};
   const sobreData = siteContent.sobre || {};
+  const layers = sobreData.canvasLayers || [];
 
   container.innerHTML = `
     <style>
@@ -128,30 +41,29 @@ function _renderSobreSidebar(container) {
       .sc-sidebar::-webkit-scrollbar { width:4px; }
       .sc-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
       .sc-section { border-bottom:1px solid #1f2937; }
-      .sc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; }
+      .sc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:space-between; }
       .sc-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
       .sc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
       .sc-input { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; }
       .sc-input:focus { border-color:#3b82f6; }
       .sc-textarea { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; resize:vertical; min-height:80px; }
-      .sc-range { width:100%; accent-color:#3b82f6; }
+      .sc-range-row { display:flex; align-items:center; gap:0.4rem; }
+      .sc-range { flex:1; accent-color:#3b82f6; }
+      .sc-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.2rem; text-align:right; }
       .sc-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:#d1d5db; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
       .sc-btn:hover { background:#374151; color:#fff; }
       .sc-btn.primary { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
-      .sc-btn.primary:hover { background:#2563eb; }
       .sc-btn.success { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
-      .sc-btn.success:hover { background:#15803d; }
-      .sc-btn-group { display:flex; gap:0.35rem; padding:0.4rem 0.75rem; flex-wrap:wrap; }
       .sc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
       .sc-layer-item:hover { background:#2d3748; }
       .sc-layer-item.active { border-color:#3b82f6; background:#172554; }
-      .sc-layer-item .layer-del { color:#ef4444; cursor:pointer; font-size:0.85rem; opacity:0.6; margin-left:auto; }
+      .sc-layer-item .layer-del { color:#ef4444; margin-left:auto; opacity:0.6; font-size:0.85rem; }
       .sc-layer-item .layer-del:hover { opacity:1; }
+      .sc-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; }
     </style>
 
     <div class="sc-sidebar">
-
-      <!-- Texto do Sobre -->
+      <!-- CONTEÚDO -->
       <div class="sc-section">
         <div class="sc-section-head">✏️ Conteúdo</div>
         <div class="sc-row">
@@ -164,277 +76,240 @@ function _renderSobreSidebar(container) {
         </div>
       </div>
 
-      <!-- Adicionar foto -->
+      <!-- ADICIONAR FOTO -->
       <div class="sc-section">
         <div class="sc-section-head">🖼 Foto</div>
-        <div class="sc-btn-group">
-          <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center;">
+        <div style="padding:0.4rem 0.75rem;">
+          <label class="sc-btn primary" style="width:100%; cursor:pointer;">
             📷 Adicionar Foto
             <input type="file" accept=".jpg,.jpeg,.png" id="scAddPhoto" style="display:none;">
           </label>
         </div>
       </div>
 
-      <!-- Props da layer selecionada -->
+      <!-- PROPRIEDADES DA FOTO -->
       <div id="sc-layer-props" class="sc-section" style="display:none;">
-        <div class="sc-section-head">⚙️ Propriedades da Foto</div>
+        <div class="sc-section-head">⚙️ Ajustes da Foto</div>
         <div id="sc-layer-props-content"></div>
       </div>
 
-      <!-- Lista de camadas -->
+      <!-- CAMADAS -->
       <div class="sc-section">
         <div class="sc-section-head">Camadas</div>
-        <div id="sc-layer-list" style="padding:0.35rem 0; min-height:2rem;"></div>
+        <div id="sc-layer-list"></div>
       </div>
 
-      <!-- Salvar -->
-      <div style="padding:0.75rem;">
-        <button class="sc-btn success" id="scSaveBtn" style="width:100%; font-size:0.875rem; padding:0.6rem;">
-          💾 Salvar Sobre
-        </button>
+      <!-- SALVAR -->
+      <div style="padding:1rem 0.75rem; margin-top:auto;">
+        <button class="sc-btn success" id="scSaveBtn" style="width:100%; padding:0.75rem;">Salvar Sobre</button>
       </div>
-
     </div>
   `;
 
-  const canvasEditor = _sobreCanvasEditor;
-  if (!canvasEditor) return;
+  // Bind events
+  const liveNotify = () => window._meuSitePostPreview?.();
 
-  // Preview em tempo real ao digitar
-  container.querySelector('#scTitle').oninput = () => window._meuSitePostPreview?.();
-  container.querySelector('#scText').oninput  = () => window._meuSitePostPreview?.();
+  container.querySelector('#scTitle').oninput = (e) => { sobreData.title = e.target.value; liveNotify(); };
+  container.querySelector('#scText').oninput = (e) => { sobreData.text = e.target.value; liveNotify(); };
 
-  // Adicionar foto
-  container.querySelector('#scAddPhoto').addEventListener('change', async (e) => {
+  container.querySelector('#scAddPhoto').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       const result = await uploadImage(file, appState.authToken);
-      const layers = canvasEditor.getLayers();
-      const imgCount = layers.filter(l => l.type === 'image').length;
-      canvasEditor.addLayer({
+      const newLayer = {
         id: 'sb_' + Date.now(),
         type: 'image',
         url: result.url,
-        name: `Foto ${imgCount + 1}`,
-        x: 50, y: 50,
-        width: 70, height: 70,
-        rotation: 0,
-        opacity: 100,
-        borderRadius: 0,
-        shadow: false,
-        shadowBlur: 10,
-        shadowColor: 'rgba(0,0,0,0.5)',
-        flipH: false, flipV: false,
-        presets: {},
-      });
-      _renderLayerList(container, canvasEditor);
-      e.target.value = '';
-    } catch (err) {
-      window.showToast?.('Erro no upload: ' + err.message, 'error');
-    }
-  });
-
-  container.querySelector('#scSaveBtn').addEventListener('click', async () => {
-    const btn = container.querySelector('#scSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-    try {
-      const layers = canvasEditor.getLayers();
-      const title  = container.querySelector('#scTitle').value;
-      const text   = container.querySelector('#scText').value;
-      await syncSobreToSite(layers, title, text);
-      if (!appState.configData.siteContent) appState.configData.siteContent = {};
-      appState.configData.siteContent.sobre = {
-        ...appState.configData.siteContent.sobre,
-        title, text,
-        image: layers.find(l => l.type === 'image')?.url || '',
-        canvasLayers: layers,
+        name: `Foto ${layers.length + 1}`,
+        x: 50, y: 50, width: 70, height: 70, rotation: 0, opacity: 100, borderRadius: 0, shadow: false, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)', flipH: false, flipV: false, presets: {}
       };
+      layers.push(newLayer);
+      _sobreSelectedLayerId = newLayer.id;
+      _renderLayerList();
+      _renderPropsForLayer(newLayer);
+      liveNotify();
+      e.target.value = '';
+    } catch (err) { window.showToast?.('Erro no upload', 'error'); }
+  };
+
+  container.querySelector('#scSaveBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const oldText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      const title = container.querySelector('#scTitle').value;
+      const text = container.querySelector('#scText').value;
+      await apiPut('/api/site/admin/config', {
+        siteContent: {
+          ...siteContent,
+          sobre: { ...sobreData, title, text, canvasLayers: layers, image: layers[0]?.url || '' }
+        }
+      });
+      // Atualizar estado global
+      appState.configData.siteContent.sobre = { ...sobreData, title, text, canvasLayers: layers, image: layers[0]?.url || '' };
       window.showToast?.('Sobre salvo!', 'success');
-      window._meuSitePostPreview?.();
-    } catch (err) {
-      window.showToast?.('Erro ao salvar: ' + err.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '💾 Salvar Sobre';
+      liveNotify();
+    } catch (err) { window.showToast?.('Erro ao salvar', 'error'); }
+    finally { btn.disabled = false; btn.textContent = oldText; }
+  };
+
+  const _renderLayerList = () => {
+    const list = container.querySelector('#sc-layer-list');
+    if (!layers.length) {
+      list.innerHTML = '<p style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma foto adicionada</p>';
+      return;
     }
-  });
-
-  _renderLayerList(container, canvasEditor);
-}
-
-// ── Lista de camadas ──────────────────────────────────────────────────────────
-function _renderLayerList(container, canvasEditor) {
-  const listEl = container.querySelector('#sc-layer-list');
-  if (!listEl) return;
-
-  const layers = canvasEditor.getLayers();
-  if (layers.length === 0) {
-    listEl.innerHTML = '<p style="font-size:0.72rem; color:#4b5563; text-align:center; padding:0.5rem; margin:0;">Nenhuma foto. Adicione acima.</p>';
-    return;
-  }
-
-  listEl.innerHTML = [...layers].reverse().map((layer) => {
-    const isSelected = canvasEditor.selectedId === layer.id;
-    const name = layer.name || 'Foto';
-    return `
-      <div class="sc-layer-item${isSelected ? ' active' : ''}" data-layer-id="${layer.id}">
-        <span>🖼</span>
-        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
-        <span class="layer-del" data-del-layer="${layer.id}" title="Remover">✕</span>
+    list.innerHTML = [...layers].reverse().map(l => `
+      <div class="sc-layer-item ${l.id === _sobreSelectedLayerId ? 'active' : ''}" data-id="${l.id}">
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.name}</span>
+        <span class="layer-del" data-del="${l.id}">✕</span>
       </div>
-    `;
-  }).join('');
+    `).join('');
 
-  listEl.querySelectorAll('.sc-layer-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      if (e.target.dataset.delLayer) return;
-      const layerId = item.dataset.layerId;
-      canvasEditor.selectLayer(layerId);
-      _renderLayerList(container, canvasEditor);
-      const layer = canvasEditor._getLayer(layerId);
-      _renderPropsForLayer(container, layer, canvasEditor);
+    list.querySelectorAll('.sc-layer-item').forEach(item => {
+      item.onclick = async (e) => {
+        const id = item.dataset.id;
+        if (e.target.dataset.del) {
+          e.stopPropagation();
+          const ok = await window.showConfirm?.('Remover esta foto?', { confirmText: 'Remover', danger: true });
+          if (!ok) return;
+          const idx = layers.findIndex(l => l.id === id);
+          if (idx !== -1) layers.splice(idx, 1);
+          if (_sobreSelectedLayerId === id) _sobreSelectedLayerId = null;
+          _renderLayerList(); _renderPropsForLayer(null); liveNotify();
+          return;
+        }
+        _sobreSelectedLayerId = id;
+        _renderLayerList();
+        _renderPropsForLayer(layers.find(l => l.id === _sobreSelectedLayerId));
+      };
     });
-  });
+  };
 
-  listEl.querySelectorAll('[data-del-layer]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const ok = await window.showConfirm?.('Remover esta foto?', { confirmText: 'Remover', danger: true });
-      if (!ok) return;
-      canvasEditor.removeLayer(btn.dataset.delLayer);
-      _renderLayerList(container, canvasEditor);
-      const propsEl = container.querySelector('#sc-layer-props');
-      if (propsEl) propsEl.style.display = 'none';
-    });
-  });
-}
+  const _renderPropsForLayer = (l) => {
+    const props = container.querySelector('#sc-layer-props');
+    const content = container.querySelector('#sc-layer-props-content');
+    if (!l) { props.style.display = 'none'; return; }
+    props.style.display = 'block';
 
-// ── Propriedades da layer ─────────────────────────────────────────────────────
-function _renderPropsForLayer(container, layer, canvasEditor) {
-  const propsSection = container.querySelector('#sc-layer-props');
-  const propsContent = container.querySelector('#sc-layer-props-content');
-  if (!propsSection || !propsContent) return;
-
-  if (!layer || layer.type !== 'image') {
-    propsSection.style.display = 'none';
-    return;
-  }
-
-  propsSection.style.display = 'block';
-
-  propsContent.innerHTML = `
-    <div class="sc-btn-group">
-      <label class="sc-btn primary" style="flex:1; cursor:pointer; justify-content:center; font-size:0.72rem;">
-        🔄 Trocar Foto
-        <input type="file" accept=".jpg,.jpeg,.png" id="scLayerImgReplace" style="display:none;">
-      </label>
-    </div>
-    <div class="sc-row">
-      <span class="sc-label">Opacidade: <span id="scImgOpacityVal">${layer.opacity ?? 100}%</span></span>
-      <input type="range" class="sc-range" id="scImgOpacity" min="0" max="100" value="${layer.opacity ?? 100}">
-    </div>
-    <div class="sc-row">
-      <span class="sc-label">Bordas: <span id="scBorderRadiusVal">${layer.borderRadius || 0}px</span></span>
-      <input type="range" class="sc-range" id="scBorderRadius" min="0" max="200" value="${layer.borderRadius || 0}">
-    </div>
-    <div class="sc-section-head" style="padding:0.4rem 0.75rem 0.2rem;">Sombra</div>
-    <div style="padding:0 0.75rem 0.5rem;">
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.75rem;color:#d1d5db;margin-bottom:0.35rem;">
-        <input type="checkbox" id="scShadowEnabled" ${layer.shadow ? 'checked' : ''}>
-        Ativar sombra
-      </label>
-      <div id="scShadowOptions" style="display:${layer.shadow ? 'flex' : 'none'};flex-direction:column;gap:0.3rem;">
-        <div class="sc-row" style="padding:0;">
-          <span class="sc-label">Intensidade: <span id="scShadowBlurVal">${layer.shadowBlur || 10}px</span></span>
-          <input type="range" class="sc-range" id="scShadowBlur" min="0" max="60" value="${layer.shadowBlur || 10}">
+    content.innerHTML = `
+      <div class="sc-grid2">
+        <div class="sc-row">
+          <span class="sc-label">Pos X (%)</span>
+          <div class="sc-range-row">
+            <input type="range" class="sc-range" id="lpX" min="0" max="100" value="${l.x ?? 50}">
+            <span class="sc-range-val" id="lpXVal">${l.x ?? 50}%</span>
+          </div>
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Pos Y (%)</span>
+          <div class="sc-range-row">
+            <input type="range" class="sc-range" id="lpY" min="0" max="100" value="${l.y ?? 50}">
+            <span class="sc-range-val" id="lpYVal">${l.y ?? 50}%</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="sc-btn-group">
-      <button class="sc-btn${layer.flipH ? ' primary' : ''}" id="scFlipH">↔ H</button>
-      <button class="sc-btn${layer.flipV ? ' primary' : ''}" id="scFlipV">↕ V</button>
-    </div>
-  `;
+      <div class="sc-grid2">
+        <div class="sc-row">
+          <span class="sc-label">Largura (%)</span>
+          <div class="sc-range-row">
+            <input type="range" class="sc-range" id="lpW" min="5" max="150" value="${l.width ?? 70}">
+            <span class="sc-range-val" id="lpWVal">${l.width ?? 70}%</span>
+          </div>
+        </div>
+        <div class="sc-row">
+          <span class="sc-label">Altura (%)</span>
+          <div class="sc-range-row">
+            <input type="range" class="sc-range" id="lpH" min="5" max="150" value="${l.height ?? 70}">
+            <span class="sc-range-val" id="lpHVal">${l.height ?? 70}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="sc-row">
+        <span class="sc-label">Rotação</span>
+        <div class="sc-range-row">
+          <input type="range" class="sc-range" id="lpRot" min="-180" max="180" value="${l.rotation ?? 0}">
+          <span class="sc-range-val" id="lpRotVal">${l.rotation ?? 0}°</span>
+        </div>
+      </div>
+      <div class="sc-row">
+        <span class="sc-label">Opacidade</span>
+        <div class="sc-range-row">
+          <input type="range" class="sc-range" id="lpOp" min="0" max="100" value="${l.opacity ?? 100}">
+          <span class="sc-range-val" id="lpOpVal">${l.opacity ?? 100}%</span>
+        </div>
+      </div>
+      <div class="sc-row">
+        <span class="sc-label">Bordas</span>
+        <div class="sc-range-row">
+          <input type="range" class="sc-range" id="lpRad" min="0" max="200" value="${l.borderRadius ?? 0}">
+          <span class="sc-range-val" id="lpRadVal">${l.borderRadius ?? 0}px</span>
+        </div>
+      </div>
+      <div class="sc-row">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.2rem 0;">
+          <input type="checkbox" id="lpShadow" ${l.shadow ? 'checked' : ''}>
+          <span class="sc-label" style="margin:0;">Ativar Sombra</span>
+        </label>
+      </div>
+      <div class="sc-row" id="lpShadowBlurRow" style="display:${l.shadow ? 'block' : 'none'}">
+        <span class="sc-label">Intensidade Sombra</span>
+        <div class="sc-range-row">
+          <input type="range" class="sc-range" id="lpShadowBlur" min="0" max="60" value="${l.shadowBlur ?? 10}">
+          <span class="sc-range-val" id="lpShadowBlurVal">${l.shadowBlur ?? 10}px</span>
+        </div>
+      </div>
+      <div class="sc-grid2" style="padding:0.4rem 0.75rem;">
+        <button class="sc-btn ${l.flipH ? 'primary' : ''}" id="lpFlipH">↔ H</button>
+        <button class="sc-btn ${l.flipV ? 'primary' : ''}" id="lpFlipV">↕ V</button>
+      </div>
+    `;
 
-  container.querySelector('#scImgOpacity').oninput = (e) => {
-    container.querySelector('#scImgOpacityVal').textContent = e.target.value + '%';
-    canvasEditor.updateLayer(layer.id, { opacity: parseInt(e.target.value) });
-  };
-  container.querySelector('#scBorderRadius').oninput = (e) => {
-    container.querySelector('#scBorderRadiusVal').textContent = e.target.value + 'px';
-    canvasEditor.updateLayer(layer.id, { borderRadius: parseInt(e.target.value) });
+    const update = (field, val) => {
+      l[field] = val;
+      const label = content.querySelector(`#lp${field.charAt(0).toUpperCase() + field.slice(1)}Val`);
+      if (label) {
+        const suffix = field === 'rotation' ? '°' : (field === 'borderRadius' || field === 'shadowBlur' ? 'px' : '%');
+        label.textContent = val + suffix;
+      }
+      liveNotify();
+    };
+
+    content.querySelector('#lpX').oninput = (e) => update('x', parseInt(e.target.value));
+    content.querySelector('#lpY').oninput = (e) => update('y', parseInt(e.target.value));
+    content.querySelector('#lpW').oninput = (e) => update('width', parseInt(e.target.value));
+    content.querySelector('#lpH').oninput = (e) => update('height', parseInt(e.target.value));
+    content.querySelector('#lpRot').oninput = (e) => update('rotation', parseInt(e.target.value));
+    content.querySelector('#lpOp').oninput = (e) => update('opacity', parseInt(e.target.value));
+    content.querySelector('#lpRad').oninput = (e) => update('borderRadius', parseInt(e.target.value));
+    content.querySelector('#lpShadow').onchange = (e) => {
+      l.shadow = e.target.checked;
+      content.querySelector('#lpShadowBlurRow').style.display = e.target.checked ? 'block' : 'none';
+      liveNotify();
+    };
+    content.querySelector('#lpShadowBlur').oninput = (e) => update('shadowBlur', parseInt(e.target.value));
+    content.querySelector('#lpFlipH').onclick = () => { l.flipH = !l.flipH; _renderPropsForLayer(l); liveNotify(); };
+    content.querySelector('#lpFlipV').onclick = () => { l.flipV = !l.flipV; _renderPropsForLayer(l); liveNotify(); };
   };
 
-  const shadowCheck = container.querySelector('#scShadowEnabled');
-  const shadowOptions = container.querySelector('#scShadowOptions');
-  shadowCheck.onchange = () => {
-    shadowOptions.style.display = shadowCheck.checked ? 'flex' : 'none';
-    canvasEditor.updateLayer(layer.id, { shadow: shadowCheck.checked });
-    _applyShadowToLayer(canvasEditor, layer.id);
-  };
-  container.querySelector('#scShadowBlur').oninput = (e) => {
-    container.querySelector('#scShadowBlurVal').textContent = e.target.value + 'px';
-    canvasEditor.updateLayer(layer.id, { shadowBlur: parseInt(e.target.value) });
-    _applyShadowToLayer(canvasEditor, layer.id);
-  };
-
-  container.querySelector('#scFlipH').onclick = () => {
-    canvasEditor.updateLayer(layer.id, { flipH: !layer.flipH });
-    _renderPropsForLayer(container, canvasEditor._getLayer(layer.id), canvasEditor);
-  };
-  container.querySelector('#scFlipV').onclick = () => {
-    canvasEditor.updateLayer(layer.id, { flipV: !layer.flipV });
-    _renderPropsForLayer(container, canvasEditor._getLayer(layer.id), canvasEditor);
-  };
-
-  container.querySelector('#scLayerImgReplace').onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const result = await uploadImage(file, appState.authToken);
-      canvasEditor.updateLayer(layer.id, { url: result.url });
-      e.target.value = '';
-    } catch (err) {
-      window.showToast?.('Erro no upload: ' + err.message, 'error');
-    }
-  };
-
-  _applyShadowToLayer(canvasEditor, layer.id);
-}
-
-function _applyShadowToLayer(canvasEditor, layerId) {
-  const layer = canvasEditor._getLayer(layerId);
-  if (!layer) return;
-  const el = canvasEditor.layersEl?.querySelector(`[data-hc-layer="${layerId}"]`);
-  if (!el) return;
-  if (layer.shadow) {
-    el.style.filter = `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})`;
-  } else {
-    el.style.filter = '';
+  _renderLayerList();
+  if (_sobreSelectedLayerId) {
+    const l = layers.find(l => l.id === _sobreSelectedLayerId);
+    if (l) _renderPropsForLayer(l);
   }
 }
 
 /**
- * Retorna dados atuais para preview (chamado por meu-site.js postPreviewData)
+ * Retorna null pois não usamos mais canvas isolado.
+ * O postPreviewData do meu-site.js pega os dados diretamente do configData.
  */
-export function getSobreCanvasState() {
-  if (!_sobreCanvasEditor) return null;
-  const layers = _sobreCanvasEditor.getLayers();
-  const imgLayer = layers.find(l => l.type === 'image' && l.url);
-  return { layers, image: imgLayer?.url || '' };
-}
+export function getSobreCanvasState() { return null; }
 
 /**
- * Destrói o canvas (chamado ao sair do builder mode)
+ * Limpeza ao sair da aba.
  */
 export function destroySobreCanvas() {
-  if (_sobreCanvasEditor) {
-    _sobreCanvasEditor.destroy?.();
-    _sobreCanvasEditor = null;
-  }
-  const el = document.getElementById('sobre-canvas-container');
-  if (el) el.remove();
+  _sobreSelectedLayerId = null;
   _sobreSidebarContainer = null;
 }

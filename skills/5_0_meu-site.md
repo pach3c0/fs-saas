@@ -51,3 +51,8 @@ Toda skill de módulo **deve conter uma seção "Fluxo do usuário"** descrevend
 ```
 
 Sem esse fluxo documentado, bugs de integração são difíceis de rastrear.
+
+
+# Melhorias na Selecao de modulos
+
+quando selecionado o modulo na side bar o preview vai ate a seccao selecionada, comportamento parecido com o que temos hoje no menu do site publico, cada modulo selecionado ele ativa o seu submenu na barra lateral direita e desativa os outros submenus, mais o modulo sobre ele nao se comporta como os outros, ele tem a edicao de conteudo em uma janela canvas, pergunta é possivel o modulo sobre ter o comportamento dos outros modulos a aparecer no preview enquanto é ajustado mais sem perder suas funcoes de edicao que é muito mao, layer, opacidade, borda, sombra ouseja manter todas as propriedade porem ele ser renderizado enquanto ajustado no preview igual aos outros modulos

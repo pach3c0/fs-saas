@@ -1,49 +1,39 @@
 # Módulo: Sobre Mim (Sub-tab Capa → Sobre)
 
-Editor visual de biografia e fotos de apresentação. Usa o mesmo motor `HeroCanvasEditor` do Hero, com canvas fixo em proporção retrato (3:4).
+Editor visual de biografia e fotos de apresentação. Diferente de versões anteriores, este módulo é editado **diretamente no preview real do site**, sem canvas isolado, garantindo fidelidade total ao layout final.
 
 ---
 
-## 1. Elementos DOM
+## 1. Elementos DOM (Barra Lateral)
 
 | ID | Tipo | Propósito |
 |---|---|---|
-| `#scTitle` | `<input>` | Título da seção |
+| `#scTitle` | `<input>` | Título da seção (H2 no site) |
 | `#scText` | `<textarea>` | Bio/descrição longa |
-| `#scAddPhoto` | `<input type="file">` (hidden) | Upload de nova foto para o canvas |
-| `#scSaveBtn` | `<button>` | Salva texto + layers no banco |
+| `#scAddPhoto` | `<input type="file">` | Upload de nova foto |
+| `#scSaveBtn` | `<button>` | Salva texto + camadas no banco |
 | `#sc-layer-list` | `<div>` | Lista de camadas adicionadas |
-| `#sc-layer-props` | `<div>` | Painel de propriedades da layer selecionada |
-| `#sc-layer-props-content` | `<div>` | Conteúdo dinâmico das props (renderizado ao selecionar) |
-| `#scLayerImgReplace` | `<input type="file">` (hidden) | Troca a foto da layer selecionada |
-| `#scImgOpacity` / `#scImgOpacityVal` | range + span | Opacidade 0–100% |
-| `#scBorderRadius` / `#scBorderRadiusVal` | range + span | Arredondamento 0–200px |
-| `#scShadowEnabled` | checkbox | Ativa/desativa sombra |
-| `#scShadowBlur` / `#scShadowBlurVal` | range + span | Intensidade da sombra 0–60px (visível só com shadow ativo) |
-| `#scFlipH` / `#scFlipV` | `<button>` | Espelhar horizontal / vertical |
-| `#sobre-canvas-container` | `<div>` | Container onde o `HeroCanvasEditor` é montado |
+| `#sc-layer-props` | `<div>` | Painel de ajustes da foto selecionada |
+| `#lpX` / `#lpY` | ranges | Posição horizontal/vertical (0–100%) |
+| `#lpW` / `#lpH` | ranges | Largura/Altura (5–150%) |
+| `#lpRot` | range | Rotação (-180° a 180°) |
+| `#lpOp` | range | Opacidade (0–100%) |
+| `#lpRad` | range | Arredondamento de bordas (0–200px) |
+| `#lpShadow` | checkbox | Ativa/desativa sombra |
+| `#lpShadowBlur` | range | Intensidade da sombra |
+| `#lpFlipH` / `#lpFlipV` | `<button>` | Espelhar horizontal / vertical |
 
 ---
 
-## 2. HeroCanvasEditor no Sobre
+## 2. Fluxo de Edição
 
-```javascript
-// admin/js/tabs/sobre.js
-const canvasEditor = new HeroCanvasEditor(canvasContainer, {
-  onSelect: (layer) => _renderPropsForLayer(sidebar, layer, canvasEditor),
-  onChange: () => window._meuSitePostPreview?.(),
-  resolveImagePath,
-  deviceSizes: sobreSizes,  // fixo 600×800 em todos os devices
-});
-
-const sobreSizes = {
-  desktop: { w: 600, h: 800 },
-  tablet:  { w: 600, h: 800 },
-  mobile:  { w: 600, h: 800 },
-};
-```
-
-**Diferença do Hero:** não usa presets por device (mesmo tamanho em todos); não há fundo de cor/gradiente — apenas layers de imagem sobre fundo transparente.
+1. **Seleção**: Ao abrir a aba, o preview rola automaticamente para a seção `#section-sobre`.
+2. **Edição de Texto**: Alterações em `#scTitle` e `#scText` disparam `window._meuSitePostPreview?.()` instantaneamente.
+3. **Fotos (Camadas)**:
+   - As fotos são renderizadas no site público como elementos de `position: absolute` dentro de um container de proporção 3:4.
+   - Os controles na barra lateral (sliders) alteram as propriedades da camada em `siteContent.sobre.canvasLayers`.
+   - Cada movimento de slider sincroniza o estado e atualiza o iframe.
+4. **Persistência**: O botão **Salvar Sobre** envia o objeto completo via `apiPut('/api/site/admin/config')`.
 
 ---
 
@@ -51,95 +41,39 @@ const sobreSizes = {
 
 ```javascript
 {
-  id: "sb_1234567890",   // prefixo "sb_" + timestamp
+  id: "sb_1234567890",
   type: "image",
   url: "/uploads/orgId/foto.jpg",
-  name: "Foto",
-
-  // posição e tamanho (% do container)
-  x: 50, y: 50,          // centro do elemento, default: centro do canvas
-  width: 70, height: 70, // % da largura/altura do container
+  name: "Foto 1",
+  x: 50, y: 50,          // posição central em %
+  width: 70, height: 70, // tamanho em % em relação ao container
   rotation: 0,           // graus
-
-  // visual
-  opacity: 100,          // 0–100
+  opacity: 100,          // 0-100
   borderRadius: 0,       // px
-  flipH: false,
-  flipV: false,
-
-  // sombra (aplicada via CSS filter: drop-shadow)
   shadow: false,
   shadowBlur: 10,
   shadowColor: "rgba(0,0,0,0.5)",
-
-  presets: {}            // não usado ativamente no Sobre
+  flipH: false,
+  flipV: false
 }
 ```
 
 ---
 
-## 4. Fluxo do usuário
+## 4. Renderização no site público (shared-site.js)
 
-1. Usuário entra na sub-tab **Sobre** → `renderSobre(container)` monta o canvas e carrega layers de `appState.configData.siteContent.sobre.canvasLayers`
-2. Adiciona/edita foto → `#scAddPhoto` dispara upload via `uploadImage()` → `canvasEditor.addLayer({ type:'image', url, ... })`
-3. Seleciona layer → `onSelect` renderiza painel `#sc-layer-props-content` com sliders de opacidade, borderRadius, sombra e botões flip
-4. Altera qualquer propriedade → `canvasEditor.updateLayer(layerId, { ... })` + `window._meuSitePostPreview?.()` atualiza preview em tempo real
-5. Edita `#scTitle` ou `#scText` → onChange dispara `window._meuSitePostPreview?.()` imediatamente
-6. Clica **Salvar** (`#scSaveBtn`) → `syncSobreToSite(layers, title, text)`:
-   ```javascript
-   apiPut('/api/site/admin/config', {
-     siteContent: { sobre: { title, text, image: layers[0]?.url, canvasLayers: layers } }
-   })
-   ```
-7. Backend (`PUT /api/site/admin/config`) faz `$set` em `Organization.siteContent.sobre` (merge por sub-chave — não apaga outros campos de `siteContent`)
-8. Após resposta OK → atualiza `appState.configData`, exibe toast "Sobre salvo!", chama `window._meuSitePostPreview?.()` novamente
+O template utiliza `content.sobre.canvasLayers` para compor a visualização:
+- O container wrapper tem `aspect-ratio: 3/4`.
+- Camadas são empilhadas seguindo a ordem da array (reversa na UI para o topo ficar em cima).
+- Usa-se `transform: translate(-50%, -50%)` para que `x` e `y` representem o centro da foto.
 
 ---
 
-## 5. Estrutura de dados persistida
+## 5. Funções-chave (`sobre.js`)
 
-```javascript
-// Organization.siteContent.sobre
-{
-  title: String,          // texto do h2 no site público
-  text: String,           // bio/parágrafo
-  image: String,          // URL da primeira layer (fallback legado)
-  canvasLayers: [ /* ver seção 3 */ ]
-}
-```
-
----
-
-## 6. Funções-chave
-
-| Função | Arquivo | Propósito |
-|---|---|---|
-| `renderSobre(container)` | `sobre.js` | Entry point: monta canvas + sidebar |
-| `_renderSobreSidebar(container)` | `sobre.js` | Renderiza inputs de texto e lista de layers |
-| `_renderLayerList(container, canvasEditor)` | `sobre.js` | Atualiza `#sc-layer-list` |
-| `_renderPropsForLayer(container, layer, canvasEditor)` | `sobre.js` | Renderiza painel de propriedades dinâmico |
-| `_applyShadowToLayer(canvasEditor, layerId)` | `sobre.js` | Aplica `filter: drop-shadow(...)` no DOM |
-| `syncSobreToSite(layers, title, text)` | `sobre.js` | Faz `apiPut` para salvar no banco |
-| `getSobreCanvasState()` | `sobre.js` | Retorna estado atual para o postMessage de preview |
-| `destroySobreCanvas()` | `sobre.js` | Cleanup ao sair do builder mode |
-
----
-
-## 7. Renderização no site público (shared-site.js)
-
-Fonte: `data.siteContent.sobre`
-
-- `#sobreTitle` → `content.sobre?.title`
-- `#sobreText` → `content.sobre?.text`
-- `#sobreImage` (img) → substituído por div com layers posicionadas via `position:absolute` + `%` (quando `canvasLayers.length > 0`); fallback: `content.sobre?.image` direto na `<img>`
-
-Cada layer é renderizada como:
-```html
-<div style="position:absolute; left:X%; top:Y%; width:W%; height:H%;
-            transform:translate(-50%,-50%) rotate(Rdeg) scaleX(-1)?;
-            opacity:O; filter:drop-shadow(...);">
-  <img src="..." style="width:100%;height:100%;object-fit:cover;border-radius:Rpx;">
-</div>
-```
-
-O container wrapper usa `aspect-ratio:3/4` e substitui o `<img id="sobreImage">` original.
+| Função | Propósito |
+|---|---|
+| `renderSobre(container)` | Monta a sidebar e inicializa eventos |
+| `_renderLayerList()` | Atualiza a lista de fotos e gerencia seleção/remoção |
+| `_renderPropsForLayer(layer)` | Renderiza os sliders de ajuste para a foto ativa |
+| `liveNotify()` | Atalho para disparar o postMessage de preview |

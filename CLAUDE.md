@@ -220,3 +220,11 @@ Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **tod
 6. `faq.js`, `integracoes.js` — ✅ concluido (CSS variables + preview sync no faq; integracoes sem preview sync pois nao e secao visual)
 
 
+# Regra Geral sobre Commit e push
+
+sempre que alterar algum feature que precise de build (css novo, arquivo na pasta assets, etc), ou que o usuário peça para subir uma alteração para o site publico, você deve:
+1. fazer o build do css
+2. fazer o commit com a mensagem "feat: add feature name"
+3. fazer o push para o repositório
+4. avisar o usuário que o site foi atualizado
+

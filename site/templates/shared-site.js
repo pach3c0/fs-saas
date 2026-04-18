@@ -1210,22 +1210,35 @@ function initNavBehavior() {
 }
 
 // ── Preview em tempo real via postMessage ────────────────────────────────
-// O admin envia { type: 'cz_preview', data: {...} } para atualizar o site
-// sem recarregar a página — zero latência, sem flash.
 window.addEventListener('message', (e) => {
   // Aceitar apenas mensagens da mesma origem
   if (e.origin !== window.location.origin) return;
-  if (!e.data || e.data.type !== 'cz_preview') return;
+  if (!e.data) return;
 
-  const data = e.data.data;
-  if (!data) return;
+  // Comando: Preview de Dados
+  if (e.data.type === 'cz_preview') {
+    const data = e.data.data;
+    if (!data) return;
+    try {
+      renderSite(data, { previewDevice: e.data._previewDevice });
+      // Re-inicializar comportamento do nav após renderSite reescrever os links
+      initNavBehavior();
+    } catch (err) {
+      console.warn('[preview] Erro ao aplicar dados:', err);
+    }
+    return;
+  }
 
-  try {
-    renderSite(data, { previewDevice: e.data._previewDevice });
-    // Re-inicializar comportamento do nav após renderSite reescrever os links
-    initNavBehavior();
-  } catch (err) {
-    console.warn('[preview] Erro ao aplicar dados:', err);
+  // Comando: Scroll até Seção
+  if (e.data.type === 'cz_scroll_to') {
+    const sectionId = e.data.sectionId;
+    const target = document.getElementById('section-' + sectionId);
+    if (target) {
+      const nav = document.querySelector('nav');
+      const navHeight = nav ? nav.offsetHeight : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - navHeight;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
   }
 });
 
