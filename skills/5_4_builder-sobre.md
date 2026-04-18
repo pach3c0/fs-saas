@@ -90,3 +90,4 @@ O template utiliza `content.sobre.canvasLayers` para compor a visualização:
 
 - [x] **Drag & Drop nas Camadas**: É possível arrastar os itens na lista de camadas (ícone ⠿) para reordenar o `z-index` das imagens (frente/fundo).
 - [x] **Highlight no Preview**: Ao clicar em uma camada na sidebar, a respectiva imagem no iframe pisca com uma borda azul (`cz_highlight_layer`) para fácil identificação visual.
+- [x] **Limite de Fotos**: O módulo agora limita a no máximo 4 fotos, ocultando o botão de upload e bloqueando novas inserções quando o limite é atingido.

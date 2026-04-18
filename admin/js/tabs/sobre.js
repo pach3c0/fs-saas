@@ -79,7 +79,7 @@ function _renderSobreSidebar(container) {
       <!-- ADICIONAR FOTO -->
       <div class="sc-section">
         <div class="sc-section-head">🖼 Foto</div>
-        <div style="padding:0.4rem 0.75rem;">
+        <div style="padding:0.4rem 0.75rem;" id="scAddPhotoWrapper">
           <label class="sc-btn primary" style="width:100%; cursor:pointer;">
             📷 Adicionar Foto
             <input type="file" accept=".jpg,.jpeg,.png" id="scAddPhoto" style="display:none;">
@@ -113,6 +113,11 @@ function _renderSobreSidebar(container) {
   container.querySelector('#scText').oninput = (e) => { sobreData.text = e.target.value; liveNotify(); };
 
   container.querySelector('#scAddPhoto').onchange = async (e) => {
+    if (layers.length >= 4) {
+      window.showToast?.('Limite máximo de 4 fotos atingido.', 'warning');
+      e.target.value = '';
+      return;
+    }
     const file = e.target.files[0];
     if (!file) return;
     try {
@@ -156,6 +161,11 @@ function _renderSobreSidebar(container) {
 
   const _renderLayerList = () => {
     const list = container.querySelector('#sc-layer-list');
+    const addPhotoWrap = container.querySelector('#scAddPhotoWrapper');
+    if (addPhotoWrap) {
+      addPhotoWrap.style.display = layers.length >= 4 ? 'none' : 'block';
+    }
+    
     if (!layers.length) {
       list.innerHTML = '<p style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma foto adicionada</p>';
       return;
