@@ -126,7 +126,7 @@ router.post('/albums/:id/send', authenticateToken, async (req, res) => {
     const album = await Album.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
       { status: 'sent' },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });
 
@@ -153,7 +153,7 @@ router.delete('/albums/:id', authenticateToken, async (req, res) => {
     const album = await Album.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
       { isActive: false },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!album) return res.status(404).json({ success: false, error: 'Álbum não encontrado' });

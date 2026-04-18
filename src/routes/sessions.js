@@ -459,8 +459,8 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
   try {
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
-      req.body, 
-      { new: true }
+      req.body,
+      { returnDocument: 'after' }
     );
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({ success: true, session });

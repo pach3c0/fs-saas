@@ -88,7 +88,7 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,
       { $set: updateData },
-      { new: true, strict: false }
+      { returnDocument: 'after', strict: false }
     );
 
     if (org?.slug) clearOrgCache(org.slug);

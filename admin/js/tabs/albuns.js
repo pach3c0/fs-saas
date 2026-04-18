@@ -5,6 +5,7 @@
 import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
+import { appState } from '../state.js';
 
 let _albums = null;
 let draggedAlbumIdx = null;
@@ -159,7 +160,7 @@ export async function renderAlbuns(container) {
 
       for (const file of files) {
         try {
-          const result = await uploadImage(file, (p) => showUploadProgress(`albumUploadProgress${albumIdx}`, p));
+          const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress(`albumUploadProgress${albumIdx}`, p));
           album.photos.push({
             url: result.url,
             caption: '',

@@ -82,7 +82,7 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
         notes: notes ? notes.trim() : '',
         tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : []
       },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!client) {
