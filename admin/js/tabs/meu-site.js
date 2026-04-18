@@ -275,8 +275,14 @@ async function renderSiteContent(container, builderTabsEl) {
   };
 
   // Links (only in non-builder mode)
+  // URL pública usa subdomínio: joao.cliquezoom.com.br/site
+  // Em localhost usa ?_tenant= para compatibilidade com desenvolvimento
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const baseDomain = window.location.hostname.split('.').slice(-2).join('.');
   const siteUrl = orgSlug
-    ? `${window.location.origin}/site?_tenant=${orgSlug}`
+    ? (isLocalhost
+        ? `${window.location.origin}/site?_tenant=${orgSlug}`
+        : `${window.location.protocol}//${orgSlug}.${baseDomain}/site`)
     : `${window.location.origin}/site`;
   const viewSiteLink = container.querySelector('#viewSiteLink');
   if (viewSiteLink) viewSiteLink.href = siteUrl;

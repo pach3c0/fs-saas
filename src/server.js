@@ -28,7 +28,19 @@ app.use('/album', express.static(path.join(__dirname, '../album')));
 // ============================================================================
 
 // Home (landing page de cadastro da plataforma CliqueZoom)
+// Se acessado via subdomínio de fotógrafo (ex: soraia.cliquezoom.com.br), redireciona para /site
 app.get('/', (req, res) => {
+  const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
+  const host = (req.get('host') || '').split(':')[0];
+  const isPhotographerSubdomain =
+    host.endsWith(`.${baseDomain}`) &&
+    host !== `www.${baseDomain}` &&
+    host !== `app.${baseDomain}`;
+
+  if (isPhotographerSubdomain) {
+    return res.redirect(301, '/site');
+  }
+
   res.sendFile(path.join(__dirname, '../home/index.html'));
 });
 
