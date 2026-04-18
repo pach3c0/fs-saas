@@ -817,7 +817,9 @@ function renderSite(data, opts = {}) {
     if (studioDesc && studio.description) studioDesc.textContent = studio.description;
     if (studioPhotosGrid) {
       if (studio.studioLayers && studio.studioLayers.length > 0) {
-        // Canvas de composição livre com camadas sobrepostas
+        // Canvas mode: remover grid para não interferir no posicionamento livre
+        studioPhotosGrid.classList.remove('studio-grid');
+        studioPhotosGrid.style.display = 'block';
         studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
           ${studio.studioLayers.map(l => {
             const scaleX = (l.flipH ? -1 : 1) * ((l.scale ?? 100) / 100);
