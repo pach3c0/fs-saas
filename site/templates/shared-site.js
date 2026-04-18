@@ -433,6 +433,7 @@ function renderSite(data, opts = {}) {
         const w   = layer.width  ?? 70;
         const h   = layer.height ?? 70;
         const rot = layer.rotation ?? 0;
+        const scale = layer.scale ?? 100;
         const flipH = layer.flipH ? 'scaleX(-1)' : '';
         const flipV = layer.flipV ? 'scaleY(-1)' : '';
         const opacity = (layer.opacity ?? 100) / 100;
@@ -445,7 +446,7 @@ function renderSite(data, opts = {}) {
           <div style="
             position:absolute;left:${x}%;top:${y}%;
             width:${w}%;height:${h}%;
-            transform:translate(-50%,-50%) rotate(${rot}deg) ${flipH} ${flipV};
+            transform:translate(-50%,-50%) rotate(${rot}deg) scale(${scale/100}) ${flipH} ${flipV};
             opacity:${opacity};
             filter:${shadow};
             pointer-events:none;user-select:none;

@@ -210,6 +210,13 @@ function _renderSobreSidebar(container) {
           </div>
         </div>
       </div>
+      <div class="sc-row">
+        <span class="sc-label">Escala / Zoom (%)</span>
+        <div class="sc-range-row">
+          <input type="range" class="sc-range" id="lpScale" min="10" max="300" value="${l.scale ?? 100}">
+          <span class="sc-range-val" id="lpScaleVal">${l.scale ?? 100}%</span>
+        </div>
+      </div>
       <div class="sc-grid2">
         <div class="sc-row">
           <span class="sc-label">Largura (%)</span>
@@ -278,6 +285,7 @@ function _renderSobreSidebar(container) {
 
     content.querySelector('#lpX').oninput = (e) => update('x', parseInt(e.target.value));
     content.querySelector('#lpY').oninput = (e) => update('y', parseInt(e.target.value));
+    content.querySelector('#lpScale').oninput = (e) => update('scale', parseInt(e.target.value));
     content.querySelector('#lpW').oninput = (e) => update('width', parseInt(e.target.value));
     content.querySelector('#lpH').oninput = (e) => update('height', parseInt(e.target.value));
     content.querySelector('#lpRot').oninput = (e) => update('rotation', parseInt(e.target.value));
