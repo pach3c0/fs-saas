@@ -1,135 +1,103 @@
-# Skill: Sistema de Sessoes e Selecao de Fotos
+# Skill 5_2 — Sub-tab Seções (Builder do Site)
 
-Leia este arquivo ao trabalhar em `admin/js/tabs/sessoes.js`, `src/routes/sessions.js`, ou `cliente/js/gallery.js`.
-
----
-
-## Modos de sessao
-
-- `selection` — cliente seleciona fotos (padrao)
-- `gallery` — cliente so visualiza/baixa
-- `multi_selection` — multiplos clientes selecionam (ex: casamento, cada um tem sua lista)
+Leia este arquivo ao trabalhar na sub-tab **Seções** do builder do site público.
+Arquivos principais: `admin/js/tabs/meu-site.js` (linhas 958–1105), `src/routes/site.js`, `site/templates/shared-site.js`.
 
 ---
 
-## Fluxo completo (modo selection)
+## O que esta sub-tab faz
 
-```
-1. Admin cria sessao (nome, tipo, data, codigo de acesso, modo, limite, preco extra)
-2. Admin faz upload de fotos
-3. Cliente acessa /cliente com codigo → ve galeria
-4. Cliente seleciona fotos (coracao) → optimistic UI + salva no servidor
-5. Cliente clica "Finalizar Selecao" → status muda para 'submitted'
-6. Admin ve notificacao, revisa, pode reabrir ou marcar como entregue
-7. Se entregue: cliente ve fotos para download (sem watermark)
-```
+Permite ao fotógrafo definir **quais seções aparecem** no site público e em **qual ordem**, sem apagar conteúdo.
 
 ---
 
-## Status da selecao (selectionStatus)
-
-| Status | Descricao |
-|--------|-----------|
-| `pending` | Sessao criada, cliente ainda nao selecionou |
-| `in_progress` | Cliente comecou a selecionar (ou admin reabriu) |
-| `submitted` | Cliente finalizou selecao |
-| `delivered` | Admin marcou como entregue (cliente pode baixar) |
-| `expired` | Prazo expirado |
-
----
-
-## Modelo Session (campos principais)
+## Seções disponíveis
 
 ```javascript
-{
-  name, type, date, accessCode,
-  photos: [{ id, filename, url, urlOriginal, uploadedAt, comments }],
-  mode: 'selection' | 'gallery' | 'multi_selection',
-  packageLimit,           // default 30
-  extraPhotoPrice,        // default R$25
-  selectionStatus,        // pending → in_progress → submitted → delivered | expired
-  selectedPhotos: [String],
-  selectionDeadline, deliveredAt,
-  participants: [...],    // para multi_selection
-  coverPhoto, highResDelivery, watermark, canShare, isActive
-}
+// allSectionDefs (meu-site.js ~linha 962)
+const allSectionDefs = [
+  { id: 'hero',        label: 'Capa' },
+  { id: 'portfolio',   label: 'Portfólio' },
+  { id: 'albuns',      label: 'Álbuns' },
+  { id: 'servicos',    label: 'Serviços' },
+  { id: 'estudio',     label: 'Estúdio' },
+  { id: 'depoimentos', label: 'Depoimentos' },
+  { id: 'contato',     label: 'Contato' },
+  { id: 'sobre',       label: 'Sobre Mim' },
+  { id: 'faq',         label: 'FAQ' },
+];
+
+const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 ```
 
 ---
 
-## Rotas do cliente (sem autenticacao)
+## Dado persistido
 
-| Metodo | Rota | Descricao |
-|--------|------|-----------|
-| POST | `/api/client/verify-code` | Verifica codigo de acesso |
-| GET | `/api/client/photos/:id?code=X` | Carrega fotos da sessao |
-| PUT | `/api/client/select/:id` | Seleciona/deseleciona uma foto |
-| POST | `/api/client/submit-selection/:id` | Finaliza a selecao |
-| POST | `/api/client/request-reopen/:id` | Pede reabertura da selecao |
-| POST | `/api/client/comments/:sessionId` | Adiciona comentario em foto |
-| GET | `/api/client/download/:sessionId/:photoId?code=X` | Download individual |
-| GET | `/api/client/download-all/:sessionId?code=X` | Download ZIP de todas as fotos entregues |
-
----
-
-## Rotas do admin (com autenticacao JWT)
-
-| Metodo | Rota | Descricao |
-|--------|------|-----------|
-| GET | `/api/sessions` | Lista todas as sessoes |
-| POST | `/api/sessions` | Cria nova sessao |
-| PUT | `/api/sessions/:id` | Edita sessao |
-| DELETE | `/api/sessions/:id` | Deleta sessao |
-| POST | `/api/sessions/:id/photos` | Upload de fotos (salva original + thumb) |
-| DELETE | `/api/sessions/:id/photos/:photoId` | Deleta uma foto |
-| PUT | `/api/sessions/:id/reopen` | Reabre selecao |
-| PUT | `/api/sessions/:id/deliver` | Marca como entregue |
-| POST | `/api/sessions/:id/photos/:photoId/comments` | Admin adiciona comentario |
-| GET | `/api/sessions/:sessionId/export` | Exporta lista de fotos selecionadas (Lightroom TXT) |
-
----
-
-## Galeria do cliente (cliente/js/gallery.js)
-
-- Grid de fotos: 2 colunas mobile, 3 tablet, 4 desktop
-- Watermark: overlay sobre cada foto (removido quando entregue)
-- Selecao: coracao no canto de cada foto, contador no topo e barra inferior fixa
-- Lightbox: tela cheia com navegacao por setas e swipe touch
-- Polling 15s: detecta automaticamente reabertura ou entrega
-- Anti-copia: `oncontextmenu`, `user-select:none`, `pointer-events:none` nas imagens
-
----
-
-## Sistema de notificacoes de sessao
-
-Tipos de notificacao gerados por sessoes:
-| Tipo | Quando |
-|------|--------|
-| `session_accessed` | Cliente acessa a galeria |
-| `selection_started` | Cliente comeca a selecionar |
-| `selection_submitted` | Cliente finaliza a selecao |
-| `reopen_requested` | Cliente pede reabertura |
-
-Backend helper:
-```javascript
-const { notify } = require('../utils/notifications');
-await notify('selection_submitted', session._id, session.name, `${session.name} finalizou a selecao`);
+```
+Organization.siteSections: string[]
 ```
 
-Polling no admin a cada 30 segundos (`admin/js/utils/notifications.js`).
+Array ordenado de IDs de seções **ativas**. Seções ausentes do array não aparecem no site.
+Salvo via `PUT /api/site/admin/config` com payload `{ siteSections: [...] }`.
 
+---
 
-## Ajustes em Sessoes
+## Fluxo do usuário
 
-Correção de Layout (Overflow): Impedir a barra de rolagem horizontal nos itens de seção.
-Ação: Reduzir o tamanho da fonte e ajustar o espaçamento para que o nome da seção e os botões de subir/descer caibam perfeitamente no container.
-Renomeação: Alterar o título da seção "Hero/capa" para apenas "Capa".
-Botão "Restaurar Posições": Implementar funcionalidade para resetar a ordem das seções para o padrão de fábrica.
-Requisito: Exibir um alerta claro informando que a ação redefine apenas a posição das seções e que nenhum conteúdo do site será apagado.
-Melhoria de UX (Drag & Drop): Adicionar um indicador visual (placeholder ou destaque) durante o arraste.
-Objetivo: Mostrar exatamente onde a seção será solta antes do usuário liberar o mouse, evitando erros de posicionamento.
+```
+1. Sub-tab carrega → configData.siteSections popula ordered[] e activeSet
+2. Usuário reordena via drag & drop (borda azul indica drop target) ou botões ▲▼
+3. Usuário ativa/desativa seção via checkbox → atualiza activeSet (sem requisição)
+4. Clica ícone Salvar (tooltip "Salvar Ordem")
+   → apiPut('/api/site/admin/config', { siteSections: ordered.filter(s => activeSet.has(s.id)).map(s => s.id) })
+5. Backend: $set { siteSections: [...] } em Organization + limpa cache
+6. liveRefresh({ siteSections }) → postPreviewData() → PostMessage → iframe reordena/oculta seções
+```
 
+---
 
-# nova correcao: 
-botao "salvar secoes" retira o titulo e coloque icone de salvar e no botao de restaurar coloque um icone de restaurar, quando o usuario passar o mouse em cima do icone de restaurar mostre um "tooltip" escrito "Restaurar Padrão" e quando passar o mouse em cima do icone de salvar mostre um "tooltip" escrito "Salvar Ordem"
+## Interações da UI
 
+### Ativar / desativar
+Checkbox por seção. Atualiza `activeSet` localmente; sem chamada à API até clicar Salvar.
+
+### Reordenar — Drag & drop
+- Handle `⠿` com `cursor: grab`
+- **Arrastado:** `opacity: 0.4`, `transform: scale(0.98)`
+- **Alvo:** `borderTop: 2px solid var(--accent)` (azul)
+- **Drop:** `ordered.splice(dragIdx, 1)[0]` → `ordered.splice(targetIdx, 0, moved)` → re-renderiza
+
+### Reordenar — Botões ▲▼
+Troca de posição via `[ordered[idx], ordered[newIdx]] = [ordered[newIdx], ordered[idx]]`.
+Extremidades desativadas com `opacity: 0.2`.
+
+### Botão Salvar (ícone)
+- Tooltip: `"Salvar Ordem"`
+- Cor: verde (#16a34a)
+- Spinner via `withBtnLoading` durante requisição
+- Toast de sucesso: `"Seções salvas!"`
+
+### Botão Restaurar (ícone)
+- Tooltip: `"Restaurar Padrão"`
+- Cor: cinza transparente com borda
+- Abre `window.showConfirm()` com aviso: "Redefinirá apenas ordem e visibilidade. Nenhum conteúdo será apagado."
+- Se confirmado: reseta `ordered` e `activeSet` para `DEFAULT_SECTIONS` → salva via PUT → toast `"Padrão restaurado!"`
+
+---
+
+## Como o preview atualiza (shared-site.js ~linhas 854–864)
+
+O iframe recebe os novos `siteSections` via PostMessage e:
+1. Oculta seções ausentes: `el.style.display = 'none'`
+2. Reinsere as ativas na ordem correta via `mainEl.insertBefore(el, anchor)`
+
+---
+
+## Armadilhas
+
+| Sintoma | Causa | Solução |
+|---|---|---|
+| Seção salva mas não aparece no site | `siteSections` não inclui o ID (seção estava desmarcada) | Conferir `activeSet` antes de enviar |
+| Ordem no site diferente do admin | `ordered[]` não reflete a posição após drag | Verificar que `renderList()` é chamado após cada mutação do array |
+| Preview não atualiza | `liveRefresh` não chamado após save | Sempre chamar `liveRefresh({ siteSections })` após PUT bem-sucedido |

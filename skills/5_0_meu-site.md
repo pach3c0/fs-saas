@@ -16,7 +16,7 @@ editor visual (builder), templates do site público, ou persistência de dados d
 
 | Skill | Arquivo | Cobre |
 |---|---|---|
-| **5_1** | `5_1_geral-site.md` | Arquitetura geral do builder: entrada no builder mode, sub-tabs, protocolo postMessage, mapa de dados (o que vai para siteConfig vs siteContent), armadilhas globais |
+| **5_1** | `5_1_builder-geral-site.md` | Arquitetura geral do builder: entrada no builder mode, sub-tabs, protocolo postMessage, mapa de dados (o que vai para siteConfig vs siteContent), armadilhas globais |
 | **5_2** | `5_2_builder-sessoes.md` | Sub-tab Seções: ativar/desativar seções, reordenar, `siteSections[]` |
 | **5_3** | `5_3_builder-hero.md` | Sub-tab Capa: canvas do hero, layers, posicionamento, `siteConfig` |
 | **5_4** | `5_4_builder-sobre.md` | Sub-tab Sobre: canvas de imagem, texto, `siteContent.sobre` |

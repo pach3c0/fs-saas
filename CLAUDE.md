@@ -138,7 +138,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 `skills/1_1_backend.md` (rotas, middlewares, auth, env) · `skills/1_2_frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/1_3_banco-de-dados.md` (modelos, Mixed, fontes de verdade)
 
-`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md`
+`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_builder-geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md`
 
 **Regra:** ao alterar area coberta por skill, atualizar a skill correspondente. Apos features que adicionam pasta/rota/modelo/padrao, atualizar este `CLAUDE.md`.
 
