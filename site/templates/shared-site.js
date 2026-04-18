@@ -1149,7 +1149,21 @@ function renderSite(data, opts = {}) {
   if (contactForm) {
     contactForm.onsubmit = function(e) {
       e.preventDefault();
-      alert('Formulário enviado! (Implementar envio real em breve)');
+      const nome = contactForm.querySelector('[name="nome"]')?.value || '';
+      const email = contactForm.querySelector('[name="email"]')?.value || '';
+      const assunto = contactForm.querySelector('[name="assunto"]')?.value || '';
+      const mensagem = contactForm.querySelector('[name="mensagem"]')?.value || '';
+      const whatsapp = (config.whatsapp || '').replace(/\D/g, '');
+
+      if (!whatsapp) {
+        alert('Fotógrafo ainda não configurou WhatsApp para receber mensagens.');
+        return;
+      }
+
+      const texto = `Olá! Meu nome é ${nome} (${email}).\n\nAssunto: ${assunto}\n\n${mensagem}`;
+      window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(texto)}`, '_blank');
+
+      contactForm.reset();
     };
   }
 }

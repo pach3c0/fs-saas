@@ -1700,25 +1700,25 @@ async function renderSiteContent(container, builderTabsEl) {
 
     contatoContainer.innerHTML = `
       <div style="max-width:600px;">
-        <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:1.5rem;">Seção de Contato</h3>
+        <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:1.5rem;">Seção de Contato</h3>
 
         <div style="display:flex; flex-direction:column; gap:1rem;">
           <div>
-            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
-            <input type="text" id="contatoTitle" value="${contato.title || 'Entre em Contato'}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
+            <input type="text" id="contatoTitle" value="${contato.title || 'Entre em Contato'}" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;">
           </div>
 
           <div>
-            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
-            <textarea id="contatoText" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
+            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
+            <textarea id="contatoText" rows="3" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
           </div>
 
           <div>
-            <label style="display:block; color:#d1d5db; font-size:0.875rem; margin-bottom:0.25rem;">Endereço (opcional)</label>
-            <input type="text" id="contatoAddress" value="${contato.address || ''}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="Rua Exemplo, 123 - São Paulo/SP">
+            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Endereço (opcional)</label>
+            <input type="text" id="contatoAddress" value="${contato.address || ''}" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;" placeholder="Rua Exemplo, 123 - São Paulo/SP">
           </div>
 
-          <button id="saveContatoBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:0.5rem;">Salvar Contato</button>
+          <button id="saveContatoBtn" style="background:var(--green); color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:0.5rem;">Salvar Contato</button>
         </div>
       </div>
     `;
@@ -1738,7 +1738,7 @@ async function renderSiteContent(container, builderTabsEl) {
         text: contatoContainer.querySelector('#contatoText').value,
         address: contatoContainer.querySelector('#contatoAddress').value
       };
-      await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, contato: newContato } });
+      await apiPut('/api/site/admin/config', { siteContent: { contato: newContato } });
       clearDirty();
       // Recapturar valores originais após salvar
       captureOriginalValues('config-contato', contatoContainer);
