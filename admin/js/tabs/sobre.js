@@ -301,10 +301,15 @@ function _renderSobreSidebar(container) {
 }
 
 /**
- * Retorna null pois não usamos mais canvas isolado.
- * O postPreviewData do meu-site.js pega os dados diretamente do configData.
+ * Retorna dados atuais para preview (chamado por meu-site.js postPreviewData)
  */
-export function getSobreCanvasState() { return null; }
+export function getSobreCanvasState() {
+  const siteContent = appState.configData?.siteContent || {};
+  const sobreData = siteContent.sobre || {};
+  const layers = sobreData.canvasLayers || [];
+  const imgLayer = layers.find(l => l.type === 'image' && l.url);
+  return { layers, image: imgLayer?.url || '' };
+}
 
 /**
  * Limpeza ao sair da aba.
