@@ -60,8 +60,13 @@ O comportamento do catálogo interno agora possui a exata mesma engine visual in
 3. Adiciona o objeto estruturado em `album.photos[]` com `format` padrão `16/9`.
 4. Atualiza o banco silenciosamente e chama o PostMessage do Preview.
 
+### Reordenação via Drag & Drop
+1. As miniaturas possuem `draggable="true"` e eventos atrelados ao container.
+2. O usuário pode arrastar e soltar (`drop`) as miniaturas dentro do mesmo catálogo.
+3. Isso invoca o `splice` no array em memória, salva os dados silenciomente via `saveAlbuns(true)` e o IFRAME atualiza o grid do catálogo (caso aberto) em tempo real.
+
 ### Restante do Fluxo
-Reordenação e Remoções seguem o fluxo padrão utilizando persistência em `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })`.
+Remoções seguem o fluxo padrão utilizando persistência em `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })`.
 
 ---
 
