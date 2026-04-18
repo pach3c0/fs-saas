@@ -820,7 +820,7 @@ function renderSite(data, opts = {}) {
         // Canvas mode: remover grid para não interferir no posicionamento livre
         studioPhotosGrid.classList.remove('studio-grid');
         studioPhotosGrid.style.display = 'block';
-        studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:16/9; overflow:hidden; border-radius:0.75rem; width:100%; max-width:900px; margin:0 auto;">
+        studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:16/9; overflow:visible; width:calc(100% - 4rem); max-width:900px; margin:2rem auto;">
           ${studio.studioLayers.map(l => {
             const scaleX = (l.flipH ? -1 : 1) * ((l.scale ?? 100) / 100);
             const scaleY = (l.flipV ? -1 : 1) * ((l.scale ?? 100) / 100);
