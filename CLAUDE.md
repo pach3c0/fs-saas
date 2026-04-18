@@ -125,6 +125,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | Erro 500 "Cannot create field X in element" no MongoDB | Dot notation aninhada no `$set` (`siteContent.portfolio.photos`) conflita com campo pai ja existente como `Mixed` | Sempre fazer `$set` no objeto pai inteiro: `updateData['siteContent.portfolio'] = value` em vez de `updateData['siteContent.portfolio.photos'] = value.photos` |
 | Formulário de depoimento "enviado" mas nunca aparece no admin | Testes feitos no preview do builder (`?_preview=1`) — fluxo real (visitante em `slug.cliquezoom.com.br`) ainda não validado | Testar sempre numa aba separada sem `_preview`; considerar ocultar o formulário no modo preview |
 | Upload 413 | Payload grande | Verificar `client_max_body_size` Nginx |
+| `slug.cliquezoom.com.br` vai para landing page | Nginx sem SSL wildcard ou `server.js` sem redirect de subdomínio | Ver `skills/6_0_dominio.md` — bloco `cliquezoom-slugs` + cert `cliquezoom.com.br-0001` |
 | Preview branco no Meu Site | Race condition slug | `await loadOrgSlug()` antes de `builderLoadPreview` |
 | Preview "Site em construcao" | `siteEnabled=false` | Sempre `_preview=1` no iframe builder |
 | Secoes fora de ordem | `appendChild` em vez de antes do footer | `insertBefore(el, siteFooter)` |
@@ -138,6 +139,8 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 ## SKILLS (ler sob demanda)
 
 `skills/1_1_backend.md` (rotas, middlewares, auth, env) · `skills/1_2_frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/1_3_banco-de-dados.md` (modelos, Mixed, fontes de verdade)
+
+`skills/6_0_dominio.md` (DNS, Nginx, SSL wildcard, subdomínios de fotógrafos, domínio customizado)
 
 `skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_builder-geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md`
 

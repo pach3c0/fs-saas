@@ -20,54 +20,65 @@ Domínio `cliquezoom.com.br` registrado na **Hostinger** (hpanel.hostinger.com).
 |-------|---------|-----------------------|-------|
 | CNAME | www     | cliquezoom.com.br     | 3600  |
 | A     | @       | 5.189.174.18          | 3600  |
+| A     | `*`     | 5.189.174.18          | 3600  |
 | A     | erp     | 5.189.174.18          | 300   |
 | A     | crm     | 5.189.174.18          | 3600  |
 | A     | license | 5.189.174.18          | 300   |
 | A     | hub     | 5.189.174.18          | 14400 |
 
-### Registro wildcard a adicionar (subdomínios de fotógrafos)
-
-| Tipo | Nome | Conteúdo     | TTL  |
-|------|------|--------------|------|
-| A    | `*`  | 5.189.174.18 | 3600 |
-
-O wildcard `*` faz `slug.cliquezoom.com.br` apontar para a VPS para qualquer slug.
+O wildcard `*` faz `slug.cliquezoom.com.br` apontar para a VPS para qualquer slug. ✅ Configurado em 2026-04-18.
 
 ---
 
 ## Nginx na VPS — bloco para subdomínios de fotógrafos
 
-Criar arquivo `/etc/nginx/sites-available/cliquezoom-slugs`:
+✅ Configurado em 2026-04-18. Arquivo: `/etc/nginx/sites-enabled/cliquezoom-slugs`
 
 ```nginx
 server {
     listen 80;
     server_name *.cliquezoom.com.br;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name *.cliquezoom.com.br;
+
+    ssl_certificate /etc/letsencrypt/live/cliquezoom.com.br-0001/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cliquezoom.com.br-0001/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 50M;
 
     location /uploads/ {
         alias /var/www/cz-saas/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
     }
     location /assets/ {
         alias /var/www/cz-saas/assets/;
+        expires 30d;
     }
     location / {
-        proxy_pass http://localhost:3051;
+        proxy_pass http://127.0.0.1:3051;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
 
-Ativar e recarregar:
-```bash
-sudo ln -s /etc/nginx/sites-available/cliquezoom-slugs /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
 > **CRÍTICO:** `proxy_set_header Host $host;` — sem isso o Node recebe `localhost`
 > como hostname e o middleware `tenant.js` não consegue extrair o slug.
+
+**Certificado SSL wildcard:** `cliquezoom.com.br-0001` (cobre `*.cliquezoom.com.br` + `cliquezoom.com.br`).
+Emitido via `certbot --manual --preferred-challenges dns`. **Renovação NÃO é automática** — renovar manualmente antes de 2026-07-17 repetindo o mesmo comando e adicionando novo TXT na Hostinger.
 
 ---
 
@@ -126,10 +137,24 @@ Fluxo:
 
 ## Checklist para ativar subdomínios de fotógrafos
 
-- [ ] Adicionar registro A wildcard `*` → `5.189.174.18` na Hostinger
-- [ ] Criar e ativar bloco Nginx `cliquezoom-slugs` na VPS
-- [ ] Testar: `https://seuslug.cliquezoom.com.br/site`
-- [ ] Verificar no DevTools que `/api/site/config` retorna dados do fotógrafo correto
+- [x] Adicionar registro A wildcard `*` → `5.189.174.18` na Hostinger
+- [x] Emitir certificado SSL wildcard (`cliquezoom.com.br-0001`) via certbot DNS challenge
+- [x] Criar e ativar bloco Nginx `cliquezoom-slugs` na VPS (HTTP redirect + HTTPS proxy)
+- [x] `server.js`: redirecionar `*.cliquezoom.com.br/` → `/site` automaticamente
+- [x] `meu-site.js`: botão "Ver Site" gera URL com subdomínio em produção
+- [x] Testar: `https://soraia.cliquezoom.com.br` → abre site do fotógrafo
+
+## Renovação do certificado wildcard
+
+O certificado expira em **2026-07-17**. Renovar manualmente antes dessa data:
+
+```bash
+certbot certonly --manual --preferred-challenges dns \
+  -d "*.cliquezoom.com.br" -d "cliquezoom.com.br" \
+  --agree-tos --email pacheco@rhynoproject.com.br
+```
+
+Adicionar TXT `_acme-challenge` na Hostinger quando solicitado, aguardar propagação, confirmar.
 
 
 
