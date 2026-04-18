@@ -76,3 +76,11 @@ O template utiliza `content.sobre.canvasLayers` para compor a visualização:
 | `_renderLayerList()` | Atualiza a lista de fotos e gerencia seleção/remoção |
 | `_renderPropsForLayer(layer)` | Renderiza os sliders de ajuste para a foto ativa |
 | `liveNotify()` | Atalho para disparar o postMessage de preview |
+
+---
+
+## 6. Armadilhas e Resolução de Problemas
+
+### Bug do Preview que para de atualizar
+**Causa**: O `shared-site.js` utilizava `replaceWith()` para trocar a `<img>` original por uma `<div>` (container das camadas). Como a nova `<div>` não recebia o ID `#sobreImage`, as chamadas subsequentes do preview (ao mover sliders) falhavam por não encontrar o elemento no DOM.
+**Solução**: O elemento substituto deve **preservar o ID** (`wrap.id = 'sobreImage'`). Caso o usuário remova todas as camadas, o script deve converter a `<div>` de volta para uma `<img>` para manter a compatibilidade com o modo legado.

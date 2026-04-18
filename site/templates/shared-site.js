@@ -416,6 +416,8 @@ function renderSite(data, opts = {}) {
     if (sobreCanvasLayers.length > 0) {
       // Modo canvas: substituir <img> por container com layers posicionadas
       const wrap = document.createElement('div');
+      wrap.id = 'sobreImage'; // OBRIGATÓRIO: Mantém o ID para o próximo renderSite encontrar
+      wrap.className = 'sobre-canvas-wrapper';
       wrap.style.cssText = 'position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;';
 
       wrap.innerHTML = sobreCanvasLayers.map((layer) => {
@@ -449,16 +451,27 @@ function renderSite(data, opts = {}) {
           </div>`;
       }).join('');
 
-      sobreImage.replaceWith(wrap);
+      if (sobreImage.parentNode) {
+        sobreImage.replaceWith(wrap);
+      }
     } else {
       // Modo legado: usar <img> simples
+      let targetImg = sobreImage;
+      if (sobreImage.tagName !== 'IMG') {
+        const newImg = document.createElement('img');
+        newImg.id = 'sobreImage';
+        newImg.alt = 'Fotógrafo';
+        newImg.loading = 'lazy';
+        sobreImage.replaceWith(newImg);
+        targetImg = newImg;
+      }
       const sobreImageUrl = content.sobre?.image || (content.sobre?.images?.[0]?.image) || '';
       if (sobreImageUrl) {
-        sobreImage.src = resolvePath(sobreImageUrl);
+        targetImg.src = resolvePath(sobreImageUrl);
+        targetImg.style.display = 'block';
       } else {
-        sobreImage.style.background = '#1f2937';
-        sobreImage.style.minHeight = '200px';
-        sobreImage.alt = 'Sua foto aqui';
+        targetImg.style.background = '#1f2937';
+        targetImg.style.minHeight = '200px';
       }
     }
   }
