@@ -414,11 +414,17 @@ function renderSite(data, opts = {}) {
   if (sobreImage) {
     const sobreCanvasLayers = content.sobre?.canvasLayers || [];
     if (sobreCanvasLayers.length > 0) {
-      // Modo canvas: substituir <img> por container com layers posicionadas
-      const wrap = document.createElement('div');
-      wrap.id = 'sobreImage'; // OBRIGATÓRIO: Mantém o ID para o próximo renderSite encontrar
-      wrap.className = 'sobre-canvas-wrapper';
-      wrap.style.cssText = 'position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;';
+      // Modo canvas: usar o container div com layers posicionadas
+      let wrap = sobreImage;
+      if (sobreImage.tagName === 'IMG') {
+        wrap = document.createElement('div');
+        wrap.id = 'sobreImage'; // OBRIGATÓRIO: Mantém o ID para o próximo renderSite encontrar
+        wrap.className = 'sobre-canvas-wrapper';
+        wrap.style.cssText = 'position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;';
+        if (sobreImage.parentNode) {
+          sobreImage.replaceWith(wrap);
+        }
+      }
 
       wrap.innerHTML = sobreCanvasLayers.map((layer) => {
         if (layer.type !== 'image' || !layer.url) return '';
@@ -450,10 +456,6 @@ function renderSite(data, opts = {}) {
             " alt="">
           </div>`;
       }).join('');
-
-      if (sobreImage.parentNode) {
-        sobreImage.replaceWith(wrap);
-      }
     } else {
       // Modo legado: usar <img> simples
       let targetImg = sobreImage;
