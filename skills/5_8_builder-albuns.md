@@ -8,10 +8,10 @@
 
 ## Visão geral
 
-A sub-tab Álbuns permite ao fotógrafo publicar galerias no seu site público. Cada álbum tem título, subtítulo, capa e um array de fotos. No site público, os álbuns aparecem como um grid de cards; ao clicar, um modal abre com todas as fotos e um lightbox de navegação.
+A sub-tab Álbuns permite ao fotógrafo publicar galerias no seu site público. Cada álbum tem título, subtítulo, capa e um array de fotos com suporte a formatação avançada. No site público, os álbuns aparecem como um grid de cards; ao clicar, um modal abre mostrando as fotos do catálogo (com suporte a Grid Padrão ou Misto) e um lightbox de navegação.
 
 **Arquivo admin:** `admin/js/tabs/albuns.js`
-**Renderização pública:** `site/templates/shared-site.js` (seção `section-albuns`)
+**Renderização pública:** `site/templates/shared-site.js` (seção `section-albuns` e `openAlbumModal`)
 
 ---
 
@@ -26,57 +26,42 @@ Campo no banco: `Organization.siteContent.albums` (array)
   title: String,     // título exibido no card e no modal
   subtitle: String,  // subtítulo exibido abaixo do título
   cover: String,     // URL da imagem de capa (primeira foto por padrão)
-  photos: [String],  // array de URLs de todas as fotos do álbum
+  gridStyle: String, // 'standard' ou 'mixed' (Estilo de visualização do catálogo)
+  photos: [{         // array de objetos com as fotos
+    url: String,
+    caption: String,
+    format: String,  // 16/9, 9/16, 1/1
+    transform: { scale: 1, x: 50, y: 50 }
+  }],
   createdAt: String  // ISO timestamp
 }
 ```
 
-Estado isolado no módulo admin: `let _albums = null` (carregado na primeira renderização via `apiGet('/api/site/admin/config')`).
+Estado isolado no módulo admin: `let _albums = null`. Quando carregado pela primeira vez, o sistema converte arrays antigos baseados apenas em URLs para a nova estrutura de objetos via Mapeamento em Memória, garantindo compatibilidade com álbuns antigos.
 
 ---
 
 ## Fluxo do usuário
 
 ### Criar álbum
-1. Usuário clica "+ Criar Álbum" → novo objeto `{ id, title:'', subtitle:'', cover:'', photos:[], createdAt }` é inserido no início de `_albums`
+1. Usuário clica "+ Criar Álbum" → novo objeto é inserido no início de `_albums` com `gridStyle: 'standard'` e `photos: []`.
 2. `renderAlbuns(container)` re-renderiza a lista
-3. Não salva automaticamente — usuário edita campos antes de salvar
+
+### Editor Avançado no Catálogo
+O comportamento do catálogo interno agora possui a exata mesma engine visual introduzida no Portfólio.
+1. Usuário clica no botão (✏️) sobre a miniatura da foto.
+2. `window.openAlbumPhotoEditor(albumIdx, photoIdx)` abre o Modal Avançado.
+3. Ajustes nos sliders de Zoom e Eixos atualizam o CSS inline e repassam o estado via `appState.configData` para o Live Preview.
+4. Escolha do `gridStyle` também reflete instantaneamente.
 
 ### Fazer upload de fotos
-1. Usuário clica no input de arquivo → seleciona uma ou mais imagens
-2. `uploadImage(file)` envia para `POST /api/admin/upload` → retorna `{ url: '/uploads/orgId/file.jpg' }`
-3. URL é adicionada a `album.photos[]`; se for a primeira foto, também define `album.cover`
-4. `saveAlbuns(true)` → `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })` (save silencioso, sem toast)
-5. `window._meuSitePostPreview?.()` → iframe atualiza preview em tempo real
+1. Usuário clica no input de arquivo → seleciona múltiplas imagens.
+2. `uploadImage(file)` envia para `POST /api/admin/upload`.
+3. Adiciona o objeto estruturado em `album.photos[]` com `format` padrão `16/9`.
+4. Atualiza o banco silenciosamente e chama o PostMessage do Preview.
 
-### Editar título / subtítulo
-1. Usuário edita input `data-album-title` ou `data-album-subtitle`
-2. Ao perder foco (blur) → `saveAlbumFields(true)` → `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })` (silencioso)
-3. `window._meuSitePostPreview?.()` → preview atualiza
-
-### Definir capa
-1. Usuário clica ícone 📷 sobre uma foto
-2. `album.cover` é atualizado para aquela URL
-3. `saveAlbuns(true)` + `window._meuSitePostPreview?.()`
-
-### Remover foto
-1. Usuário clica ícone 🗑️ sobre uma foto
-2. URL é removida de `album.photos[]`
-3. Se era a capa, `album.cover` passa a ser `photos[0]` (ou `''` se array vazio)
-4. `saveAlbuns(true)` + `window._meuSitePostPreview?.()`
-
-### Remover álbum
-1. Usuário clica 🗑️ no cabeçalho do álbum → `window.showConfirm()` pede confirmação
-2. Álbum é removido de `_albums`
-3. `saveAlbuns(false)` → save com toast de sucesso
-4. `window._meuSitePostPreview?.()`
-
-### Salvar manualmente
-1. Usuário clica "Salvar Alterações"
-2. `saveAlbumFields(false)` → `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })`
-3. Backend: `Organization.findByIdAndUpdate` com `$set { 'siteContent.albums': value }`
-4. Toast "Álbuns salvos"
-5. `window._meuSitePostPreview?.()` → preview atualiza
+### Restante do Fluxo
+Reordenação e Remoções seguem o fluxo padrão utilizando persistência em `apiPut('/api/site/admin/config', { siteContent: { albums: _albums } })`.
 
 ---
 
@@ -84,23 +69,9 @@ Estado isolado no módulo admin: `let _albums = null` (carregado na primeira ren
 
 Seção: `#section-albuns`
 
-1. **Grid de cards** — um card por álbum com imagem de capa (aspect-ratio 3:4), título e subtítulo. Clique abre modal.
-2. **Modal do álbum** — header com título/subtítulo, grid de fotos (`auto-fill minmax(200px)`), hover scale 1.05. Clique em foto abre lightbox.
-3. **Lightbox** — fullscreen `rgba(0,0,0,0.98)`, navegação anterior/próxima, fechamento com ESC ou botão ✕.
-
-A seção só é renderizada se `siteSections` incluir `'albuns'` como ativa.
-
----
-
-## Diferença: álbuns do site × álbuns internos (provas)
-
-| | Álbuns do Site (`siteContent.albums`) | Álbuns Internos / Provas |
-|---|---|---|
-| Gerenciado em | Meu Site → sub-tab Álbuns | Aba Álbuns-Prova |
-| Modelo | `Organization.siteContent.albums` | `Album` (modelo separado) |
-| Acesso | Público, sem senha | Access code por cliente |
-| Função | Portfólio público | Revisão e aprovação de fotos |
-| Rota de save | `PUT /api/site/admin/config` | `PUT /api/albums/:id` |
+1. **Grid de cards** — um card por álbum com imagem de capa (aspect-ratio 3:4). Clique abre modal.
+2. **Modal do álbum** — header com título/subtítulo. Utiliza o `<div class="portfolio-grid" data-style="mixed|standard">` para exibir as fotos do catálogo reaproveitando todo o motor responsivo do Portfólio! Fotos recebem as classes `format-16-9` etc, junto com transformações de scale e object-position via style inline.
+3. **Lightbox** — O array interno foi modificado para suportar leitura de objeto via `p.url`.
 
 ---
 
@@ -108,8 +79,6 @@ A seção só é renderizada se `siteSections` incluir `'albuns'` como ativa.
 
 | Sintoma | Causa | Como evitar |
 |---|---|---|
-| Álbuns salvos mas não aparecem no site | `saveAppData` salva em `SiteData` (legado) | Sempre usar `apiPut('/api/site/admin/config', { siteContent: { albums } })` |
-| Erro 500 "Cannot create field" no MongoDB | Dot notation aninhada: `siteContent.albums.photos` conflita com campo pai `Mixed` | Fazer `$set` no objeto pai: `updateData['siteContent.albums'] = value` |
-| Preview não atualiza após save | Falta chamada ao postMessage | Sempre chamar `window._meuSitePostPreview?.()` após persistir |
-| Seção não aparece no site | `siteSections` não inclui `'albuns'` | Verificar sub-tab Seções (ver `5_2_builder-sessoes.md`) |
-| Upload falha silenciosamente | `album.photos` não é inicializado como array | Garantir `album.photos = album.photos || []` antes de push |
+| Mongoose removendo fields | Modo `strict` do MongoDB | As propriedades avançadas (`gridStyle`, `format`, `transform`) foram estritas no `Organization.js`. Se adicionar novo campo, lembre de adicionar no Schema. |
+| Álbuns salvos mas não aparecem | `saveAppData` salva em `SiteData` legado | Sempre usar `apiPut('/api/site/admin/config', { siteContent: { albums } })` |
+| Preview do catálogo quebrado | CSS de transform ausente | O `shared-site.js` renderiza `portfolio-item`, certifique-se de não mudar o classname. |

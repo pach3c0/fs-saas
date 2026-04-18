@@ -1,152 +1,98 @@
 # Módulo: Portfólio
 
-Grade de fotos do site público com upload múltiplo, reordenação drag & drop, legendas e seleção em massa. Não usa HeroCanvasEditor — é um grid simples de imagens.
+Grade de fotos do site público com suporte a Grid Padrão e Grid Misto, upload múltiplo, edição avançada de imagem (Zoom, Posição e Formato) via Modal, e seleção em massa.
 
 ---
 
-## 1. Elementos DOM
+## 1. Elementos DOM (Admin)
 
 | ID / Classe | Tipo | Propósito |
 |---|---|---|
+| `#styleStandardBtn` / `#styleMixedBtn` | `<button>` | Alterna globalmente o estilo do grid do portfólio |
 | `#pUploadInput` | `<input type="file" multiple>` | Seleciona múltiplas imagens |
-| `#pUploadProgress` | `<div>` | Barra de progresso durante upload |
-| `#pPhotoGrid` | `<div class="p-grid">` | Grid 3 colunas com todas as fotos |
-| `.p-item[data-index]` | `<div draggable>` | Card individual (aspect-ratio 16/9) |
-| `.p-btn-check` | `<button>` | Checkbox de seleção múltipla (visível no hover) |
-| `.p-btn-edit` | `<button>` | Abre overlay de edição de legenda |
-| `.p-btn-del` | `<button>` | Deleta foto individual |
-| `.p-edit-input[data-index]` | `<input>` | Campo de legenda (caption) |
-| `.p-edit-overlay` | `<div>` | Overlay de edição que sobe do bottom |
-| `#pBulkActions` | `<div>` sticky | Barra de ações em massa (aparece ao selecionar) |
-| `#pBulkCount` | `<span>` | Contador de fotos selecionadas |
-| `#pBulkCancelBtn` | `<button>` | Limpa seleção |
-| `#pBulkDelBtn` | `<button>` | Deleta fotos selecionadas |
-| `#pClearBtn` | `<button>` | Remove todas as fotos do portfólio |
-| `.p-empty` | `<div>` | Mensagem quando portfólio vazio |
+| `#pPhotoGrid` | `<div class="p-grid">` | Grid de 2 colunas com todas as fotos e miniaturas redimensionadas |
+| `.p-item[data-index]` | `<div draggable>` | Card individual mostrando o preview e controles inline |
+| `.p-btn-edit` | `<button>` | Abre Modal de Edição Avançada da foto específica |
+| `#pPhotoModal` | `<div>` fixed | Modal contendo Preview e Ferramentas (criado dinamicamente) |
+| `#pModalPreviewWrapper` | `<div>` | Container com aspect-ratio flexível onde a imagem sofre transformações |
+| `#pSliderZoom`, `#pSliderX`, `#pSliderY` | `<input type="range">` | Sliders de propriedades de transformação `scale` e `object-position` |
 
 ---
 
 ## 2. Estado local
 
 ```javascript
-let _portfolioPhotos = [];          // array de { url, caption }
-container._selectedIndices = new Set(); // índices selecionados para bulk
-let draggedIdx = null;              // índice sendo arrastado
+let _portfolioPhotos = [];          // array de { url, caption, format, transform }
+let _gridStyle = 'standard';        // 'standard' (uniforme) ou 'mixed' (denso)
+container._selectedIndices = new Set(); 
+let draggedIdx = null;
 ```
 
-Carregado em `renderPortfolio()` via `apiGet('/api/site/admin/config')` → `siteContent.portfolio.photos`.
+Carregado em `renderPortfolio()` via `apiGet('/api/site/admin/config')` → `siteContent.portfolio`.
 
 ---
 
 ## 3. Fluxo do usuário
 
-### 3a. Upload de foto
+### 3a. Escolha de Estilo do Grid
+1. Usuário clica em **Padrão** ou **Misto**.
+2. Atualiza `_gridStyle`.
+3. Chama `updateAndSave()` → Renderiza grid + Grava em `appState.configData.siteContent` + postMessage Live Preview + salva no Mongoose.
 
-1. Usuário seleciona arquivo(s) em `#pUploadInput`
-2. Para cada arquivo: `uploadImage(file, authToken, onProgress)` → comprime para máx 1200px/85% → `POST /api/admin/upload`
-3. Resposta: `{ url: '/uploads/{orgId}/site/resized-{filename}' }`
-4. `_portfolioPhotos.push({ url, caption: '' })`
-5. `updateAndSave()` → re-renderiza grid + `apiPut('/api/site/admin/config', { siteContent: { portfolio: { photos: _portfolioPhotos } } })` + toast "Portfólio salvo!" + `window._meuSitePostPreview?.()`
+### 3b. Edição Avançada na Modal
+1. Usuário clica em `p-btn-edit`.
+2. Função `openPhotoEditor(idx)` cria modal isolada na tela.
+3. Conforme mexe nos sliders de Zoom (1-3x) e Posições (0-100%):
+   - Atualiza `_portfolioPhotos[idx].transform`.
+   - Modifica o CSS da imagem na própria modal (`object-position`, `transform: scale()`).
+   - Sincroniza via `updateVisuals()` para o `appState.configData` e envia para o iframe em Tempo Real!
+4. Edita a Legenda (SEO) ou escolhe o Formato da foto (16/9, 9/16, 1/1).
+5. Ao fechar a modal, faz o persist no banco via `savePortfolio(true)` e remonta o Grid.
 
-### 3b. Edição de legenda (auto-save)
-
-1. Usuário edita `.p-edit-input`
-2. `oninput` → atualiza `_portfolioPhotos[idx].caption` + `window._meuSitePostPreview?.()` (sem salvar)
-3. `onchange` (ao sair do campo) → `savePortfolio(silent=true)` (salva sem toast)
-
-### 3c. Reordenação drag & drop
-
-1. `dragstart` → salva `draggedIdx`, opacidade 0.5 no item
-2. `drop` → `photos.splice(draggedIdx, 1)` + `photos.splice(dropIdx, 0, moved)`
-3. `updateAndSave()`
-
-Bloqueado se `container._selectedIndices.size > 0` ou se item está em modo edição.
-
-### 3d. Deleção individual
-
-1. `window.showConfirm('Deseja remover esta foto?', { danger: true })`
-2. `_portfolioPhotos.splice(idx, 1)` → `updateAndSave()`
-
-### 3e. Deleção em massa
-
-1. Seleciona fotos via `.p-btn-check` → `container._selectedIndices.add(idx)`
-2. Barra `#pBulkActions` aparece com contagem
-3. `#pBulkDelBtn` → confirm → `_portfolioPhotos.filter((_, i) => !_selectedIndices.has(i))` → `updateAndSave()`
-
-### 3f. Limpar tudo
-
-1. `#pClearBtn` → confirm ("Remover TODAS as fotos?") → `_portfolioPhotos = []` → `updateAndSave()`
+### 3c. Reordenação Drag & Drop
+1. Reordenação clássica HTML5 drag and drop.
+2. Ao soltar (`drop`), reposiciona o array `_portfolioPhotos`.
+3. Sincroniza em Tempo Real para o iframe (pois atualizamos `appState.configData.siteContent` antes do postPreview).
 
 ---
 
-## 4. Função de salvamento
-
-```javascript
-// savePortfolio(silent = false)
-apiPut('/api/site/admin/config', {
-  siteContent: { portfolio: { photos: _portfolioPhotos } }
-})
-// Backend faz $set em Organization.siteContent.portfolio (objeto inteiro, não dot notation)
-// Evita erro "Cannot create field in element" do MongoDB
-```
-
----
-
-## 5. Estrutura de dados persistida
+## 4. Estrutura de dados persistida
 
 ```javascript
 // Organization.siteContent.portfolio
 {
+  gridStyle: "mixed", // ou "standard"
   photos: [
-    { url: "/uploads/{orgId}/site/resized-foto.jpg", caption: "Casamento na praia" },
-    { url: "/uploads/{orgId}/site/resized-foto2.jpg", caption: "" },
-    // ...
+    { 
+      url: "/uploads/{orgId}/site/resized-foto.jpg", 
+      caption: "Casamento na praia",
+      format: "16/9", // 16/9, 9/16 ou 1/1
+      transform: { scale: 1.5, x: 50, y: 30 } 
+    }
   ]
 }
 ```
 
-Cada objeto foto: apenas `url` e `caption`. Ordem do array = ordem exibida no site.
+*Importante*: O schema do Mongoose (`models/Organization.js`) possui todos esses campos definidos em sua estrutura `photos: [{ ... }]` e `gridStyle` na raiz, impedindo que o modo restrito (`strict: true`) apague os dados.
 
 ---
 
-## 6. Funções-chave
+## 5. Renderização no site público (shared-site.js)
 
-| Função | Propósito |
-|---|---|
-| `renderPortfolio(container)` | Entry point exportado; carrega dados e monta tudo |
-| `renderPhotos(container)` | Re-renderiza grid com estado atual |
-| `setupEvents(container)` | Configura todos os listeners (upload, drag, edit, bulk) |
-| `savePortfolio(silent)` | `apiPut` para persistir; `silent=true` suprime toast |
-| `updateAndSave()` | `renderPhotos` + `_meuSitePostPreview` + `savePortfolio` |
-| `ensurePortfolio()` | Garante que `_portfolioPhotos` é array |
+Fonte: `data.siteContent.portfolio`
 
----
-
-## 7. Renderização no site público (shared-site.js)
-
-Fonte: `data.siteContent.portfolio.photos`
-
+A renderização do Grid é definida no Javascript público:
 ```javascript
-// Modo legado (usado pelo portfólio)
-portfolioGrid.innerHTML = photos.map((p, i) => `
-  <div class="portfolio-item" onclick="openLightbox(${i})">
-    <img src="${resolvePath(p.url)}" alt="${esc(p.caption || 'Portfolio ' + (i+1))}"
-         loading="lazy" style="width:100%;height:100%;object-fit:cover;">
-  </div>
-`).join('');
+portfolioGrid.setAttribute('data-style', portfolioData.gridStyle || 'standard');
+
+portfolioGrid.innerHTML = photos.map((p, i) => {
+  const transform = p.transform || { scale: 1, x: 50, y: 50 };
+  const formatClass = p.format ? `format-${p.format.replace('/', '-')}` : 'format-16-9';
+  
+  return `<div class="portfolio-item ${formatClass}" onclick="...">
+    <img style="object-position:${transform.x}% ${transform.y}%; transform:scale(${transform.scale});" ...>
+  </div>`;
+}).join('');
 ```
 
-- Se `photos` vazio → `#section-portfolio` recebe `display:none`
-- Lightbox: `openLightbox(i)` → `#portfolioLightbox` + `#lbImage` com navegação por seta/teclado
-- `window.lightboxPhotos` = array de fotos (populado ao renderizar)
-
-
-# Ajuste
-
-Aumentar a thymbnail em propriedade de cada imagem o dobro pelo menis 
-
-Quando reposicionada a imagem no drag and drop , no preview tem que ser em tempo real, atualmente tem que recarregar a pagina pra ver a ordem correta
-
-zoom e possicoes so estao acontecendo no modal nao esta sendo refletido para o preview 
-
-na verdade em resumo nas thumbnails estao acontencendo mais nao esta indo para o preview, quando vai é quando recarrega a pagina novamente
+O `shared.css` lida com as regras usando `:scope[data-style="mixed"]` para aplicar `grid-auto-flow: dense` e acomodar tamanhos variados sem lacunas, enquanto `[data-style="standard"]` ignora as classes de formato para manter consistência uniforme de grade.

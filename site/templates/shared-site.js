@@ -729,12 +729,19 @@ function renderSite(data, opts = {}) {
       </div>
       <div style="flex:1;overflow-y:auto;padding:1.5rem;">
         ${photos.length > 0
-          ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.75rem;">
-              ${photos.map((url, i) => `
-                <div style="aspect-ratio:3/4;overflow:hidden;border-radius:0.5rem;cursor:pointer;" onclick="openAlbumLightbox(${albumIdx},${i})">
-                  <img src="${resolvePath(url)}" alt="Foto ${i+1}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          ? `<div class="portfolio-grid" data-style="${album.gridStyle || 'standard'}" style="margin-top:0;">
+              ${photos.map((p, i) => {
+                const url = typeof p === 'string' ? p : p.url;
+                const altText = (p && typeof p !== 'string' && p.caption) ? p.caption : `Foto ${i+1}`;
+                const transform = (p && typeof p !== 'string' && p.transform) ? p.transform : { scale: 1, x: 50, y: 50 };
+                const formatClass = (p && typeof p !== 'string' && p.format) ? `format-${p.format.replace('/', '-')}` : 'format-16-9';
+                
+                return `
+                <div class="portfolio-item ${formatClass}" style="overflow:hidden;border-radius:0.5rem;cursor:pointer;" onclick="openAlbumLightbox(${albumIdx},${i})">
+                  <img src="${resolvePath(url)}" alt="${esc(altText)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:${transform.x}% ${transform.y}%;transform:scale(${transform.scale});transition:transform 0.2s;" onmouseover="this.style.transform='scale(${transform.scale * 1.05})'" onmouseout="this.style.transform='scale(${transform.scale})'">
                 </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>`
           : '<p style="color:rgba(255,255,255,0.5);text-align:center;padding:4rem;">Este álbum ainda não tem fotos.</p>'
         }
@@ -760,13 +767,15 @@ function renderSite(data, opts = {}) {
     const existing = document.getElementById('albumLightbox');
     if (existing) existing.remove();
 
+    const getPhotoUrl = (p) => typeof p === 'string' ? p : p.url;
+
     const lb = document.createElement('div');
     lb.id = 'albumLightbox';
     lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.98);z-index:10000;display:flex;align-items:center;justify-content:center;';
     lb.innerHTML = `
       <button onclick="document.getElementById('albumLightbox').remove()" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:2.5rem;height:2.5rem;border-radius:50%;cursor:pointer;font-size:1.25rem;">✕</button>
       <button onclick="prevAlbumPhoto()" style="position:absolute;left:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:3rem;height:3rem;border-radius:50%;cursor:pointer;font-size:1.5rem;">‹</button>
-      <img id="albumLbImg" src="${resolvePath(window.albumLightboxPhotos[photoIdx])}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:0.25rem;">
+      <img id="albumLbImg" src="${resolvePath(getPhotoUrl(window.albumLightboxPhotos[photoIdx]))}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:0.25rem;">
       <button onclick="nextAlbumPhoto()" style="position:absolute;right:1rem;background:rgba(255,255,255,0.1);border:none;color:white;width:3rem;height:3rem;border-radius:50%;cursor:pointer;font-size:1.5rem;">›</button>
     `;
     document.body.appendChild(lb);
@@ -776,14 +785,16 @@ function renderSite(data, opts = {}) {
     if (window.albumLightboxIndex > 0) {
       window.albumLightboxIndex--;
       const img = document.getElementById('albumLbImg');
-      if (img) img.src = resolvePath(window.albumLightboxPhotos[window.albumLightboxIndex]);
+      const getPhotoUrl = (p) => typeof p === 'string' ? p : p.url;
+      if (img) img.src = resolvePath(getPhotoUrl(window.albumLightboxPhotos[window.albumLightboxIndex]));
     }
   };
   window.nextAlbumPhoto = function() {
     if (window.albumLightboxIndex < window.albumLightboxPhotos.length - 1) {
       window.albumLightboxIndex++;
       const img = document.getElementById('albumLbImg');
-      if (img) img.src = resolvePath(window.albumLightboxPhotos[window.albumLightboxIndex]);
+      const getPhotoUrl = (p) => typeof p === 'string' ? p : p.url;
+      if (img) img.src = resolvePath(getPhotoUrl(window.albumLightboxPhotos[window.albumLightboxIndex]));
     }
   };
 

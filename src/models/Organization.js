@@ -131,7 +131,8 @@ const OrganizationSchema = new mongoose.Schema({
       title: String,
       subtitle: String,
       cover: String,
-      photos: [String],
+      gridStyle: { type: String, default: 'standard' },
+      photos: { type: [mongoose.Schema.Types.Mixed], default: [] },
       createdAt: String
     }],
     studio: {
