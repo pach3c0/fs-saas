@@ -108,7 +108,7 @@ Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart a
 | Dados que aparecem no site publico | Salvar com `apiPut('/api/site/admin/config', { siteContent: { chave: valor } })`. Carregar com `apiGet('/api/site/admin/config')` → `.siteContent.chave`. NUNCA usar `saveAppData` para dados do site publico — ela salva em SiteData (legado) que o site nao le. |
 | Dados internos do admin (hero, faq, etc) | Usar `saveAppData(section, data)` → `/api/site-data` (SiteData). So para dados que o site publico le via SiteData (hero canvas, faq). Verificar qual modelo o `shared-site.js` consome antes de escolher qual rota usar. |
 | Alterar layout de secao nos templates | Editar `site/templates/shared.css` (estrutura: grid, aspect-ratio, breakpoints). Regras visuais (cores, bordas, sombras, animacoes) em cada `style.css` individual |
-| Editor visual de imagem com drag/resize/borda/sombra | Usar `HeroCanvasEditor` de `admin/js/utils/heroCanvas.js` (apelido interno: CanvasLayerEditor). Ja usado em Hero e Sobre. Aplicar em qualquer secao que precise compor imagem livremente (posicionar, escalar, arredondar, adicionar sombra). NAO aplicar em grades de fotos simples (ex: Portfolio). |
+| Editor visual de imagem | Agora integrado diretamente no preview real do site via `shared-site.js` e sliders na barra lateral. |
 
 Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 

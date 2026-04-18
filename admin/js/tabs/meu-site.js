@@ -12,7 +12,6 @@ import { renderAlbuns } from './albuns.js';
 import { renderEstudio } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
-// import { HeroCanvasEditor } from '../utils/heroCanvas.js'; // Removido: agora usa preview real
 
 
 export async function renderMeuSite(container) {
@@ -532,7 +531,7 @@ async function renderSiteContent(container, builderTabsEl) {
     const iframe = document.getElementById('builder-iframe');
 
     const target = btn.dataset.target;
-    // Hero ainda usa canvas opcional (HeroCanvasEditor), outros usam iframe real
+    // Ocultar canvas (se houver) e mostrar iframe real
     if (heroCanvasEl) heroCanvasEl.style.display = 'none';
     if (iframe) iframe.style.display = '';
 
