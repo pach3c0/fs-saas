@@ -820,7 +820,7 @@ function renderSite(data, opts = {}) {
         // Canvas mode: remover grid para não interferir no posicionamento livre
         studioPhotosGrid.classList.remove('studio-grid');
         studioPhotosGrid.style.display = 'block';
-        studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
+        studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem; max-width:360px; margin:0 auto;">
           ${studio.studioLayers.map(l => {
             const scaleX = (l.flipH ? -1 : 1) * ((l.scale ?? 100) / 100);
             const scaleY = (l.flipV ? -1 : 1) * ((l.scale ?? 100) / 100);
@@ -852,6 +852,21 @@ function renderSite(data, opts = {}) {
       if (studio.hours) html += `<div class="studio-info-item">🕐 ${esc(studio.hours)}</div>`;
       if (studio.whatsapp) html += `<div class="studio-info-item">📱 <a href="https://wa.me/${studio.whatsapp.replace(/\D/g,'')}" target="_blank">${esc(studio.whatsapp)}</a></div>`;
       studioInfo.innerHTML = html;
+    }
+
+    // Vídeo do estúdio
+    const studioVideoWrap = document.getElementById('studioVideoWrap');
+    if (studioVideoWrap) {
+      if (studio.videoEnabled && studio.videoUrl) {
+        studioVideoWrap.style.display = 'block';
+        studioVideoWrap.innerHTML = `<div style="margin-top:2rem; border-radius:0.75rem; overflow:hidden; aspect-ratio:16/9; background:#000;">
+          <video src="${resolvePath(studio.videoUrl)}" controls playsinline
+            style="width:100%; height:100%; object-fit:contain; display:block;"></video>
+        </div>`;
+      } else {
+        studioVideoWrap.style.display = 'none';
+        studioVideoWrap.innerHTML = '';
+      }
     }
   }
 
@@ -979,28 +994,41 @@ function renderSite(data, opts = {}) {
     whatsappBtn.href = `https://wa.me/${cleanNumber}?text=${defaultMsg}`;
     whatsappBtn.style.display = 'flex';
 
-    const messages = content.studio?.whatsappMessages || [];
+    const messages = (content.studio?.whatsappMessages || []).filter(m => m.text?.trim());
     if (messages.length > 0) {
-      // Criar bolha de mensagens
+      // Remover bolha anterior se existir (renderSite pode ser chamado novamente)
+      const oldBubble = document.getElementById('whatsappBubble');
+      if (oldBubble) oldBubble.remove();
+
       const bubble = document.createElement('div');
       bubble.id = 'whatsappBubble';
-      bubble.style.cssText = 'position:fixed;bottom:5.5rem;right:1.5rem;z-index:9998;display:flex;flex-direction:column;gap:0.5rem;max-width:280px;';
+      bubble.style.cssText = 'position:fixed;bottom:5.5rem;right:1.5rem;z-index:9998;display:flex;flex-direction:column;gap:0.5rem;max-width:280px;pointer-events:none;';
       document.body.appendChild(bubble);
 
       let msgIndex = 0;
       function showNextMessage() {
         if (msgIndex >= messages.length) return;
         const msg = messages[msgIndex];
+        const visibleMs = (msg.delay || 5) * 1000;
+
         const el = document.createElement('div');
-        el.style.cssText = 'background:white;color:#1a1a1a;padding:0.75rem 1rem;border-radius:1rem 1rem 0.25rem 1rem;font-size:0.875rem;box-shadow:0 2px 12px rgba(0,0,0,0.15);animation:fadeInUp 0.3s ease;';
+        el.style.cssText = 'background:white;color:#1a1a1a;padding:0.75rem 1rem;border-radius:1rem 1rem 0.25rem 1rem;font-size:0.875rem;box-shadow:0 2px 12px rgba(0,0,0,0.15);animation:fadeInUp 0.3s ease;transition:opacity 0.4s ease;';
         el.textContent = msg.text;
         bubble.appendChild(el);
         msgIndex++;
-        const delay = (messages[msgIndex]?.delay || 5) * 1000;
-        if (msgIndex < messages.length) setTimeout(showNextMessage, delay);
+
+        // Após visibleMs: sumir e mostrar próxima (ou encerrar deixando ícone visível)
+        setTimeout(() => {
+          el.style.opacity = '0';
+          setTimeout(() => {
+            el.remove();
+            showNextMessage();
+          }, 400);
+        }, visibleMs);
       }
-      const firstDelay = (messages[0]?.delay || 5) * 1000;
-      setTimeout(showNextMessage, firstDelay);
+
+      // Aguarda 1.5s antes de exibir a primeira mensagem
+      setTimeout(showNextMessage, 1500);
     }
   }
 

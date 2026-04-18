@@ -24,6 +24,7 @@ function getCurrentStudio(container) {
       delay: parseInt(container.querySelector(`[data-whatsapp-delay="${idx}"]`)?.value || 5)
     });
   });
+  const videoToggle = container.querySelector('#videoEnabledToggle');
   return {
     ..._studio,
     title: container.querySelector('#studioTitle')?.value || _studio.title || '',
@@ -32,6 +33,7 @@ function getCurrentStudio(container) {
     hours: container.querySelector('#studioHours')?.value || _studio.hours || '',
     whatsapp: container.querySelector('#studioWhatsapp')?.value || _studio.whatsapp || '',
     whatsappMessages: msgs.length > 0 ? msgs : _studio.whatsappMessages,
+    videoEnabled: videoToggle ? videoToggle.checked : (_studio.videoEnabled ?? false),
   };
 }
 
@@ -179,7 +181,7 @@ export async function renderEstudio(container) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
             <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Video do Estudio</h3>
-            <p style="font-size:0.75rem; color:var(--text-secondary);">Aparece abaixo das fotos no site. Maximo 300MB.</p>
+            <p style="font-size:0.75rem; color:var(--text-secondary);">Exibido abaixo das fotos no site. Maximo 300MB.</p>
           </div>
           <div style="display:flex; gap:0.5rem; align-items:center;">
             ${_studio.videoUrl ? `
@@ -195,6 +197,15 @@ export async function renderEstudio(container) {
         </div>
         <div id="studioVideoProgress"></div>
         ${_studio.videoUrl ? `
+          <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
+            <label style="position:relative; display:inline-block; width:2.5rem; height:1.375rem; flex-shrink:0; cursor:pointer;">
+              <input type="checkbox" id="videoEnabledToggle" ${_studio.videoEnabled ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
+              <span id="videoToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.videoEnabled ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
+                <span style="position:absolute; left:${_studio.videoEnabled ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
+              </span>
+            </label>
+            <span style="font-size:0.875rem; color:var(--text-primary);">Exibir video no site</span>
+          </div>
           <div style="aspect-ratio:16/9; border-radius:0.5rem; overflow:hidden; background:#000;">
             <video src="${resolveImagePath(_studio.videoUrl)}" controls style="width:100%; height:100%; object-fit:contain;"></video>
           </div>
@@ -467,9 +478,22 @@ export async function renderEstudio(container) {
     removeVideoBtn.onclick = async () => {
       const ok = await window.showConfirm?.('Remover o video do estudio?', { danger: true });
       if (!ok) return;
-      _studio = { ...getCurrentStudio(container), videoUrl: '' };
+      _studio = { ...getCurrentStudio(container), videoUrl: '', videoEnabled: false };
       await saveEstudio(true);
       renderEstudio(container);
+    };
+  }
+
+  const videoToggle = container.querySelector('#videoEnabledToggle');
+  if (videoToggle) {
+    videoToggle.onchange = async () => {
+      const track = container.querySelector('#videoToggleTrack');
+      if (track) {
+        track.style.background = videoToggle.checked ? 'var(--accent)' : 'var(--border)';
+        track.querySelector('span').style.left = videoToggle.checked ? '1.125rem' : '0.125rem';
+      }
+      _studio = getCurrentStudio(container);
+      await saveEstudio(true);
     };
   }
 

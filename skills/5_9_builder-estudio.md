@@ -38,7 +38,8 @@ Estrutura de `_studio`:
       flipV: false
     }
   ],
-  videoUrl: ''
+  videoUrl: '',
+  videoEnabled: false   // toggle: exibir ou não o vídeo no site público
 }
 ```
 
@@ -68,6 +69,8 @@ Estrutura de `_studio`:
 | `#studio-layer-list` | container | Lista de camadas (clicável, drag & drop) |
 | `#studio-layer-props` | container | Painel de sliders da camada selecionada |
 | `#studio-layer-props-content` | container | Conteúdo dos sliders |
+| `#videoEnabledToggle` | `<input checkbox>` | Toggle: exibir vídeo no site (só renderizado se `videoUrl` existe) |
+| `#videoToggleTrack` | `<span>` | Visual do toggle (background + bolinha animada) |
 | `#saveStudioBtn` | `<button>` | Salva todos os campos de texto |
 
 ---
@@ -120,6 +123,20 @@ O container `#studioPhotosGrid` é substituído por:
 ## Armadilhas
 
 - `getCurrentStudio(container)` deve ser chamado antes de qualquer mutação de `_studio` para não perder campos editados no DOM.
-- O botão `#removeVideoBtn` só é renderizado quando `_studio.videoUrl` existe.
+- O botão `#removeVideoBtn` e o toggle `#videoEnabledToggle` só são renderizados quando `_studio.videoUrl` existe.
 - Upload de foto é individual (não múltiplo) para controle do limite de 4.
 - Dados antigos com `photos[]` são exibidos no site como grade (fallback), mas o admin não os edita mais.
+- O canvas de fotos (`studio-canvas-wrap`) tem `max-width:360px; margin:0 auto` para evitar espaço em branco excessivo abaixo quando exibido em colunas largas.
+
+## Comportamento do WhatsApp flutuante
+
+- Mensagens filtradas: apenas `text.trim()` não-vazio são exibidas.
+- Sequência: aguarda 1.5s → exibe msg 1 → após `delay` segundos: some com fade (400ms) → exibe msg 2 → … → ao fim fica só o ícone do WhatsApp.
+- Bolha anterior removida antes de criar nova (evita duplicação quando `renderSite()` é chamado mais de uma vez).
+- `pointer-events:none` na bolha para não bloquear cliques na página.
+
+## Vídeo no site público
+
+- Só exibido quando `studio.videoEnabled === true` **e** `studio.videoUrl` existe.
+- Container `#studioVideoWrap` (presente em todos os 5 templates) recebe o `<video>` via `shared-site.js`.
+- Sem parâmetros adicionais de edição — vídeo é reproduzido como enviado, em `aspect-ratio:16/9` com `object-fit:contain`.
