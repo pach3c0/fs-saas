@@ -35,6 +35,10 @@ function getCurrentStudio(container) {
   };
 }
 
+export function getStudioState() {
+  return _studio;
+}
+
 export async function renderEstudio(container) {
   if (_studio === null) {
     const config = await apiGet('/api/site/admin/config');

@@ -9,7 +9,7 @@ import { resolveImagePath } from '../utils/helpers.js';
 import { renderPortfolio } from './portfolio.js';
 import { renderSobre, destroySobreCanvas, getSobreCanvasState } from './sobre.js';
 import { renderAlbuns } from './albuns.js';
-import { renderEstudio } from './estudio.js';
+import { renderEstudio, getStudioState } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 
@@ -432,7 +432,7 @@ async function renderSiteContent(container, builderTabsEl) {
         faq: configData.siteContent?.faq || [],
         customSections: configData.siteContent?.customSections || [],
         albums: configData.siteContent?.albums || [],
-        studio: configData.siteContent?.studio || {},
+        studio: getStudioState() || configData.siteContent?.studio || {},
       },
       integrations: configData.integrations || {},
     };
