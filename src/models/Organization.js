@@ -110,9 +110,12 @@ const OrganizationSchema = new mongoose.Schema({
     portfolio: {
       title: { type: String, default: 'Portfólio' },
       subtitle: { type: String, default: '' },
+      gridStyle: { type: String, default: 'standard' },
       photos: [{
         url: String,
-        caption: { type: String, default: '' }
+        caption: { type: String, default: '' },
+        format: { type: String, default: '16/9' },
+        transform: { type: mongoose.Schema.Types.Mixed, default: {} }
       }],
       canvasLayers: { type: mongoose.Schema.Types.Mixed, default: [] },
       canvasBg: { type: mongoose.Schema.Types.Mixed, default: {} }
