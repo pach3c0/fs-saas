@@ -935,6 +935,10 @@ async function renderSiteContent(container, builderTabsEl) {
       if (!await window.showConfirm?.('Restaurar padrão? As camadas, imagem de fundo e ajustes serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
       cfg.heroLayers = [];
       cfg.heroImage = '';
+      cfg.heroTitle = '';
+      cfg.heroSubtitle = '';
+      cfg.titlePosX = 50; cfg.titlePosY = 40; cfg.titleFontSize = 80;
+      cfg.subtitlePosX = 50; cfg.subtitlePosY = 55; cfg.subtitleFontSize = 40;
       cfg.heroScale = 1; cfg.heroPosX = 50; cfg.heroPosY = 50;
       cfg.overlayOpacity = 30; cfg.topBarHeight = 0; cfg.bottomBarHeight = 0;
       cfg.bgPresets = {}; cfg.overlayPresets = {};

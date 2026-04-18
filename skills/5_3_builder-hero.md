@@ -82,7 +82,7 @@ O backend faz **merge por sub-chave** (não sobrescreve o objeto inteiro), entã
 | `#hcLayerList` | Lista de camadas; clique seleciona, `✕` remove |
 | `#hcLayerProps` | Painel de propriedades (oculto até selecionar camada) |
 | `#hcSaveBtn` | Salva via PUT; spinner com `withBtnLoading`; toast "Capa salva!" |
-| `#hcRestoreBtn` | `showConfirm` → reseta cfg para defaults → PUT → toast |
+| `#hcRestoreBtn` | `showConfirm` → reseta cfg para defaults (incluindo campos legados) → PUT → toast |
 
 ### Variáveis locais críticas
 
