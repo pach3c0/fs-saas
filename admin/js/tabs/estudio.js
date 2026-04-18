@@ -434,7 +434,7 @@ export async function renderEstudio(container) {
         type: 'image',
         url: result.url,
         name: `Foto ${layers.length + 1}`,
-        x: 50, y: 50, width: 70, height: 70, rotation: 0, opacity: 100,
+        x: 50, y: 50, width: 60, height: 90, rotation: 0, opacity: 100,
         borderRadius: 0, shadow: false, shadowBlur: 10,
         shadowColor: 'rgba(0,0,0,0.5)', flipH: false, flipV: false
       };

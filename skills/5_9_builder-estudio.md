@@ -19,14 +19,14 @@ Estrutura de `_studio`:
   whatsapp: '',        // com DDI: 5511999999999
   hours: '',
   whatsappMessages: [ { text: '', delay: 5 } ],
-  studioLayers: [      // canvas de composição livre (máx 4)
+  studioLayers: [      // canvas de composição livre (máx 4) — aspect-ratio:16/9
     {
       id: 'st_1234567890',
       type: 'image',
       url: '/uploads/...',
       name: 'Foto 1',
       x: 50, y: 50,          // posição central em %
-      width: 70, height: 70, // tamanho em % do container
+      width: 60, height: 90, // tamanho em % do container (defaults para 16/9)
       rotation: 0,           // graus
       scale: 100,            // zoom em %
       opacity: 100,          // 0-100
@@ -126,7 +126,7 @@ O container `#studioPhotosGrid` é substituído por:
 - O botão `#removeVideoBtn` e o toggle `#videoEnabledToggle` só são renderizados quando `_studio.videoUrl` existe.
 - Upload de foto é individual (não múltiplo) para controle do limite de 4.
 - Dados antigos com `photos[]` são exibidos no site como grade (fallback), mas o admin não os edita mais.
-- O canvas de fotos (`studio-canvas-wrap`) tem `max-width:360px; margin:0 auto` para evitar espaço em branco excessivo abaixo quando exibido em colunas largas.
+- O canvas de fotos (`studio-canvas-wrap`) tem `aspect-ratio:16/9; max-width:900px; width:100%` — generoso em desktop, encolhe proporcionalmente em tablet/mobile.
 
 ## Comportamento do WhatsApp flutuante
 
