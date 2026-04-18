@@ -5,6 +5,7 @@
 import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, uploadVideo, showUploadProgress } from '../utils/upload.js';
+import { appState } from '../state.js';
 
 let _studio = null;
 let _studioSelectedLayerId = null;
@@ -412,7 +413,7 @@ export async function renderEstudio(container) {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const result = await uploadImage(file, (p) => showUploadProgress('studioUploadProgress', p));
+      const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('studioUploadProgress', p));
       const newLayer = {
         id: 'st_' + Date.now(),
         type: 'image',
@@ -444,7 +445,7 @@ export async function renderEstudio(container) {
     }
     try {
       showUploadProgress('studioVideoProgress', 0);
-      const result = await uploadVideo(file, (percent) => {
+      const result = await uploadVideo(file, appState.authToken, (percent) => {
         showUploadProgress('studioVideoProgress', percent);
       });
       showUploadProgress('studioVideoProgress', 100);
