@@ -7,6 +7,8 @@ import { resolveImagePath, generateId } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 let _albums = null;
+let draggedAlbumIdx = null;
+let draggedPhotoIdx = null;
 
 async function saveAlbuns(silent = false) {
   if (appState.configData && appState.configData.siteContent) {
@@ -50,8 +52,8 @@ export async function renderAlbuns(container) {
     let photosGridHtml = '';
     photos.forEach((photoObj, photoIdx) => {
       photosGridHtml += `
-        <div style="position:relative; aspect-ratio:3/4; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden;">
-          <img src="${resolveImagePath(photoObj.url)}" alt="Foto ${photoIdx + 1}" style="width:100%; height:100%; object-fit:cover; object-position:${photoObj.transform.x}% ${photoObj.transform.y}%; transform:scale(${photoObj.transform.scale});">
+        <div class="a-photo-item" draggable="true" data-album-idx="${idx}" data-photo-idx="${photoIdx}" style="position:relative; aspect-ratio:3/4; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; cursor:grab;">
+          <img src="${resolveImagePath(photoObj.url)}" alt="Foto ${photoIdx + 1}" style="width:100%; height:100%; object-fit:cover; object-position:${photoObj.transform.x}% ${photoObj.transform.y}%; transform:scale(${photoObj.transform.scale}); pointer-events:none;">
           <div class="album-photo-overlay" data-album="${idx}" data-photo="${photoIdx}"
             style="position:absolute; inset:0; background:rgba(0,0,0,0.6); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem;">
             <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" style="background:var(--accent); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Definir como capa">
@@ -235,6 +237,50 @@ export async function renderAlbuns(container) {
     await saveAlbuns(true);
     renderAlbuns(container);
   };
+
+  // Drag and Drop para reordenar fotos
+  container.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.a-photo-item');
+    if (!item) return;
+    draggedAlbumIdx = parseInt(item.dataset.albumIdx);
+    draggedPhotoIdx = parseInt(item.dataset.photoIdx);
+    e.dataTransfer.effectAllowed = 'move';
+    item.style.opacity = '0.5';
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  container.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const item = e.target.closest('.a-photo-item');
+    if (!item || draggedAlbumIdx === null || draggedPhotoIdx === null) return;
+    
+    const dropAlbumIdx = parseInt(item.dataset.albumIdx);
+    const dropPhotoIdx = parseInt(item.dataset.photoIdx);
+    
+    // Só permite reordenar fotos dentro do mesmo álbum
+    if (draggedAlbumIdx !== dropAlbumIdx || draggedPhotoIdx === dropPhotoIdx) return;
+    
+    const album = _albums[draggedAlbumIdx];
+    const [moved] = album.photos.splice(draggedPhotoIdx, 1);
+    album.photos.splice(dropPhotoIdx, 0, moved);
+    
+    draggedAlbumIdx = null;
+    draggedPhotoIdx = null;
+    
+    await saveAlbuns(true);
+    renderAlbuns(container);
+  });
+
+  container.addEventListener('dragend', (e) => {
+    draggedAlbumIdx = null;
+    draggedPhotoIdx = null;
+    const item = e.target.closest('.a-photo-item');
+    if (item) item.style.opacity = '1';
+  });
 
   // --- Modal de Edição Avançada da Foto ---
   window.openAlbumPhotoEditor = (albumIdx, photoIdx) => {
