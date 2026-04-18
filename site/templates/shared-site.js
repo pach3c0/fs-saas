@@ -618,13 +618,16 @@ function renderSite(data, opts = {}) {
       }
 
     } else {
-      // Modo legado: grade de fotos (photos array)
+      // Modo grade de fotos (photos array)
       const photos = portfolioData.photos;
       if (photos && photos.length > 0) {
+        portfolioGrid.setAttribute('data-style', portfolioData.gridStyle || 'standard');
         portfolioGrid.innerHTML = photos.map((p, i) => {
           const photoUrl = resolvePath(p.url || p.image || p);
           const altText = p.caption || `Portfolio ${i + 1}`;
-          return `<div class="portfolio-item" onclick="openLightbox(${i})"><img src="${photoUrl}" alt="${esc(altText)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"></div>`;
+          const formatClass = p.format ? `format-${p.format.replace('/', '-')}` : 'format-16-9';
+          const transform = p.transform || { scale: 1, x: 50, y: 50 };
+          return `<div class="portfolio-item ${formatClass}" onclick="openLightbox(${i})"><img src="${photoUrl}" alt="${esc(altText)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:${transform.x}% ${transform.y}%;transform:scale(${transform.scale});"></div>`;
         }).join('');
       } else {
         // Sem fotos: oculta a seção inteira

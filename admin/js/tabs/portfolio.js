@@ -9,7 +9,7 @@ import { uploadImage, showUploadProgress } from '../utils/upload.js';
 
 async function savePortfolio(silent = false) {
   const ok = await apiPut('/api/site/admin/config', {
-    siteContent: { portfolio: { photos: _portfolioPhotos } }
+    siteContent: { portfolio: { photos: _portfolioPhotos, gridStyle: _gridStyle } }
   });
   if (!silent && ok !== false) window.showToast?.('Portfólio salvo!', 'success');
   return ok;
@@ -18,6 +18,7 @@ async function savePortfolio(silent = false) {
 
 // Estado local isolado do SiteData legado
 let _portfolioPhotos = null;
+let _gridStyle = 'standard';
 
 function ensurePortfolio() {
   if (!Array.isArray(_portfolioPhotos)) _portfolioPhotos = [];
@@ -28,6 +29,7 @@ export async function renderPortfolio(container) {
   try {
     const config = await apiGet('/api/site/admin/config');
     _portfolioPhotos = config?.siteContent?.portfolio?.photos || [];
+    _gridStyle = config?.siteContent?.portfolio?.gridStyle || 'standard';
   } catch (_) {
     if (!Array.isArray(_portfolioPhotos)) _portfolioPhotos = [];
   }
@@ -101,9 +103,16 @@ export async function renderPortfolio(container) {
     </style>
 
     <div style="padding-bottom:2rem; position:relative;">
-      <div style="padding:1rem 0; border-bottom:1px solid var(--border); margin-bottom:1.5rem;">
-        <h2 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary); margin:0;">Galeria de Portfólio</h2>
-        <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.25rem 0 0;">Fase 2: Gestão de Legendas & Seleção em Massa</p>
+      <div style="padding:1rem 0; border-bottom:1px solid var(--border); margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary); margin:0;">Galeria de Portfólio</h2>
+          <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.25rem 0 0;">Editor Avançado: Posição, Zoom e Formato Misto</p>
+        </div>
+        
+        <div style="display:flex; gap:0.25rem; background:var(--bg-surface); padding:0.25rem; border-radius:0.375rem; border:1px solid var(--border);">
+          <button id="styleStandardBtn" style="padding:0.4rem 0.8rem; border:none; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; background:${_gridStyle === 'standard' ? 'var(--accent)' : 'transparent'}; color:${_gridStyle === 'standard' ? 'white' : 'var(--text-secondary)'}; transition:all 0.2s;">Padrão</button>
+          <button id="styleMixedBtn" style="padding:0.4rem 0.8rem; border:none; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; background:${_gridStyle === 'mixed' ? 'var(--accent)' : 'transparent'}; color:${_gridStyle === 'mixed' ? 'white' : 'var(--text-secondary)'}; transition:all 0.2s;">Misto (Dinâmico)</button>
+        </div>
       </div>
 
       <label style="background:var(--accent); color:white; padding:0.75rem; border-radius:0.375rem;
@@ -158,26 +167,20 @@ function renderPhotos(container) {
 
   grid.innerHTML = photos.map((photo, i) => {
     const isSelected = selected.has(i);
+    const transform = photo.transform || { scale: 1, x: 50, y: 50 };
     return `
       <div class="p-item ${isSelected ? 'selected' : ''}" draggable="${selected.size === 0}" data-index="${i}">
-        <img src="${resolveImagePath(photo.url)}" alt="Foto ${i + 1}" loading="lazy">
+        <img src="${resolveImagePath(photo.url)}" alt="Foto ${i + 1}" loading="lazy" style="object-position:${transform.x}% ${transform.y}%; transform:scale(${transform.scale});">
         
         <div class="p-btn-check">
           <span class="material-symbols-outlined" style="font-size:16px; color:white;">${isSelected ? 'check' : ''}</span>
         </div>
 
         <div class="p-actions">
-          <button class="p-action-btn p-btn-edit" data-index="${i}" title="Editar legenda">
-            <span class="material-symbols-outlined" style="font-size:16px;">edit_note</span>
+          <button class="p-action-btn p-btn-edit" data-index="${i}" title="Editar Imagem e Legenda">
+            <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
           </button>
           <button class="p-action-btn p-btn-del" data-index="${i}" title="Remover foto">✕</button>
-        </div>
-
-        <div class="p-edit-overlay">
-          <input type="text" class="p-edit-input" placeholder="Legenda (SEO)..." value="${photo.caption || ''}" data-index="${i}">
-          <div style="display:flex; justify-content:flex-end;">
-            <span class="material-symbols-outlined p-edit-close" style="font-size:16px; color:#9ca3af; cursor:pointer;">expand_more</span>
-          </div>
         </div>
       </div>
     `;
@@ -209,7 +212,12 @@ function setupEvents(container) {
     let uploaded = 0;
     for (const r of results) {
       if (r.status === 'fulfilled') {
-        _portfolioPhotos.push({ url: r.value.url, caption: '' });
+        _portfolioPhotos.push({ 
+          url: r.value.url, 
+          caption: '', 
+          format: '16/9', 
+          transform: { scale: 1, x: 50, y: 50 } 
+        });
         uploaded++;
       } else {
         window.showToast?.('Erro ao subir uma foto', 'error');
@@ -263,41 +271,41 @@ function setupEvents(container) {
       return;
     }
 
-    // 3. Botão Editar Legenda
+    // 3. Botão Editar Legenda / Imagem (Abre Modal)
     const editBtn = target.closest('.p-btn-edit');
     if (editBtn) {
-      item.classList.toggle('editing');
-      if (item.classList.contains('editing')) {
-        item.querySelector('.p-edit-input').focus();
-      }
-      return;
-    }
-
-    // 4. Fechar Legenda
-    if (target.closest('.p-edit-close')) {
-      item.classList.remove('editing');
+      openPhotoEditor(idx, container);
       return;
     }
   };
 
-  // Input de Legenda (Auto-save ao digitar)
-  grid.oninput = (e) => {
-    if (e.target.classList.contains('p-edit-input')) {
-      ensurePortfolio();
-      const idx = parseInt(e.target.dataset.index);
-      _portfolioPhotos[idx].caption = e.target.value;
-      // Salvar com debounce seria ideal, mas saveAppData já é eficiente. 
-      // Por ser SEO, salvar ao terminar de digitar é ok.
-      window._meuSitePostPreview?.();
-    }
-  };
+  // Botões de Estilo do Grid
+  const styleStandardBtn = container.querySelector('#styleStandardBtn');
+  const styleMixedBtn = container.querySelector('#styleMixedBtn');
   
-  // Salvar legenda efetivamente ao sair do campo
-  grid.onchange = (e) => {
-    if (e.target.classList.contains('p-edit-input')) {
-      savePortfolio(true);
-    }
-  };
+  if (styleStandardBtn) {
+    styleStandardBtn.onclick = () => {
+      _gridStyle = 'standard';
+      updateAndSave();
+      styleStandardBtn.style.background = 'var(--accent)';
+      styleStandardBtn.style.color = 'white';
+      styleMixedBtn.style.background = 'transparent';
+      styleMixedBtn.style.color = 'var(--text-secondary)';
+    };
+  }
+  
+  if (styleMixedBtn) {
+    styleMixedBtn.onclick = () => {
+      _gridStyle = 'mixed';
+      updateAndSave();
+      styleMixedBtn.style.background = 'var(--accent)';
+      styleMixedBtn.style.color = 'white';
+      styleStandardBtn.style.background = 'transparent';
+      styleStandardBtn.style.color = 'var(--text-secondary)';
+    };
+  }
+
+  // Auto-saves delegados foram movidos para a Modal
 
   // Ações em Massa
   bulkCancelBtn.onclick = () => {
@@ -354,4 +362,112 @@ function setupEvents(container) {
   grid.addEventListener('dragend', () => {
     draggedIdx = null;
   });
+}
+
+function openPhotoEditor(idx, container) {
+  const photo = _portfolioPhotos[idx];
+  if (!photo.transform) photo.transform = { scale: 1, x: 50, y: 50 };
+  if (!photo.format) photo.format = '16/9';
+  
+  const modal = document.createElement('div');
+  modal.id = 'pPhotoModal';
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(4px);';
+  
+  modal.innerHTML = `
+    <div style="background:var(--bg-surface); width:100%; max-width:800px; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; max-height:90vh;">
+      <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated);">
+        <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto</h3>
+        <button id="pModalClose" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:1.5rem;">✕</button>
+      </div>
+      
+      <div style="display:flex; flex:1; overflow:hidden; flex-direction:column; md:flex-direction:row;">
+        <!-- Preview area -->
+        <div style="flex:1; background:#000; padding:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; min-height:300px;">
+          <div id="pModalPreviewWrapper" style="width:100%; max-width:400px; aspect-ratio:${photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9'}; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s;">
+            <img id="pModalImg" src="${resolveImagePath(photo.url)}" style="width:100%; height:100%; object-fit:cover; object-position:${photo.transform.x}% ${photo.transform.y}%; transform:scale(${photo.transform.scale});">
+          </div>
+        </div>
+        
+        <!-- Controls area -->
+        <div style="width:100%; max-width:320px; padding:1.5rem; overflow-y:auto; border-left:1px solid var(--border); display:flex; flex-direction:column; gap:1.5rem;">
+          
+          <div style="${_gridStyle === 'standard' ? 'display:none;' : ''}">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Formato no Grid Misto</label>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="p-fmt-btn ${photo.format === '16/9' ? 'active' : ''}" data-fmt="16/9" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '16/9' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">16:9</button>
+              <button class="p-fmt-btn ${photo.format === '9/16' ? 'active' : ''}" data-fmt="9/16" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '9/16' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">9:16</button>
+              <button class="p-fmt-btn ${photo.format === '1/1' ? 'active' : ''}" data-fmt="1/1" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '1/1' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">1:1</button>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <label style="font-size:0.75rem; color:var(--text-secondary);">Zoom (<span id="pValZoom">${photo.transform.scale}</span>x)</label>
+            </div>
+            <input type="range" id="pSliderZoom" min="1" max="3" step="0.1" value="${photo.transform.scale}" style="width:100%;">
+          </div>
+          
+          <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <label style="font-size:0.75rem; color:var(--text-secondary);">Posição X (<span id="pValX">${photo.transform.x}</span>%)</label>
+            </div>
+            <input type="range" id="pSliderX" min="0" max="100" step="1" value="${photo.transform.x}" style="width:100%;">
+          </div>
+          
+          <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <label style="font-size:0.75rem; color:var(--text-secondary);">Posição Y (<span id="pValY">${photo.transform.y}</span>%)</label>
+            </div>
+            <input type="range" id="pSliderY" min="0" max="100" step="1" value="${photo.transform.y}" style="width:100%;">
+          </div>
+          
+          <div style="margin-top:auto;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Legenda (SEO)</label>
+            <input type="text" id="pInputCaption" value="${photo.caption || ''}" placeholder="Descreva a foto..." style="width:100%; padding:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:white; font-size:0.875rem; box-sizing:border-box;">
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const img = modal.querySelector('#pModalImg');
+  const wrapper = modal.querySelector('#pModalPreviewWrapper');
+  const zoomSlider = modal.querySelector('#pSliderZoom');
+  const xSlider = modal.querySelector('#pSliderX');
+  const ySlider = modal.querySelector('#pSliderY');
+  const captionInput = modal.querySelector('#pInputCaption');
+  
+  const updateVisuals = () => {
+    img.style.transform = `scale(${photo.transform.scale})`;
+    img.style.objectPosition = `${photo.transform.x}% ${photo.transform.y}%`;
+    wrapper.style.aspectRatio = photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9';
+    window._meuSitePostPreview?.();
+  };
+
+  zoomSlider.oninput = (e) => { photo.transform.scale = parseFloat(e.target.value); modal.querySelector('#pValZoom').textContent = photo.transform.scale; updateVisuals(); };
+  xSlider.oninput = (e) => { photo.transform.x = parseInt(e.target.value); modal.querySelector('#pValX').textContent = photo.transform.x; updateVisuals(); };
+  ySlider.oninput = (e) => { photo.transform.y = parseInt(e.target.value); modal.querySelector('#pValY').textContent = photo.transform.y; updateVisuals(); };
+  captionInput.oninput = (e) => { photo.caption = e.target.value; window._meuSitePostPreview?.(); };
+  
+  modal.querySelectorAll('.p-fmt-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      modal.querySelectorAll('.p-fmt-btn').forEach(b => { b.style.borderColor = 'var(--border)'; });
+      e.target.style.borderColor = 'var(--accent)';
+      photo.format = e.target.dataset.fmt;
+      updateVisuals();
+      // Não precisa renderPhotos(container) até fechar, pois window._meuSitePostPreview atualiza o site.
+      // Porém, o background da Modal esconde o preview. Quando fechar, renderizamos.
+    };
+  });
+
+  const closeModal = () => {
+    modal.remove();
+    savePortfolio(true);
+    renderPhotos(container);
+  };
+
+  modal.querySelector('#pModalClose').onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }

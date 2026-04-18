@@ -8,12 +8,35 @@
 /* --- PORTFOLIO GRID --- */
 .portfolio-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-/* --- PORTFOLIO ITEM --- */
-.portfolio-item {
+/* 1. Grid Padrão (Uniforme) */
+.portfolio-grid[data-style="standard"] {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.portfolio-grid[data-style="standard"] .portfolio-item {
   aspect-ratio: 16/9;
+}
+
+/* 2. Grid Misto (Encaixe Dinâmico) */
+.portfolio-grid[data-style="mixed"] {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 250px;
+  grid-auto-flow: dense;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-16-9 {
+  grid-column: span 2; grid-row: span 1;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-9-16 {
+  grid-column: span 1; grid-row: span 2;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-1-1 {
+  grid-column: span 1; grid-row: span 1;
+}
+
+/* --- PORTFOLIO ITEM BASE --- */
+.portfolio-item {
   overflow: hidden;
   cursor: pointer;
   position: relative;
@@ -52,11 +75,24 @@
 
 /* --- RESPONSIVO --- */
 @media (max-width: 1024px) {
-  .portfolio-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Se não houver data-style (legado), aplica isso: */
+  .portfolio-grid:not([data-style]) { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 640px) {
-  .portfolio-grid { grid-template-columns: 1fr; }
+  .portfolio-grid:not([data-style]) { grid-template-columns: 1fr; }
+  
+  .portfolio-grid[data-style="standard"] { grid-template-columns: 1fr; }
+  
+  .portfolio-grid[data-style="mixed"] {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+  .portfolio-grid[data-style="mixed"] .portfolio-item {
+    grid-column: span 1 !important;
+    grid-row: span 1 !important;
+    aspect-ratio: 16/9;
+  }
   .portfolio-masonry { column-count: 1; }
   .albums-grid { grid-template-columns: repeat(2, 1fr); }
 }
