@@ -337,6 +337,33 @@ async function sendAlbumRevisionEmail(adminEmail, clientName, albumName, comment
   return sendEmail(adminEmail, subject, html);
 }
 
+/**
+ * Notifica o fotografo sobre novo depoimento aguardando aprovacao
+ */
+async function sendPendingDepoimentoEmail(adminEmail, depoimentoName, orgName) {
+  const subject = `Novo depoimento aguardando aprovacao - ${orgName}`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Novo depoimento recebido!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        <strong>${depoimentoName}</strong> enviou um depoimento pelo seu site e ele esta aguardando sua aprovacao.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Acesse seu painel admin, va ate <strong>Meu Site &rarr; Depoimentos</strong> para aprovar ou rejeitar.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(adminEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -346,5 +373,6 @@ module.exports = {
   sendAlbumAvailableEmail,
   sendSelectionSubmittedEmail,
   sendAlbumApprovedEmail,
-  sendAlbumRevisionEmail
+  sendAlbumRevisionEmail,
+  sendPendingDepoimentoEmail
 };

@@ -60,7 +60,8 @@ Os depoimentos pendentes são buscados a cada vez que a aba é ativada.
 4. `renderList()` atualiza a miniatura (preview redondo).
 
 ### 3c. Aprovação de Pendentes
-1. Se houver depoimentos enviados via formulário público, um banner verde aparece no topo.
+1. Quando o visitante envia o formulário público, o backend dispara automaticamente um email para o endereço da organização (`Organization.email`) via `sendPendingDepoimentoEmail` em `src/utils/email.js`.
+2. Se houver depoimentos enviados via formulário público, um banner verde aparece no topo.
 2. Ao clicar em **"✓ Aprovar"**, o sistema chama a rota de aprovação, recarrega o `configData` e re-renderiza a aba.
 
 ### 3d. Salvamento (Persistência)

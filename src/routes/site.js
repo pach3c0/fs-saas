@@ -191,6 +191,17 @@ router.post('/site/depoimento', async (req, res) => {
       $push: { pendingDepoimentos: { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
     });
     res.json({ success: true });
+
+    // Notifica o fotografo por email (fire-and-forget)
+    try {
+      const org = await Organization.findById(req.organizationId).select('email name');
+      if (org?.email) {
+        const { sendPendingDepoimentoEmail } = require('../utils/email');
+        sendPendingDepoimentoEmail(org.email, name, org.name);
+      }
+    } catch (e) {
+      console.error('[Depoimento] Erro ao enviar email de notificacao:', e.message);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
