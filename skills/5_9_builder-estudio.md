@@ -1,6 +1,6 @@
 # Módulo: Estúdio (`estudio.js`)
 
-Gerencia as informações institucionais, fotos e vídeo do estúdio exibidos no site público.
+Gerencia as informações institucionais, fotos em canvas e vídeo do estúdio exibidos no site público.
 
 ---
 
@@ -19,10 +19,30 @@ Estrutura de `_studio`:
   whatsapp: '',        // com DDI: 5511999999999
   hours: '',
   whatsappMessages: [ { text: '', delay: 5 } ],
-  photos: [ { image: '/uploads/...', posX: 50, posY: 50, scale: 1 } ],
+  studioLayers: [      // canvas de composição livre (máx 4)
+    {
+      id: 'st_1234567890',
+      type: 'image',
+      url: '/uploads/...',
+      name: 'Foto 1',
+      x: 50, y: 50,          // posição central em %
+      width: 70, height: 70, // tamanho em % do container
+      rotation: 0,           // graus
+      scale: 100,            // zoom em %
+      opacity: 100,          // 0-100
+      borderRadius: 0,       // px
+      shadow: false,
+      shadowBlur: 10,
+      shadowColor: 'rgba(0,0,0,0.5)',
+      flipH: false,
+      flipV: false
+    }
+  ],
   videoUrl: ''
 }
 ```
+
+> **Retrocompatibilidade:** dados antigos com `photos[]` continuam sendo exibidos no site público como grade legada.
 
 ---
 
@@ -42,65 +62,64 @@ Estrutura de `_studio`:
 | `#studioVideoInput` | `<input file>` | Upload de vídeo (`.mp4`, `.mov`, `.webm`, max 300MB) |
 | `#removeVideoBtn` | `<button>` | Remove vídeo atual (só renderizado se `videoUrl` existe) |
 | `#studioVideoProgress` | container | Progresso do upload de vídeo |
-| `#studioUploadInput` | `<input file multiple>` | Upload múltiplo de fotos (`.jpg`, `.jpeg`, `.png`) |
-| `#studioUploadProgress` | container | Progresso do upload de fotos |
-| `#studioPhotosGrid` | container | Grade de fotos do estúdio |
+| `#studioUploadInput` | `<input file>` | Upload de foto (única por vez; máx 4) |
+| `#studioUploadProgress` | container | Progresso do upload de foto |
+| `#studioAddPhotoWrapper` | container | Wrapper do botão de upload (oculto quando ≥ 4 layers) |
+| `#studio-layer-list` | container | Lista de camadas (clicável, drag & drop) |
+| `#studio-layer-props` | container | Painel de sliders da camada selecionada |
+| `#studio-layer-props-content` | container | Conteúdo dos sliders |
 | `#saveStudioBtn` | `<button>` | Salva todos os campos de texto |
-| `#studioEditorModal` | modal | Editor de posição/escala de foto (16/9) |
 
 ---
 
-## Funções globais expostas no `window`
+## Padrão de edição de fotos
 
-| Função | Descrição |
-|---|---|
-| `window.deleteStudioPhoto(idx)` | Confirma e remove foto pelo índice |
-| `window.openStudioEditor(idx)` | Abre `photoEditor` para ajustar posição/escala da foto |
-| `window.removeWhatsappMessage(idx)` | Confirma e remove mensagem WhatsApp pelo índice |
+Igual ao módulo **Sobre** (`sobre.js`):
+- Lista de camadas (`studioLayers[]`) na sidebar com drag & drop para reordenar z-index
+- Clicar numa camada → seleciona e renderiza painel de sliders em `#studio-layer-props`
+- Sliders disponíveis: posX, posY, escala, largura, altura, rotação, opacidade, bordas, sombra, flipH, flipV
+- Cada slider dispara `window._meuSitePostPreview?.()` imediatamente (live preview)
+- Highlight no iframe via postMessage `cz_highlight_layer` com `layerId`
+- Limite: máximo 4 fotos; botão de upload oculto ao atingir o limite
+
+---
+
+## Renderização no site público (`shared-site.js`)
+
+O container `#studioPhotosGrid` é substituído por:
+- **`studioLayers`**: canvas `position:relative; aspect-ratio:3/4` com `<img>` empilhadas via `position:absolute; transform:translate(-50%,-50%) rotate() scaleX() scaleY()`. Cada img tem `id="layer-{id}"` para highlight.
+- **Fallback `photos[]`**: grade legada com `object-position` (retrocompatibilidade).
 
 ---
 
 ## Fluxo do usuário
 
-### Informações textuais (título, descrição, endereço, WhatsApp, horário)
-1. Usuário edita campos → valores ficam no DOM
-2. Clica "Salvar Tudo" → `getCurrentStudio(container)` lê todos os campos e atualiza `_studio`
-3. `apiPut('/api/site/admin/config', { siteContent: { studio: _studio } })`
-4. Backend faz `$set` em `Organization.siteContent.studio`
-5. `window._meuSitePostPreview?.()` → iframe atualiza em tempo real
+### Upload de foto
+1. Usuário seleciona arquivo em `#studioUploadInput` (1 por vez, bloqueado se ≥ 4)
+2. `uploadImage()` → comprime 1200px/85% → `POST /api/admin/upload`
+3. Nova layer é adicionada a `_studio.studioLayers[]` com defaults
+4. `saveEstudio(silent=true)` persiste; `_renderLayerList()` e `_renderPropsForLayer()` atualizam a UI
 
-### Upload de fotos
-1. Usuário seleciona arquivos em `#studioUploadInput`
-2. Cada arquivo passa por `uploadImage()` → comprime 1200px/85% → `POST /api/admin/upload`
-3. URL retornada é adicionada a `_studio.photos[]` com `{ posX:50, posY:50, scale:1 }`
-4. `saveEstudio(silent=true)` persiste; `renderEstudio()` rerenderiza a grade
+### Edição de posição/composição
+1. Clicar numa camada na lista → `_studioSelectedLayerId` atualizado
+2. `_renderPropsForLayer(layer)` exibe sliders
+3. Cada slider atualiza a layer diretamente em memória + `liveNotify()`
+4. "Salvar Tudo" persiste junto com campos de texto
 
-### Edição de posição/escala de foto
-1. Hover sobre foto revela botões; clique em ✏️ → `window.openStudioEditor(idx)`
-2. `setupPhotoEditor()` abre `#studioEditorModal` (aspect 16/9)
-3. Ao confirmar, callback atualiza `_studio.photos[idx]` com `{ posX, posY, scale }`
-4. `saveEstudio(silent=true)` + `renderEstudio()`
+### WhatsApp
+1. Clique "+ Nova Mensagem" → push `{ text:'', delay:5 }`, `renderEstudio()` (sem save)
+2. Edita campos; "Salvar Tudo" persiste
+3. 🗑️ → `removeWhatsappMessage(idx)` → confirm, splice, `saveEstudio(true)`, `renderEstudio()`
 
-### Upload de vídeo
-1. Usuário seleciona arquivo em `#studioVideoInput`
-2. Valida tamanho ≤ 300MB localmente
-3. `uploadVideo(file, progressCallback)` → XHR com progresso visual em `#studioVideoProgress`
-4. URL retornada atualiza `_studio.videoUrl`; `saveEstudio(silent=true)` + `renderEstudio()`
-
-### Remoção de vídeo
-1. Clique em "Remover Vídeo" → `showConfirm` (danger)
-2. `_studio.videoUrl = ''`; `saveEstudio(silent=true)` + `renderEstudio()`
-
-### Mensagens WhatsApp
-1. Clique em "+ Nova Mensagem" → `getCurrentStudio()` preserva estado DOM, push `{ text:'', delay:5 }`, `renderEstudio()` (sem save)
-2. Usuário edita texto/delay nos campos; clique "Salvar Tudo" persiste junto com o restante
-3. Clique 🗑️ → `removeWhatsappMessage(idx)` → `showConfirm`, splice, `saveEstudio(true)`, `renderEstudio()`
+### Upload/Remoção de vídeo
+- Upload: valida ≤ 300MB → XHR com progresso → atualiza `_studio.videoUrl` → salva → re-render
+- Remoção: confirm → `videoUrl = ''` → salva → re-render
 
 ---
 
 ## Armadilhas
 
-- `getCurrentStudio(container)` deve ser chamado antes de qualquer mutação de `_studio` para não perder campos editados pelo usuário no DOM mas ainda não salvos.
-- O botão `#removeVideoBtn` só é renderizado quando `_studio.videoUrl` existe; checar antes de `.onclick`.
-- Fotos usam `photoEditor` com aspect `16/9`; não confundir com hero/sobre que usam `HeroCanvasEditor`.
-- Upload múltiplo: as fotos são enviadas em série (loop `for...of`), não em paralelo — preserva a ordem de seleção.
+- `getCurrentStudio(container)` deve ser chamado antes de qualquer mutação de `_studio` para não perder campos editados no DOM.
+- O botão `#removeVideoBtn` só é renderizado quando `_studio.videoUrl` existe.
+- Upload de foto é individual (não múltiplo) para controle do limite de 4.
+- Dados antigos com `photos[]` são exibidos no site como grade (fallback), mas o admin não os edita mais.

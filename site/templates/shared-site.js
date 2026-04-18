@@ -815,16 +815,34 @@ function renderSite(data, opts = {}) {
     const studio = content.studio;
     if (studioTitle && studio.title) studioTitle.textContent = studio.title;
     if (studioDesc && studio.description) studioDesc.textContent = studio.description;
-    if (studioPhotosGrid && studio.photos && studio.photos.length > 0) {
-      studioPhotosGrid.innerHTML = studio.photos.map((p, i) => {
-        const url = typeof p === 'string' ? p : p.image;
-        const posX = p.posX ?? 50;
-        const posY = p.posY ?? 50;
-        return `<div style="aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
-          <img src="${resolvePath(url)}" alt="Estúdio ${i+1}" loading="lazy"
-            style="width:100%; height:100%; object-fit:cover; object-position:${posX}% ${posY}%;">
+    if (studioPhotosGrid) {
+      if (studio.studioLayers && studio.studioLayers.length > 0) {
+        // Canvas de composição livre com camadas sobrepostas
+        studioPhotosGrid.innerHTML = `<div class="studio-canvas-wrap" style="position:relative; aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
+          ${studio.studioLayers.map(l => {
+            const scaleX = (l.flipH ? -1 : 1) * ((l.scale ?? 100) / 100);
+            const scaleY = (l.flipV ? -1 : 1) * ((l.scale ?? 100) / 100);
+            const shadow = l.shadow ? `drop-shadow(0 0 ${l.shadowBlur ?? 10}px ${l.shadowColor || 'rgba(0,0,0,0.5)'})` : '';
+            return `<img src="${resolvePath(l.url)}" alt="${esc(l.name || '')}" loading="lazy"
+              id="layer-${l.id || ''}" data-layer-id="${l.id || ''}"
+              style="position:absolute; left:${l.x ?? 50}%; top:${l.y ?? 50}%; width:${l.width ?? 70}%; height:${l.height ?? 70}%;
+                object-fit:cover; border-radius:${l.borderRadius ?? 0}px; opacity:${(l.opacity ?? 100) / 100};
+                transform:translate(-50%,-50%) rotate(${l.rotation ?? 0}deg) scaleX(${scaleX}) scaleY(${scaleY});
+                filter:${shadow || 'none'};">`;
+          }).join('')}
         </div>`;
-      }).join('');
+      } else if (studio.photos && studio.photos.length > 0) {
+        // Fallback: grade legada
+        studioPhotosGrid.innerHTML = studio.photos.map((p, i) => {
+          const url = typeof p === 'string' ? p : p.image;
+          const posX = p.posX ?? 50;
+          const posY = p.posY ?? 50;
+          return `<div style="aspect-ratio:3/4; overflow:hidden; border-radius:0.5rem;">
+            <img src="${resolvePath(url)}" alt="Estúdio ${i+1}" loading="lazy"
+              style="width:100%; height:100%; object-fit:cover; object-position:${posX}% ${posY}%;">
+          </div>`;
+        }).join('');
+      }
     }
     if (studioInfo) {
       let html = '';
