@@ -380,22 +380,32 @@ function openPhotoEditor(idx, container) {
   modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(4px);';
   
   modal.innerHTML = `
-    <div style="background:var(--bg-surface); width:100%; max-width:1200px; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; max-height:90vh;">
-      <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated);">
+    <style>
+      .p-modal-body { display:flex; flex:1; overflow:hidden; flex-direction:column; }
+      @media (min-width: 768px) { .p-modal-body { flex-direction:row; } }
+      .p-modal-preview { flex:1; background:#000; padding:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; min-height:300px; overflow:hidden; }
+      .p-modal-controls { width:100%; padding:1.5rem; overflow-y:auto; display:flex; flex-direction:column; gap:1.5rem; }
+      @media (min-width: 768px) { .p-modal-controls { width:320px; border-left:1px solid var(--border); } }
+      #pModalPreviewWrapper { max-width:100%; max-height:100%; width:100%; aspect-ratio:16/9; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s, width 0.3s, height 0.3s; }
+      /* Usa object-fit nativo da div com auto pra não forçar 100% quando estourar altura */
+      .aspect-fit { width:auto !important; height:auto !important; min-width:0; min-height:0; }
+    </style>
+    <div style="background:var(--bg-surface); width:100%; max-width:1200px; height:90vh; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
+      <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); flex-shrink:0;">
         <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto</h3>
         <button id="pModalClose" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:1.5rem;">✕</button>
       </div>
       
-      <div style="display:flex; flex:1; overflow:hidden; flex-direction:column; md:flex-direction:row;">
+      <div class="p-modal-body">
         <!-- Preview area -->
-        <div style="flex:1; background:#000; padding:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; min-height:400px;">
-          <div id="pModalPreviewWrapper" style="width:100%; max-width:800px; aspect-ratio:${photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9'}; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s;">
+        <div class="p-modal-preview">
+          <div id="pModalPreviewWrapper" class="aspect-fit" style="aspect-ratio:${photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9'};">
             <img id="pModalImg" src="${resolveImagePath(photo.url)}" style="width:100%; height:100%; object-fit:cover; object-position:${photo.transform.x}% ${photo.transform.y}%; transform:scale(${photo.transform.scale});">
           </div>
         </div>
         
         <!-- Controls area -->
-        <div style="width:100%; max-width:320px; padding:1.5rem; overflow-y:auto; border-left:1px solid var(--border); display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="p-modal-controls">
           
           <div style="${_gridStyle === 'standard' ? 'display:none;' : ''}">
             <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Formato no Grid Misto</label>
@@ -448,7 +458,13 @@ function openPhotoEditor(idx, container) {
   const updateVisuals = () => {
     img.style.transform = `scale(${photo.transform.scale})`;
     img.style.objectPosition = `${photo.transform.x}% ${photo.transform.y}%`;
-    wrapper.style.aspectRatio = photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9';
+    
+    // Atualiza a proporção e força redimensionamento flex
+    const ratio = photo.format === '9/16' ? '9/16' : photo.format === '1/1' ? '1/1' : '16/9';
+    wrapper.style.aspectRatio = ratio;
+    
+    // Se for 9/16 e tela pequena, precisamos garantir que a altura limite a largura nativamente
+    // CSS moderno lida com isso através do flexbox se height: auto e max-height: 100%
     if (appState.configData && appState.configData.siteContent) {
       appState.configData.siteContent.portfolio = { photos: _portfolioPhotos, gridStyle: _gridStyle };
     }
