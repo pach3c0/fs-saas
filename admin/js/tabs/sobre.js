@@ -160,14 +160,51 @@ function _renderSobreSidebar(container) {
       list.innerHTML = '<p style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhuma foto adicionada</p>';
       return;
     }
-    list.innerHTML = [...layers].reverse().map(l => `
-      <div class="sc-layer-item ${l.id === _sobreSelectedLayerId ? 'active' : ''}" data-id="${l.id}">
+    list.innerHTML = [...layers].reverse().map((l, idx) => `
+      <div class="sc-layer-item ${l.id === _sobreSelectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
+        <span class="layer-drag" style="cursor:grab; color:#4b5563; font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
         <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.name}</span>
         <span class="layer-del" data-del="${l.id}">✕</span>
       </div>
     `).join('');
 
+    let dragLayerIdx = null;
     list.querySelectorAll('.sc-layer-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        dragLayerIdx = parseInt(item.dataset.idx);
+        item.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      item.addEventListener('dragend', () => { 
+        item.style.opacity = '1'; 
+        list.querySelectorAll('.sc-layer-item').forEach(i => i.style.borderTop = ''); 
+      });
+      item.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        item.style.borderTop = '2px solid #3b82f6'; 
+      });
+      item.addEventListener('dragleave', () => { 
+        item.style.borderTop = ''; 
+      });
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        item.style.borderTop = '';
+        const targetIdx = parseInt(item.dataset.idx);
+        if (dragLayerIdx === null || dragLayerIdx === targetIdx) return;
+        
+        // As camadas são renderizadas em ordem reversa (.reverse())
+        const realLen = layers.length;
+        const realDrag = realLen - 1 - dragLayerIdx;
+        const realTarget = realLen - 1 - targetIdx;
+        
+        const moved = layers.splice(realDrag, 1)[0];
+        layers.splice(realTarget, 0, moved);
+        
+        dragLayerIdx = null;
+        _renderLayerList();
+        liveNotify();
+      });
+
       item.onclick = async (e) => {
         const id = item.dataset.id;
         if (e.target.dataset.del) {
@@ -180,9 +217,16 @@ function _renderSobreSidebar(container) {
           _renderLayerList(); _renderPropsForLayer(null); liveNotify();
           return;
         }
+        if (e.target.classList.contains('layer-drag')) return;
+        
         _sobreSelectedLayerId = id;
         _renderLayerList();
         _renderPropsForLayer(layers.find(l => l.id === _sobreSelectedLayerId));
+        
+        const iframe = document.getElementById('builder-iframe');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'cz_highlight_layer', layerId: id }, window.location.origin);
+        }
       };
     });
   };

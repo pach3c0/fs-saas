@@ -443,13 +443,14 @@ function renderSite(data, opts = {}) {
           ? `drop-shadow(0px 4px ${layer.shadowBlur || 10}px ${layer.shadowColor || 'rgba(0,0,0,0.5)'})`
           : 'none';
         return `
-          <div style="
+          <div id="layer-${layer.id}" style="
             position:absolute;left:${x}%;top:${y}%;
             width:${w}%;height:${h}%;
             transform:translate(-50%,-50%) rotate(${rot}deg) scale(${scale/100}) ${flipH} ${flipV};
             opacity:${opacity};
             filter:${shadow};
             pointer-events:none;user-select:none;
+            transition: outline 0.2s;
           ">
             <img src="${resolvePath(layer.url)}" style="
               width:100%;height:100%;object-fit:cover;display:block;
@@ -1254,6 +1255,30 @@ window.addEventListener('message', (e) => {
       const navHeight = nav ? nav.offsetHeight : 0;
       const top = target.getBoundingClientRect().top + window.scrollY - navHeight;
       window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }
+
+  // Comando: Highlight de camada
+  if (e.data.type === 'cz_highlight_layer') {
+    const layerId = e.data.layerId;
+    const layerEl = document.getElementById('layer-' + layerId);
+    if (layerEl) {
+      layerEl.style.animation = 'none';
+      void layerEl.offsetWidth; // trigger reflow
+      layerEl.style.animation = 'blink-highlight 0.6s ease-in-out';
+      
+      if (!document.getElementById('blink-highlight-css')) {
+        const style = document.createElement('style');
+        style.id = 'blink-highlight-css';
+        style.textContent = `
+          @keyframes blink-highlight {
+            0% { opacity: 1; outline: none; }
+            30% { opacity: 0.7; outline: 6px solid #3b82f6; outline-offset: 4px; border-radius: inherit; }
+            100% { opacity: 1; outline: none; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
     }
   }
 });

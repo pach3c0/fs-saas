@@ -84,3 +84,9 @@ O template utiliza `content.sobre.canvasLayers` para compor a visualização:
 ### Bug do Preview que para de atualizar
 **Causa**: O `shared-site.js` utilizava `replaceWith()` para trocar a `<img>` original por uma `<div>` (container das camadas). Como a nova `<div>` não recebia o ID `#sobreImage`, as chamadas subsequentes do preview (ao mover sliders) falhavam por não encontrar o elemento no DOM.
 **Solução**: O elemento substituto deve **preservar o ID** (`wrap.id = 'sobreImage'`). Caso o usuário remova todas as camadas, o script deve converter a `<div>` de volta para uma `<img>` para manter a compatibilidade com o modo legado.
+
+
+# Melhorias Implementadas
+
+- [x] **Drag & Drop nas Camadas**: É possível arrastar os itens na lista de camadas (ícone ⠿) para reordenar o `z-index` das imagens (frente/fundo).
+- [x] **Highlight no Preview**: Ao clicar em uma camada na sidebar, a respectiva imagem no iframe pisca com uma borda azul (`cz_highlight_layer`) para fácil identificação visual.
