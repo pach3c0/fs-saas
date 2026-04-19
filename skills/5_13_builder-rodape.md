@@ -5,9 +5,9 @@
 
 ---
 
-## Nota de arquitetura
+## Localização
 
-O Rodapé **era uma tab separada** na sidebar do admin (`footer.js`), mas passou a fazer parte do grupo **Meu Site** como sub-tab do builder. O arquivo `admin/js/tabs/footer.js` ainda existe e é a implementação atual — ele é carregado via `switchTab('footer')` mas está conceitualmente dentro do módulo de site.
+O Rodapé é uma **sub-tab dentro do builder Meu Site** (`admin/js/tabs/meu-site.js`), função local `renderRodape()`. O arquivo `footer.js` foi deletado — era código morto após a migração.
 
 ---
 
@@ -15,7 +15,7 @@ O Rodapé **era uma tab separada** na sidebar do admin (`footer.js`), mas passou
 
 | Arquivo | Função |
 |---|---|
-| `admin/js/tabs/footer.js` | Implementação completa da sub-tab |
+| `admin/js/tabs/meu-site.js` | Função local `renderRodape()` (sub-tab Rodapé) |
 | `src/routes/site.js` | `PUT /api/site/admin/config` |
 | `src/models/Organization.js` | Schema `siteContent.footer` |
 | `site/templates/shared-site.js` | Renderiza rodapé com redes sociais, copyright e links |
@@ -48,23 +48,23 @@ O Rodapé **era uma tab separada** na sidebar do admin (`footer.js`), mas passou
 
 | ID | Tipo | Descrição |
 |---|---|---|
-| `#footerCopyright` | `<input>` | Texto de copyright |
+| `#rodapeCopyright` | `<input>` | Texto de copyright |
 | `#socialInstagram` | `<input>` | URL Instagram |
 | `#socialFacebook` | `<input>` | URL Facebook |
 | `#socialLinkedin` | `<input>` | URL LinkedIn |
 | `#socialTiktok` | `<input>` | URL TikTok |
 | `#socialYoutube` | `<input>` | URL YouTube |
 | `#socialEmail` | `<input type="email">` | Endereço de e-mail |
-| `#addLinkBtn` | `<button>` | Adiciona novo link útil ao array |
-| `#linksList` | `<div>` | Container dos links com inputs |
-| `#saveFooterBtn` | `<button>` | Salva tudo via API |
+| `#addRodapeLinkBtn` | `<button>` | Adiciona novo link útil ao array |
+| `#rodapeLinksList` | `<div>` | Container dos links com inputs |
+| `#saveRodapeBtn` | `<button>` | Salva tudo via API |
 
 ### Campos por link (`idx`)
 | Seletor | Tipo | Descrição |
 |---|---|---|
 | `[data-link-label="${idx}"]` | `<input>` | Texto do link |
 | `[data-link-url="${idx}"]` | `<input>` | URL do link |
-| `onclick="removeFooterLink(${idx})"` | `<button>` | Remove o link (com confirmação) |
+| `[data-remove-link="${idx}"]` | `<button>` | Remove o link (com confirmação) |
 
 ---
 
@@ -72,33 +72,33 @@ O Rodapé **era uma tab separada** na sidebar do admin (`footer.js`), mas passou
 
 | Padrão | Status |
 |---|---|
-| Estado isolado (`let _footer = null`) | ✅ |
+| Estado local (`let _rodape` dentro de `renderRodape()`) | ✅ |
 | Save via `apiPut('/api/site/admin/config', { siteContent: { footer } })` | ✅ |
 | CSS variables (sem hexcodes) | ✅ |
-| Preview sync via `window._meuSitePostPreview?.()` | ✅ (chamado dentro de `saveFooter()`) |
+| Preview sync via `liveRefresh({ siteContent: { footer } })` | ✅ |
 
 ---
 
 ## Fluxo do usuário
 
 ```
-1. Usuário abre tab "Rodapé" (ou sub-tab dentro de Meu Site)
-   → renderFooter() — se _footer === null, carrega via apiGet('/api/site/admin/config')
-   → inicializa _footer = { copyright, socialMedia, quickLinks }
+1. Usuário clica sub-tab "Rodapé" dentro de Meu Site
+   → renderRodape() — lê configData.siteContent.footer (já carregado pelo meu-site.js)
+   → inicializa _rodape = { copyright, socialMedia, quickLinks }
    → monta UI com inputs preenchidos
 
 2. Usuário edita campos e clica "+ Adicionar" para links
-   → push em _footer.quickLinks + re-render (renderFooter chamado novamente)
+   → push em _rodape.quickLinks + re-render (renderRodape chamado novamente)
 
 3. Usuário remove um link
-   → removeFooterLink(idx) → showConfirm → splice + saveFooter(true) + re-render
+   → showConfirm → splice + saveRodape(true) + re-render
 
-4. Usuário clica "Salvar"
+4. Usuário clica "Salvar Rodapé"
    → coleta todos os campos do DOM
-   → _footer atualizado com valores finais
-   → saveFooter() → apiPut('/api/site/admin/config', { siteContent: { footer: _footer } })
+   → _rodape atualizado com valores finais
+   → saveRodape() → apiPut('/api/site/admin/config', { siteContent: { footer: _rodape } })
    → showToast('Rodapé salvo!')
-   → window._meuSitePostPreview?.() → iframe atualiza
+   → liveRefresh({ siteContent: { footer } }) → iframe atualiza
 ```
 
 ---
@@ -126,8 +126,8 @@ $set: { 'siteContent.footer': body.siteContent.footer }
 
 ## Armadilhas
 
-### 1. Rodapé em duas localizações conceituais
-`footer.js` é carregado via `switchTab('footer')` (tab normal da sidebar), mas deveria conceitualmente ser uma sub-tab de Meu Site. Enquanto isso não for refatorado, o botão na sidebar e a sub-tab no builder coexistem apontando para a mesma lógica.
+### 1. Dados carregados uma vez (configData)
+`renderRodape()` usa `configData.siteContent.footer` carregado pelo `meu-site.js` na entrada da tab. Após um save, atualiza `configData.siteContent.footer` localmente para que re-renders usem o valor correto sem nova requisição.
 
 ### 2. Newsletter removida — não recriar
 O rodapé tinha campo de newsletter que foi removido completamente. Não está em `footer.js`, não está em `shared-site.js`. Qualquer referência a newsletter no rodapé é legado a ignorar.

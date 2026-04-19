@@ -117,11 +117,7 @@ function renderSite(data, opts = {}) {
   if (navLinks) {
     const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
     const standardLinks = sections.map(s => `<a href="#section-${s}">${labels[s] || s}</a>`);
-    // Adicionar seções customizadas ao nav
-    const customLinks = (content.customSections || []).map(sec =>
-      `<a href="#section-custom-${sec.id}">${esc(sec.title)}</a>`
-    );
-    navLinks.innerHTML = [...standardLinks, ...customLinks].join('');
+    navLinks.innerHTML = standardLinks.join('');
   }
 
   // Preencher Hero — imagem de fundo
@@ -1087,9 +1083,6 @@ function renderSite(data, opts = {}) {
     };
   }
 
-  // Renderizar seções customizadas criadas pelo fotógrafo
-  renderCustomSections(content.customSections || [], document.body, sections);
-
   // Injetar scripts de analytics/pixel
   injectAnalyticsScripts(data.integrations);
 
@@ -1176,65 +1169,6 @@ function renderSite(data, opts = {}) {
       }
     };
   }
-}
-
-// Renderizar seções customizadas criadas pelo fotógrafo
-function renderCustomSections(customSections, parent, activeSections) {
-  if (!customSections || !customSections.length) return;
-
-  // Remover seções custom antigas se existirem (re-render)
-  document.querySelectorAll('.section-custom').forEach(el => el.remove());
-
-  customSections.forEach(sec => {
-    const el = document.createElement('section');
-    el.id = 'section-custom-' + sec.id;
-    el.className = 'section-custom section-padded';
-    el.style.cssText = [
-      sec.bgColor ? `background:${sec.bgColor};` : '',
-      sec.textColor ? `color:${sec.textColor};` : ''
-    ].join('');
-
-    function esc(str) {
-      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    let innerHtml = `<div class="container">`;
-
-    if (sec.title) {
-      innerHtml += `<div class="section-header"><h2 class="section-title" ${sec.textColor ? `style="color:${sec.textColor}"` : ''}>${esc(sec.title)}</h2></div>`;
-    }
-
-    if (sec.type === 'texto') {
-      innerHtml += `<p class="section-text" style="${sec.textColor ? `color:${sec.textColor}` : ''}">${esc(sec.content || '').replace(/\n/g,'<br>')}</p>`;
-    } else if (sec.type === 'chamada') {
-      innerHtml += `
-        <div style="text-align:center; padding:2rem 0;">
-          <p class="section-text" style="font-size:1.125rem; margin-bottom:1.5rem; ${sec.textColor ? `color:${sec.textColor}` : ''}">${esc(sec.content || '').replace(/\n/g,'<br>')}</p>
-          <a href="#section-contato" class="btn-primary">Entrar em Contato</a>
-        </div>`;
-    } else if (sec.type === 'texto-imagem') {
-      innerHtml += `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:center;">
-          <p class="section-text" ${sec.textColor ? `style="color:${sec.textColor}"` : ''}>${esc(sec.content || '').replace(/\n/g,'<br>')}</p>
-          ${sec.imageUrl ? `<img src="${sec.imageUrl}" alt="${esc(sec.title)}" style="width:100%; border-radius:0.75rem; object-fit:cover; max-height:400px;">` : ''}
-        </div>`;
-    } else if (sec.type === 'lista') {
-      const items = sec.items && sec.items.length > 0 ? sec.items : (sec.content || '').split('\n').filter(Boolean).map(t => ({ text: t }));
-      innerHtml += `
-        <ul style="list-style:none; display:flex; flex-direction:column; gap:0.75rem; padding:0; margin:0;">
-          ${items.map(item => `
-            <li style="display:flex; align-items:flex-start; gap:0.75rem; ${sec.textColor ? `color:${sec.textColor}` : ''}">
-              <span style="color:var(--accent); font-size:1.25rem; flex-shrink:0; margin-top:-0.125rem;">✦</span>
-              <span>${esc(item.text || '')}</span>
-            </li>
-          `).join('')}
-        </ul>`;
-    }
-
-    innerHtml += `</div>`;
-    el.innerHTML = innerHtml;
-    parent.appendChild(el);
-  });
 }
 
 // Injetar scripts de analytics e pixel

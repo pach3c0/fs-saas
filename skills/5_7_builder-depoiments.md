@@ -128,4 +128,4 @@ O site público itera sobre `data.siteContent.depoimentos` e gera o HTML:
 - **Imagens:** Devem ser comprimidas via `uploadImage` (padrão 1200px/85%).
 
 
-# Melhorias de mensagem 
+ 

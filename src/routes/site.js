@@ -77,8 +77,6 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
         if (key === 'portfolio') {
           // Salvar o objeto portfolio inteiro para evitar conflito de dot notation no MongoDB
           updateData['siteContent.portfolio'] = value;
-        } else if (key === 'customSections') {
-          updateData['siteContent.customSections'] = value;
         } else {
           updateData[`siteContent.${key}`] = value;
         }

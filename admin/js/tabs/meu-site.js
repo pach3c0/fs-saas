@@ -94,6 +94,7 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="sub-tab-btn builder-nav-item" data-target="config-estudio"><span class="material-symbols-outlined">apartment</span>Estúdio</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-contato"><span class="material-symbols-outlined">mail</span>Contato</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-faq"><span class="material-symbols-outlined">help</span>FAQ</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-rodape"><span class="material-symbols-outlined">bottom_app_bar</span>Rodapé</button>
           <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
           <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span>Personalizar</button>
         </div>
@@ -146,6 +147,9 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- FAQ (renderizado pelo faq.js) -->
         <div id="config-faq" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Rodapé -->
+        <div id="config-rodape" class="sub-tab-content" style="display:none;"></div>
 
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
@@ -436,7 +440,6 @@ async function renderSiteContent(container, builderTabsEl) {
         portfolio: configData.siteContent?.portfolio || { photos: [] },
         contato: { ...(configData.siteContent?.contato || {}) },
         faq: configData.siteContent?.faq || [],
-        customSections: configData.siteContent?.customSections || [],
         albums: configData.siteContent?.albums || [],
         studio: getStudioState() || configData.siteContent?.studio || {},
       },
@@ -547,7 +550,8 @@ async function renderSiteContent(container, builderTabsEl) {
       'config-albuns': 'albuns',
       'config-estudio': 'estudio',
       'config-contato': 'contato',
-      'config-faq': 'faq'
+      'config-faq': 'faq',
+      'config-rodape': 'footer'
     };
     if (sectionMap[target]) scrollToSection(sectionMap[target]);
 
@@ -589,6 +593,8 @@ async function renderSiteContent(container, builderTabsEl) {
       renderContato();
     } else if (btn.dataset.target === 'config-faq') {
       await renderFaq(targetContainer);
+    } else if (btn.dataset.target === 'config-rodape') {
+      renderRodape();
     } else if (btn.dataset.target === 'config-personalizar') {
       renderPersonalizar();
     }
@@ -1407,7 +1413,6 @@ async function renderSiteContent(container, builderTabsEl) {
   const renderPersonalizar = () => {
     const personalizarContainer = container.querySelector('#config-personalizar');
     const style = configData.siteStyle || {};
-    const customSections = configData.siteContent?.customSections || [];
 
     const FONTS = [
       { value: '', label: 'Padrão do Tema' },
@@ -1420,277 +1425,121 @@ async function renderSiteContent(container, builderTabsEl) {
       { value: "Georgia, serif", label: 'Georgia (Serif)' },
     ];
 
-    const SECTION_TYPES = [
-      { value: 'texto', label: '📄 Texto Simples' },
-      { value: 'texto-imagem', label: '🖼️ Texto + Imagem' },
-      { value: 'galeria', label: '📷 Mini Galeria' },
-      { value: 'chamada', label: '🎯 Chamada para Ação' },
-      { value: 'lista', label: '📋 Lista de Itens' },
-    ];
+    personalizarContainer.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:2rem; max-width:720px;">
 
-    const renderCustomList = () => {
-      const list = customSections.map((sec, idx) => `
-        <div style="background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#c084fc; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">${SECTION_TYPES.find(t => t.value === sec.type)?.label || '📄 Seção'}</span>
-            <button onclick="deleteCustomSection(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem;" title="Remover">🗑️</button>
-          </div>
-          <div>
-            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Título da Seção</label>
-            <input type="text" value="${sec.title || ''}" data-cs-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
-          </div>
-          ${sec.type === 'texto' || sec.type === 'chamada' ? `
-          <div>
-            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Conteúdo (texto)</label>
-            <textarea rows="4" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;">${sec.content || ''}</textarea>
-          </div>` : ''}
-          ${sec.type === 'texto-imagem' ? `
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+        <!-- Estilo Global -->
+        <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem;">
+          <h3 style="font-size:1rem; font-weight:700; color:var(--purple); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+            ✦ Estilo Visual do Site
+          </h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
             <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Conteúdo</label>
-              <textarea rows="4" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;">${sec.content || ''}</textarea>
+              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor Principal (Accent)</label>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="color" id="styleAccentColor" value="${style.accentColor || '#c9a96e'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+                <span id="styleAccentColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.accentColor || '#c9a96e'}</span>
+              </div>
             </div>
             <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Imagem</label>
-              ${sec.imageUrl ? `<img src="${sec.imageUrl}" style="width:100%; height:80px; object-fit:cover; border-radius:0.375rem; margin-bottom:0.5rem;">` : ''}
-              <label style="display:inline-flex; align-items:center; gap:0.25rem; background:#374151; color:#d1d5db; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">
-                Upload <input type="file" accept="image/*" data-cs-img-upload="${idx}" style="display:none;">
-              </label>
-              <input type="hidden" data-cs-img="${idx}" value="${sec.imageUrl || ''}">
-            </div>
-          </div>` : ''}
-          ${sec.type === 'lista' ? `
-          <div>
-            <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Itens da lista (um por linha)</label>
-            <textarea rows="5" data-cs-content="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem; resize:vertical;" placeholder="Item 1&#10;Item 2&#10;Item 3">${(sec.items || []).map(i => i.text).join('\n')}</textarea>
-          </div>` : ''}
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-            <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Cor de fundo (opcional)</label>
-              <input type="color" value="${sec.bgColor || '#1f2937'}" data-cs-bg="${idx}" style="width:100%; height:2rem; border:1px solid #374151; border-radius:0.375rem; background:none; cursor:pointer;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor de Fundo</label>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="color" id="styleBgColor" value="${style.bgColor || '#fafafa'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+                <span id="styleBgColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.bgColor || '#fafafa'}</span>
+              </div>
             </div>
             <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Cor do texto (opcional)</label>
-              <input type="color" value="${sec.textColor || '#f3f4f6'}" data-cs-text="${idx}" style="width:100%; height:2rem; border:1px solid #374151; border-radius:0.375rem; background:none; cursor:pointer;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor do Texto</label>
+              <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="color" id="styleTextColor" value="${style.textColor || '#111827'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+                <span id="styleTextColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.textColor || '#111827'}</span>
+              </div>
+            </div>
+            <div>
+              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Fonte do Site</label>
+              <select id="styleFontFamily" style="width:100%; padding:0.5rem; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem; font-size:0.875rem;">
+                ${FONTS.map(f => `<option value="${f.value}" ${style.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+              </select>
             </div>
           </div>
+          <!-- Preview da paleta -->
+          <div id="stylePalettePreview" style="border-radius:0.5rem; overflow:hidden; margin-bottom:1.25rem;">
+            <div style="background:${style.accentColor || '#c9a96e'}; padding:0.75rem 1rem;">
+              <span style="color:#fff; font-weight:700; font-size:0.9rem;">Cor Principal</span>
+            </div>
+            <div style="background:${style.bgColor || '#fafafa'}; padding:0.75rem 1rem; border:1px solid var(--border);">
+              <span style="color:${style.textColor || '#111827'}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
+            </div>
+          </div>
+          <button id="saveStyleBtn" style="background:var(--purple); color:#fff; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer;">Salvar Estilo</button>
+          <button id="resetStyleBtn" style="background:none; border:1px solid var(--border); color:var(--text-secondary); padding:0.625rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-left:0.5rem;">Resetar Padrão</button>
         </div>
-      `).join('');
+      </div>
+    `;
 
-      personalizarContainer.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:2rem; max-width:720px;">
+    // Capturar snapshot original para dirty tracking
+    captureOriginalValues('config-personalizar', personalizarContainer);
+    setupDirtyTracking('config-personalizar', 'Personalizar', personalizarContainer);
 
-          <!-- Estilo Global -->
-          <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem;">
-            <h3 style="font-size:1rem; font-weight:700; color:#c084fc; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
-              ✦ Estilo Visual do Site
-            </h3>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor Principal (Accent)</label>
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                  <input type="color" id="styleAccentColor" value="${style.accentColor || '#c9a96e'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
-                  <span id="styleAccentColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.accentColor || '#c9a96e'}</span>
-                </div>
-              </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor de Fundo</label>
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                  <input type="color" id="styleBgColor" value="${style.bgColor || '#fafafa'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
-                  <span id="styleBgColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.bgColor || '#fafafa'}</span>
-                </div>
-              </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor do Texto</label>
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                  <input type="color" id="styleTextColor" value="${style.textColor || '#111827'}" style="width:3rem; height:2.5rem; border:1px solid #374151; border-radius:0.5rem; background:none; cursor:pointer;">
-                  <span id="styleTextColorText" style="color:#d1d5db; font-size:0.875rem; font-family:monospace;">${style.textColor || '#111827'}</span>
-                </div>
-              </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Fonte do Site</label>
-                <select id="styleFontFamily" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
-                  ${FONTS.map(f => `<option value="${f.value}" ${style.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <!-- Preview da paleta -->
-            <div id="stylePalettePreview" style="border-radius:0.5rem; overflow:hidden; margin-bottom:1.25rem;">
-              <div style="background:${style.accentColor || '#c9a96e'}; padding:0.75rem 1rem;">
-                <span style="color:white; font-weight:700; font-size:0.9rem;">Cor Principal</span>
-              </div>
-              <div style="background:${style.bgColor || '#fafafa'}; padding:0.75rem 1rem; border:1px solid #e5e7eb;">
-                <span style="color:${style.textColor || '#111827'}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
-              </div>
-            </div>
-            <button id="saveStyleBtn" style="background:#c084fc; color:white; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer;">Salvar Estilo</button>
-            <button id="resetStyleBtn" style="background:none; border:1px solid #374151; color:#9ca3af; padding:0.625rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-left:0.5rem;">Resetar Padrão</button>
+    // Live preview da paleta
+    const accentInput = personalizarContainer.querySelector('#styleAccentColor');
+    const bgInput = personalizarContainer.querySelector('#styleBgColor');
+    const textInput = personalizarContainer.querySelector('#styleTextColor');
+
+    function updatePalettePreview() {
+      const preview = personalizarContainer.querySelector('#stylePalettePreview');
+      if (preview) {
+        preview.innerHTML = `
+          <div style="background:${accentInput.value}; padding:0.75rem 1rem; border-radius:0.5rem 0.5rem 0 0;">
+            <span style="color:#fff; font-weight:700; font-size:0.9rem;">Cor Principal</span>
           </div>
-
-          <!-- Seções Customizadas -->
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-              <div>
-                <h3 style="font-size:1rem; font-weight:700; color:#c084fc; display:flex; align-items:center; gap:0.5rem;">
-                  ✦ Seções Extras
-                </h3>
-                <p style="color:#6b7280; font-size:0.8rem; margin-top:0.25rem;">Crie seções adicionais para o seu site além das padrão</p>
-              </div>
-              <div style="position:relative;">
-                <button id="addCustomSecBtn" style="background:#c084fc; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer; font-size:0.875rem;">+ Nova Seção</button>
-                <div id="addCustomSecDropdown" style="display:none; position:absolute; right:0; top:110%; background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:0.5rem; z-index:100; min-width:200px; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-                  ${SECTION_TYPES.map(t => `
-                    <button onclick="addCustomSection('${t.value}')" style="display:block; width:100%; text-align:left; padding:0.5rem 0.75rem; background:none; border:none; color:#d1d5db; cursor:pointer; border-radius:0.25rem; font-size:0.875rem;" onmouseenter="this.style.background='#374151'" onmouseleave="this.style.background='none'">${t.label}</button>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-
-            <div id="customSectionsList" style="display:flex; flex-direction:column; gap:1rem;">
-              ${list || `<div style="border:2px dashed #374151; border-radius:0.75rem; padding:3rem; text-align:center; color:#6b7280;">
-                <p style="font-size:1.5rem; margin-bottom:0.5rem;">✦</p>
-                <p style="font-weight:600; margin-bottom:0.25rem;">Nenhuma seção extra</p>
-                <p style="font-size:0.875rem;">Clique em "+ Nova Seção" para adicionar</p>
-              </div>`}
-            </div>
-
-            ${customSections.length > 0 ? `
-              <button id="saveCustomSectionsBtn" style="background:#16a34a; color:white; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer; margin-top:1rem;">Salvar Seções Extras</button>
-            ` : ''}
+          <div style="background:${bgInput.value}; padding:0.75rem 1rem; border:1px solid var(--border); border-radius:0 0 0.5rem 0.5rem;">
+            <span style="color:${textInput.value}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
           </div>
-        </div>
-      `;
-
-      // Capturar snapshot original para dirty tracking
-      captureOriginalValues('config-personalizar', personalizarContainer);
-      setupDirtyTracking('config-personalizar', 'Personalizar', personalizarContainer);
-
-      // Live preview da paleta
-      const accentInput = personalizarContainer.querySelector('#styleAccentColor');
-      const bgInput = personalizarContainer.querySelector('#styleBgColor');
-      const textInput = personalizarContainer.querySelector('#styleTextColor');
-
-      function updatePalettePreview() {
-        const preview = personalizarContainer.querySelector('#stylePalettePreview');
-        if (preview) {
-          preview.innerHTML = `
-            <div style="background:${accentInput.value}; padding:0.75rem 1rem; border-radius:0.5rem 0.5rem 0 0;">
-              <span style="color:white; font-weight:700; font-size:0.9rem;">Cor Principal</span>
-            </div>
-            <div style="background:${bgInput.value}; padding:0.75rem 1rem; border:1px solid #e5e7eb; border-radius:0 0 0.5rem 0.5rem;">
-              <span style="color:${textInput.value}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
-            </div>
-          `;
-        }
-        personalizarContainer.querySelector('#styleAccentColorText').textContent = accentInput.value;
-        personalizarContainer.querySelector('#styleBgColorText').textContent = bgInput.value;
-        personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
+        `;
       }
+      personalizarContainer.querySelector('#styleAccentColorText').textContent = accentInput.value;
+      personalizarContainer.querySelector('#styleBgColorText').textContent = bgInput.value;
+      personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
+    }
 
-      if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-      if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-      const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
-      if (fontFamilyInput) fontFamilyInput.onchange = () => { window._meuSitePostPreview?.(); };
+    if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+    if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+    if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+    const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
+    if (fontFamilyInput) fontFamilyInput.onchange = () => { window._meuSitePostPreview?.(); };
 
-      // Salvar estilo
-      const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
-      if (saveStyleBtn) {
-        saveStyleBtn.onclick = async () => {
-          const newStyle = {
-            accentColor: accentInput?.value || '',
-            bgColor: bgInput?.value || '',
-            textColor: textInput?.value || '',
-            fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
-          };
-          await apiPut('/api/site/admin/config', { siteStyle: newStyle });
-          clearDirty();
-          captureOriginalValues('config-personalizar', personalizarContainer);
-          saveStyleBtn.textContent = '✓ Salvo!';
-          setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
-          liveRefresh({ siteStyle: newStyle });
+    // Salvar estilo
+    const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
+    if (saveStyleBtn) {
+      saveStyleBtn.onclick = async () => {
+        const newStyle = {
+          accentColor: accentInput?.value || '',
+          bgColor: bgInput?.value || '',
+          textColor: textInput?.value || '',
+          fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
         };
-      }
-
-      // Resetar estilo
-      const resetStyleBtn = personalizarContainer.querySelector('#resetStyleBtn');
-      if (resetStyleBtn) {
-        resetStyleBtn.onclick = async () => {
-          if (!confirm('Resetar para o estilo padrão do tema?')) return;
-          await apiPut('/api/site/admin/config', { siteStyle: {} });
-          renderCustomList();
-          liveRefresh({ siteStyle: {} });
-        };
-      }
-
-      // Dropdown de novo tipo
-      const addBtn = personalizarContainer.querySelector('#addCustomSecBtn');
-      const dropdown = personalizarContainer.querySelector('#addCustomSecDropdown');
-      if (addBtn && dropdown) {
-        addBtn.onclick = (e) => {
-          e.stopPropagation();
-          dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-        };
-        document.addEventListener('click', () => { dropdown.style.display = 'none'; }, { once: false });
-      }
-
-      window.addCustomSection = (type) => {
-        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-        customSections.push({ id, type, title: 'Nova Seção', content: '', imageUrl: '', items: [], bgColor: '', textColor: '', order: customSections.length });
-        renderCustomList();
+        await apiPut('/api/site/admin/config', { siteStyle: newStyle });
+        clearDirty();
+        captureOriginalValues('config-personalizar', personalizarContainer);
+        saveStyleBtn.textContent = '✓ Salvo!';
+        setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
+        liveRefresh({ siteStyle: newStyle });
       };
+    }
 
-      window.deleteCustomSection = (idx) => {
-        if (!confirm('Remover esta seção?')) return;
-        customSections.splice(idx, 1);
-        renderCustomList();
+    // Resetar estilo
+    const resetStyleBtn = personalizarContainer.querySelector('#resetStyleBtn');
+    if (resetStyleBtn) {
+      resetStyleBtn.onclick = async () => {
+        const ok = await window.showConfirm?.('Resetar para o estilo padrão do tema?', { confirmText: 'Resetar', danger: true });
+        if (!ok) return;
+        await apiPut('/api/site/admin/config', { siteStyle: {} });
+        configData.siteStyle = {};
+        renderPersonalizar();
+        liveRefresh({ siteStyle: {} });
       };
-
-      // Upload de imagem para seção texto-imagem
-      personalizarContainer.querySelectorAll('[data-cs-img-upload]').forEach(input => {
-        input.onchange = async (e) => {
-          const idx = parseInt(input.dataset.csImgUpload);
-          const file = e.target.files[0];
-          if (!file) return;
-          try {
-            const result = await uploadImage(file, appState.authToken);
-            customSections[idx].imageUrl = result.url;
-            renderCustomList();
-          } catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
-        };
-      });
-
-      // Salvar seções customizadas
-      const saveCSBtn = personalizarContainer.querySelector('#saveCustomSectionsBtn');
-      if (saveCSBtn) {
-        saveCSBtn.onclick = async () => {
-          const updated = customSections.map((sec, idx) => {
-            const titleEl = personalizarContainer.querySelector(`[data-cs-title="${idx}"]`);
-            const contentEl = personalizarContainer.querySelector(`[data-cs-content="${idx}"]`);
-            const imgEl = personalizarContainer.querySelector(`[data-cs-img="${idx}"]`);
-            const bgEl = personalizarContainer.querySelector(`[data-cs-bg="${idx}"]`);
-            const textEl = personalizarContainer.querySelector(`[data-cs-text="${idx}"]`);
-            const content = contentEl?.value || sec.content || '';
-            const items = sec.type === 'lista' ? content.split('\n').filter(l => l.trim()).map(t => ({ text: t })) : sec.items;
-            return {
-              ...sec,
-              title: titleEl?.value || sec.title,
-              content,
-              imageUrl: imgEl?.value || sec.imageUrl,
-              bgColor: bgEl?.value || sec.bgColor,
-              textColor: textEl?.value || sec.textColor,
-              items
-            };
-          });
-          await apiPut('/api/site/admin/config', { siteContent: { customSections: updated } });
-          saveCSBtn.textContent = '✓ Salvo!';
-          setTimeout(() => { saveCSBtn.textContent = 'Salvar Seções Extras'; }, 2000);
-          liveRefresh({ siteContent: { customSections: updated } });
-        };
-      }
-    };
-
-    renderCustomList();
+    }
   };
 
   // --- CONTATO ---
@@ -1744,6 +1593,132 @@ async function renderSiteContent(container, builderTabsEl) {
       captureOriginalValues('config-contato', contatoContainer);
       window.showToast?.('Contato salvo!', 'success');
       liveRefresh({ siteContent: { contato: newContato } });
+    };
+  };
+
+  // --- RODAPÉ ---
+  const renderRodape = () => {
+    const rodapeContainer = container.querySelector('#config-rodape');
+    const f = configData.siteContent?.footer || {};
+    let _rodape = {
+      copyright: f.copyright || '',
+      socialMedia: f.socialMedia || {},
+      quickLinks: f.quickLinks || [],
+    };
+
+    const saveRodape = async (silent = false) => {
+      await apiPut('/api/site/admin/config', { siteContent: { footer: _rodape } });
+      configData.siteContent = configData.siteContent || {};
+      configData.siteContent.footer = { ..._rodape };
+      if (!silent) window.showToast?.('Rodapé salvo!', 'success');
+      liveRefresh({ siteContent: { footer: _rodape } });
+    };
+
+    const rerenderRodape = () => renderRodape();
+
+    const buildLinksHtml = (quickLinks) => quickLinks.map((link, idx) => `
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <input type="text" data-link-label="${idx}" style="flex:1; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
+          value="${link.label || ''}" placeholder="Texto do link">
+        <input type="text" data-link-url="${idx}" style="flex:1; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
+          value="${link.url || ''}" placeholder="URL (ex: #portfolio)">
+        <button data-remove-link="${idx}" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1rem; padding:0.25rem;">🗑️</button>
+      </div>
+    `).join('');
+
+    rodapeContainer.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:640px;">
+        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Copyright</h3>
+          <input type="text" id="rodapeCopyright" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);"
+            value="${_rodape.copyright}" placeholder="Ex: © 2026 Studio. Todos os direitos reservados.">
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Redes Sociais</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Instagram</label>
+              <input type="text" id="socialInstagram" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.instagram || ''}" placeholder="https://instagram.com/...">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Facebook</label>
+              <input type="text" id="socialFacebook" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.facebook || ''}" placeholder="https://facebook.com/...">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">LinkedIn</label>
+              <input type="text" id="socialLinkedin" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.linkedin || ''}" placeholder="https://linkedin.com/...">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">TikTok</label>
+              <input type="text" id="socialTiktok" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.tiktok || ''}" placeholder="https://tiktok.com/...">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">YouTube</label>
+              <input type="text" id="socialYoutube" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.youtube || ''}" placeholder="https://youtube.com/...">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Email</label>
+              <input type="email" id="socialEmail" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
+                value="${_rodape.socialMedia.email || ''}" placeholder="contato@exemplo.com">
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Links Úteis</h3>
+            <button id="addRodapeLinkBtn" style="background:var(--accent); color:white; padding:0.25rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">+ Adicionar</button>
+          </div>
+          <div id="rodapeLinksList" style="display:flex; flex-direction:column; gap:0.5rem;">
+            ${buildLinksHtml(_rodape.quickLinks) || '<p style="color:var(--text-muted); font-size:0.875rem;">Nenhum link adicionado</p>'}
+          </div>
+        </div>
+
+        <button id="saveRodapeBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">Salvar Rodapé</button>
+      </div>
+    `;
+
+    rodapeContainer.querySelector('#addRodapeLinkBtn').onclick = () => {
+      _rodape.quickLinks.push({ label: '', url: '' });
+      renderRodape();
+    };
+
+    rodapeContainer.querySelectorAll('[data-remove-link]').forEach(btn => {
+      btn.onclick = async () => {
+        const idx = parseInt(btn.dataset.removeLink);
+        const ok = await window.showConfirm?.('Remover este link?', { danger: true });
+        if (!ok) return;
+        _rodape.quickLinks.splice(idx, 1);
+        await saveRodape(true);
+        renderRodape();
+      };
+    });
+
+    rodapeContainer.querySelector('#saveRodapeBtn').onclick = async () => {
+      const links = [];
+      rodapeContainer.querySelectorAll('[data-link-label]').forEach((input, idx) => {
+        const url = rodapeContainer.querySelector(`[data-link-url="${idx}"]`)?.value || '';
+        links.push({ label: input.value, url });
+      });
+      _rodape = {
+        copyright: rodapeContainer.querySelector('#rodapeCopyright').value,
+        socialMedia: {
+          instagram: rodapeContainer.querySelector('#socialInstagram').value,
+          facebook: rodapeContainer.querySelector('#socialFacebook').value,
+          linkedin: rodapeContainer.querySelector('#socialLinkedin').value,
+          tiktok: rodapeContainer.querySelector('#socialTiktok').value,
+          youtube: rodapeContainer.querySelector('#socialYoutube').value,
+          email: rodapeContainer.querySelector('#socialEmail').value,
+        },
+        quickLinks: links,
+      };
+      await saveRodape();
     };
   };
 }

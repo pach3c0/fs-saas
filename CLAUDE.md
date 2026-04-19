@@ -142,7 +142,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 `skills/6_0_dominio.md` (DNS, Nginx, SSL wildcard, subdomínios de fotógrafos, domínio customizado)
 
-`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_builder-geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md`
+`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_builder-geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md` · `skills/5_12_builder-personalizar.md` · `skills/5_13_builder-rodape.md` 
 
 **Regra:** ao alterar area coberta por skill, atualizar a skill correspondente. Apos features que adicionam pasta/rota/modelo/padrao, atualizar este `CLAUDE.md`.
 
@@ -154,6 +154,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 |---|---|---|
 | Newsletter | `footer.js`, `shared-site.js` (labels, allSections, bloco de codigo) | Nao existe mais no app |
 | Tab Logo (`logo.js`) | `admin/js/tabs/logo.js` deletado | Codigo morto; logo gerenciado via Perfil → `Organization.logo` |
+| Secoes Extras (customSections) | `meu-site.js`, `shared-site.js`, `Organization.js`, `site.js` | Funcionalidade descontinuada em 2026-04-18 |
 
 ---
 
