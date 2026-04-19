@@ -453,19 +453,28 @@ async function initApp() {
     return;
   }
 
-  await loadAppData();
-  await postLoginSetup();
+  // loadAppData (SiteData legado) roda em paralelo com postLoginSetup
+  // postLoginSetup já paraleliza loadOrgSlug + loadSidebarStorage internamente
+  await Promise.all([
+    loadAppData(),
+    postLoginSetup()
+  ]);
 }
 
 async function postLoginSetup() {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'flex';
 
-  // Carregar slug da organização para links de site
-  loadOrgSlug();
-  loadSidebarStorage();
+  // Paralelizar chamadas independentes — não há dependência entre elas
+  // loadOrgSlug precisa terminar antes de switchTab (que usa orgSlug para o preview)
+  await Promise.all([
+    loadOrgSlug(),
+    loadSidebarStorage()
+  ]);
 
-  startNotificationPolling();
+  // Delay no polling para não competir com o carregamento inicial do dashboard
+  setTimeout(startNotificationPolling, 5000);
+
   await switchTab('dashboard');
   showWelcomeBanner();
 }
@@ -614,8 +623,10 @@ function showLoginForm() {
       localStorage.setItem('authToken', data.token);
       if (data.organizationId) localStorage.setItem('organizationId', data.organizationId);
 
-      await loadAppData();
-      await postLoginSetup();
+      await Promise.all([
+        loadAppData(),
+        postLoginSetup()
+      ]);
     } catch (error) {
       showToast(error.message, 'error');
       loginBtn.disabled = false;
