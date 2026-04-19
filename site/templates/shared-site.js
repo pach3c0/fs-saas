@@ -906,9 +906,10 @@ function renderSite(data, opts = {}) {
     footerSocial.innerHTML = links.join('');
   }
 
-  const footerCopyright = document.getElementById('footerCopyright');
-  if (footerCopyright && content.footer?.copyright) {
-    footerCopyright.textContent = content.footer.copyright;
+  // Copyright: suporta ambos os IDs usados nos templates
+  const footerCopy = document.getElementById('footerCopy') || document.getElementById('footerCopyright');
+  if (footerCopy && content.footer?.copyright) {
+    footerCopy.textContent = content.footer.copyright;
   }
 
   const footerLinks = document.getElementById('footerLinks');

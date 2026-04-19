@@ -442,6 +442,7 @@ async function renderSiteContent(container, builderTabsEl) {
         faq: configData.siteContent?.faq || [],
         albums: configData.siteContent?.albums || [],
         studio: getStudioState() || configData.siteContent?.studio || {},
+        footer: configData.siteContent?.footer || {},
       },
       integrations: configData.integrations || {},
     };
