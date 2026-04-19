@@ -51,7 +51,7 @@ export async function renderFaq(container) {
     html += `
       <div style="border:1px solid var(--border); border-radius:0.375rem; padding:1rem; background:var(--bg-surface);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
-          <input type="text" style="flex:1; font-weight:bold; border:1px solid var(--border); border-radius:0.25rem; padding:0.25rem 0.5rem; background:var(--bg-elevated); color:var(--text-primary);"
+          <input type="text" style="flex:1; min-width:0; font-weight:bold; border:1px solid var(--border); border-radius:0.25rem; padding:0.25rem 0.5rem; background:var(--bg-elevated); color:var(--text-primary);"
             value="${faq.question}" data-faq-question="${index}">
           <button style="color:var(--red); margin-left:0.5rem; background:none; border:none; cursor:pointer;" onclick="deleteFaq(${index})">🗑️</button>
         </div>
