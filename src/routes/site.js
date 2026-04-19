@@ -160,22 +160,41 @@ router.get('/site/admin/storage', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId.toString();
     const orgUploadDir = path.join(__dirname, '../../uploads', orgId);
-    let storageBytes = 0;
-    function calcSize(dir) {
-      if (!fs.existsSync(dir)) return;
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const fp = path.join(dir, entry.name);
-        if (entry.isDirectory()) calcSize(fp);
-        else { try { storageBytes += fs.statSync(fp).size; } catch(e) {} }
+
+    // Função async — não bloqueia o event loop enquanto lê o disco
+    async function calcSize(dir) {
+      let total = 0;
+      try {
+        await fs.promises.access(dir); // substitui existsSync — não bloqueia
+      } catch {
+        return 0; // diretório não existe
       }
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      // Processar todas as entradas em paralelo (Promise.all)
+      const sizes = await Promise.all(entries.map(async (entry) => {
+        const fp = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          return calcSize(fp);
+        } else {
+          try {
+            const stat = await fs.promises.stat(fp);
+            return stat.size;
+          } catch {
+            return 0;
+          }
+        }
+      }));
+      return sizes.reduce((acc, s) => acc + s, 0);
     }
-    calcSize(orgUploadDir);
+
+    const storageBytes = await calcSize(orgUploadDir);
     const storageMB = Math.round(storageBytes / 1024 / 1024 * 100) / 100;
     res.json({ storageMB, storageBytes });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Público: Submeter depoimento para aprovação
 router.post('/site/depoimento', async (req, res) => {
