@@ -26,6 +26,27 @@ router.get('/notifications/unread-count', authenticateToken, async (req, res) =>
   }
 });
 
+router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    await Notification.updateOne(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { read: true }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/notifications/:id', authenticateToken, async (req, res) => {
+  try {
+    await Notification.deleteOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.put('/notifications/read-all', authenticateToken, async (req, res) => {
   try {
     await Notification.updateMany(

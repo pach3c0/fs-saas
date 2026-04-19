@@ -18,6 +18,7 @@ const TAB_TITLES = {
   sessoes: 'Sessões',
   clientes: 'Clientes',
   'albuns-prova': 'Prova de Álbuns',
+  mensagens: 'Mensagens',
   'meu-site': 'Meu Site',
   dominio: 'Domínio',
   integracoes: 'Integrações',
