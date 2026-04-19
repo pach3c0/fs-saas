@@ -133,6 +133,10 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | Erro 500 cadastro | `ownerId` required | Nao tornar `ownerId` obrigatorio no schema |
 | App nao inicia | MongoDB off | `sudo systemctl start mongod` |
 | 502 Bad Gateway | Node caiu | `pm2 reload ecosystem.config.js --env production` + logs |
+| Admin demora para carregar no login | Chamadas de API sequenciais em `postLoginSetup` | Usar `Promise.all([loadOrgSlug(), loadSidebarStorage()])` — nunca `await` em serie para chamadas independentes |
+| Site publico lento (TTFB alto) | Query dupla MongoDB na rota `GET /site` | Incluir `siteTheme` no `.select()` da query de resolucao do tenant — nao fazer `findById` separado depois |
+| I/O sincrono trava todo o servidor | `fs.readdirSync`/`fs.statSync` no event loop | Sempre `fs.promises.readdir`/`fs.promises.stat` em rotas async |
+
 
 ---
 
@@ -155,6 +159,24 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | Newsletter | `footer.js`, `shared-site.js` (labels, allSections, bloco de codigo) | Nao existe mais no app |
 | Tab Logo (`logo.js`) | `admin/js/tabs/logo.js` deletado | Codigo morto; logo gerenciado via Perfil → `Organization.logo` |
 | Secoes Extras (customSections) | `meu-site.js`, `shared-site.js`, `Organization.js`, `site.js` | Funcionalidade descontinuada em 2026-04-18 |
+
+---
+
+## PERFORMANCE — PADROES ESTABELECIDOS (2026-04-19)
+
+> Otimizacoes aplicadas apos diagnostico de lentidao. Nao reverter.
+
+### Frontend (admin)
+- **Login paralelo:** `postLoginSetup()` usa `await Promise.all([loadOrgSlug(), loadSidebarStorage()])` — nunca serializar chamadas independentes.
+- **Polling com delay:** `setTimeout(startNotificationPolling, 5000)` — nao iniciar imediatamente no login.
+- **Scripts do site publico:** todos os templates usam `<script src="shared-site.js" defer>` — obrigatorio em novos templates.
+- **Fonte Material Symbols:** parametros fixos `opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap` — nao usar ranges amplos.
+
+### Backend
+- **I/O de disco:** sempre `fs.promises.*` (async) — nunca `fs.readdirSync`, `fs.statSync`, `fs.existsSync` em rotas.
+- **Queries MongoDB em rotas publicas:** resolver tenant e `siteTheme` em uma unica query com `.select('_id siteTheme').lean()`.
+- **Limit do express.json:** `5mb` global — uploads usam multer (multipart), nao sao afetados por esse limit.
+- **`.lean()`:** usar em todas as queries de leitura que nao precisam de metodos Mongoose (`save`, `markModified`).
 
 ---
 

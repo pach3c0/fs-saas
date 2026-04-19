@@ -185,6 +185,56 @@ Tabs ativos: `dashboard, perfil, meu-site, sessoes, clientes, albuns-prova, albu
 | Estado sobrescrito ao trocar de tab | Tab usa `appState.appData` que loadAppData() sobrescreve | Variável local `_state = null` isolada por módulo |
 | Layout quebrado mobile | Regra estrutural duplicada e divergente | Centralizar em `site/templates/shared.css` |
 | `await` em função não-async | renderX tornou-se async mas caller não | Fazer caller também `async` e `await renderX()` |
+| Admin lento no login | `await loadAppData()` sequencial antes de tudo | `Promise.all([loadAppData(), postLoginSetup()])` |
+| Ícones do admin bloqueiam render | Material Symbols sem `display=swap` | Sempre `&display=swap` + parâmetros fixos (não ranges) |
+| Site público lento no primeiro acesso | `<script>` sem `defer` bloqueia parse HTML | Todo template novo deve usar `<script src="shared-site.js" defer>` |
+
+---
+
+## PERFORMANCE — PADRÕES OBRIGATÓRIOS (2026-04-19)
+
+### Login paralelo (app.js)
+```js
+// ❌ ERRADO — serializa chamadas independentes, bloqueia ~500ms
+await loadAppData();
+await postLoginSetup();
+
+// ✅ CERTO — executa em paralelo
+await Promise.all([
+  loadAppData(),
+  postLoginSetup()  // internamente já faz Promise.all([loadOrgSlug(), loadSidebarStorage()])
+]);
+```
+
+### Polling com delay
+```js
+// ❌ ERRADO — polling imediato concorre com carregamento do dashboard
+startNotificationPolling();
+
+// ✅ CERTO — aguarda 5s para não disputar recursos na inicialização
+setTimeout(startNotificationPolling, 5000);
+```
+
+### Script dos templates do site público
+```html
+<!-- ❌ ERRADO — bloqueia o parser HTML até baixar e executar todo o script -->
+<script src="/site/templates/shared-site.js"></script>
+
+<!-- ✅ CERTO — download paralelo ao parse; execução após DOMContentLoaded -->
+<script src="/site/templates/shared-site.js" defer></script>
+```
+> Todo novo template deve usar `defer`. O `shared-site.js` já usa `DOMContentLoaded` internamente — é seguro.
+
+### Fonte Material Symbols (admin/index.html)
+```html
+<!-- ❌ ERRADO — baixa fonte variável inteira (~300KB) e bloqueia render -->
+<link href="...Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+<!-- ✅ CERTO — valores fixos + FILL mínimo para ícone preenchido (~80KB) + swap -->
+<link href="...Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" rel="stylesheet">
+```
+
+
 
 
 

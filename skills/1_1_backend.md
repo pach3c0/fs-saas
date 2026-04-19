@@ -168,6 +168,43 @@ res.status(500).json({ error: error.message });     // Erro interno
 
 ---
 
+## PERFORMANCE — PADRÕES OBRIGATÓRIOS
+
+### I/O de disco — sempre async
+```js
+// ❌ ERRADO — bloqueia o event loop para todos os usuários
+fs.existsSync(dir)
+fs.readdirSync(dir)
+fs.statSync(fp)
+
+// ✅ CERTO — libera o event loop
+await fs.promises.access(dir)
+const entries = await fs.promises.readdir(dir, { withFileTypes: true })
+const stat = await fs.promises.stat(fp)
+
+// ✅ Paralelo quando possível
+const sizes = await Promise.all(entries.map(async (e) => { ... }));
+```
+
+### Queries MongoDB — select mínimo + lean()
+```js
+// ❌ ERRADO — busca documento inteiro, depois faz outra query para um campo
+const org = await Organization.findOne({ slug });
+const org2 = await Organization.findById(org._id).select('siteTheme');
+
+// ✅ CERTO — tudo em uma única query, retorna POJO (mais rápido)
+const org = await Organization.findOne({ slug }).select('_id siteTheme').lean();
+```
+
+**Regra:** usar `.lean()` em todas as queries de leitura que não precisam de `.save()` ou `.markModified()`.
+
+### Limit do express.json
+- Global: `5mb` — suficiente para arrays de fotos/layers/configs
+- Uploads de imagem/vídeo: usam `multipart/form-data` via multer — **não são afetados** pelo limit do `express.json`
+- **Nunca** voltar para `50mb` global
+
+---
+
 ## ERROS COMUNS
 
 | Sintoma | Causa | Evitar |
@@ -179,3 +216,5 @@ res.status(500).json({ error: error.message });     // Erro interno
 | App não inicia | MongoDB off | `sudo systemctl start mongod` |
 | 502 Bad Gateway | Node caiu | `pm2 reload ecosystem.config.js --env production` |
 | Upload 413 | Payload grande | Verificar `client_max_body_size` no Nginx |
+| Servidor trava sob carga | `fs.readdirSync`/`fs.statSync` em rota | Migrar para `fs.promises.*` async |
+| TTFB alto no site público | Query dupla para resolver tenant + siteTheme | Usar `.select('_id siteTheme').lean()` na mesma query |
