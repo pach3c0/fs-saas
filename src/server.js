@@ -54,41 +54,38 @@ app.get('/site', async (req, res) => {
   try {
     const Organization = require('./models/Organization');
 
-    // Resolve tenant (same logic as resolveTenant middleware)
-    let orgId = null;
-    const tenant = req.query._tenant || req.headers['x-tenant'];
-
-    if (tenant) {
-      const org = await Organization.findOne({ slug: tenant });
-      if (org) orgId = org._id;
-    } else {
-      // In production, extract subdomain from req.hostname
-      const hostname = req.hostname;
-      const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
-      const subdomain = hostname.replace(`.${baseDomain}`, '');
-      if (subdomain && subdomain !== hostname && subdomain !== 'app') {
-        const org = await Organization.findOne({ slug: subdomain });
-        if (org) orgId = org._id;
-      }
-    }
-
-    // Default to owner org if no tenant found
-    if (!orgId) {
-      const ownerSlug = process.env.OWNER_SLUG || 'fs';
-      const org = await Organization.findOne({ slug: ownerSlug });
-      if (org) orgId = org._id;
-    }
-
-    // Get organization theme
+    // Resolve tenant e siteTheme em uma única query
     const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
     let theme = 'elegante'; // default
 
-    // Preview mode: _preview_theme overrides saved theme (doesn't save)
+    // Preview mode: _preview_theme overrides saved theme (doesn't save to DB)
     if (req.query._preview_theme && validThemes.includes(req.query._preview_theme)) {
       theme = req.query._preview_theme;
-    } else if (orgId) {
-      const org = await Organization.findById(orgId).select('siteTheme');
-      theme = org?.siteTheme || 'elegante';
+    } else {
+      // Resolver org e já pegar siteTheme — tudo em uma query
+      let org = null;
+      const tenant = req.query._tenant || req.headers['x-tenant'];
+
+      if (tenant) {
+        org = await Organization.findOne({ slug: tenant }).select('_id siteTheme').lean();
+      } else {
+        const hostname = req.hostname;
+        const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
+        const subdomain = hostname.replace(`.${baseDomain}`, '');
+        if (subdomain && subdomain !== hostname && subdomain !== 'app') {
+          org = await Organization.findOne({ slug: subdomain }).select('_id siteTheme').lean();
+        }
+      }
+
+      // Fallback: owner org
+      if (!org) {
+        const ownerSlug = process.env.OWNER_SLUG || 'fs';
+        org = await Organization.findOne({ slug: ownerSlug }).select('_id siteTheme').lean();
+      }
+
+      if (org?.siteTheme && validThemes.includes(org.siteTheme)) {
+        theme = org.siteTheme;
+      }
     }
 
     // Map theme to template path
@@ -103,10 +100,10 @@ app.get('/site', async (req, res) => {
     res.sendFile(templatePath);
   } catch (error) {
     console.error('Error serving site template:', error);
-    // Fallback to elegante on error
     res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
   }
 });
+
 
 // Static assets for site templates (CSS, JS, fonts) - AFTER dynamic route
 app.use('/site', express.static(path.join(__dirname, '../site')));
