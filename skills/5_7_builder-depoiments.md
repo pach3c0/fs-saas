@@ -1,3 +1,14 @@
+# Melhorias de mensagem
+
+A aprovação de depoimentos pendentes foi integrada na **tab Mensagens** (`admin/js/tabs/mensagens.js`), junto com os contatos recebidos pelo formulário. O fotógrafo acessa um único lugar para ver tudo que chegou do site público.
+
+- Seção "⭐ N depoimentos aguardando aprovação" aparece no topo da tab Mensagens quando há pendentes
+- Botões **Aprovar** (verde, `var(--green)`) e **Rejeitar** (vermelho, `var(--red)`) com confirmação antes de rejeitar
+- Ao aprovar: `POST /api/site/admin/depoimentos-pendentes/:id/aprovar` → move para `Organization.siteContent.depoimentos`
+- O painel de pendentes no builder (sub-tab Depoimentos em Meu Site) continua funcionando normalmente em paralelo
+
+---
+
 # Módulo: Depoimentos
 
 Gerenciamento de depoimentos de clientes no site público. Inclui aprovação de depoimentos enviados por visitantes e criação manual de depoimentos com foto, nota e link social.
@@ -115,3 +126,6 @@ O site público itera sobre `data.siteContent.depoimentos` e gera o HTML:
 - **Nota:** Deve ser entre 1 e 5.
 - **Auto-save:** Atualmente este módulo **não** usa auto-save completo (depende do botão Salvar), mas o `dirty tracking` impede que o usuário saia sem salvar.
 - **Imagens:** Devem ser comprimidas via `uploadImage` (padrão 1200px/85%).
+
+
+# Melhorias de mensagem 

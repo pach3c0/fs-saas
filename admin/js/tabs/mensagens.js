@@ -1,22 +1,111 @@
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete, apiPut } from '../utils/api.js';
 
 let _mensagens = null;
+let _pendentes = [];
 
 export async function renderMensagens(container) {
   container.innerHTML = `
     <div style="max-width:720px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
-        <div>
-          <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary);">Mensagens</h2>
-          <p style="font-size:0.8125rem; color:var(--text-secondary); margin-top:0.25rem;">Contatos recebidos pelo formulário do seu site</p>
-        </div>
+      <div style="margin-bottom:2rem;">
+        <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary);">Mensagens</h2>
+        <p style="font-size:0.8125rem; color:var(--text-secondary); margin-top:0.25rem;">Contatos e depoimentos recebidos pelo seu site</p>
+      </div>
+
+      <!-- Depoimentos pendentes -->
+      <div id="pendentesSection"></div>
+
+      <!-- Contatos recebidos -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary);">📩 Contatos recebidos</h3>
         <span id="msgUnreadBadge" style="display:none; background:var(--accent); color:#fff; font-size:0.75rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:999px;"></span>
       </div>
       <div id="msgLista"></div>
     </div>
   `;
-  await loadMensagens();
+
+  await Promise.all([loadPendentes(), loadMensagens()]);
 }
+
+// ── Depoimentos pendentes ──────────────────────────────────────────────────
+
+async function loadPendentes() {
+  const section = document.getElementById('pendentesSection');
+  if (!section) return;
+  try {
+    const resp = await apiGet('/api/site/admin/depoimentos-pendentes');
+    _pendentes = resp.pending || [];
+  } catch (e) {
+    _pendentes = [];
+  }
+  renderPendentes();
+}
+
+function renderPendentes() {
+  const section = document.getElementById('pendentesSection');
+  if (!section) return;
+
+  if (_pendentes.length === 0) {
+    section.innerHTML = '';
+    return;
+  }
+
+  section.innerHTML = `
+    <div style="background:var(--bg-elevated); border:1px solid var(--green); border-radius:8px; padding:1rem; margin-bottom:2rem;">
+      <h4 style="color:var(--green); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">
+        ⭐ ${_pendentes.length} depoimento${_pendentes.length > 1 ? 's' : ''} aguardando aprovação
+      </h4>
+      <div style="display:flex; flex-direction:column; gap:0.625rem;">
+        ${_pendentes.map(p => `
+          <div style="background:var(--bg-surface); padding:0.75rem; border-radius:6px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+              <div style="flex:1; min-width:0;">
+                <p style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${escHtml(p.name)}</p>
+                <p style="font-size:0.8125rem; color:var(--text-secondary); margin-top:0.25rem; line-height:1.5;">${escHtml(p.text)}</p>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.375rem;">${'⭐'.repeat(Math.min(p.rating || 5, 5))} ${p.rating || 5}/5${p.email ? ` · ${escHtml(p.email)}` : ''}</p>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+                <button onclick="window._depAprovar('${p.id}')"
+                  style="background:var(--green); color:#fff; border:none; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                  ✓ Aprovar
+                </button>
+                <button onclick="window._depRejeitar('${p.id}')"
+                  style="background:var(--red); color:#fff; border:none; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                  ✕ Rejeitar
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window._depAprovar = async function(id) {
+  try {
+    await apiPost(`/api/site/admin/depoimentos-pendentes/${id}/aprovar`, {});
+    _pendentes = _pendentes.filter(p => p.id !== id);
+    renderPendentes();
+    window.showToast('Depoimento aprovado e publicado no site!', 'success');
+  } catch (e) {
+    window.showToast('Erro ao aprovar: ' + e.message, 'error');
+  }
+};
+
+window._depRejeitar = async function(id) {
+  const ok = await window.showConfirm('Rejeitar e apagar este depoimento?', { confirmText: 'Rejeitar', danger: true });
+  if (!ok) return;
+  try {
+    await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
+    _pendentes = _pendentes.filter(p => p.id !== id);
+    renderPendentes();
+    window.showToast('Depoimento rejeitado.', 'success');
+  } catch (e) {
+    window.showToast('Erro ao rejeitar: ' + e.message, 'error');
+  }
+};
+
+// ── Contatos recebidos ─────────────────────────────────────────────────────
 
 async function loadMensagens() {
   const lista = document.getElementById('msgLista');
@@ -44,7 +133,7 @@ async function loadMensagens() {
       return;
     }
 
-    lista.innerHTML = _mensagens.map((n, idx) => {
+    lista.innerHTML = _mensagens.map(n => {
       const parts = parseMessage(n.message);
       const unread = !n.read;
       const date = new Date(n.createdAt).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -84,9 +173,9 @@ async function loadMensagens() {
   }
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 function parseMessage(msg) {
-  // Formato: "📩 Nome (email) — Assunto: Mensagem"
-  // Remove emoji prefix
   const clean = msg.replace(/^📩\s*/, '');
   const nome = clean.match(/^([^(—:]+)/)?.[1]?.trim() || '';
   const email = clean.match(/\(([^)]+)\)/)?.[1]?.trim() || '';
@@ -111,7 +200,6 @@ window._msgToggle = async function(id) {
     const n = _mensagens?.find(m => m._id === id);
     if (n && !n.read) {
       try {
-        const { apiPut } = await import('../utils/api.js');
         await apiPut(`/api/notifications/${id}/read`, {});
         n.read = true;
         const card = document.getElementById(`msg-${id}`);
@@ -137,7 +225,6 @@ window._msgDelete = async function(id) {
   const ok = await window.showConfirm('Excluir esta mensagem?', { confirmText: 'Excluir', danger: true });
   if (!ok) return;
   try {
-    const { apiDelete } = await import('../utils/api.js');
     await apiDelete(`/api/notifications/${id}`);
     _mensagens = _mensagens?.filter(m => m._id !== id) || [];
     const card = document.getElementById(`msg-${id}`);
