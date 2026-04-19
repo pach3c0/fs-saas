@@ -9,7 +9,8 @@ const NOTIF_ICONS = {
   session_accessed: '👁️',
   selection_started: '🎯',
   selection_submitted: '✅',
-  reopen_requested: '🔄'
+  reopen_requested: '🔄',
+  contact: '📩'
 };
 
 let pollingInterval = null;

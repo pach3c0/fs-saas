@@ -207,6 +207,26 @@ router.post('/site/depoimento', async (req, res) => {
   }
 });
 
+// Público: Formulário de contato
+router.post('/site/contact', async (req, res) => {
+  try {
+    if (!req.organizationId) return res.status(404).json({ error: 'Organização não encontrada' });
+    const { nome, email, assunto, mensagem } = req.body;
+    if (!nome || !mensagem) return res.status(400).json({ error: 'Nome e mensagem são obrigatórios' });
+
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      organizationId: req.organizationId,
+      type: 'contact',
+      message: `📩 ${nome}${email ? ` (${email})` : ''}${assunto ? ` — ${assunto}` : ''}: ${mensagem}`
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Admin: Listar depoimentos pendentes
 router.get('/site/admin/depoimentos-pendentes', authenticateToken, async (req, res) => {
   try {

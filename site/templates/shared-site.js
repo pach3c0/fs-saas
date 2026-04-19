@@ -1147,23 +1147,33 @@ function renderSite(data, opts = {}) {
   // Formulário de contato
   const contactForm = document.getElementById('contactForm');
   if (contactForm) {
-    contactForm.onsubmit = function(e) {
+    contactForm.onsubmit = async function(e) {
       e.preventDefault();
       const nome = contactForm.querySelector('[name="nome"]')?.value || '';
       const email = contactForm.querySelector('[name="email"]')?.value || '';
       const assunto = contactForm.querySelector('[name="assunto"]')?.value || '';
       const mensagem = contactForm.querySelector('[name="mensagem"]')?.value || '';
-      const whatsapp = (config.whatsapp || '').replace(/\D/g, '');
 
-      if (!whatsapp) {
-        alert('Fotógrafo ainda não configurou WhatsApp para receber mensagens.');
-        return;
+      const submitBtn = contactForm.querySelector('[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Enviando...'; }
+
+      try {
+        const res = await fetch('/api/site/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, email, assunto, mensagem })
+        });
+        if (res.ok) {
+          contactForm.reset();
+          if (submitBtn) submitBtn.textContent = 'Mensagem enviada!';
+          setTimeout(() => { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; } }, 3000);
+        } else {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+        }
+      } catch {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
       }
-
-      const texto = `Olá! Meu nome é ${nome} (${email}).\n\nAssunto: ${assunto}\n\n${mensagem}`;
-      window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(texto)}`, '_blank');
-
-      contactForm.reset();
     };
   }
 }
