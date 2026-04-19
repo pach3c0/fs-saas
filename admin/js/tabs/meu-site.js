@@ -100,7 +100,8 @@ async function renderSiteContent(container, builderTabsEl) {
         </div>
 
         <!-- Conteúdo das Abas -->
-        <div id="subTabContent" style="flex:1; min-width:0; padding-left:0.75rem; overflow-y:auto;">
+        <div id="subTabContent" style="flex:1; min-width:0; padding-left:0.75rem; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;">
+          <style>#subTabContent::-webkit-scrollbar { display: none; }</style>
         <!-- Geral -->
         <div id="config-geral" class="sub-tab-content">
             <div style="display:flex; flex-direction:column; gap:2rem;">
@@ -1619,11 +1620,11 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const buildLinksHtml = (quickLinks) => quickLinks.map((link, idx) => `
       <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input type="text" data-link-label="${idx}" style="flex:1; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
+        <input type="text" data-link-label="${idx}" style="flex:1; min-width:0; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
           value="${link.label || ''}" placeholder="Texto do link">
-        <input type="text" data-link-url="${idx}" style="flex:1; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
+        <input type="text" data-link-url="${idx}" style="flex:1; min-width:0; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
           value="${link.url || ''}" placeholder="URL (ex: #portfolio)">
-        <button data-remove-link="${idx}" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1rem; padding:0.25rem;">🗑️</button>
+        <button data-remove-link="${idx}" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1rem; padding:0.25rem; flex-shrink:0;">🗑️</button>
       </div>
     `).join('');
 
