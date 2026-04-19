@@ -192,7 +192,17 @@ router.post('/site/depoimento', async (req, res) => {
     });
     res.json({ success: true });
 
-    // Notifica o fotografo por email (fire-and-forget)
+    // Notifica o fotografo por notificacao no admin + email (fire-and-forget)
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        organizationId: req.organizationId,
+        type: 'depoimento_pendente',
+        message: `⭐ ${name}${email ? ` (${email})` : ''}: ${text}`
+      });
+    } catch (e) {
+      console.error('[Depoimento] Erro ao criar notificacao:', e.message);
+    }
     try {
       const org = await Organization.findById(req.organizationId).select('email name');
       if (org?.email) {

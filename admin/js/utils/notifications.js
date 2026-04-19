@@ -10,7 +10,8 @@ const NOTIF_ICONS = {
   selection_started: '🎯',
   selection_submitted: '✅',
   reopen_requested: '🔄',
-  contact: '📩'
+  contact: '📩',
+  depoimento_pendente: '⭐'
 };
 
 let pollingInterval = null;
@@ -120,7 +121,7 @@ export function onNotifClick(sessionId, type) {
   if (dropdown) dropdown.style.display = 'none';
   dropdownOpen = false;
 
-  if (type === 'contact' && window.switchTab) {
+  if ((type === 'contact' || type === 'depoimento_pendente') && window.switchTab) {
     window.switchTab('mensagens');
   } else if (sessionId && window.switchTab) {
     window.switchTab('sessoes');
