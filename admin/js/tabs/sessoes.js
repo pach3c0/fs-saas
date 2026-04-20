@@ -172,9 +172,19 @@ export async function renderSessoes(container) {
     <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
       <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Editar Sessao</h3>
-        <div style="background:#111827; border-radius:0.5rem; padding:0.75rem 1rem;">
-          <span id="editSessionName" style="color:#f3f4f6; font-weight:600;"></span>
-          <span id="editSessionType" style="color:#9ca3af; font-size:0.875rem; margin-left:0.5rem;"></span>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Nome da Sessão</label>
+          <input type="text" id="editSessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Tipo</label>
+          <select id="editSessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+            <option value="Familia">Familia</option>
+            <option value="Casamento">Casamento</option>
+            <option value="Evento">Evento</option>
+            <option value="Ensaio">Ensaio</option>
+            <option value="Corporativo">Corporativo</option>
+          </select>
         </div>
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente Vinculado</label>
@@ -400,6 +410,7 @@ export async function renderSessoes(container) {
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <strong style="color:#f3f4f6; font-size:1.125rem;">${session.name}</strong>
                 <span style="color:#9ca3af; font-size:0.875rem;">${session.type}</span>
+                ${session.clientId ? `<span style="color:#10b981; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; font-weight:600;">
                   ${status.text}
                 </span>
@@ -713,8 +724,8 @@ export async function renderSessoes(container) {
     if (!session) return;
     editingSessionId = sessionId;
 
-    container.querySelector('#editSessionName').textContent = session.name;
-    container.querySelector('#editSessionType').textContent = session.type;
+    container.querySelector('#editSessionName').value = session.name || '';
+    container.querySelector('#editSessionType').value = session.type || 'Familia';
     container.querySelector('#editClientEmail').value = session.clientEmail || '';
     
     const clientSelect = container.querySelector('#editClientId');
@@ -753,6 +764,8 @@ export async function renderSessoes(container) {
 
   container.querySelector('#confirmEditSession').onclick = async () => {
     if (!editingSessionId) return;
+    const name = container.querySelector('#editSessionName').value.trim();
+    const type = container.querySelector('#editSessionType').value;
     const mode = editModeSelect.value;
     const clientEmail = container.querySelector('#editClientEmail').value.trim();
     const clientId = container.querySelector('#editClientId').value || null;
@@ -768,7 +781,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
+        body: JSON.stringify({ name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
