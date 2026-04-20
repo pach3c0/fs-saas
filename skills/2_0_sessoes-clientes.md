@@ -377,7 +377,7 @@ Todos os envios são `fire-and-forget` (`.catch(() => {})`), não bloqueiam a re
 - [ ] Todo `organizationId` vem do middleware — nunca do body do request
 - [ ] Novos campos no schema: verificar impacto em `verify-code` (retorno para o cliente)
 - [ ] Novos e-mails: sempre `.catch(() => {})` — nunca bloquear a resposta aguardando e-mail
-- [ ] Novos uploads de foto: sempre gerar thumb com sharp + salvar `urlOriginal`
+- [ ] Novos uploads de foto: sempre manter filename original (`file.originalname`) + gerar thumb com sharp + salvar `urlOriginal`
 - [ ] Notificações: sempre em `try/catch` separado — nunca deixar falhar a operação principal
 
 

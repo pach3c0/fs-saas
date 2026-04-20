@@ -527,7 +527,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
       newPhotos.push({
         id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        filename: file.filename,
+        filename: file.originalname, // <-- Nome original preservado para exportação e Lightroom
         url: `/uploads/${orgId}/sessions/${thumbFilename}`,      // thumb para galeria
         urlOriginal: `/uploads/${orgId}/sessions/${file.filename}`, // original para entrega
         uploadedAt: new Date()
@@ -820,7 +820,7 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
 
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
 
-    const filename = path.basename(filePath);
+    const filename = photo.filename || path.basename(filePath);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'image/jpeg');
     res.sendFile(filePath);
@@ -862,7 +862,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
       const urlToServe = (session.highResDelivery && photo.urlOriginal) ? photo.urlOriginal : photo.url;
       const filePath = path.join(__dirname, '../..', urlToServe);
       if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: path.basename(filePath) });
+        archive.file(filePath, { name: photo.filename || path.basename(filePath) });
       }
     }
 
