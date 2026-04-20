@@ -67,7 +67,7 @@ export async function renderSessoes(container) {
 
     <!-- Modal Nova Sessao -->
     <div id="newSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Nova Sessao</h3>
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente (opcional)</label>
@@ -170,7 +170,7 @@ export async function renderSessoes(container) {
 
     <!-- Modal Editar Sessao -->
     <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Editar Sessao</h3>
         <div style="background:#111827; border-radius:0.5rem; padding:0.75rem 1rem;">
           <span id="editSessionName" style="color:#f3f4f6; font-weight:600;"></span>
@@ -272,7 +272,7 @@ export async function renderSessoes(container) {
 
     <!-- Modal Comentarios -->
     <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Comentários da Foto</h3>
             <button id="closeCommentsModal" style="color:#9ca3af; background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
@@ -589,8 +589,8 @@ export async function renderSessoes(container) {
         const isSelected = selectedIds.includes(photo.id);
         const hasComments = photo.comments && photo.comments.length > 0;
         return `
-        <div style="position:relative; aspect-ratio:3/4; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : ''}">
-          <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="width:100%; height:100%; object-fit:cover;">
+        <div style="position:relative; aspect-ratio:3/2; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : ''}">
+          <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
           ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:#16a34a; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">Selecionada</div>' : ''}
           ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:#3b82f6; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
           <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center;"
@@ -645,8 +645,8 @@ export async function renderSessoes(container) {
     grid.innerHTML = sorted.map((photo, idx) => {
       const isSelected = selectedIds.includes(photo.id);
       return `
-        <div style="position:relative; aspect-ratio:3/4; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : 'opacity:0.4;'}">
-          <img src="${resolveImagePath(photo.url)}" alt="${photo.filename}" style="width:100%; height:100%; object-fit:cover;">
+        <div style="position:relative; aspect-ratio:3/2; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : 'opacity:0.4;'}">
+          <img src="${resolveImagePath(photo.url)}" alt="${photo.filename}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
           ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:#16a34a; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:9999px; font-weight:bold;">&#10003;</div>' : ''}
         </div>
       `;
