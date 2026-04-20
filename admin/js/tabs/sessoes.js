@@ -66,8 +66,8 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Nova Sessao -->
-    <div id="newSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:50; align-items:center; justify-content:center;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; display:flex; flex-direction:column; gap:1rem; max-height:90vh; overflow-y:auto;">
+    <div id="newSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Nova Sessao</h3>
         <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente (opcional)</label>
@@ -153,7 +153,8 @@ export async function renderSessoes(container) {
     <div id="sessionPhotosModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
       <div style="background:#1f2937; border-bottom:1px solid #374151; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
         <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Fotos da Sessao</h3>
-        <div style="display:flex; gap:0.75rem;">
+        <div style="display:flex; gap:0.75rem; align-items:center;">
+          <div id="sessionUploadProgress" style="min-width:150px;"></div>
           <label id="uploadMoreBtn" style="padding:0.5rem 1rem; background:#2563eb; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
             + Upload
             <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
@@ -168,8 +169,8 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Editar Sessao -->
-    <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:50; align-items:center; justify-content:center;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; display:flex; flex-direction:column; gap:1rem; max-height:90vh; overflow-y:auto;">
+    <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Editar Sessao</h3>
         <div style="background:#111827; border-radius:0.5rem; padding:0.75rem 1rem;">
           <span id="editSessionName" style="color:#f3f4f6; font-weight:600;"></span>
@@ -270,8 +271,8 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Comentarios -->
-    <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:60; align-items:center; justify-content:center;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; display:flex; flex-direction:column; gap:1rem; max-height:90vh;">
+    <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
+      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Comentários da Foto</h3>
             <button id="closeCommentsModal" style="color:#9ca3af; background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
@@ -383,8 +384,14 @@ export async function renderSessoes(container) {
         return `
         <div style="border:1px solid #374151; border-radius:0.75rem; padding:1rem; background:#1f2937;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="flex:1;">
-              <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <div style="display:flex; gap:1rem; flex:1;">
+              <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; overflow:hidden; background:#111827; display:flex; align-items:center; justify-content:center; border:1px solid #374151;">
+                ${session.coverPhoto 
+                  ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">` 
+                  : `<span style="color:#6b7280; font-size:0.625rem; text-align:center;">Sem capa</span>`}
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <strong style="color:#f3f4f6; font-size:1.125rem;">${session.name}</strong>
                 <span style="color:#9ca3af; font-size:0.875rem;">${session.type}</span>
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; font-weight:600;">
@@ -400,8 +407,9 @@ export async function renderSessoes(container) {
                 ${deadline ? ` • Prazo: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
                 ${!isMulti && extras > 0 ? ` • <span style="color:#fbbf24;">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
               </div>
+              </div>
             </div>
-            <div style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0;">
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
               <button onclick="viewSessionPhotos('${session._id}')" style="background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Fotos
               </button>
@@ -943,14 +951,46 @@ export async function renderSessoes(container) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    for (const file of files) {
+    showUploadProgress('sessionUploadProgress', 0);
+    const totalFiles = files.length;
+    let completedFiles = 0;
+
+    for (let i = 0; i < totalFiles; i++) {
+      const file = files[i];
       const formData = new FormData();
       formData.append('photos', file);
-      await fetch(`/api/sessions/${currentSessionId}/photos`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` },
-        body: formData
-      });
+
+      try {
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (ev) => {
+            if (ev.lengthComputable) {
+              const filePercent = ev.loaded / ev.total;
+              const globalPercent = Math.round(((completedFiles + filePercent) / totalFiles) * 100);
+              showUploadProgress('sessionUploadProgress', globalPercent);
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              completedFiles++;
+              showUploadProgress('sessionUploadProgress', Math.round((completedFiles / totalFiles) * 100));
+              resolve();
+            } else {
+              reject(new Error('Falha no upload'));
+            }
+          });
+
+          xhr.addEventListener('error', () => reject(new Error('Erro de conexão')));
+
+          xhr.open('POST', `/api/sessions/${currentSessionId}/photos`);
+          xhr.setRequestHeader('Authorization', `Bearer ${appState.authToken}`);
+          xhr.send(formData);
+        });
+      } catch (error) {
+        window.showToast?.(`Erro ao enviar ${file.name}: ${error.message}`, 'error');
+      }
     }
 
     e.target.value = '';

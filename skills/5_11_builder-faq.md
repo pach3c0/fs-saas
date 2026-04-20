@@ -57,3 +57,4 @@ Função interna:
 | IDs regenerados a cada save | `saveFaq` usa `generateId()` no rebuild do array | Comportamento esperado — IDs são só para keying interno, não persistidos com semântica |
 | FAQ vazio ao abrir pela primeira vez | `siteContent.faq` ausente no banco | `DEFAULT_FAQS` é aplicado automaticamente se array vazio |
 | Preview não atualiza após deletar | `saveFaq(silent=true)` ainda chama `_meuSitePostPreview` | Correto — não confundir `silent` (sem toast) com sem preview |
+| Barra de rolagem horizontal + botão 🗑️ sumindo atrás do preview | `input[data-faq-question]` com `flex:1` sem `min-width:0` causa overflow do flex item | Sempre incluir `min-width:0` em inputs dentro de flex row: `style="flex:1; min-width:0; ..."` |

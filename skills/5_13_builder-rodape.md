@@ -134,3 +134,6 @@ O rodapé tinha campo de newsletter que foi removido completamente. Não está e
 
 ### 3. `email` em socialMedia é endereço, não URL
 O campo `socialMedia.email` armazena o endereço de e-mail diretamente (ex: `contato@foto.com`), não uma URL `mailto:`. O `shared-site.js` gera o `href="mailto:..."` ao renderizar.
+
+### 4. Barra de rolagem horizontal + botão de remover link sumindo
+Inputs dentro de flex row (ex: label/url dos quickLinks) sem `min-width:0` causam overflow do flex item, gerando barra horizontal e empurrando botões para fora da área visível. Sempre incluir `min-width:0` em inputs dentro de flex row: `style="flex:1; min-width:0; ..."`.
