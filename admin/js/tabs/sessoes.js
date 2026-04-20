@@ -177,6 +177,12 @@ export async function renderSessoes(container) {
           <span id="editSessionType" style="color:#9ca3af; font-size:0.875rem; margin-left:0.5rem;"></span>
         </div>
         <div>
+          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente Vinculado</label>
+          <select id="editClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+            <option value="">-- Nenhum cliente vinculado --</option>
+          </select>
+        </div>
+        <div>
           <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">E-mail do Cliente <span style="color:#6b7280;">(opcional — para notificacoes)</span></label>
           <input type="email" id="editClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="email@cliente.com">
         </div>
@@ -702,7 +708,7 @@ export async function renderSessoes(container) {
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
   };
 
-  window.editSession = (sessionId) => {
+  window.editSession = async (sessionId) => {
     const session = sessionsData.find(s => s._id === sessionId);
     if (!session) return;
     editingSessionId = sessionId;
@@ -710,6 +716,26 @@ export async function renderSessoes(container) {
     container.querySelector('#editSessionName').textContent = session.name;
     container.querySelector('#editSessionType').textContent = session.type;
     container.querySelector('#editClientEmail').value = session.clientEmail || '';
+    
+    const clientSelect = container.querySelector('#editClientId');
+    clientSelect.innerHTML = '<option value="">-- Nenhum cliente vinculado --</option>';
+    try {
+      const resp = await fetch('/api/clients', {
+        headers: { 'Authorization': `Bearer ${appState.authToken}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        (data.clients || []).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c._id;
+          opt.textContent = c.name + (c.email ? ` (${c.email})` : '');
+          if (session.clientId && (session.clientId === c._id || session.clientId._id === c._id)) {
+            opt.selected = true;
+          }
+          clientSelect.appendChild(opt);
+        });
+      }
+    } catch (e) { /* silencioso */ }
     container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
@@ -729,6 +755,7 @@ export async function renderSessoes(container) {
     if (!editingSessionId) return;
     const mode = editModeSelect.value;
     const clientEmail = container.querySelector('#editClientEmail').value.trim();
+    const clientId = container.querySelector('#editClientId').value || null;
     const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
@@ -741,7 +768,7 @@ export async function renderSessoes(container) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${appState.authToken}`
         },
-        body: JSON.stringify({ mode, clientEmail, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
+        body: JSON.stringify({ mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
