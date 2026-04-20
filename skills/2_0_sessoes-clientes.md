@@ -386,7 +386,9 @@ Todos os envios são `fire-and-forget` (`.catch(() => {})`), não bloqueiam a re
 
 ## Atualizações Recentes (2026-04-20)
 
-- **Modal Nova Sessão:** Corrigido problema de alinhamento. Todos os modais (`newSessionModal`, `editSessionModal`, `commentsModal`) agora usam `overflow-y: auto`, `align-items: flex-start` e `margin: auto` no contêiner interno para garantir que fiquem centralizados se houver espaço e scrolláveis corretamente (sem cortar o topo) caso a tela seja menor que o conteúdo.
+- **Modal Nova Sessão:** Corrigido problema de alinhamento. Todos os modais (`newSessionModal`, `editSessionModal`, `commentsModal`) agora usam `overflow-y: auto`, `align-items: flex-start` e `margin: 2rem auto` no contêiner interno para garantir que fiquem centralizados se houver espaço e scrolláveis corretamente (sem cortar o topo) caso a tela seja menor que o conteúdo.
 - **Dúvidas - Tipo de Sessão:** O campo "tipo de sessão" serve **exclusivamente como rótulo visual** para ajudar o administrador a identificar e categorizar as sessões na lista (ex: Casamento, Evento). Não possui lógica sistêmica atrelada ao seu valor.
 - **Foto da Capa:** Implementada a exibição do thumbnail de `coverPhoto` no card principal de cada sessão na listagem (`sessoes.js`).
 - **Barra de Progresso (Uploads de Sessão):** Refatorado o envio de fotos múltiplas usando XHR e suporte nativo a progresso. O componente visual `showUploadProgress` agora funciona perfeitamente rastreando o progresso global de múltiplos envios.
+- **Modais de Galeria "Esmagados":** Corrigido o bug onde modais com `inset: 0` (como o de ver fotos) ficavam curtos caso o usuário não tivesse muitas sessões cadastradas. Aplicado `min-height: calc(100vh - 120px)` no container pai para garantir que o painel sempre preencha toda a tela.
+- **Aspect Ratio e Scroll Horizontal:** Aplicado `overflow-x: hidden` para evitar scroll lateral indesejado nos grids. As imagens da galeria de sessão e seleção foram atualizadas para o padrão fotográfico paisagem `aspect-ratio: 3/2` com `position: absolute`, consertando distorções visuais provocadas pelo comportamento padrão do Chrome/Safari.
