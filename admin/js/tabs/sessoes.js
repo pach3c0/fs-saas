@@ -16,7 +16,7 @@ const STATUS_LABELS = {
 
 export async function renderSessoes(container) {
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:1rem;">
+    <div style="display:flex; flex-direction:column; gap:1rem; min-height:calc(100vh - 120px);">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Sessoes de Clientes</h2>
         <button id="addSessionBtn" style="background:#16a34a; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500;">
@@ -162,7 +162,7 @@ export async function renderSessoes(container) {
           <button id="closePhotosModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
-      <div style="flex:1; overflow-y:auto; padding:1.5rem;">
+      <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
         <div id="sessionPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem;">
         </div>
       </div>
@@ -228,7 +228,7 @@ export async function renderSessoes(container) {
           <button id="closeSelectionModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
-      <div style="flex:1; overflow-y:auto; padding:1.5rem;">
+      <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
         <div id="selectionPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem;">
         </div>
       </div>
@@ -246,7 +246,7 @@ export async function renderSessoes(container) {
           <button id="closeParticipantsModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
-      <div style="flex:1; overflow-y:auto; padding:1.5rem;">
+      <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
         <!-- Form Adicionar -->
         <div style="background:#111827; padding:1rem; border-radius:0.5rem; border:1px solid #374151; margin-bottom:1.5rem;">
             <h4 style="color:#f3f4f6; font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
