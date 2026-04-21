@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const Organization = require('./models/Organization');
 
 require('dotenv').config();
 
@@ -54,56 +56,54 @@ app.get('/galeria/:id', (req, res) => {
 
 // SPA route for photographer site (serves template based on siteTheme)
 app.get('/site', async (req, res) => {
+  const fallback = path.join(__dirname, '../site/templates/elegante/index.html');
   try {
-    const Organization = require('./models/Organization');
-
-    // Resolve tenant e siteTheme em uma única query
     const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
-    let theme = 'elegante'; // default
+    let theme = 'elegante';
 
-    // Preview mode: _preview_theme overrides saved theme (doesn't save to DB)
+    // Preview mode: _preview_theme substitui o tema salvo sem tocar no banco
     if (req.query._preview_theme && validThemes.includes(req.query._preview_theme)) {
       theme = req.query._preview_theme;
     } else {
-      // Resolver org e já pegar siteTheme — tudo em uma query
-      let org = null;
       const tenant = req.query._tenant || req.headers['x-tenant'];
+      const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
+      const hostname = req.hostname;
+      const subdomain = hostname.replace(`.${baseDomain}`, '');
+      const ownerSlug = process.env.OWNER_SLUG || 'fs';
 
-      if (tenant) {
-        org = await Organization.findOne({ slug: tenant }).select('_id siteTheme').lean();
-      } else {
-        const hostname = req.hostname;
-        const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
-        const subdomain = hostname.replace(`.${baseDomain}`, '');
-        if (subdomain && subdomain !== hostname && subdomain !== 'app') {
-          org = await Organization.findOne({ slug: subdomain }).select('_id siteTheme').lean();
-        }
-      }
+      // Candidatos em ordem de prioridade: tenant header/query → subdomínio → fallback owner
+      const candidates = [
+        tenant,
+        (subdomain && subdomain !== hostname && subdomain !== 'app') ? subdomain : null,
+        ownerSlug
+      ].filter(Boolean);
 
-      // Fallback: owner org
-      if (!org) {
-        const ownerSlug = process.env.OWNER_SLUG || 'fs';
-        org = await Organization.findOne({ slug: ownerSlug }).select('_id siteTheme').lean();
-      }
+      // Uma única query — prioridade respeitada em JS após resultado
+      const orgs = await Organization.find({ slug: { $in: candidates } })
+        .select('_id siteTheme slug')
+        .lean();
+
+      // Reordenar conforme prioridade dos candidatos
+      const bySlug = Object.fromEntries(orgs.map(o => [o.slug, o]));
+      const org = candidates.map(s => bySlug[s]).find(Boolean);
 
       if (org?.siteTheme && validThemes.includes(org.siteTheme)) {
         theme = org.siteTheme;
       }
     }
 
-    // Map theme to template path
     const templatePath = path.join(__dirname, `../site/templates/${theme}/index.html`);
 
-    // Check if template exists, fallback to elegante
-    const fs = require('fs');
-    if (!fs.existsSync(templatePath)) {
-      return res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
+    try {
+      await fs.promises.access(templatePath);
+    } catch {
+      return res.sendFile(fallback);
     }
 
     res.sendFile(templatePath);
   } catch (error) {
-    console.error('Error serving site template:', error);
-    res.sendFile(path.join(__dirname, '../site/templates/elegante/index.html'));
+    console.error('Erro ao servir template do site:', error);
+    res.sendFile(fallback);
   }
 });
 

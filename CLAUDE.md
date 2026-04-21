@@ -282,3 +282,18 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 3. fazer o push para o repositório
 4. avisar o usuário que o site foi atualizado
 
+
+---
+
+## ROADMAP ESTRATÉGICO (Visão 2026)
+
+O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de Vendas Automático**.
+
+### Pilares de Evolução:
+1.  **Vendedor Automático (Upselling):** Automação de marketing para venda de fotos extras com cupons de desconto e gatilhos de escassez (prazo expirando).
+2.  **Fluxo Pro (Lightroom):** Otimização do ciclo "Seleção em Baixa → Edição → Entrega em Alta", com escolha de resolução dinâmica (960px-1600px).
+3.  **Monetização Direta:** Integração com gateways de pagamento para liberação automática de downloads após quitação de extras.
+4.  **Backup Democrático:** Portabilidade de dados permitindo que o fotógrafo mova sessões antigas para seu próprio Google Drive/Dropbox.
+5.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora para compartilhamento social, servindo como motor de crescimento do SaaS.
+
+> Detalhes técnicos e fluxos documentados em `skills/2_1_clientes_selecao.md`.

@@ -34,6 +34,8 @@ const sessionSchema = new mongoose.Schema({
     coverPhoto: { type: String, default: '' },
     // Config
     highResDelivery: { type: Boolean, default: false }, // Entrega em alta resolucao
+    photoResolution: { type: Number, enum: [960, 1200, 1400, 1600], default: 1200 }, // Resolucao das thumbs de selecao
+    workflowType: { type: String, enum: ['ready', 'post_edit'], default: 'ready' }, // ready = ja editado; post_edit = exportar para Lightroom apos selecao
     watermark: { type: Boolean, default: true },
     commentsEnabled: { type: Boolean, default: true }, // Exibir botao de comentario na galeria do cliente
     canShare: { type: Boolean, default: false },

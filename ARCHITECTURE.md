@@ -230,13 +230,19 @@ Foto exibida = imagem comprimida + CSS overlay (watermark)
 Foto entregue = imagem original sem overlay
 ```
 
-### Entrega em Alta (FASE 4)
-**Decisao**: Manter duas versoes de cada foto: thumb (comprimida, 1200px) e original.
-**Justificativa**: Galeria carrega rapido com thumbs. Download entrega original.
+### Entrega em Alta e Seleção Dinâmica (Fase 4+)
+**Decisão**: Manter duas versões de cada foto: thumb (comprimida) e original.
+- **Resolução de Seleção**: Dinâmica e configurável pelo fotógrafo no momento da criação da sessão (`960px`, `1200px`, `1400px`, `1600px`).
+- **Justificativa**: Galeria carrega rápido com thumbs. O fotógrafo controla o equilíbrio entre qualidade e espaço em disco.
 ```
-uploads/{orgId}/sessions/thumb-{filename}.jpg   -> galeria (comprimida)
-uploads/{orgId}/sessions/{filename}.jpg         -> download (original)
+uploads/{orgId}/sessions/thumb-{filename}.jpg   -> galeria (res. dinâmica: 960-1600px)
+uploads/{orgId}/sessions/{filename}.jpg         -> download (original de alta res.)
 ```
+
+### Automação de Marketing e Vendas (Futuro)
+**Decisão**: Integrar gatilhos de marketing baseados no ciclo de vida da sessão.
+- **Upselling**: Disparo automático de ofertas para fotos extras não selecionadas.
+- **Pagamento**: Integração com gateways para liberação automática de downloads após confirmação de pagamento de extras.
 
 ### Download ZIP (FASE 4)
 **Decisao**: Gerar ZIP via streaming (nao salvar no disco).

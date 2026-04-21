@@ -159,6 +159,23 @@ export async function renderSessoes(container) {
               <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
             </select>
           </div>
+          <div style="margin-top:0.75rem;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fluxo de trabalho</label>
+            <select id="sessionWorkflow" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+              <option value="ready">Pronto para Entrega — fotos já editadas</option>
+              <option value="post_edit">Edição Pós-Seleção — exportar para Lightroom após seleção</option>
+            </select>
+          </div>
+          <div style="margin-top:0.75rem;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Resolução das fotos de seleção</label>
+            <select id="sessionResolution" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+              <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
+              <option value="1200" selected>1200px — padrão (equilíbrio)</option>
+              <option value="1400">1400px — alta qualidade</option>
+              <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
+            </select>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">Não pode ser alterado após a criação da sessão.</p>
+          </div>
           <div id="selectionFields" style="display:flex; gap:0.75rem; margin-top:0.75rem;">
             <div style="flex:1;">
               <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fotos do pacote</label>
@@ -185,6 +202,11 @@ export async function renderSessoes(container) {
         <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Fotos da Sessao</h3>
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <div id="sessionUploadProgress" style="min-width:150px;"></div>
+          <label id="uploadEditedBtn" style="display:none; padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;" title="Upload das fotos já editadas no Lightroom — casa por nome de arquivo">
+            ✏️ Upload Editadas
+            <input type="file" id="sessionEditedInput" accept="image/*" multiple style="display:none;">
+          </label>
+          <div id="editedUploadProgress" style="min-width:100px; font-size:0.75rem; color:var(--text-secondary);"></div>
           <label id="uploadMoreBtn" style="padding:0.5rem 1rem; background:#2563eb; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
             + Upload
             <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
@@ -450,6 +472,7 @@ export async function renderSessoes(container) {
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--purple); background:rgba(188, 140, 255, 0.1); border:1px solid rgba(188, 140, 255, 0.3); font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
+                ${session.workflowType === 'post_edit' ? `<span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--yellow); background:rgba(210,153,34,0.12); border:1px solid rgba(210,153,34,0.35); font-weight:500;">✏️ Pós-Edição</span>` : ''}
               </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
@@ -475,7 +498,11 @@ export async function renderSessoes(container) {
               <button onclick="reopenSelection('${session._id}')" style="background:var(--yellow); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Reabrir
               </button>
-              <button onclick="deliverSession('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              ${session.workflowType === 'post_edit' ? `
+              <button onclick="window.open('/api/sessions/${session._id}/export?token=${appState.authToken}', '_blank')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;" title="Exportar lista de seleção para o Lightroom">
+                📋 Lightroom
+              </button>` : ''}
+              <button onclick="deliverSession('${session._id}')" style="background:${session.workflowType === 'post_edit' ? 'transparent' : 'var(--green)'}; color:${session.workflowType === 'post_edit' ? 'var(--green)' : 'white'}; padding:0.375rem 0.75rem; border-radius:0.375rem; border:${session.workflowType === 'post_edit' ? '1px solid var(--green)' : 'none'}; cursor:pointer; font-size:0.75rem; font-weight:500;" title="${session.workflowType === 'post_edit' ? 'Edite no Lightroom antes de entregar' : ''}">
                 Entregar
               </button>` : ''}
               ${session.extraRequest?.status === 'pending' ? `
@@ -710,6 +737,8 @@ export async function renderSessoes(container) {
     const mode = container.querySelector('#sessionMode').value;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
+    const photoResolution = parseInt(container.querySelector('#sessionResolution').value) || 1200;
+    const workflowType = container.querySelector('#sessionWorkflow').value || 'ready';
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const clientId = container.querySelector('#sessionClientId').value || null;
 
@@ -728,7 +757,7 @@ export async function renderSessoes(container) {
     try {
       const result = await apiPost('/api/sessions', {
         name, clientEmail, type, date, selectionDeadline,
-        mode, packageLimit, extraPhotoPrice, coverPhoto, clientId
+        mode, packageLimit, extraPhotoPrice, photoResolution, workflowType, coverPhoto, clientId
       });
 
       newSessionModal.style.display = 'none';
@@ -756,6 +785,11 @@ export async function renderSessoes(container) {
     const grid = container.querySelector('#sessionPhotosGrid');
 
     title.textContent = `Fotos - ${session.name}`;
+
+    // Mostrar botão de upload das editadas apenas para sessões post_edit
+    const uploadEditedBtn = container.querySelector('#uploadEditedBtn');
+    uploadEditedBtn.style.display = session.workflowType === 'post_edit' ? '' : 'none';
+
     const photos = session.photos || [];
 
     if (photos.length > 0) {
@@ -1205,6 +1239,46 @@ export async function renderSessoes(container) {
     e.target.value = '';
     await renderSessoes(container);
     viewSessionPhotos(currentSessionId);
+  };
+
+  // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo
+  container.querySelector('#sessionEditedInput').onchange = async (e) => {
+    if (!currentSessionId) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const progressEl = container.querySelector('#editedUploadProgress');
+    progressEl.textContent = 'Enviando...';
+
+    const formData = new FormData();
+    files.forEach(f => formData.append('photos', f));
+
+    try {
+      const res = await fetch(`/api/sessions/${currentSessionId}/photos/upload-edited`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${appState.authToken}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro no upload');
+
+      const matchedCount = data.matched?.length || 0;
+      const unmatchedCount = data.unmatched?.length || 0;
+      progressEl.textContent = '';
+
+      if (unmatchedCount > 0) {
+        window.showToast?.(`${matchedCount} editadas aplicadas. ${unmatchedCount} não encontradas: ${data.unmatched.join(', ')}`, 'warning');
+      } else {
+        window.showToast?.(`${matchedCount} fotos editadas aplicadas com sucesso`, 'success');
+      }
+
+      await renderSessoes(container);
+      viewSessionPhotos(currentSessionId);
+    } catch (error) {
+      progressEl.textContent = '';
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+    e.target.value = '';
   };
 
   // Deletar foto individual

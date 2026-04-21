@@ -272,9 +272,37 @@ extraRequest: {
 
 ### Sininho de notificação para respostas do fotógrafo
 - Substituiu o badge flutuante por um sino 🔔 no header da galeria (`#clientBellBtn`)
-- Badge vermelho com contagem aparece sobre o sino quando há respostas novas do fotógrafo
-- Ao clicar no sino: zera `unreadReplies`, esconde o badge, abre modal de comentários da primeira foto com resposta
-- O sino fica oculto (`display:none`) quando não há notificações pendentes
+- Badge vermelho com contagem aparece so
+---
+
+## Roadmap e Ideias Futuras (Documentação de Intenção)
+
+As diretrizes abaixo foram acordadas para implementações futuras, visando transformar o sistema de galeria em uma ferramenta de vendas e fidelização.
+
+### 1. Resolução Dinâmica de Seleção
+**Objetivo:** Dar controle ao fotógrafo sobre o equilíbrio entre qualidade visual e consumo de armazenamento.
+- **Configuração:** No momento da criação da sessão, o fotógrafo escolhe entre `960px`, `1200px`, `1400px` ou `1600px` para as fotos de seleção.
+- **Regra:** A resolução não pode ser alterada após a criação (devido ao processamento de thumbs no upload).
+- **UX:** Incluir *hints* (dicas) informando o impacto de cada escolha no armazenamento global do servidor.
+
+### 2. Fluxos de Trabalho (Seleção vs. Entrega)
+O sistema deve suportar nativamente dois perfis de fotógrafos:
+- **Fluxo "Pronto para Entrega":** Upload de fotos já editadas. O cliente seleciona, paga (se houver extras) e o download é liberado automaticamente.
+- **Fluxo "Edição Pós-Seleção":** Upload de fotos básicas/originais. O cliente seleciona, o fotógrafo exporta para o Lightroom, edita apenas as escolhidas e faz o upload das versões finais editadas para liberar a entrega.
+
+### 3. Automação de Marketing (Upselling)
+- **Ofertas Dinâmicas:** Sistema enviará e-mails/notificações automáticas (configuráveis) oferecendo fotos extras com valor promocional.
+- **Gatilhos de Escassez:** Notificar o cliente sobre o fim do prazo de armazenamento/download para incentivar a compra de fotos que ficaram de fora da seleção inicial.
+
+### 4. Ciclo de Vida e Backup Democrático
+- **Prazos Configuráveis:** Estabelecer prazos distintos para download das selecionadas e disponibilidade das fotos extras.
+- **Filosofia Democrática:** Criar ferramenta para o fotógrafo mover sessões vencidas para seu próprio backup externo (Google Drive, Dropbox, etc.), em vez de forçar o pagamento por armazenamento excedente.
+- **Estado de Backup:** Após o prazo, as fotos extras saem da visualização do cliente e entram em estado de backup interno.
+
+### 5. Gerador de Slideshow (Vídeo)
+- **Funcionalidade:** Criar automaticamente um vídeo (slideshow) com as fotos selecionadas, trilha sonora e transições.
+- **Branding:** O vídeo conterá uma marca discreta do sistema, servindo como ferramenta de marketing viral quando compartilhado pelo cliente nas redes sociais.
+otografo. 
 
 
-
+outra coisa, gostaria de criar um sistema para criar video com as fotos escolhidas pelo cliente, o video seria como um slideshow com as fotos escolhidas pelo cliente, com trilha sonora e transicoes. o video teria a marca do nosso app em algum lugar discreto. sei que vai ser um pouco mais complexo, mais é algo que podemos estudar para implementar no futuro.
