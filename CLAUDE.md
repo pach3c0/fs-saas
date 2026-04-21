@@ -134,8 +134,10 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | App nao inicia | MongoDB off | `sudo systemctl start mongod` |
 | 502 Bad Gateway | Node caiu | `pm2 reload ecosystem.config.js --env production` + logs |
 | Admin demora para carregar no login | Chamadas de API sequenciais em `postLoginSetup` | Usar `Promise.all([loadOrgSlug(), loadSidebarStorage()])` — nunca `await` em serie para chamadas independentes |
-| Site publico lento (TTFB alto) | Query dupla MongoDB na rota `GET /site` | Incluir `siteTheme` no `.select()` da query de resolucao do tenant — nao fazer `findById` separado depois |
-| I/O sincrono trava todo o servidor | `fs.readdirSync`/`fs.statSync` no event loop | Sempre `fs.promises.readdir`/`fs.promises.stat` em rotas async |
+| Site publico lento (TTFB alto) | Multiplas queries MongoDB na rota `GET /site` | Usar uma unica `Organization.find({ slug: { $in: candidates } })` e reordenar por prioridade em JS |
+| I/O sincrono trava todo o servidor | `fs.readdirSync`/`fs.statSync`/`fs.existsSync` no event loop | Sempre `fs.promises.readdir`/`fs.promises.stat`/`fs.promises.access` em rotas async |
+| `require()` dentro de handler | Lookup desnecessaria a cada requisicao | Mover todos os `require()` para o topo do arquivo |
+| Branding de outra marca aparece na galeria do cliente | Fallback hardcoded `'FS FOTOGRAFIAS'` em `gallery.js` ou `index.html` | Fallback sempre `''` ou omitir — nunca string de marca; ver `skills/2_1_clientes_selecao.md` |
 
 
 ---
@@ -151,6 +153,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 ### CRM e Sessões
 `skills/2_0_sessoes-clientes.md` — módulo Sessões + Clientes: arquitetura, fluxo de seleção, multi-seleção, busca dinâmica de clientes, 3 campos de data, envio manual de e-mail, filtros, link email→galeria com slug+código, rota `/send-code`, rota `/clients/search`
+`skills/2_1_clientes_selecao.md` — galeria PWA do cliente (`cliente/`): tenant resolution por subdomínio, login automático via `?code=`, branding dinâmico (somente logo do fotógrafo), watermark, PWA manifest, rotas `/api/client/*`
 
 ### Site Builder — Índice e Geral
 `skills/5_0_meu-site.md` — índice do builder, estrutura geral, navegação entre módulos
@@ -197,9 +200,10 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 ### Backend
 - **I/O de disco:** sempre `fs.promises.*` (async) — nunca `fs.readdirSync`, `fs.statSync`, `fs.existsSync` em rotas.
-- **Queries MongoDB em rotas publicas:** resolver tenant e `siteTheme` em uma unica query com `.select('_id siteTheme').lean()`.
+- **Queries MongoDB na rota `GET /site`:** uma unica `Organization.find({ slug: { $in: candidates } })` cobrindo tenant/subdominio/ownerSlug; prioridade resolvida em JS por reordenacao de array.
 - **Limit do express.json:** `5mb` global — uploads usam multer (multipart), nao sao afetados por esse limit.
 - **`.lean()`:** usar em todas as queries de leitura que nao precisam de metodos Mongoose (`save`, `markModified`).
+- **`require()` no topo:** nunca usar `require()` dentro de handlers de rota — mover para o topo do arquivo.
 
 ---
 
