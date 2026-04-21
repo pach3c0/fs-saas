@@ -402,119 +402,165 @@ Todos os envios são `fire-and-forget` (`.catch(() => {})`), não bloqueiam a re
 
 Este guia explica detalhadamente cada campo e funcionalidade do módulo de Sessões, ajudando você a gerenciar seus trabalhos e a experiência do seu cliente de forma profissional.
 
-## 1. Campos de Cadastro e Edição
+---
 
-### Vincular Cliente (CRM)
-Esta opção permite conectar a sessão a um cliente já cadastrado no seu banco de dados (CRM).
-- **Para que serve:** Centraliza a informação. Ao vincular, você verá o nome do cliente diretamente na lista de sessões e poderá acessar o histórico desse cliente no futuro.
-- **Impacto:** Facilita a organização. Um badge verde (`👤 Nome`) aparecerá no card da sessão.
-opcional
+## 1. Painel de Filtros
+
+O painel de filtros fica no topo da lista de sessões e permite encontrar rapidamente qualquer trabalho.
+
+### 🔍 Busca por Nome
+- **Campo:** barra de texto "Buscar cliente..."
+- **Como funciona:** filtra em tempo real pelo **nome da sessão** enquanto você digita. Não é necessário pressionar Enter.
+- **Dica:** use o nome do evento ou do cliente (ex: "Casamento Silva", "Formatura 2024").
+
+### 🏷 Filtro por Status
+Checkboxes que permitem exibir ou ocultar sessões por estado atual:
+
+| Status | Significado |
+|---|---|
+| **Pendente** | Sessão criada, cliente ainda não acessou ou não iniciou a seleção |
+| **Em seleção** | Cliente abriu a galeria e já marcou pelo menos uma foto |
+| **Seleção enviada** | Cliente finalizou e enviou a seleção para você |
+| **Entregue** | Você marcou como entregue; cliente pode baixar em alta resolução |
+| **Expirado** | O prazo de seleção passou sem o cliente finalizar |
+
+> Por padrão, todos os status estão marcados. Desmarque os que não quer ver.
+
+### 🎛 Filtro por Modo de Galeria
+Select dropdown à direita dos status:
+- **Todos os modos** — exibe tudo
+- **Seleção** — apenas sessões onde o cliente escolhe fotos
+- **Multi-Seleção** — apenas eventos com participantes individuais (formaturas, shows)
+- **Galeria** — apenas sessões de visualização/download puro
+
+### 📅 Filtro por Período (com seletor de campo)
+Dois campos de data (De / Até) acompanhados de um **select que define qual data filtrar**:
+
+| Opção do select | Campo filtrado | Uso típico |
+|---|---|---|
+| **Criado em** | `createdAt` (automático do Mongoose) | Ver sessões abertas em determinado mês |
+| **Data do Evento** | `date` | Ver eventos que aconteceram em uma data específica |
+| **Prazo de Seleção** | `selectionDeadline` | Ver quais sessões vencem em breve |
+
+- **Como usar:** selecione o campo, preencha De e/ou Até. O filtro é aplicado imediatamente.
+- **Limpar:** botão "Limpar" zera os dois campos de data (o select fica preservado).
+
+> **Atenção:** sessões sem valor no campo selecionado (ex: sem prazo definido) são **excluídas** do resultado quando o filtro de período está ativo.
+
+### 🔃 Ordenação
+Select "Mais recentes":
+- **Mais recentes** — ordena por `createdAt` decrescente (padrão)
+- **Mais antigos** — `createdAt` crescente
+- **Nome A-Z / Z-A** — ordem alfabética
+
+---
+
+## 2. Campos de Cadastro e Edição
+
+### Vincular Cliente (CRM) — *opcional*
+Campo de busca dinâmica. Ao digitar, o sistema busca clientes cadastrados em tempo real.
+- **Cliente existente:** clique no nome para vincular. O e-mail do cadastro é usado automaticamente.
+- **Cliente novo:** se não encontrar, a opção "+ Cadastrar" aparece — cria o cliente e já vincula sem sair do modal.
+- **Impacto visual:** badge verde (`👤 Nome`) aparece no card da sessão.
 
 ### Nome da Sessão
-O título que identifica o trabalho.
-- **Para que serve:** Identificar a sessão para você e para o seu cliente na galeria.
-- **Dica:** Se você vincular um cliente, o sistema sugere o nome dele automaticamente, mas você pode personalizar (ex: "Ensaio 1 Ano - Alice").
-
-### E-mail do Cliente
-O endereço para onde serão enviadas as notificações automáticas.
-- **Para que serve:** O sistema utiliza este e-mail para avisar o cliente que a galeria está disponível para seleção e, posteriormente, quando as fotos finais forem entregues.
-- **Opcional:** Se não preenchido, você precisará enviar o código de acesso manualmente via WhatsApp.
+O título que identifica o trabalho para você e para o cliente na galeria.
+- **Dica:** se você vincular um cliente, o sistema sugere o nome dele automaticamente.
 
 ### Tipo de Sessão
-Uma etiqueta de categorização (Casamento, Família, Ensaio, etc.).
-- **Para que serve:** Organização visual. Ajuda a filtrar e bater o olho na lista e saber do que se trata o trabalho. Não altera nenhuma funcionalidade técnica.
+Etiqueta de categorização (Casamento, Família, Ensaio, Evento, Corporativo).
+- **Para que serve:** organização visual e filtros futuros. Não altera nenhuma lógica técnica.
 
-### Data da Sessão
-A data em que as fotos foram tiradas.
-- **Para que serve:** Registro histórico e ordenação na listagem.
+### Datas da Sessão
+Três campos distintos com validação cruzada em tempo real:
 
-### Prazo de Seleção
-A data e hora limite para o cliente escolher as fotos.
-- **Como funciona:** O sistema monitora este prazo. Quando ele expira, o cliente é impedido de fazer novas seleções na galeria e verá um aviso de "Prazo Expirado".
-- **Impacto:** Você tem controle total sobre o fluxo de produção. Se precisar, pode editar a sessão e estender o prazo ou "Reabrir" a seleção com um clique.
+| Campo | Obrigatório | Descrição |
+|---|---|---|
+| **Criado em** | Não | Data de abertura da sessão. Pré-preenchido com hoje. |
+| **Data do Evento** | Não | Quando o ensaio/evento aconteceu. |
+| **Prazo de Seleção** | Não | Limite para o cliente escolher as fotos (datetime). |
+
+**Regras de validação:**
+- `Criado em` ≤ `Data do Evento`
+- `Data do Evento` ≤ `Prazo de Seleção`
+- Mensagem de erro vermelha aparece inline; o botão "Criar Sessão" fica bloqueado enquanto houver violação.
 
 ### Foto de Capa
-Uma imagem representativa do ensaio.
-- **Para que serve:** Identificação visual rápida na sua lista de sessões. É a imagem que aparece no pequeno quadrado à esquerda de cada sessão no painel.
+Imagem representativa exibida no quadrado à esquerda de cada card na listagem. Upload comprimido automaticamente.
 
 ---
 
-## 2. Configuração da Galeria (Modos de Entrega)
+## 3. Configuração da Galeria (Modos de Entrega)
 
-O CliqueZoom oferece três formas de o seu cliente interagir com as fotos:
+### A. Modo Seleção
+O cliente escolhe quais fotos deseja dentro do pacote contratado.
+- **Fotos do pacote:** limite incluso no contrato.
+- **Preço da foto extra:** valor unitário para fotos além do limite. O painel calcula o total de extras.
 
-### A. Modo Seleção (Cliente escolhe favoritas)
-É o fluxo de trabalho mais comum para fotógrafos.
-- **O que é:** Você sobe as fotos brutas (ou com edição básica) e o cliente marca quais ele deseja.
-- **Fotos do Pacote:** Defina quantas fotos o cliente já pagou.
-- **Preço da Foto Extra:** Defina o valor unitário caso o cliente queira mais fotos do que o combinado. O sistema calcula o valor total de extras automaticamente para você.
+### B. Modo Galeria
+O cliente visualiza e baixa todas as fotos sem precisar fazer seleção.
 
-### B. Modo Galeria (Visualização e Download)
-Ideal para a entrega final do trabalho.
-- **O que é:** O cliente não precisa "escolher" nada. Ele entra na galeria para visualizar as fotos e baixá-las.
-- **Uso comum:** Após você tratar as fotos selecionadas, você muda a sessão para este modo para a entrega definitiva.
-
-### C. Modo Multi-Seleção (Formaturas e Shows)
-Desenvolvido para eventos onde várias pessoas precisam escolher fotos de um mesmo pool de imagens.
-- **O que é:** Em vez de um único código para a sessão toda, você cria "Participantes".
-- **Como funciona:** Cada participante (ex: cada aluno de uma turma) recebe seu próprio código exclusivo e tem seu próprio limite de fotos. As escolhas de um não interferem nas do outro.
+### C. Modo Multi-Seleção
+Para eventos com múltiplos participantes (formaturas, shows).
+- Cada participante recebe um código próprio e tem limite individual.
+- As seleções de um não interferem nas do outro.
 
 ---
 
-## 3. Configurações Avançadas
+## 4. Ações nos Cards de Sessão
+
+| Botão | Quando aparece | O que faz |
+|---|---|---|
+| **Fotos** | Sempre | Abre a galeria de fotos da sessão |
+| **Seleção** | Modo Seleção e há fotos marcadas | Visualiza quais fotos o cliente escolheu |
+| **Participantes** | Modo Multi-Seleção | Gerencia os participantes e suas seleções |
+| **Reabrir** | Seleção enviada | Permite o cliente alterar a seleção |
+| **Entregar** | Seleção enviada | Marca como entregue e remove watermark |
+| **📧 Enviar** | Sempre | Envia o código de acesso por e-mail ao cliente (ação manual) |
+| **Config** | Sempre | Edita configurações: nome, tipo, datas, modo, limite, preço extra, vínculo CRM |
+| **Código** | Sempre | Copia o código de acesso para o clipboard |
+| **✕** | Sempre | Exclui a sessão e todas as fotos permanentemente |
+
+> **Sobre o envio de e-mail:** o e-mail **não é enviado automaticamente** ao criar a sessão.
+> O fotógrafo configura tudo e, quando pronto, clica em **📧 Enviar** para disparar o e-mail com o código.
+> Se o cliente não tiver e-mail cadastrado, o sistema copia o código no clipboard automaticamente.
+
+---
+
+## 5. Configurações Avançadas
 
 ### Entrega em Alta Resolução
-Localizado nas configurações da sessão.
-- **Desmarcado (Padrão):** O cliente baixa a versão otimizada para web (rápida e leve).
-- **Marcado:** O cliente terá acesso ao download do arquivo original, exatamente como você subiu, sem nenhuma compressão adicional do sistema. Ideal para entregas finais prontas para impressão.
+- **Desmarcado (padrão):** cliente baixa versão otimizada para web.
+- **Marcado:** cliente acessa o arquivo original sem compressão — ideal para impressão.
 
 ### Comentários nas Fotos
-Tanto você quanto o cliente podem trocar mensagens sobre fotos específicas.
-- **Para que serve:** Tirar dúvidas sobre edições, pedir retoques ou simplesmente elogiar um clique. Você recebe notificações no painel sempre que um cliente comenta.
+Você e o cliente podem trocar mensagens sobre fotos específicas diretamente na galeria.
+- Você recebe notificações no painel a cada novo comentário do cliente.
 
+---
 
 ## Atualizações (2026-04-21)
 
-### Modal "Nova Sessão" — Busca Dinâmica de Clientes
-- **Antes:** dropdown `<select>` carregava todos os clientes da org ao abrir o modal.
-- **Agora:** campo de texto com autocomplete. O admin digita o nome e o sistema busca via `GET /api/clients/search?q=` (nova rota, debounce 300ms).
-- Se o cliente **existir**: aparece na lista com nome + e-mail; ao clicar, vincula e preenche o nome da sessão automaticamente.
-- Se o cliente **não existir**: aparece opção "+ Cadastrar como novo cliente", que faz `POST /api/clients` e já vincula o novo registro.
-- O campo de **e-mail não aparece mais no modal** — o e-mail é lido do cadastro do cliente vinculado no momento do submit.
+### Busca Dinâmica de Clientes no Modal
+- Campo de autocomplete substitui o dropdown estático.
+- Busca via `GET /api/clients/search?q=` com debounce de 300ms.
+- Opção de cadastrar novo cliente inline sem sair do modal.
+- E-mail do cliente vem do cadastro do CRM — não é mais pedido no modal.
 
-### Modal "Nova Sessão" — 3 Campos de Data
-Antes havia apenas um campo "Data". Agora são três campos distintos:
+### 3 Campos de Data no Modal
+- Substituído o campo único "Data" por: **Criado em**, **Data do Evento** e **Prazo de Seleção**.
+- Validação cruzada em tempo real bloqueia o submit em caso de inconsistência.
 
-| Campo | Input | Campo no banco | Observação |
-|---|---|---|---|
-| **Criado em** | `date` | enviado como parte do body (não é `createdAt` do Mongoose) | Pré-preenchido com hoje |
-| **Data do Evento** | `date` | `date` (Session.date) | Quando o ensaio/evento ocorreu |
-| **Prazo de Seleção** | `datetime-local` | `selectionDeadline` | Opcional |
+### Envio de E-mail — Ação Manual
+- Removido o envio automático ao criar a sessão.
+- Nova rota `POST /api/sessions/:id/send-code` dispara o e-mail sob demanda.
 
-**Regras de validação cruzada (client-side, em tempo real):**
-- `Data do Evento` não pode ser **anterior** ao `Criado em`
-- `Prazo de Seleção` não pode ser **anterior** à `Data do Evento`
-- Mensagem de erro vermelha aparece inline; botão "Criar Sessão" fica bloqueado enquanto houver violação.
+### Filtro de Período com Seletor de Campo
+- Adicionado `<select>` "Período por:" com opções: Criado em / Data do Evento / Prazo de Seleção.
+- O filtro De/Até agora opera sobre o campo escolhido.
 
-### Backend — Nova Rota de Busca
-Adicionada em `src/routes/clients.js` (antes do `GET /api/clients`):
+### Backend — Novas Rotas
 ```
-GET /api/clients/search?q=:nome
-→ Retorna até 10 clientes com nome matching (case-insensitive regex)
-→ Campos: name, email, phone
-→ Requer authenticateToken
+GET  /api/clients/search?q=:nome   → autocomplete (até 10 resultados)
+POST /api/sessions/:id/send-code   → dispara e-mail de código ao cliente
 ```
-
-
-# ajustes
-
-  no momento atual, quando criado a sessao do cliente, ja esta sendo enviado o email para o cliente.
-  O correto é, fotografo configura a sessao, e depois clica em um botao enviar codigo para cliente  
-
-em sessoes nos filtros de datas, agora precisa ter
-
-criado em 
-data do evento 
-prazo de seleçao
-
-
