@@ -273,36 +273,83 @@ extraRequest: {
 ### Sininho de notificação para respostas do fotógrafo
 - Substituiu o badge flutuante por um sino 🔔 no header da galeria (`#clientBellBtn`)
 - Badge vermelho com contagem aparece so
+
+---
+
+## Features Implementadas (2026-04-21) — Lote 4
+
+### Resolução Dinâmica de Seleção
+- `Session.photoResolution` (enum 960/1200/1400/1600, default 1200)
+- Upload: `sharp.resize(session.photoResolution, ...)` — fim do 1200px hardcoded
+- Select "Resolução das fotos de seleção" no modal Nova Sessão com hint de impacto
+- Campo enviado no payload de criação; não pode ser alterado após criação
+
+### Fluxos de Trabalho: ready vs. post_edit
+- `Session.workflowType` (enum `ready` | `post_edit`, default `ready`)
+- **`ready`:** thumb + original mantida; entrega via `urlOriginal` ou `highResDelivery`
+- **`post_edit`:** original deletada do disco após gerar thumb (`fs.promises.unlink`); `urlOriginal` fica vazio
+  - `POST /api/sessions/:id/photos/upload-edited` — re-upload das editadas, casa por `photo.filename`
+  - Botão "✏️ Upload Editadas" (roxo) no modal de fotos; visível só para `post_edit`
+  - Toast informa quantas casaram e lista nomes não encontrados
+- Select "Fluxo de trabalho" no modal Nova Sessão
+- Badge "✏️ Pós-Edição" no card; botão "📋 Lightroom" destacado quando `submitted` + `post_edit`
+- Download: `post_edit` sempre serve `urlOriginal`; `ready` respeita `highResDelivery`
+
+### Automação de Prazos
+- `Organization.integrations.deadlineAutomation: { enabled, daysWarning, sendEmail }`
+- `deadlineChecker.js` reescrito: carrega orgs em query única (`.lean()`), respeita `daysWarning` por org
+- `email.js`: `sendDeadlineWarningEmail(clientEmail, sessionName, daysLeft, orgName)` e `sendDeadlineExpiredEmail`
+- `server.js`: `startDeadlineScheduler()` — chamado após conexão MongoDB; `setInterval` 6h; flag `deadlineSchedulerStarted` evita duplicação no cluster PM2
+- Admin → Integrações: seção "Automação de Prazos" com toggle ativar, campo dias, checkbox e-mail
+
+---
+
+## Rotas Admin de Sessões (atualizado 2026-04-21)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/api/sessions` | Criar sessão (aceita `photoResolution`, `workflowType`) |
+| POST | `/api/sessions/:id/photos` | Upload de fotos (comportamento varia por `workflowType`) |
+| POST | `/api/sessions/:id/photos/upload-edited` | Re-upload das editadas — só `post_edit`, casa por filename |
+| GET | `/api/sessions/:id/export` | Exportar lista de seleção (.txt para Lightroom) |
+| PUT | `/api/sessions/:id/deliver` | Marcar como entregue |
+
 ---
 
 ## Roadmap e Ideias Futuras (Documentação de Intenção)
 
-As diretrizes abaixo foram acordadas para implementações futuras, visando transformar o sistema de galeria em uma ferramenta de vendas e fidelização.
+As diretrizes abaixo visam transformar o sistema em uma ferramenta de vendas e fidelização. Itens marcados com ✅ já foram implementados.
 
-### 1. Resolução Dinâmica de Seleção
-**Objetivo:** Dar controle ao fotógrafo sobre o equilíbrio entre qualidade visual e consumo de armazenamento.
-- **Configuração:** No momento da criação da sessão, o fotógrafo escolhe entre `960px`, `1200px`, `1400px` ou `1600px` para as fotos de seleção.
-- **Regra:** A resolução não pode ser alterada após a criação (devido ao processamento de thumbs no upload).
-- **UX:** Incluir *hints* (dicas) informando o impacto de cada escolha no armazenamento global do servidor.
+### 1. ✅ Resolução Dinâmica de Seleção — IMPLEMENTADO (2026-04-21)
+- `Session.photoResolution` (enum: 960 | 1200 | 1400 | 1600, default 1200)
+- Select no modal "Nova Sessão"; thumb gerada na resolução escolhida via `sharp`
+- **Regra crítica:** não pode ser alterado após a criação (thumbs já processadas)
+- Fluxo `post_edit`: original deletada do disco após gerar thumb (economia de armazenamento)
 
-### 2. Fluxos de Trabalho (Seleção vs. Entrega)
-O sistema deve suportar nativamente dois perfis de fotógrafos:
-- **Fluxo "Pronto para Entrega":** Upload de fotos já editadas. O cliente seleciona, paga (se houver extras) e o download é liberado automaticamente.
-- **Fluxo "Edição Pós-Seleção":** Upload de fotos básicas/originais. O cliente seleciona, o fotógrafo exporta para o Lightroom, edita apenas as escolhidas e faz o upload das versões finais editadas para liberar a entrega.
+### 2. ✅ Fluxos de Trabalho (ready vs. post_edit) — IMPLEMENTADO (2026-04-21)
+- `Session.workflowType` (enum: `ready` | `post_edit`, default `ready`)
+- **`ready`:** upload salva thumb + original; entrega serve original direto
+- **`post_edit`:** upload salva apenas thumb (original descartada); após seleção do cliente, fotógrafo faz re-upload das editadas → sistema casa por `photo.filename`
+  - Endpoint: `POST /api/sessions/:id/photos/upload-edited`
+  - Matching por nome: exportar `.txt` do Lightroom, exportar editadas com mesmo nome
+  - Botão "✏️ Upload Editadas" aparece no modal de fotos somente para sessões `post_edit`
+- Badge "✏️ Pós-Edição" no card admin; botão "📋 Lightroom" destacado quando `submitted`
+- Download/ZIP: `post_edit` serve `urlOriginal` (editada); `ready` respeita `highResDelivery`
 
-### 3. Automação de Marketing (Upselling)
-- **Ofertas Dinâmicas:** Sistema enviará e-mails/notificações automáticas (configuráveis) oferecendo fotos extras com valor promocional.
-- **Gatilhos de Escassez:** Notificar o cliente sobre o fim do prazo de armazenamento/download para incentivar a compra de fotos que ficaram de fora da seleção inicial.
+### 3. ✅ Automação de Prazos (Escassez) — IMPLEMENTADO (2026-04-21)
+- `Organization.integrations.deadlineAutomation` com `enabled`, `daysWarning` (padrão 3), `sendEmail`
+- `deadlineChecker.js`: respeita `daysWarning` por org; dispara e-mail fire-and-forget ao `clientEmail`
+- `email.js`: `sendDeadlineWarningEmail` (N dias antes) e `sendDeadlineExpiredEmail` (expirou)
+- `server.js`: `startDeadlineScheduler()` — roda na conexão MongoDB + `setInterval` a cada 6h
+- Admin → Integrações: seção "Automação de Prazos" com toggle, campo de dias e opção e-mail
+- **Próximo passo:** upselling — e-mail após submissão oferecendo fotos extras com desconto
 
-### 4. Ciclo de Vida e Backup Democrático
-- **Prazos Configuráveis:** Estabelecer prazos distintos para download das selecionadas e disponibilidade das fotos extras.
-- **Filosofia Democrática:** Criar ferramenta para o fotógrafo mover sessões vencidas para seu próprio backup externo (Google Drive, Dropbox, etc.), em vez de forçar o pagamento por armazenamento excedente.
-- **Estado de Backup:** Após o prazo, as fotos extras saem da visualização do cliente e entram em estado de backup interno.
+### 4. Ciclo de Vida e Backup Democrático — PENDENTE
+- Prazos distintos para download das selecionadas e disponibilidade das fotos extras
+- Ferramenta para mover sessões vencidas para Google Drive/Dropbox do fotógrafo
+- Estado de backup: fotos extras saem da visualização do cliente após o prazo
 
-### 5. Gerador de Slideshow (Vídeo)
-- **Funcionalidade:** Criar automaticamente um vídeo (slideshow) com as fotos selecionadas, trilha sonora e transições.
-- **Branding:** O vídeo conterá uma marca discreta do sistema, servindo como ferramenta de marketing viral quando compartilhado pelo cliente nas redes sociais.
-otografo. 
-
-
-outra coisa, gostaria de criar um sistema para criar video com as fotos escolhidas pelo cliente, o video seria como um slideshow com as fotos escolhidas pelo cliente, com trilha sonora e transicoes. o video teria a marca do nosso app em algum lugar discreto. sei que vai ser um pouco mais complexo, mais é algo que podemos estudar para implementar no futuro.
+### 5. Gerador de Slideshow (Vídeo) — PENDENTE
+- Vídeo automático com fotos selecionadas, trilha sonora e transições
+- Marca discreta do sistema (marketing viral via compartilhamento)
+- Requer: `fluent-ffmpeg`, fila de jobs assíncrona (Bull/BeeQueue), armazenamento de vídeos gerados

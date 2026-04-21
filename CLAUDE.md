@@ -69,7 +69,7 @@ Layout: `#sidebar (220px)` + `#main-area (#topbar 56px + #workspace + #builder-p
 
 ## MODELO Organization (campos chave)
 
-`name, slug, ownerId, plan, isActive, logo, phone, whatsapp, email, website, bio, address, city, state, primaryColor, watermarkType, watermarkText, watermarkOpacity, siteEnabled, siteTheme, siteConfig{hero*,overlayOpacity,topBarHeight,bottomBarHeight}, siteStyle{accentColor,bgColor,textColor,fontFamily}, siteSections[], siteContent{sobre,servicos,depoimentos,portfolio,contato,faq,customSections}, integrations{whatsappMessage,googleAnalytics,facebookPixel,metaPixel,seo}`
+`name, slug, ownerId, plan, isActive, logo, phone, whatsapp, email, website, bio, address, city, state, primaryColor, watermarkType, watermarkText, watermarkOpacity, siteEnabled, siteTheme, siteConfig{hero*,overlayOpacity,topBarHeight,bottomBarHeight}, siteStyle{accentColor,bgColor,textColor,fontFamily}, siteSections[], siteContent{sobre,servicos,depoimentos,portfolio,contato,faq,customSections}, integrations{whatsappMessage,googleAnalytics,facebookPixel,metaPixel,seo,deadlineAutomation{enabled,daysWarning,sendEmail}}`
 
 `SiteData` (legado): hero, faq, portfolio.photos[]. Acessado via `GET/PUT /api/site-data`.
 
@@ -290,10 +290,11 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de Vendas Automático**.
 
 ### Pilares de Evolução:
-1.  **Vendedor Automático (Upselling):** Automação de marketing para venda de fotos extras com cupons de desconto e gatilhos de escassez (prazo expirando).
-2.  **Fluxo Pro (Lightroom):** Otimização do ciclo "Seleção em Baixa → Edição → Entrega em Alta", com escolha de resolução dinâmica (960px-1600px).
-3.  **Monetização Direta:** Integração com gateways de pagamento para liberação automática de downloads após quitação de extras.
-4.  **Backup Democrático:** Portabilidade de dados permitindo que o fotógrafo mova sessões antigas para seu próprio Google Drive/Dropbox.
-5.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora para compartilhamento social, servindo como motor de crescimento do SaaS.
+1.  **✅ Fluxo Pro (Lightroom):** `Session.workflowType` (`ready`|`post_edit`) + `Session.photoResolution` (960–1600px). Fluxo `post_edit` descarta original no upload; re-upload das editadas via `POST /sessions/:id/photos/upload-edited` (casa por filename). Implementado 2026-04-21.
+2.  **✅ Automação de Prazos (Escassez):** `Organization.integrations.deadlineAutomation`. Scheduler `setInterval` 6h no `server.js`; e-mails `sendDeadlineWarningEmail`/`sendDeadlineExpiredEmail`. Implementado 2026-04-21.
+3.  **Vendedor Automático (Upselling):** E-mail automático após submissão da seleção oferecendo fotos extras com desconto. Próximo passo da automação de marketing.
+4.  **Monetização Direta:** Integração com gateways de pagamento para liberação automática de downloads após quitação de extras.
+5.  **Backup Democrático:** Portabilidade de dados permitindo que o fotógrafo mova sessões antigas para seu próprio Google Drive/Dropbox.
+6.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora. Requer `fluent-ffmpeg` + fila de jobs (Bull/BeeQueue).
 
 > Detalhes técnicos e fluxos documentados em `skills/2_1_clientes_selecao.md`.
