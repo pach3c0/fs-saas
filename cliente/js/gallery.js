@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             watermarkSize: size = 'medium'
         } = watermark;
 
-        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const orgName = (state.session.organization && state.session.organization.name) || '';
         // logo já é uma URL relativa como /uploads/{orgId}/filename.jpg
         const logoUrl = (state.session.organization && state.session.organization.logo) || '';
 
@@ -125,14 +125,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderHeader() {
         // Fallback seguro se organization não vier populado
-        const orgName = (state.session.organization && state.session.organization.name) || 'FS FOTOGRAFIAS';
+        const orgName = (state.session.organization && state.session.organization.name) || '';
         const orgLogo = (state.session.organization && state.session.organization.logo) || null;
+
+        // Atualiza logo na nav
+        const navLogo = document.getElementById('navLogo');
+        if (navLogo) {
+            if (orgLogo) {
+                navLogo.innerHTML = `<img src="${orgLogo}" alt="${escapeHtml(orgName)}" style="max-height:36px; max-width:140px;">`;
+            } else if (orgName) {
+                navLogo.innerHTML = `<span class="nav-logo">${escapeHtml(orgName)}</span>`;
+            }
+        }
 
         let logoHtml = '';
         if (orgLogo) {
             // orgLogo já é URL relativa completa: /uploads/{orgId}/filename.jpg
             logoHtml = `<img src="${orgLogo}" alt="${escapeHtml(orgName)}" style="max-height: 40px; max-width: 150px;">`;
-        } else {
+        } else if (orgName) {
             logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
 
