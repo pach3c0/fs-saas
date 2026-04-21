@@ -81,6 +81,32 @@ function renderForm(container, data) {
         </div>
       </div>
 
+      <!-- Automação de Prazos -->
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary); margin:0 0 0.25rem;">Automação de Prazos</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Envia e-mail automático ao cliente quando o prazo de seleção está próximo de expirar.</p>
+          </div>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; flex-shrink:0;">
+            <input type="checkbox" id="deadlineEnabled" ${data.deadlineAutomation?.enabled ? 'checked' : ''}>
+            <span style="color:var(--text-primary);">Ativar</span>
+          </label>
+        </div>
+        <div style="display:grid; gap:1rem;">
+          <div>
+            <label style="display:block; color:var(--text-secondary); margin-bottom:0.25rem; font-size:0.875rem;">Dias de antecedência para aviso</label>
+            <input type="number" id="deadlineDays" value="${data.deadlineAutomation?.daysWarning ?? 3}" min="1" max="30"
+              style="width:120px; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem;">
+            <span style="color:var(--text-muted); font-size:0.75rem; margin-left:0.5rem;">dias antes do prazo</span>
+          </div>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="deadlineSendEmail" ${data.deadlineAutomation?.sendEmail !== false ? 'checked' : ''}>
+            <span style="color:var(--text-secondary); font-size:0.875rem;">Enviar e-mail ao cliente</span>
+          </label>
+        </div>
+      </div>
+
       <button id="saveBtn" style="background:var(--accent); color:white; padding:0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold; font-size:1rem;">
         Salvar Configurações
       </button>
@@ -106,6 +132,11 @@ function renderForm(container, data) {
         metaPixel: {
           enabled: container.querySelector('#pixelEnabled').checked,
           pixelId: container.querySelector('#pixelId').value
+        },
+        deadlineAutomation: {
+          enabled: container.querySelector('#deadlineEnabled').checked,
+          daysWarning: parseInt(container.querySelector('#deadlineDays').value) || 3,
+          sendEmail: container.querySelector('#deadlineSendEmail').checked
         }
       }
     };

@@ -192,6 +192,11 @@ const OrganizationSchema = new mongoose.Schema({
     seo: {
       googleSiteVerification: { type: String, default: '' },
       robots: { type: String, default: 'index, follow' }
+    },
+    deadlineAutomation: {
+      enabled: { type: Boolean, default: false },
+      daysWarning: { type: Number, default: 3 }, // quantos dias antes do prazo enviar aviso
+      sendEmail: { type: Boolean, default: true }
     }
   },
   subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription', default: null }

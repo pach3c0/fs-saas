@@ -410,6 +410,60 @@ async function sendExtraPhotosRequestedEmail(adminEmail, clientName, photoCount)
   return sendEmail(adminEmail, subject, html);
 }
 
+/**
+ * Aviso ao cliente: prazo de seleção está chegando
+ */
+async function sendDeadlineWarningEmail(clientEmail, sessionName, daysLeft, orgName) {
+  const subject = `Lembrete: você tem ${daysLeft} dia(s) para concluir sua seleção`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName || 'Galeria de Fotos'}</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">⏰ Seu prazo está chegando!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Você tem <strong>${daysLeft} dia(s)</strong> para finalizar a seleção das fotos de <strong>${sessionName}</strong>.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Acesse sua galeria e conclua a seleção antes que o prazo expire.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>${orgName || 'CliqueZoom'} - Galeria de Fotos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * Aviso ao cliente: prazo de seleção expirou
+ */
+async function sendDeadlineExpiredEmail(clientEmail, sessionName, orgName) {
+  const subject = `O prazo de seleção de ${sessionName} expirou`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName || 'Galeria de Fotos'}</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Prazo encerrado</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Infelizmente o prazo para seleção das fotos de <strong>${sessionName}</strong> encerrou.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Entre em contato com o fotógrafo caso ainda queira fazer sua seleção.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>${orgName || 'CliqueZoom'} - Galeria de Fotos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(clientEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -421,5 +475,7 @@ module.exports = {
   sendAlbumApprovedEmail,
   sendAlbumRevisionEmail,
   sendPendingDepoimentoEmail,
-  sendExtraPhotosRequestedEmail
+  sendExtraPhotosRequestedEmail,
+  sendDeadlineWarningEmail,
+  sendDeadlineExpiredEmail
 };

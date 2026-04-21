@@ -138,12 +138,28 @@ const connectWithRetry = async () => {
     });
     isConnected = true;
     console.log('MongoDB conectado com sucesso');
+    startDeadlineScheduler();
   } catch (err) {
     console.error('Erro na conexão MongoDB:', err.message);
     isConnected = false;
     setTimeout(connectWithRetry, 5000);
   }
 };
+
+const { checkDeadlines } = require('./utils/deadlineChecker');
+
+// Roda a cada 6h — verifica prazos e envia e-mails para orgs com automação ativada
+let deadlineSchedulerStarted = false;
+function startDeadlineScheduler() {
+  if (deadlineSchedulerStarted) return;
+  deadlineSchedulerStarted = true;
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
+  setInterval(() => {
+    checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
+  }, SIX_HOURS);
+  console.log('[scheduler] Verificador de prazos iniciado (a cada 6h)');
+}
 
 connectWithRetry();
 
