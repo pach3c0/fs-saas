@@ -89,7 +89,7 @@ async function renderNotifications() {
       const unread = !n.read;
       return `
         <div style="padding:0.5rem 1rem; border-bottom:1px solid #1f2937; cursor:pointer; ${unread ? 'background:#1e293b;' : ''}"
-          onclick="onNotifClick('${n.sessionId || ''}', '${n.type}')">
+          onclick="onNotifClick('${n.sessionId || ''}', '${n.type}', '${n.photoId || ''}')">
           <div style="display:flex; align-items:flex-start; gap:0.5rem;">
             <span style="font-size:1rem; flex-shrink:0;">${icon}</span>
             <div style="flex:1; min-width:0;">
@@ -117,13 +117,20 @@ export async function markAllNotificationsRead() {
   } catch (e) { /* ignore */ }
 }
 
-export function onNotifClick(sessionId, type) {
+export function onNotifClick(sessionId, type, photoId) {
   const dropdown = document.getElementById('notifDropdown');
   if (dropdown) dropdown.style.display = 'none';
   dropdownOpen = false;
 
   if ((type === 'contact' || type === 'depoimento_pendente') && window.switchTab) {
     window.switchTab('mensagens');
+  } else if (type === 'comment_added' && sessionId && window.switchTab) {
+    window.switchTab('sessoes');
+    if (photoId) {
+      setTimeout(() => {
+        if (window.openComments) window.openComments(sessionId, photoId);
+      }, 300);
+    }
   } else if (sessionId && window.switchTab) {
     window.switchTab('sessoes');
   }

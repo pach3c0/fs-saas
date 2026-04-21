@@ -34,6 +34,11 @@ function createUploader(subdir, options = {}) {
     limits: {
       fileSize: options.maxSize || 10 * 1024 * 1024,
       files: options.maxFiles || 50
+    },
+    fileFilter: (req, file, cb) => {
+      const allowed = ['image/jpeg', 'image/png'];
+      if (allowed.includes(file.mimetype)) cb(null, true);
+      else cb(new Error('Apenas imagens JPEG e PNG são permitidas'), false);
     }
   });
 }

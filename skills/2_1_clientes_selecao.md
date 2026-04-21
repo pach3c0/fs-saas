@@ -226,3 +226,35 @@ extraRequest: {
 **Relação com reabertura:**
 - Reabertura e extras são fluxos independentes — não se bloqueiam mutuamente
 - Botão "Preciso alterar" ocultado enquanto extra estiver pending (evita confusão)
+
+
+
+
+---
+
+## Ajustes Aplicados (2026-04-21) — Lote 2
+
+### Upload: apenas JPEG e PNG
+- `src/utils/multerConfig.js`: `fileFilter` rejeita qualquer MIME que não seja `image/jpeg` ou `image/png`
+
+### Ícones coração/chat empilhados (correção CSS)
+- Causa: `.photo-heart` tinha `position:absolute` próprio — conflitava com container flex do JS
+- Correção: `.photo-heart` → `position:relative` em `cliente/index.html`
+
+### Watermark: `watermarkPosition` e `watermarkSize` não eram persistidos
+- Causa: `allowedFields` em `PUT /api/organization/profile` não incluía esses campos
+- Correção: adicionados em `src/routes/organization.js` (GET e PUT)
+
+### Click em notificação de comentário → abre modal na foto correta
+- `src/models/Notification.js`: + campo `photoId: String`
+- `src/routes/sessions.js`: Notification de `comment_added` inclui `photoId`
+- `admin/js/utils/notifications.js`: `onNotifClick(sessionId, type, photoId)` → se `comment_added`, faz `switchTab('sessoes')` + delay 300ms + `openComments(sessionId, photoId)`
+
+### Respostas do fotógrafo → badge de notificação para o cliente
+- `cliente/js/gallery.js`: polling compara comentários `author:'admin'` entre polls via `knownAdminCommentKeys`
+- Badge azul fixo aparece com contagem de respostas; ao clicar abre modal de comentários da foto
+
+### Download: removido botão individual por foto
+- Ícone ⬇ por foto removido de `renderPhotos()` — cliente usa apenas "⬇ Baixar Todas" no header
+- ZIP já filtra: modo `selection` → só selecionadas; modo `gallery` → todas
+

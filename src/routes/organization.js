@@ -29,6 +29,8 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         watermarkType: org.watermarkType,
         watermarkText: org.watermarkText,
         watermarkOpacity: org.watermarkOpacity,
+        watermarkPosition: org.watermarkPosition,
+        watermarkSize: org.watermarkSize,
         plan: org.plan
       }
     });
@@ -44,7 +46,7 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
     const allowedFields = [
       'name', 'logo', 'phone', 'whatsapp', 'email', 'website',
       'bio', 'address', 'city', 'state', 'primaryColor',
-      'watermarkType', 'watermarkText', 'watermarkOpacity'
+      'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize'
     ];
 
     const updates = {};

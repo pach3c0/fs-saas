@@ -396,14 +396,15 @@ router.post('/client/comments/:sessionId', async (req, res) => {
 
     await session.save();
 
-    try { 
-      await Notification.create({ 
-        type: 'comment_added', 
-        sessionId: session._id, 
-        sessionName: session.name, 
+    try {
+      await Notification.create({
+        type: 'comment_added',
+        sessionId: session._id,
+        sessionName: session.name,
+        photoId: photoId,
         message: `${session.name} comentou em uma foto`,
         organizationId: session.organizationId
-      }); 
+      });
     } catch(e){}
 
     res.json({ success: true, comment: newComment });
