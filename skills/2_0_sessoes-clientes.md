@@ -565,9 +565,18 @@ GET  /api/clients/search?q=:nome   → autocomplete (até 10 resultados)
 POST /api/sessions/:id/send-code   → dispara e-mail de código ao cliente
 ```
 
+### Link do E-mail com Slug + Código Pré-Preenchido
+- **Antes:** link apontava para `www.cliquezoom.com.br/cliente/` (genérico, sem código, sem slug do fotógrafo).
+- **Agora:** link usa o slug da organização e inclui o código como query string:
+  ```
+  https://[slug].cliquezoom.com.br/cliente/?code=XXXX
+  ```
+- O campo de código é pré-preenchido automaticamente na página do cliente.
+- O login é disparado automaticamente ao abrir o link — o cliente cai direto na galeria.
+- A URL é limpa (`history.replaceState`) após o login para não expor o código na barra de endereço.
+- Um link textual (copiar/colar) também aparece no corpo do e-mail como fallback.
 
-# ajustes
-
-quando o cliente clicar no email com o codigo, tem que direcionar para o a pagina cliente do slug do fotografo, e quando abrir a pagina clientes, o campo codigo ja deve estar preenchido com o codigo do cliente que recebeu via email
-
-no momento o email que ele recebe vai para a pagina www.cliquezoom.com.br/cliente/
+**Arquivos alterados:**
+- `src/utils/email.js` — `sendGalleryAvailableEmail` e `sendPhotosDeliveredEmail` recebem `orgSlug` e montam URL personalizada.
+- `src/routes/sessions.js` — rotas `/send-code` e `/deliver` passam `org.slug` para as funções de email.
+- `cliente/js/gallery.js` — lê `?code=` da URL, preenche o campo e faz login automático.
