@@ -53,9 +53,14 @@ export async function renderSessoes(container) {
             </select>
         </div>
         <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
-            <span style="color:#9ca3af; font-size:0.875rem;">Periodo:</span>
+            <span style="color:#9ca3af; font-size:0.875rem;">Período por:</span>
+            <select id="filterDateField" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
+                <option value="createdAt">Criado em</option>
+                <option value="date">Data do Evento</option>
+                <option value="selectionDeadline">Prazo de Seleção</option>
+            </select>
             <input type="date" id="filterDateFrom" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
-            <span style="color:#6b7280; font-size:0.875rem;">ate</span>
+            <span style="color:#6b7280; font-size:0.875rem;">até</span>
             <input type="date" id="filterDateTo" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
             <button id="clearDateFilter" style="padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid #374151; background:none; color:#9ca3af; cursor:pointer; font-size:0.75rem;">Limpar</button>
         </div>
@@ -371,11 +376,14 @@ export async function renderSessoes(container) {
         // Filtro de Status
         if (!checkedStatuses.includes(effectiveStatus)) return false;
 
-        // Filtro de Periodo (por data de criacao da sessao)
+        // Filtro de Periodo (campo selecionável)
         if (dateFrom || dateTo) {
-            const createdAt = new Date(session.createdAt);
-            if (dateFrom && createdAt < dateFrom) return false;
-            if (dateTo && createdAt > dateTo) return false;
+            const dateField = container.querySelector('#filterDateField')?.value || 'createdAt';
+            const rawValue = session[dateField];
+            if (!rawValue) return (dateFrom || dateTo) ? false : true;
+            const fieldDate = new Date(rawValue);
+            if (dateFrom && fieldDate < dateFrom) return false;
+            if (dateTo && fieldDate > dateTo) return false;
         }
 
         return true;
@@ -464,6 +472,9 @@ export async function renderSessoes(container) {
               <button onclick="deliverSession('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Entregar
               </button>` : ''}
+              <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); cursor:pointer; font-size:0.75rem;" title="Enviar código por e-mail ao cliente">
+                📧 Enviar
+              </button>
               <button onclick="editSession('${session._id}')" style="background:var(--orange); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Config
               </button>
@@ -491,6 +502,7 @@ export async function renderSessoes(container) {
   });
   container.querySelector('#filterDateFrom').addEventListener('change', filterAndRender);
   container.querySelector('#filterDateTo').addEventListener('change', filterAndRender);
+  container.querySelector('#filterDateField').addEventListener('change', filterAndRender);
   container.querySelector('#clearDateFilter').addEventListener('click', () => {
       container.querySelector('#filterDateFrom').value = '';
       container.querySelector('#filterDateTo').value = '';
@@ -808,6 +820,25 @@ export async function renderSessoes(container) {
     };
 
     modal.style.display = 'flex';
+  };
+
+  // Enviar codigo por email ao cliente (acao manual do fotografo)
+  window.sendSessionCode = async (sessionId, accessCode) => {
+    const session = sessionsData.find(s => s._id === sessionId);
+    const clientEmail = session?.clientEmail || session?.clientId?.email || '';
+    if (!clientEmail) {
+      window.showToast?.('Este cliente não tem e-mail cadastrado. Copie o código manualmente.', 'warning', 5000);
+      copyToClipboard(accessCode);
+      return;
+    }
+    const ok = await window.showConfirm?.(`Enviar código de acesso para ${clientEmail}?`);
+    if (!ok) return;
+    try {
+      await apiPost(`/api/sessions/${sessionId}/send-code`);
+      window.showToast?.('E-mail enviado com sucesso!', 'success');
+    } catch (error) {
+      window.showToast?.('Erro ao enviar: ' + error.message, 'error');
+    }
   };
 
   // Reabrir selecao

@@ -443,11 +443,7 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
       { $inc: { 'usage.sessions': 1 } }
     );
 
-    // Notificar cliente por e-mail (se clientEmail informado)
-    if (session.clientEmail) {
-      const org = await Organization.findById(req.user.organizationId).select('name');
-      sendGalleryAvailableEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo').catch(() => {});
-    }
+    // E-mail NAO é enviado aqui. O fotografo envia manualmente via POST /sessions/:id/send-code
 
     res.json({ success: true, session });
   } catch (error) {
@@ -464,6 +460,27 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
     );
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Enviar codigo de acesso manualmente ao cliente
+router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
+    });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const email = session.clientEmail || (session.clientId ? (await require('../models/Client').findById(session.clientId).select('email').lean())?.email : '');
+    if (!email) return res.status(400).json({ error: 'Nenhum e-mail cadastrado para este cliente' });
+
+    const org = await Organization.findById(req.user.organizationId).select('name');
+    await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo');
+
+    res.json({ success: true, message: `E-mail enviado para ${email}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

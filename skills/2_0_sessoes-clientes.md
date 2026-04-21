@@ -504,3 +504,17 @@ GET /api/clients/search?q=:nome
 → Campos: name, email, phone
 → Requer authenticateToken
 ```
+
+
+# ajustes
+
+  no momento atual, quando criado a sessao do cliente, ja esta sendo enviado o email para o cliente.
+  O correto é, fotografo configura a sessao, e depois clica em um botao enviar codigo para cliente  
+
+em sessoes nos filtros de datas, agora precisa ter
+
+criado em 
+data do evento 
+prazo de seleçao
+
+
