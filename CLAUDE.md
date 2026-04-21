@@ -142,13 +142,36 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 
 ## SKILLS (ler sob demanda)
 
-`skills/1_1_backend.md` (rotas, middlewares, auth, env) · `skills/1_2_frontend.md` (admin UI, CSS variables, utilitarios, tabs) · `skills/1_3_banco-de-dados.md` (modelos, Mixed, fontes de verdade)
+### Core — Arquitetura e Infraestrutura
+`skills/1_1_backend.md` — rotas Express, middlewares, auth JWT, variáveis de ambiente, planLimits
+`skills/1_2_frontend.md` — admin UI, CSS variables, utilitários, tabs, padrões ES Modules
+`skills/1_3_banco-de-dados.md` — modelos Mongoose, Mixed, fontes de verdade (SiteData vs Organization)
+`skills/1_4_builder-componentes.md` — biblioteca de componentes reutilizáveis do admin, showcase, padrões de canvas/layer
+`skills/6_0_dominio.md` — DNS, Nginx, SSL wildcard, subdomínios de fotógrafos, domínio customizado
 
-`skills/6_0_dominio.md` (DNS, Nginx, SSL wildcard, subdomínios de fotógrafos, domínio customizado)
+### CRM e Sessões
+`skills/2_0_sessoes-clientes.md` — módulo Sessões + Clientes: arquitetura, fluxo de seleção, multi-seleção, busca dinâmica de clientes, 3 campos de data, envio manual de e-mail, filtros, link email→galeria com slug+código, rota `/send-code`, rota `/clients/search`
 
-`skills/5_0_meu-site.md` (indice do builder) · `skills/5_1_builder-geral-site.md` (builder, postMessage, dirty) · `skills/5_2_builder-sessoes.md` · `skills/5_3_builder-hero.md` · `skills/5_4_builder-sobre.md` · `skills/5_5_builder-portfolio.md` · `skills/5_6_builder-servicos.md` · `skills/5_7_builder-depoiments.md` · `skills/5_8_builder-albuns.md` · `skills/5_9_builder-estudio.md` · `skills/5_10_builder-contato.md` · `skills/5_11_builder-faq.md` · `skills/5_12_builder-personalizar.md` · `skills/5_13_builder-rodape.md` 
+### Site Builder — Índice e Geral
+`skills/5_0_meu-site.md` — índice do builder, estrutura geral, navegação entre módulos
+`skills/5_1_builder-geral-site.md` — builder, postMessage, dirty state, iframe preview
+`skills/5_15_default-meusite.md` — configurações padrão e reset do builder
 
-**Regra:** ao alterar area coberta por skill, atualizar a skill correspondente. Apos features que adicionam pasta/rota/modelo/padrao, atualizar este `CLAUDE.md`.
+### Site Builder — Módulos de Seção
+`skills/5_2_builder-sessoes.md` — seção Sessões no site público
+`skills/5_3_builder-hero.md` — hero, siteConfig (não siteContent), canvas, sliders de transformação
+`skills/5_4_builder-sobre.md` — sobre, layers, drag-and-drop de camadas, preview integrado
+`skills/5_5_builder-portfolio.md` — portfolio, upload, compressão, grid
+`skills/5_6_builder-servicos.md` — serviços, cards
+`skills/5_7_builder-depoiments.md` — depoimentos, aprovação, formulário público
+`skills/5_8_builder-albuns.md` — álbuns de prova, editor avançado, drag-and-drop, dual-mode grid
+`skills/5_9_builder-estudio.md` — estúdio, informações da empresa
+`skills/5_10_builder-contato.md` — contato, formulário, mapa
+`skills/5_11_builder-faq.md` — FAQ, accordion
+`skills/5_12_builder_personalizar.md` — personalização: cores, fontes, tema
+`skills/5_13_builder-rodape.md` — rodapé: redes sociais, copyright, quickLinks
+
+**Regra:** ao alterar área coberta por skill, atualizar a skill correspondente. Após features que adicionam pasta/rota/modelo/padrão novo, atualizar este `CLAUDE.md` e a skill relevante.
 
 ---
 
