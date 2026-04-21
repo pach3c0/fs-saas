@@ -40,21 +40,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let knownAdminCommentKeys = new Set(); // "photoId:createdAt"
     let unreadReplies = []; // [{ photoId, text }]
 
-    function showReplyBadge() {
-        let badge = document.getElementById('replyNotifBadge');
-        if (!badge) {
-            badge = document.createElement('div');
-            badge.id = 'replyNotifBadge';
-            badge.style.cssText = 'position:fixed; top:4rem; right:1rem; z-index:9999; background:#3b82f6; color:white; border-radius:9999px; padding:0.4rem 0.9rem; font-size:0.8rem; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3); display:flex; align-items:center; gap:0.4rem;';
-            badge.addEventListener('click', () => {
-                const first = unreadReplies[0];
-                unreadReplies = [];
-                badge.remove();
-                if (first) openCommentModal(first.photoId);
-            });
-            document.body.appendChild(badge);
+    function updateClientBell() {
+        const bell = document.getElementById('clientBellBtn');
+        const badge = document.getElementById('clientBellBadge');
+        if (!bell) return;
+        if (unreadReplies.length > 0) {
+            bell.style.display = 'block';
+            if (badge) badge.textContent = unreadReplies.length > 9 ? '9+' : unreadReplies.length;
+        } else {
+            bell.style.display = 'none';
+            if (badge) badge.textContent = '';
         }
-        badge.innerHTML = `🔔 ${unreadReplies.length} resposta${unreadReplies.length > 1 ? 's' : ''} do fotógrafo`;
     }
 
     // --- Funções de Utilidade ---
@@ -203,6 +199,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
                     ${deadlineHtml}
                     ${downloadAllBtn}
+                    <button id="clientBellBtn" title="Notificações"
+                        style="position:relative; background:none; border:none; color:rgba(255,255,255,0.7); font-size:1.25rem; cursor:pointer; padding:0.25rem; line-height:1; display:none;">
+                        🔔
+                        <span id="clientBellBadge" style="position:absolute; top:-2px; right:-4px; background:#ef4444; color:white; font-size:0.55rem; font-weight:700; border-radius:9999px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px;"></span>
+                    </button>
                     <button id="switchGalleryBtn"
                         style="background:none; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); padding:0.3rem 0.7rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer; white-space:nowrap;"
                         title="Trocar de galeria">
@@ -220,6 +221,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             loginSection.style.display = 'flex';
             if (accessCodeInput) accessCodeInput.value = '';
         });
+
+        const clientBellBtn = document.getElementById('clientBellBtn');
+        if (clientBellBtn) {
+            clientBellBtn.addEventListener('click', () => {
+                const first = unreadReplies[0];
+                unreadReplies = [];
+                updateClientBell();
+                if (first) openCommentModal(first.photoId);
+            });
+        }
     }
 
     function renderPhotos() {
@@ -330,8 +341,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <h2 class="status-title">${title}</h2>
                 <p class="status-desc">${message}</p>
                 ${buttonHtml}
+                <button id="statusLogoutBtn" style="margin-top:1rem; background:none; border:1px solid #d1d5db; color:#aaa; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Trocar de galeria</button>
             </div>
         `;
+        document.getElementById('statusLogoutBtn').addEventListener('click', () => {
+            clearSessionFromStorage();
+            statusScreen.style.display = 'none';
+            loginSection.style.display = 'flex';
+            if (accessCodeInput) accessCodeInput.value = '';
+        });
     }
 
     // Estado local das extras (fotos marcadas para solicitar)
@@ -390,8 +408,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Preciso alterar minha seleção
                     </button>
                 </div>` : ''}
+                <div style="text-align:center; margin-top:0.75rem;">
+                    <button id="submittedLogoutBtn" style="background:none; border:none; color:#bbb; font-size:0.7rem; cursor:pointer; text-decoration:underline;">Trocar de galeria</button>
+                </div>
             </div>
         `;
+
+        // Botão trocar galeria
+        const submittedLogoutBtn = document.getElementById('submittedLogoutBtn');
+        if (submittedLogoutBtn) {
+            submittedLogoutBtn.addEventListener('click', () => {
+                clearSessionFromStorage();
+                statusScreen.style.display = 'none';
+                loginSection.style.display = 'flex';
+                if (accessCodeInput) accessCodeInput.value = '';
+            });
+        }
 
         // Renderizar grid de extras
         if (canRequestExtras) {
@@ -685,7 +717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 if (newReplies.length > 0) {
                     unreadReplies.push(...newReplies);
-                    showReplyBadge();
+                    updateClientBell();
                 }
             } else {
                 // Na primeira carga, apenas registrar os existentes sem notificar
@@ -914,7 +946,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxCounter = document.getElementById('lightboxCounter');
     const lightboxHeart = document.getElementById('lightboxHeart');
-    const lightboxDownload = document.getElementById('lightboxDownload');
     const lightboxWatermark = document.getElementById('lightboxWatermark');
 
     function openLightbox(index) {
@@ -943,15 +974,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             lightboxHeart.classList.toggle('selected', state.selectedPhotos.includes(photo.id));
         }
 
-        // Botão de download (apenas no modo delivered)
-        if (lightboxDownload) {
-            const canDownload = state.session.selectionStatus === 'delivered';
-            lightboxDownload.style.display = canDownload ? 'flex' : 'none';
-            if (canDownload) {
-                lightboxDownload.href = `/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}`;
-                lightboxDownload.download = photo.filename || 'foto.jpg';
-            }
-        }
     }
 
     window.closeLightbox = function() {

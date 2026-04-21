@@ -258,3 +258,23 @@ extraRequest: {
 - Ícone ⬇ por foto removido de `renderPhotos()` — cliente usa apenas "⬇ Baixar Todas" no header
 - ZIP já filtra: modo `selection` → só selecionadas; modo `gallery` → todas
 
+---
+
+## Ajustes Aplicados (2026-04-21) — Lote 3
+
+### Download removido do lightbox
+- Elemento `#lightboxDownload` removido de `cliente/index.html` e toda lógica correspondente removida de `renderLightbox()` em `gallery.js`
+- Download disponível apenas via botão "⬇ Baixar Todas" no header (somente quando `delivered`)
+
+### Botão "Trocar de galeria" em todas as telas
+- Tela `statusScreen` (delivered/expired): botão "Trocar de galeria" adicionado com listener que chama `clearSessionFromStorage()` e retorna ao login
+- Tela `submitted` (`renderSubmittedScreen`): botão discreto "Trocar de galeria" adicionado abaixo do botão de reabertura
+
+### Sininho de notificação para respostas do fotógrafo
+- Substituiu o badge flutuante por um sino 🔔 no header da galeria (`#clientBellBtn`)
+- Badge vermelho com contagem aparece sobre o sino quando há respostas novas do fotógrafo
+- Ao clicar no sino: zera `unreadReplies`, esconde o badge, abre modal de comentários da primeira foto com resposta
+- O sino fica oculto (`display:none`) quando não há notificações pendentes
+
+
+
