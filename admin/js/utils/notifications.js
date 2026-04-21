@@ -9,6 +9,7 @@ const NOTIF_ICONS = {
   session_accessed: '👁️',
   selection_started: '🎯',
   selection_submitted: '✅',
+  extra_photos_requested: '📸',
   reopen_requested: '🔄',
   contact: '📩',
   depoimento_pendente: '⭐'

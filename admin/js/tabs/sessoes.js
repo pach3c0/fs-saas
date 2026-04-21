@@ -248,12 +248,17 @@ export async function renderSessoes(container) {
           </div>
         </div>
         <p style="font-size:0.6875rem; color:#6b7280;">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
-        <div style="border-top:1px solid #374151; padding-top:0.75rem;">
+        <div style="border-top:1px solid #374151; padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editHighResDelivery" style="width:1rem; height:1rem; accent-color:#2563eb; cursor:pointer;">
             <span style="color:#f3f4f6; font-size:0.875rem; font-weight:500;">Entrega em alta resolucao</span>
           </label>
-          <p style="font-size:0.6875rem; color:#6b7280; margin-top:0.25rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
+          <p style="font-size:0.6875rem; color:#6b7280; margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="editCommentsEnabled" style="width:1rem; height:1rem; accent-color:#2563eb; cursor:pointer;">
+            <span style="color:#f3f4f6; font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
+          </label>
+          <p style="font-size:0.6875rem; color:#6b7280; margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button id="cancelEditSession" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
@@ -441,6 +446,7 @@ export async function renderSessoes(container) {
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; border:1px solid ${status.color}44; font-weight:600;">
                   ${status.text}
                 </span>
+                ${session.extraRequest?.status === 'pending' ? `<span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--orange); background:rgba(255,166,87,0.15); border:1px solid rgba(255,166,87,0.4); font-weight:600;">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--purple); background:rgba(188, 140, 255, 0.1); border:1px solid rgba(188, 140, 255, 0.3); font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
@@ -471,6 +477,13 @@ export async function renderSessoes(container) {
               </button>
               <button onclick="deliverSession('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Entregar
+              </button>` : ''}
+              ${session.extraRequest?.status === 'pending' ? `
+              <button onclick="acceptExtraRequest('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;" title="Aceitar fotos extras">
+                ✅ Aceitar extras
+              </button>
+              <button onclick="rejectExtraRequest('${session._id}')" style="background:rgba(248,81,73,0.1); color:var(--red); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid rgba(248,81,73,0.3); cursor:pointer; font-size:0.75rem;" title="Recusar fotos extras">
+                ✗ Recusar
               </button>` : ''}
               <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); cursor:pointer; font-size:0.75rem;" title="Enviar código por e-mail ao cliente">
                 📧 Enviar
@@ -865,6 +878,34 @@ export async function renderSessoes(container) {
     }
   };
 
+  // Aceitar fotos extras solicitadas pelo cliente
+  window.acceptExtraRequest = async (sessionId) => {
+    const session = sessionsData.find(s => s._id === sessionId);
+    const count = session?.extraRequest?.photos?.length || 0;
+    const ok = await window.showConfirm?.(`Aceitar ${count} foto(s) extra(s) solicitada(s)? Elas serão adicionadas à seleção do cliente.`);
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${sessionId}/extra-request/accept`);
+      window.showToast?.('Extras aceitas e adicionadas à seleção!', 'success');
+      await renderSessoes(container);
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
+  // Recusar fotos extras
+  window.rejectExtraRequest = async (sessionId) => {
+    const ok = await window.showConfirm?.('Recusar a solicitação de fotos extras?');
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${sessionId}/extra-request/reject`);
+      window.showToast?.('Solicitação recusada.', 'success');
+      await renderSessoes(container);
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
   // Editar sessao
   let editingSessionId = null;
   const editModal = container.querySelector('#editSessionModal');
@@ -903,6 +944,7 @@ export async function renderSessoes(container) {
     container.querySelector('#editLimit').value = session.packageLimit || 30;
     container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
     container.querySelector('#editHighResDelivery').checked = session.highResDelivery || false;
+    container.querySelector('#editCommentsEnabled').checked = session.commentsEnabled !== false;
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
 
     editModal.style.display = 'flex';
@@ -924,9 +966,10 @@ export async function renderSessoes(container) {
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
     const highResDelivery = container.querySelector('#editHighResDelivery').checked;
+    const commentsEnabled = container.querySelector('#editCommentsEnabled').checked;
 
     try {
-      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery });
+      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery, commentsEnabled });
 
       editModal.style.display = 'none';
       editingSessionId = null;

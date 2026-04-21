@@ -376,6 +376,40 @@ async function sendPendingDepoimentoEmail(adminEmail, depoimentoName, orgName) {
   return sendEmail(adminEmail, subject, html);
 }
 
+/**
+ * E-mail para o fotografo: cliente solicitou fotos extras apos envio da selecao
+ */
+async function sendExtraPhotosRequestedEmail(adminEmail, clientName, photoCount) {
+  const adminUrl = `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/admin/`;
+  const subject = `${clientName} quer mais ${photoCount} foto(s) extra(s)`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Solicitacao de fotos extras!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        <strong>${clientName}</strong> finalizou a selecao e tambem gostaria de adquirir mais <strong>${photoCount} foto(s)</strong>.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Acesse o painel para aceitar ou recusar a solicitacao.
+      </p>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${adminUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Acessar Painel Admin
+        </a>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(adminEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -386,5 +420,6 @@ module.exports = {
   sendSelectionSubmittedEmail,
   sendAlbumApprovedEmail,
   sendAlbumRevisionEmail,
-  sendPendingDepoimentoEmail
+  sendPendingDepoimentoEmail,
+  sendExtraPhotosRequestedEmail
 };

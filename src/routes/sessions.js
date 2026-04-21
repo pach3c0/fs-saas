@@ -13,7 +13,8 @@ const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
-const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail } = require('../utils/email');
+const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail } = require('../utils/email');
+const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 
 const uploadSession = createUploader('sessions');
@@ -60,6 +61,15 @@ router.post('/client/verify-code', async (req, res) => {
       }); 
     } catch(e){}
 
+    // Buscar dados do cliente CRM se vinculado
+    let clientData = null;
+    if (session.clientId) {
+      try {
+        const client = await Client.findById(session.clientId).select('name email phone').lean();
+        if (client) clientData = { name: client.name, email: client.email, phone: client.phone };
+      } catch(e){}
+    }
+
     res.json({
       success: true,
       sessionId: session._id,
@@ -72,11 +82,14 @@ router.post('/client/verify-code', async (req, res) => {
       packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
       extraPhotoPrice: session.extraPhotoPrice || 25,
       watermark: session.watermark !== false,
+      commentsEnabled: session.commentsEnabled !== false,
+      extraRequest: session.extraRequest || { status: 'none', photos: [] },
       accessCode: session.accessCode,
       selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
       isParticipant: !!participant,
       participantId: participant ? participant._id : null,
+      clientData,
       // Enviar dados da organização para o frontend
       organization: session.organizationId ? {
         id: session.organizationId._id,
@@ -176,6 +189,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       mode: session.mode,
       selectionStatus: selectionStatus,
       watermark: session.watermark,
+      commentsEnabled: session.commentsEnabled !== false,
+      extraRequest: session.extraRequest || { status: 'none', photos: [] },
       selectionDeadline: session.selectionDeadline,
       packageLimit: packageLimit,
       extraPhotoPrice: session.extraPhotoPrice,
@@ -397,6 +412,53 @@ router.post('/client/comments/:sessionId', async (req, res) => {
   }
 });
 
+// CLIENTE: Solicitar fotos extras após envio da seleção
+router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
+  try {
+    const { accessCode, photos } = req.body;
+    if (!photos || !photos.length) return res.status(400).json({ error: 'Selecione ao menos uma foto' });
+
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.organizationId
+    });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+    if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
+    if (session.extraRequest && session.extraRequest.status === 'pending') {
+      return res.status(400).json({ error: 'Já existe uma solicitação de extras pendente' });
+    }
+
+    session.extraRequest = {
+      status: 'pending',
+      photos,
+      requestedAt: new Date()
+    };
+    await session.save();
+
+    try {
+      await Notification.create({
+        type: 'extra_photos_requested',
+        sessionId: session._id,
+        sessionName: session.name,
+        message: `${session.name} solicitou ${photos.length} foto(s) extra(s)`,
+        organizationId: session.organizationId
+      });
+    } catch(e){}
+
+    try {
+      const org = await Organization.findById(session.organizationId).select('email name');
+      if (org?.email) {
+        sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => {});
+      }
+    } catch(e){}
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================================
 // ROTAS DO ADMIN
 // ============================================================================
@@ -474,13 +536,50 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
-    const email = session.clientEmail || (session.clientId ? (await require('../models/Client').findById(session.clientId).select('email').lean())?.email : '');
+    const email = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
     if (!email) return res.status(400).json({ error: 'Nenhum e-mail cadastrado para este cliente' });
 
     const org = await Organization.findById(req.user.organizationId).select('name slug');
     await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug);
 
     res.json({ success: true, message: `E-mail enviado para ${email}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Aceitar solicitação de fotos extras
+router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!session.extraRequest || session.extraRequest.status !== 'pending') {
+      return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+    }
+    // Adicionar fotos extras às já selecionadas (sem duplicatas)
+    const extras = session.extraRequest.photos || [];
+    extras.forEach(id => { if (!session.selectedPhotos.includes(id)) session.selectedPhotos.push(id); });
+    session.extraRequest.status = 'accepted';
+    session.extraRequest.respondedAt = new Date();
+    await session.save();
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Recusar solicitação de fotos extras
+router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!session.extraRequest || session.extraRequest.status !== 'pending') {
+      return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+    }
+    session.extraRequest.status = 'rejected';
+    session.extraRequest.respondedAt = new Date();
+    await session.save();
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

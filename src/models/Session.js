@@ -35,7 +35,15 @@ const sessionSchema = new mongoose.Schema({
     // Config
     highResDelivery: { type: Boolean, default: false }, // Entrega em alta resolucao
     watermark: { type: Boolean, default: true },
+    commentsEnabled: { type: Boolean, default: true }, // Exibir botao de comentario na galeria do cliente
     canShare: { type: Boolean, default: false },
+    // Solicitacao de fotos extras (apos submit da selecao)
+    extraRequest: {
+        status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
+        photos: [String],       // IDs das fotos extras solicitadas
+        requestedAt: Date,
+        respondedAt: Date
+    },
     isActive: { type: Boolean, default: true },
     organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     // CRM: cliente vinculado

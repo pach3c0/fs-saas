@@ -146,6 +146,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
 
+        // Nome do cliente (CRM ou preenchido pelo próprio cliente)
+        const clientName = state.session.clientData ? state.session.clientData.name : '';
+        const clientBadge = clientName
+            ? `<span style="font-size:0.8rem; color:#666; margin-left:0.5rem;">Olá, ${escapeHtml(clientName)}!</span>`
+            : '';
+
         let deadlineHtml = '';
         if (state.session.selectionDeadline && state.session.selectionStatus !== 'submitted' && state.session.selectionStatus !== 'delivered') {
             const now = new Date();
@@ -168,7 +174,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         galleryHeader.innerHTML = `
             <div class="container mx-auto flex justify-between items-center">
-                ${logoHtml}
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    ${logoHtml}
+                    ${clientBadge}
+                </div>
                 <div class="flex items-center gap-3">
                     <h2 class="text-xl hidden sm:block">${escapeHtml(state.session.name)}</h2>
                     ${deadlineHtml}
@@ -181,6 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             </div>
         `;
+
 
         document.getElementById('switchGalleryBtn').addEventListener('click', () => {
             clearSessionFromStorage();
@@ -213,14 +223,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
                     <div style="${wm.style}">${wm.innerHTML}</div>
                     ${(state.isSelectionMode || isDelivered) ? `
-                        <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; gap:0.5rem; z-index:10;">
+                        <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
                             ${state.isSelectionMode ? `
-                                <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                </button>
                                 <button class="photo-heart ${isSelected ? 'selected' : ''}" title="Selecionar">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                                 </button>
+                                ${state.session.commentsEnabled !== false ? `
+                                <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                </button>` : ''}
                             ` : ''}
                             ${downloadBtn}
                         </div>
@@ -281,14 +292,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         gallerySection.style.display = 'none';
         statusScreen.style.display = 'flex';
 
+        if (state.session.selectionStatus === 'submitted') {
+            renderSubmittedScreen();
+            return;
+        }
+
         let title, message, buttonHtml = '';
 
         switch (state.session.selectionStatus) {
-            case 'submitted':
-                title = 'Seleção Enviada!';
-                message = 'Sua seleção de fotos foi enviada com sucesso. O fotógrafo já foi notificado e em breve suas fotos estarão disponíveis para download.';
-                buttonHtml = `<button id="reopenRequestBtn" style="margin-top:1.25rem; background:none; border:1px solid #d1d5db; color:#666; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer;">Preciso alterar minha seleção</button>`;
-                break;
             case 'delivered':
                 title = 'Fotos Entregues!';
                 message = 'Suas fotos estão prontas! Você já pode visualizá-las sem marca d\'água e fazer o download.';
@@ -311,6 +322,134 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${buttonHtml}
             </div>
         `;
+    }
+
+    // Estado local das extras (fotos marcadas para solicitar)
+    let extraSelectedPhotos = [];
+
+    function renderSubmittedScreen() {
+        const extraRequest = state.session.extraRequest || { status: 'none', photos: [] };
+        const extraPrice = state.session.extraPhotoPrice || 25;
+        const selectedSet = new Set(state.selectedPhotos);
+        const unselectedPhotos = (state.photos || []).filter(p => !selectedSet.has(p.id));
+
+        // Banner de status da solicitação de extras
+        let extraStatusBanner = '';
+        if (extraRequest.status === 'pending') {
+            extraStatusBanner = `<div style="background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#92400e; font-size:0.875rem;">
+                ⏳ Solicitação de <strong>${extraRequest.photos.length} foto(s) extra(s)</strong> enviada — aguardando confirmação do fotógrafo.
+            </div>`;
+        } else if (extraRequest.status === 'accepted') {
+            extraStatusBanner = `<div style="background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#166534; font-size:0.875rem;">
+                ✅ Fotógrafo aceitou suas fotos extras! Elas foram adicionadas à sua seleção.
+            </div>`;
+        } else if (extraRequest.status === 'rejected') {
+            extraStatusBanner = `<div style="background:#fee2e2; border:1px solid #dc2626; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#991b1b; font-size:0.875rem;">
+                ❌ O fotógrafo não pôde atender desta vez. Você pode tentar selecionar outras fotos abaixo.
+            </div>`;
+        }
+
+        // Grid de fotos não selecionadas (para solicitar extras)
+        const canRequestExtras = extraRequest.status !== 'pending' && unselectedPhotos.length > 0;
+        let extrasGridHtml = '';
+        if (canRequestExtras) {
+            extrasGridHtml = `
+                <div style="margin-top:1.5rem; text-align:left;">
+                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">Quer mais fotos?</p>
+                    <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.',',')}</strong>.</p>
+                    <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;"></div>
+                    <div id="extraRequestBar" style="display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                        <span id="extraRequestCount" style="font-size:0.875rem;"></span>
+                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        statusScreen.innerHTML = `
+            <div style="width:100%; max-width:700px; margin:0 auto; padding:1.5rem 1rem;">
+                <div style="text-align:center; margin-bottom:1rem;">
+                    <h2 class="status-title">✅ Seleção Enviada!</h2>
+                    <p class="status-desc">Sua seleção foi enviada com sucesso. O fotógrafo já foi notificado.</p>
+                </div>
+                ${extraStatusBanner}
+                ${extrasGridHtml}
+                ${extraRequest.status !== 'pending' ? `
+                <div style="text-align:center; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e5e5e5;">
+                    <button id="reopenRequestBtn" style="background:none; border:1px solid #d1d5db; color:#aaa; padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.75rem; cursor:pointer;">
+                        Preciso alterar minha seleção
+                    </button>
+                </div>` : ''}
+            </div>
+        `;
+
+        // Renderizar grid de extras
+        if (canRequestExtras) {
+            extraSelectedPhotos = [];
+            const extrasGrid = document.getElementById('extrasGrid');
+            if (extrasGrid) {
+                extrasGrid.innerHTML = unselectedPhotos.map(photo => `
+                    <div data-extra-id="${photo.id}" style="position:relative; aspect-ratio:3/2; background:#e5e5e5; border-radius:0.25rem; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:border-color 0.15s;">
+                        <img src="${photo.url}" style="width:100%; height:100%; object-fit:cover; pointer-events:none;">
+                        <div class="extra-check" style="display:none; position:absolute; top:0.25rem; right:0.25rem; width:22px; height:22px; background:#2563eb; border-radius:50%; align-items:center; justify-content:center; color:#fff; font-size:0.75rem;">✓</div>
+                    </div>
+                `).join('');
+
+                extrasGrid.addEventListener('click', (e) => {
+                    const item = e.target.closest('[data-extra-id]');
+                    if (!item) return;
+                    const id = item.dataset.extraId;
+                    const check = item.querySelector('.extra-check');
+                    const idx = extraSelectedPhotos.indexOf(id);
+                    if (idx > -1) {
+                        extraSelectedPhotos.splice(idx, 1);
+                        item.style.borderColor = 'transparent';
+                        if (check) check.style.display = 'none';
+                    } else {
+                        extraSelectedPhotos.push(id);
+                        item.style.borderColor = '#2563eb';
+                        if (check) check.style.display = 'flex';
+                    }
+                    const bar = document.getElementById('extraRequestBar');
+                    const countEl = document.getElementById('extraRequestCount');
+                    if (bar && countEl) {
+                        if (extraSelectedPhotos.length > 0) {
+                            const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.',',');
+                            countEl.textContent = `${extraSelectedPhotos.length} foto(s) — R$ ${total}`;
+                            bar.style.display = 'flex';
+                        } else {
+                            bar.style.display = 'none';
+                        }
+                    }
+                });
+
+                const sendBtn = document.getElementById('sendExtraRequestBtn');
+                if (sendBtn) {
+                    sendBtn.addEventListener('click', requestExtraPhotos);
+                }
+            }
+        }
+    }
+
+    async function requestExtraPhotos() {
+        if (!extraSelectedPhotos.length) return;
+        const btn = document.getElementById('sendExtraRequestBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+        try {
+            const res = await fetch(`/api/client/request-extra-photos/${state.sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos })
+            });
+            const result = await res.json();
+            if (!result.success) throw new Error(result.error);
+            state.session.extraRequest = { status: 'pending', photos: extraSelectedPhotos };
+            extraSelectedPhotos = [];
+            renderSubmittedScreen();
+        } catch (err) {
+            alert('Erro ao enviar solicitação: ' + err.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Solicitar'; }
+        }
     }
 
     // --- Modal de Comentários ---
@@ -484,6 +623,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.sessionId = result.sessionId;
             state.isParticipant = result.isParticipant || false;
             state.participantId = result.participantId || null;
+            // Dados do cliente CRM (se vinculado)
+            state._clientDataFromLogin = result.clientData || null;
 
             saveSessionToStorage();
             await loadSessionData();
@@ -510,7 +651,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const previousStatus = state.session ? state.session.selectionStatus : null;
+            // Preservar clientData do login (verify-code) pois photos não retorna esse campo
+            const savedClientData = (state.session && state.session.clientData) || state._clientDataFromLogin || null;
             state.session = result;
+            state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
             state.isSelectionMode = result.mode === 'selection';
@@ -870,6 +1014,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     submitSelectionBtn.addEventListener('click', submitSelection);
+
+    const saveSelectionBtn = document.getElementById('saveSelectionBtn');
+    if (saveSelectionBtn) {
+        saveSelectionBtn.addEventListener('click', () => {
+            saveSelectionBtn.textContent = '✓ Seleção salva!';
+            saveSelectionBtn.style.background = '#16a34a';
+            setTimeout(() => {
+                saveSelectionBtn.textContent = '💾 Salvo';
+                saveSelectionBtn.style.background = '#4b5563';
+            }, 2000);
+        });
+    }
 
     statusScreen.addEventListener('click', (e) => {
         if (e.target.id === 'reopenRequestBtn') {
