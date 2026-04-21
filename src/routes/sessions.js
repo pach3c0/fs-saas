@@ -477,8 +477,8 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     const email = session.clientEmail || (session.clientId ? (await require('../models/Client').findById(session.clientId).select('email').lean())?.email : '');
     if (!email) return res.status(400).json({ error: 'Nenhum e-mail cadastrado para este cliente' });
 
-    const org = await Organization.findById(req.user.organizationId).select('name');
-    await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo');
+    const org = await Organization.findById(req.user.organizationId).select('name slug');
+    await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug);
 
     res.json({ success: true, message: `E-mail enviado para ${email}` });
   } catch (error) {
@@ -628,8 +628,8 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
 
     // Notificar cliente por e-mail
     if (session.clientEmail) {
-      const org = await Organization.findById(session.organizationId).select('name');
-      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo').catch(() => {});
+      const org = await Organization.findById(session.organizationId).select('name slug');
+      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug).catch(() => {});
     }
 
     res.json({ success: true });

@@ -131,7 +131,11 @@ async function sendApprovalEmail(email, name, slug) {
 /**
  * E-mail para o cliente: galeria disponivel (enviado ao criar sessao)
  */
-async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, orgName) {
+async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, orgName, orgSlug) {
+  const galleryUrl = orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
+    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+
   const subject = `Suas fotos estao disponiveis! - ${orgName}`;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
@@ -150,10 +154,12 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
       </div>
 
       <div style="text-align: center; margin: 1.5rem 0;">
-        <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+        <a href="${galleryUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
           Acessar Minha Galeria
         </a>
       </div>
+
+      <p style="color: #999; font-size: 0.8125rem; text-align: center;">Ou acesse: <a href="${galleryUrl}" style="color: #2563eb;">${galleryUrl}</a></p>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
         <p>${orgName} - Fotografia Profissional</p>
@@ -166,7 +172,11 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
 /**
  * E-mail para o cliente: fotos entregues para download
  */
-async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, orgName) {
+async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, orgName, orgSlug) {
+  const galleryUrl = orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
+    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+
   const subject = `Suas fotos foram entregues! - ${orgName}`;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
@@ -185,10 +195,12 @@ async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, org
       </div>
 
       <div style="text-align: center; margin: 1.5rem 0;">
-        <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+        <a href="${galleryUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
           Baixar Minhas Fotos
         </a>
       </div>
+
+      <p style="color: #999; font-size: 0.8125rem; text-align: center;">Ou acesse: <a href="${galleryUrl}" style="color: #2563eb;">${galleryUrl}</a></p>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
         <p>${orgName} - Fotografia Profissional</p>

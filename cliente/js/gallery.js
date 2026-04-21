@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const state = {
         accessCode: null,
         sessionId: null,
@@ -820,8 +820,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
-    // Auto-login: tentar restaurar sessão salva no localStorage
-    tryAutoLogin();
+    // Preencher codigo automaticamente via URL (?code=XXXX) — link do email
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeFromUrl = urlParams.get('code');
+    if (codeFromUrl && accessCodeInput) {
+        accessCodeInput.value = codeFromUrl;
+        // Limpar da URL sem recarregar (UX mais limpa)
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+    }
+
+    // Auto-login: tentar restaurar sessão salva no localStorage; se vier código da URL, logar direto
+    const autoLogged = await tryAutoLogin();
+    if (!autoLogged && codeFromUrl) {
+        // Login automático com o código recebido por email
+        await handleLogin(null);
+    }
 
     photoGrid.addEventListener('click', (e) => {
         const selectBtn = e.target.closest('.photo-heart');

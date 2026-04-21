@@ -564,3 +564,10 @@ Você e o cliente podem trocar mensagens sobre fotos específicas diretamente na
 GET  /api/clients/search?q=:nome   → autocomplete (até 10 resultados)
 POST /api/sessions/:id/send-code   → dispara e-mail de código ao cliente
 ```
+
+
+# ajustes
+
+quando o cliente clicar no email com o codigo, tem que direcionar para o a pagina cliente do slug do fotografo, e quando abrir a pagina clientes, o campo codigo ja deve estar preenchido com o codigo do cliente que recebeu via email
+
+no momento o email que ele recebe vai para a pagina www.cliquezoom.com.br/cliente/
