@@ -5,13 +5,14 @@
 import { appState } from '../state.js';
 import { formatDate, copyToClipboard, resolveImagePath, escapeHtml } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
+import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 
 const STATUS_LABELS = {
-  pending: { text: 'Pendente', color: '#9ca3af', bg: '#1f2937' },
-  in_progress: { text: 'Em seleção', color: '#fbbf24', bg: '#422006' },
-  submitted: { text: 'Seleção enviada', color: '#34d399', bg: '#064e3b' },
-  delivered: { text: 'Entregue', color: '#60a5fa', bg: '#1e3a5f' },
-  expired: { text: 'Expirado', color: '#fca5a5', bg: '#7f1d1d' }
+  pending: { text: 'Pendente', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
+  in_progress: { text: 'Em seleção', color: 'var(--yellow)', bg: 'rgba(210, 153, 34, 0.1)' },
+  submitted: { text: 'Seleção enviada', color: 'var(--green)', bg: 'rgba(63, 185, 80, 0.1)' },
+  delivered: { text: 'Entregue', color: 'var(--accent)', bg: 'rgba(47, 129, 247, 0.1)' },
+  expired: { text: 'Expirado', color: 'var(--red)', bg: 'rgba(248, 81, 73, 0.1)' }
 };
 
 export async function renderSessoes(container) {
@@ -67,84 +68,108 @@ export async function renderSessoes(container) {
 
     <!-- Modal Nova Sessao -->
     <div id="newSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
-        <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Nova Sessao</h3>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente (opcional)</label>
-          <select id="sessionClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-            <option value="">-- Nenhum cliente vinculado --</option>
-          </select>
-          <p style="font-size:0.625rem; color:#6b7280; margin-top:0.25rem;">Selecionar um cliente preenche o nome automaticamente.</p>
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:30rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
+        <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Nova Sessão</h3>
+
+        <!-- BLOCO CLIENTE: busca dinâmica -->
+        <div style="position:relative;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Cliente <span style="color:var(--text-muted);">(opcional)</span></label>
+          <input type="text" id="clientSearchInput" autocomplete="off"
+            placeholder="Digite o nome para buscar ou criar..."
+            style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+          <input type="hidden" id="sessionClientId" value="">
+          <!-- Dropdown de resultados -->
+          <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
+          <p id="clientSearchHint" style="font-size:0.625rem; color:var(--text-muted); margin-top:0.25rem;"></p>
         </div>
+
+        <!-- Nome da Sessão -->
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Nome do Cliente</label>
-          <input type="text" id="sessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="Ex: Maria Silva">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Nome da Sessão <span style="color:var(--red);">*</span></label>
+          <input type="text" id="sessionName"
+            placeholder="Ex: Ensaio Família Silva"
+            style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
         </div>
+
+        <!-- Tipo -->
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">E-mail do Cliente <span style="color:#6b7280;">(opcional — para notificacoes)</span></label>
-          <input type="email" id="sessionClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="email@cliente.com">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Tipo</label>
-          <select id="sessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-            <option value="Familia">Familia</option>
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Tipo</label>
+          <select id="sessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+            <option value="Familia">Família</option>
             <option value="Casamento">Casamento</option>
             <option value="Evento">Evento</option>
             <option value="Ensaio">Ensaio</option>
             <option value="Corporativo">Corporativo</option>
           </select>
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Data</label>
-          <input type="date" id="sessionDate" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Prazo Seleção (Opcional)</label>
-          <input type="datetime-local" id="sessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+
+        <!-- DATAS -->
+        <div style="border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">📅 Datas</h4>
+          <div>
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Criado em</label>
+            <input type="date" id="sessionCreatedAtDate"
+              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Data de abertura da sessão (hoje por padrão).</p>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Data do Evento</label>
+            <input type="date" id="sessionDate"
+              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Quando o ensaio/evento aconteceu.</p>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
+            <input type="datetime-local" id="sessionDeadline"
+              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
+          </div>
+          <p id="dateValidationMsg" style="display:none; font-size:0.75rem; color:var(--red); font-weight:500;"></p>
         </div>
 
+        <!-- Foto de Capa -->
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Foto de Capa</label>
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Foto de Capa</label>
           <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div id="coverPreview" style="width:80px; height:60px; background:#111827; border:1px dashed #374151; border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-              <span style="color:#6b7280; font-size:0.625rem;">Sem capa</span>
+            <div id="coverPreview" style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+              <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
             </div>
-            <label style="background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.75rem;">
+            <label style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.75rem;">
               Upload
               <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
             </label>
             <div id="coverProgress"></div>
           </div>
-          <p style="font-size:0.625rem; color:#6b7280; margin-top:0.25rem;">Exibida no topo da galeria do cliente.</p>
           <input type="hidden" id="sessionCoverPhoto" value="">
         </div>
 
-        <div style="border-top:1px solid #374151; padding-top:1rem;">
-          <h4 style="font-size:0.875rem; font-weight:600; color:#d1d5db; margin-bottom:0.75rem;">Configuracao da Galeria</h4>
+        <!-- Config Galeria -->
+        <div style="border-top:1px solid var(--border); padding-top:1rem;">
+          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.75rem;">Configuração da Galeria</h4>
           <div>
-            <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Modo</label>
-            <select id="sessionMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
-              <option value="selection">Selecao (cliente escolhe favoritas)</option>
-              <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Modo</label>
+            <select id="sessionMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+              <option value="selection">Seleção (cliente escolhe favoritas)</option>
+              <option value="gallery">Galeria (cliente só visualiza/baixa)</option>
               <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
             </select>
           </div>
           <div id="selectionFields" style="display:flex; gap:0.75rem; margin-top:0.75rem;">
             <div style="flex:1;">
-              <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Fotos do pacote</label>
-              <input type="number" id="sessionLimit" value="30" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+              <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fotos do pacote</label>
+              <input type="number" id="sessionLimit" value="30" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
             </div>
             <div style="flex:1;">
-              <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Preco foto extra (R$)</label>
-              <input type="number" id="sessionExtraPrice" value="25" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+              <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Preço foto extra (R$)</label>
+              <input type="number" id="sessionExtraPrice" value="25" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
             </div>
           </div>
-          <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:#fbbf24; margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes e seus limites individuais após criar a sessão.</p>
+          <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
         </div>
 
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button id="cancelNewSession" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
-          <button id="confirmNewSession" style="padding:0.5rem 1rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Criar</button>
+          <button id="cancelNewSession" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Cancelar</button>
+          <button id="confirmNewSession" style="padding:0.5rem 1rem; background:var(--green); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Criar Sessão</button>
         </div>
       </div>
     </div>
@@ -307,18 +332,12 @@ export async function renderSessoes(container) {
   // Carrega sessoes
   let sessionsData = [];
   try {
-    const response = await fetch('/api/sessions', {
-      headers: { 'Authorization': `Bearer ${appState.authToken}` }
-    });
-
-    if (!response.ok) throw new Error('Erro ao carregar');
-
-    const result = await response.json();
+    const result = await apiGet('/api/sessions');
     sessionsData = result.sessions || [];
     filterAndRender();
   } catch (error) {
     const list = container.querySelector('#sessionsList');
-    if (list) list.innerHTML = `<p style="color:#f87171;">${error.message}</p>`;
+    if (list) list.innerHTML = `<p style="color:var(--red);">${error.message}</p>`;
   }
 
   // Função de filtragem e renderização
@@ -398,65 +417,65 @@ export async function renderSessoes(container) {
         const extraPrice = session.extraPhotoPrice || 25;
 
         return `
-        <div style="border:1px solid #374151; border-radius:0.75rem; padding:1rem; background:#1f2937;">
+        <div style="border:1px solid var(--border); border-radius:0.75rem; padding:1rem; background:var(--bg-surface);">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div style="display:flex; gap:1rem; flex:1;">
-              <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; overflow:hidden; background:#111827; display:flex; align-items:center; justify-content:center; border:1px solid #374151;">
+              <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; overflow:hidden; background:var(--bg-base); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
                 ${session.coverPhoto 
                   ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">` 
-                  : `<span style="color:#6b7280; font-size:0.625rem; text-align:center;">Sem capa</span>`}
+                  : `<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>`}
               </div>
               <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-                <strong style="color:#f3f4f6; font-size:1.125rem;">${session.name}</strong>
-                <span style="color:#9ca3af; font-size:0.875rem;">${session.type}</span>
-                ${session.clientId ? `<span style="color:#10b981; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; font-weight:600;">
+                <strong style="color:var(--text-primary); font-size:1.125rem;">${session.name}</strong>
+                <span style="color:var(--text-secondary); font-size:0.875rem;">${session.type}</span>
+                ${session.clientId ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
+                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; border:1px solid ${status.color}44; font-weight:600;">
                   ${status.text}
                 </span>
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:#818cf8; background:#1e1b4b; font-weight:500;">
+                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--purple); background:rgba(188, 140, 255, 0.1); border:1px solid rgba(188, 140, 255, 0.3); font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
               </div>
-              <div style="color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;">
+              <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
                 ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : (isMulti ? ` • ${(session.participants || []).length} participantes` : '')}
                 ${deadline ? ` • Prazo: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
-                ${!isMulti && extras > 0 ? ` • <span style="color:#fbbf24;">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
+                ${!isMulti && extras > 0 ? ` • <span style="color:var(--yellow);">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
               </div>
               </div>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
-              <button onclick="viewSessionPhotos('${session._id}')" style="background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="viewSessionPhotos('${session._id}')" style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Fotos
               </button>
               ${mode === 'selection' && selectedCount > 0 ? `
-              <button onclick="viewSelection('${session._id}')" style="background:#7c3aed; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="viewSelection('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Selecao
               </button>` : ''}
               ${isMulti ? `
-              <button onclick="viewParticipants('${session._id}')" style="background:#7c3aed; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="viewParticipants('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Participantes
               </button>` : ''}
               ${!isMulti && session.selectionStatus === 'submitted' ? `
-              <button onclick="reopenSelection('${session._id}')" style="background:#f59e0b; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="reopenSelection('${session._id}')" style="background:var(--yellow); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Reabrir
               </button>
-              <button onclick="deliverSession('${session._id}')" style="background:#16a34a; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="deliverSession('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Entregar
               </button>` : ''}
-              <button onclick="editSession('${session._id}')" style="background:#d97706; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="editSession('${session._id}')" style="background:var(--orange); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Config
               </button>
-              <button onclick="copySessionCode('${session.accessCode}')" style="background:#374151; color:#d1d5db; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem;" title="Copiar codigo">
+              <button onclick="copySessionCode('${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); cursor:pointer; font-size:0.75rem;" title="Copiar codigo">
                 Codigo
               </button>
-              <button onclick="deleteSession('${session._id}')" style="background:#7f1d1d; color:#fca5a5; padding:0.375rem 0.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem;" title="Deletar">
-                X
+              <button onclick="deleteSession('${session._id}')" style="background:rgba(248, 81, 73, 0.1); color:var(--red); padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid rgba(248, 81, 73, 0.3); cursor:pointer; font-size:0.75rem;" title="Deletar">
+                &times;
               </button>
             </div>
           </div>
-          <div style="font-size:0.75rem; background:#111827; border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:#60a5fa; margin-top:0.5rem;">
+          <div style="font-size:0.75rem; background:var(--bg-base); border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:var(--accent); margin-top:0.5rem; border:1px solid var(--border);">
             Codigo: ${session.accessCode}
           </div>
         </div>
@@ -506,49 +525,162 @@ export async function renderSessoes(container) {
 
   // Nova sessao - modal
   const newSessionModal = container.querySelector('#newSessionModal');
-  container.querySelector('#addSessionBtn').onclick = async () => {
-    // Limpar campos ao abrir
-    container.querySelector('#sessionClientId').innerHTML = '<option value="">-- Nenhum cliente vinculado --</option>';
+
+  container.querySelector('#addSessionBtn').onclick = () => {
+    // Resetar campos
+    container.querySelector('#clientSearchInput').value = '';
+    container.querySelector('#sessionClientId').value = '';
+    container.querySelector('#clientSearchHint').textContent = '';
+    container.querySelector('#clientSearchDropdown').style.display = 'none';
     container.querySelector('#sessionName').value = '';
-
-    // Carregar clientes para o dropdown
-    try {
-      const resp = await fetch('/api/clients', {
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const select = container.querySelector('#sessionClientId');
-        (data.clients || []).forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c._id;
-          opt.textContent = c.name + (c.email ? ` (${c.email})` : '');
-          opt.dataset.name = c.name;
-          select.appendChild(opt);
-        });
-      }
-    } catch (e) { /* silencioso, dropdown fica vazio */ }
-
+    container.querySelector('#dateValidationMsg').style.display = 'none';
+    container.querySelector('#sessionCoverPhoto').value = '';
+    container.querySelector('#coverPreview').innerHTML = '<span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>';
+    // Preencher "Criado em" com hoje
+    const today = new Date().toISOString().split('T')[0];
+    container.querySelector('#sessionCreatedAtDate').value = today;
+    container.querySelector('#sessionDate').value = '';
+    container.querySelector('#sessionDeadline').value = '';
     newSessionModal.style.display = 'flex';
   };
 
-  // Auto-preencher nome ao selecionar cliente
-  container.querySelector('#sessionClientId').onchange = (e) => {
-    const opt = e.target.selectedOptions[0];
-    if (opt && opt.dataset.name) {
-      container.querySelector('#sessionName').value = opt.dataset.name;
+  // --- Autocomplete de clientes ---
+  const clientSearchInput = container.querySelector('#clientSearchInput');
+  const clientSearchDropdown = container.querySelector('#clientSearchDropdown');
+  const clientSearchHint = container.querySelector('#clientSearchHint');
+  let _searchTimer = null;
+
+  function renderClientDropdown(clients, query) {
+    clientSearchDropdown.innerHTML = '';
+    // Opção de nenhum cliente
+    const nenhum = document.createElement('div');
+    nenhum.textContent = '— Sem vínculo';
+    nenhum.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--text-muted); font-size:0.875rem;';
+    nenhum.onmouseenter = () => nenhum.style.background = 'var(--bg-hover)';
+    nenhum.onmouseleave = () => nenhum.style.background = '';
+    nenhum.onclick = () => {
+      clientSearchInput.value = '';
+      container.querySelector('#sessionClientId').value = '';
+      clientSearchHint.textContent = '';
+      clientSearchDropdown.style.display = 'none';
+    };
+    clientSearchDropdown.appendChild(nenhum);
+
+    // Resultados encontrados
+    clients.forEach(c => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--text-primary); font-size:0.875rem; border-top:1px solid var(--border);';
+      item.innerHTML = `<strong>${escapeHtml(c.name)}</strong>${c.email ? `<span style="color:var(--text-muted); font-size:0.75rem;"> · ${escapeHtml(c.email)}</span>` : ''}`;
+      item.onmouseenter = () => item.style.background = 'var(--bg-hover)';
+      item.onmouseleave = () => item.style.background = '';
+      item.onclick = () => {
+        clientSearchInput.value = c.name;
+        container.querySelector('#sessionClientId').value = c._id;
+        if (!container.querySelector('#sessionName').value) {
+          container.querySelector('#sessionName').value = c.name;
+        }
+        clientSearchHint.textContent = c.email ? `✓ Cliente vinculado · E-mail: ${c.email}` : '✓ Cliente vinculado';
+        clientSearchHint.style.color = 'var(--green)';
+        clientSearchDropdown.style.display = 'none';
+      };
+      clientSearchDropdown.appendChild(item);
+    });
+
+    // Opção de criar novo
+    if (query.trim()) {
+      const criar = document.createElement('div');
+      criar.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--accent); font-size:0.875rem; border-top:1px solid var(--border); font-weight:500;';
+      criar.textContent = `+ Cadastrar "${query.trim()}" como novo cliente`;
+      criar.onmouseenter = () => criar.style.background = 'var(--bg-hover)';
+      criar.onmouseleave = () => criar.style.background = '';
+      criar.onclick = async () => {
+        clientSearchDropdown.style.display = 'none';
+        clientSearchHint.textContent = 'Cadastrando...';
+        clientSearchHint.style.color = 'var(--text-muted)';
+        try {
+          const result = await apiPost('/api/clients', { name: query.trim() });
+          const newClient = result.client;
+          clientSearchInput.value = newClient.name;
+          container.querySelector('#sessionClientId').value = newClient._id;
+          if (!container.querySelector('#sessionName').value) {
+            container.querySelector('#sessionName').value = newClient.name;
+          }
+          clientSearchHint.textContent = `✓ Novo cliente cadastrado!`;
+          clientSearchHint.style.color = 'var(--green)';
+        } catch (e) {
+          clientSearchHint.textContent = 'Erro ao cadastrar: ' + e.message;
+          clientSearchHint.style.color = 'var(--red)';
+        }
+      };
+      clientSearchDropdown.appendChild(criar);
     }
+
+    clientSearchDropdown.style.display = 'block';
+  }
+
+  clientSearchInput.oninput = () => {
+    clearTimeout(_searchTimer);
+    const q = clientSearchInput.value.trim();
+    if (!q) {
+      clientSearchDropdown.style.display = 'none';
+      container.querySelector('#sessionClientId').value = '';
+      clientSearchHint.textContent = '';
+      return;
+    }
+    _searchTimer = setTimeout(async () => {
+      try {
+        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        renderClientDropdown(data.clients || [], q);
+      } catch (e) { /* silencioso */ }
+    }, 300);
   };
+
+  // Fechar dropdown ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!clientSearchInput.contains(e.target) && !clientSearchDropdown.contains(e.target)) {
+      clientSearchDropdown.style.display = 'none';
+    }
+  }, { capture: true });
+
+  // --- Validação cruzada de datas ---
+  function validateDates() {
+    const createdVal = container.querySelector('#sessionCreatedAtDate').value;
+    const eventVal   = container.querySelector('#sessionDate').value;
+    const deadlineVal = container.querySelector('#sessionDeadline').value;
+    const msg = container.querySelector('#dateValidationMsg');
+
+    if (createdVal && eventVal && eventVal < createdVal) {
+      msg.textContent = '⚠ A Data do Evento não pode ser anterior ao "Criado em".';
+      msg.style.display = 'block';
+      return false;
+    }
+    if (eventVal && deadlineVal) {
+      const eventDate = new Date(eventVal + 'T00:00:00');
+      const deadline  = new Date(deadlineVal);
+      if (deadline < eventDate) {
+        msg.textContent = '⚠ O Prazo de Seleção não pode ser anterior à Data do Evento.';
+        msg.style.display = 'block';
+        return false;
+      }
+    }
+    msg.style.display = 'none';
+    return true;
+  }
+
+  container.querySelector('#sessionCreatedAtDate').oninput = validateDates;
+  container.querySelector('#sessionDate').oninput = validateDates;
+  container.querySelector('#sessionDeadline').oninput = validateDates;
 
   container.querySelector('#cancelNewSession').onclick = () => {
     newSessionModal.style.display = 'none';
   };
 
   container.querySelector('#confirmNewSession').onclick = async () => {
+    if (!validateDates()) return;
+
     const name = container.querySelector('#sessionName').value.trim();
-    const clientEmail = container.querySelector('#sessionClientEmail').value.trim();
     const type = container.querySelector('#sessionType').value;
-    const date = container.querySelector('#sessionDate').value;
+    const date = container.querySelector('#sessionDate').value;           // data do evento
     const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
     const mode = container.querySelector('#sessionMode').value;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
@@ -556,25 +688,26 @@ export async function renderSessoes(container) {
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const clientId = container.querySelector('#sessionClientId').value || null;
 
-    if (!name) { window.showToast?.('Nome é obrigatório', 'warning'); return; }
-    if (!date) { window.showToast?.('Data é obrigatória', 'warning'); return; }
+    if (!name) { window.showToast?.('Nome da sessão é obrigatório', 'warning'); return; }
+
+    // Buscar email do cliente vinculado (se houver)
+    let clientEmail = '';
+    if (clientId) {
+      try {
+        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(container.querySelector('#clientSearchInput').value)}`);
+        const linked = (data.clients || []).find(c => c._id === clientId);
+        if (linked) clientEmail = linked.email || '';
+      } catch (e) { /* silencioso */ }
+    }
 
     try {
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${appState.authToken}`
-        },
-        body: JSON.stringify({ name, clientEmail, type, date, selectionDeadline, mode, packageLimit, extraPhotoPrice, coverPhoto, clientId })
+      const result = await apiPost('/api/sessions', {
+        name, clientEmail, type, date, selectionDeadline,
+        mode, packageLimit, extraPhotoPrice, coverPhoto, clientId
       });
 
-      if (!response.ok) throw new Error('Erro ao criar');
-
-      const result = await response.json();
-      const session = result.session || result;
       newSessionModal.style.display = 'none';
-      window.showToast?.(`Sessão criada! Código: `, 'success', 6000);
+      window.showToast?.(`Sessão criada! Código: ${result.accessCode || result.session?.accessCode}`, 'success', 6000);
       await renderSessoes(container);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
@@ -606,17 +739,17 @@ export async function renderSessoes(container) {
         const isSelected = selectedIds.includes(photo.id);
         const hasComments = photo.comments && photo.comments.length > 0;
         return `
-        <div style="position:relative; aspect-ratio:3/2; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : ''}">
+        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''}">
           <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:#16a34a; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">Selecionada</div>' : ''}
-          ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:#3b82f6; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
+          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">Selecionada</div>' : ''}
+          ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:var(--accent); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
           <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center;"
             onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
-            <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:#3b82f6; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="Comentários">
+            <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:var(--accent); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="Comentários">
               💬
             </button>
-            <button onclick="deleteSessionPhoto('${sessionId}', '${photo.id}')" style="background:#ef4444; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
-              X
+            <button onclick="deleteSessionPhoto('${sessionId}', '${photo.id}')" style="background:var(--red); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
+              &times;
             </button>
           </div>
           <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">${idx + 1}</div>
@@ -662,9 +795,9 @@ export async function renderSessoes(container) {
     grid.innerHTML = sorted.map((photo, idx) => {
       const isSelected = selectedIds.includes(photo.id);
       return `
-        <div style="position:relative; aspect-ratio:3/2; background:#374151; border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid #34d399;' : 'opacity:0.4;'}">
+        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : 'opacity:0.4;'}">
           <img src="${resolveImagePath(photo.url)}" alt="${photo.filename}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:#16a34a; color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:9999px; font-weight:bold;">&#10003;</div>' : ''}
+          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:9999px; font-weight:bold;">&#10003;</div>' : ''}
         </div>
       `;
     }).join('');
@@ -679,15 +812,11 @@ export async function renderSessoes(container) {
 
   // Reabrir selecao
   window.reopenSelection = async (sessionId) => {
-    if (!confirm('Reabrir selecao? O cliente podera alterar as fotos selecionadas.')) return;
+    const ok = await window.showConfirm?.('Reabrir seleção? O cliente poderá alterar as fotos selecionadas.');
+    if (!ok) return;
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/reopen`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-      });
-      if (response.ok) {
-        await renderSessoes(container);
-      }
+      await apiPut(`/api/sessions/${sessionId}/reopen`);
+      await renderSessoes(container);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }
@@ -695,15 +824,11 @@ export async function renderSessoes(container) {
 
   // Entregar sessao
   window.deliverSession = async (sessionId) => {
-    if (!confirm('Marcar esta sessao como entregue? O watermark sera removido e o cliente podera baixar as fotos.')) return;
+    const ok = await window.showConfirm?.('Marcar esta sessão como entregue? O watermark será removido e o cliente poderá baixar as fotos.');
+    if (!ok) return;
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/deliver`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-      });
-      if (response.ok) {
-        await renderSessoes(container);
-      }
+      await apiPut(`/api/sessions/${sessionId}/deliver`);
+      await renderSessoes(container);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }
@@ -731,21 +856,16 @@ export async function renderSessoes(container) {
     const clientSelect = container.querySelector('#editClientId');
     clientSelect.innerHTML = '<option value="">-- Nenhum cliente vinculado --</option>';
     try {
-      const resp = await fetch('/api/clients', {
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
+      const data = await apiGet('/api/clients');
+      (data.clients || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c._id;
+        opt.textContent = c.name + (c.email ? ` (${c.email})` : '');
+        if (session.clientId && (session.clientId === c._id || session.clientId._id === c._id)) {
+          opt.selected = true;
+        }
+        clientSelect.appendChild(opt);
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        (data.clients || []).forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c._id;
-          opt.textContent = c.name + (c.email ? ` (${c.email})` : '');
-          if (session.clientId && (session.clientId === c._id || session.clientId._id === c._id)) {
-            opt.selected = true;
-          }
-          clientSelect.appendChild(opt);
-        });
-      }
     } catch (e) { /* silencioso */ }
     container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
@@ -775,16 +895,7 @@ export async function renderSessoes(container) {
     const highResDelivery = container.querySelector('#editHighResDelivery').checked;
 
     try {
-      const response = await fetch(`/api/sessions/${editingSessionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${appState.authToken}`
-        },
-        body: JSON.stringify({ name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery })
-      });
-
-      if (!response.ok) throw new Error('Erro ao salvar');
+      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery });
 
       editModal.style.display = 'none';
       editingSessionId = null;
@@ -858,16 +969,7 @@ export async function renderSessoes(container) {
     btn.textContent = 'Enviando...';
 
     try {
-        const response = await fetch(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${appState.authToken}`
-            },
-            body: JSON.stringify({ text })
-        });
-        if (!response.ok) throw new Error('Erro ao enviar');
-        const result = await response.json();
+        const result = await apiPost(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, { text });
 
         // Atualiza dados locais sem re-renderizar a tela inteira
         const session = sessionsData.find(s => s._id === currentCommentSessionId);
@@ -941,14 +1043,9 @@ export async function renderSessoes(container) {
     if (!name) return window.showToast?.('Nome é obrigatório', 'warning');
 
     try {
-        const response = await fetch(`/api/sessions/${currentParticipantsSessionId}/participants`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${appState.authToken}` },
-            body: JSON.stringify({ name, email, packageLimit })
-        });
-        const result = await response.json();
-        if (result.success) {
-            renderParticipantsList(result.participants);
+        const result = await apiPost(`/api/sessions/${currentParticipantsSessionId}/participants`, { name, email, packageLimit });
+        if (result.success || result.participants) {
+            renderParticipantsList(result.participants || result.session.participants);
             container.querySelector('#newPartName').value = '';
             container.querySelector('#newPartEmail').value = '';
         }
@@ -956,25 +1053,23 @@ export async function renderSessoes(container) {
   };
 
   window.deleteParticipant = async (pid) => {
-    if (!confirm('Remover participante?')) return;
-    const response = await fetch(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-    });
-    const result = await response.json();
-    if (result.success) renderParticipantsList(result.participants);
+    const ok = await window.showConfirm?.('Remover participante?');
+    if (!ok) return;
+    try {
+      await apiDelete(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}`);
+      await renderSessoes(container);
+      viewParticipants(currentParticipantsSessionId);
+    } catch (e) { window.showToast?.(e.message, 'error'); }
   };
 
   window.deliverParticipant = async (pid) => {
-    if (!confirm('Marcar como entregue?')) return;
-    await fetch(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}/deliver`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-    });
-    // Recarregar lista para atualizar status
-    const session = await (await fetch(`/api/sessions`, { headers: { 'Authorization': `Bearer ${appState.authToken}` } })).json();
-    const updatedSession = session.sessions.find(s => s._id === currentParticipantsSessionId);
-    if (updatedSession) renderParticipantsList(updatedSession.participants);
+    const ok = await window.showConfirm?.('Marcar como entregue?');
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${currentParticipantsSessionId}/participants/${pid}/deliver`);
+      await renderSessoes(container);
+      viewParticipants(currentParticipantsSessionId);
+    } catch (e) { window.showToast?.(e.message, 'error'); }
   };
 
   container.querySelector('#closeParticipantsModal').onclick = () => {
@@ -1040,12 +1135,10 @@ export async function renderSessoes(container) {
 
   // Deletar foto individual
   window.deleteSessionPhoto = async (sessionId, photoId) => {
-    if (!confirm('Remover esta foto?')) return;
+    const ok = await window.showConfirm?.('Remover esta foto?');
+    if (!ok) return;
     try {
-      await fetch(`/api/sessions/${sessionId}/photos/${photoId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-      });
+      await apiDelete(`/api/sessions/${sessionId}/photos/${photoId}`);
       await renderSessoes(container);
       viewSessionPhotos(sessionId);
     } catch (error) {
@@ -1055,15 +1148,11 @@ export async function renderSessoes(container) {
 
   // Deletar sessao
   window.deleteSession = async (sessionId) => {
-    if (!confirm('Tem certeza que deseja deletar esta sessao e todas as fotos?')) return;
+    const ok = await window.showConfirm?.('Tem certeza que deseja deletar esta sessão e todas as fotos?');
+    if (!ok) return;
     try {
-      const response = await fetch(`/api/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${appState.authToken}` }
-      });
-      if (response.ok) {
-        await renderSessoes(container);
-      }
+      await apiDelete(`/api/sessions/${sessionId}`);
+      await renderSessoes(container);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }

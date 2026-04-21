@@ -4,6 +4,24 @@ const { authenticateToken } = require('../middleware/auth');
 const Client = require('../models/Client');
 const Session = require('../models/Session');
 
+// GET /api/clients/search?q=nome - busca rapida por nome (para autocomplete)
+router.get('/clients/search', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId;
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ success: true, clients: [] });
+
+    const clients = await Client.find({
+      organizationId: orgId,
+      name: { $regex: q, $options: 'i' }
+    }).select('name email phone').limit(10).lean();
+
+    res.json({ success: true, clients });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/clients - listar clientes com contagem de sessoes
 router.get('/clients', authenticateToken, async (req, res) => {
   try {
