@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 const Organization = require('./models/Organization');
 
 require('dotenv').config();
@@ -200,6 +201,23 @@ app.get('/api/health', async (req, res) => {
 // ============================================================================
 // MIDDLEWARES
 // ============================================================================
+
+// Rate limiting por tenant — evita Neighbor Noise e abuso da API
+// Superadmins e rotas públicas do site não são afetados
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // janela de 1 minuto
+  max: 300,            // máx 300 req/min por tenant (ou IP se não autenticado)
+  keyGenerator: (req) => req.user?.organizationId || req.ip,
+  skip: (req) => req.path.startsWith('/site') || req.user?.role === 'superadmin',
+  handler: (req, res) => {
+    console.warn(`[rate-limit] bloqueado org=${req.user?.organizationId || req.ip} path=${req.path}`);
+    res.status(429).json({ error: 'Muitas requisições. Aguarde um momento e tente novamente.' });
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+
 const { resolveTenant } = require('./middleware/tenant');
 
 // Aplicar resolveTenant nas rotas publicas (GET sem auth)
