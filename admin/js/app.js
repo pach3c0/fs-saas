@@ -589,6 +589,26 @@ function showLoginForm() {
   if (!loginForm) return;
   loginForm.style.display = 'flex';
 
+  // Verifica se veio com token de reset na URL
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get('reset');
+  if (resetToken) {
+    showView('resetView');
+    setupResetView(resetToken);
+    return;
+  }
+
+  showView('loginView');
+
+  // ── Helpers ──
+  function showView(id) {
+    ['loginView', 'forgotView', 'resetView'].forEach(v => {
+      const el = document.getElementById(v);
+      if (el) el.style.display = v === id ? 'block' : 'none';
+    });
+  }
+
+  // ── Login ──
   const loginBtn = document.getElementById('loginSubmitBtn');
   const emailInput = document.getElementById('adminEmail');
   const passwordInput = document.getElementById('adminPassword');
@@ -597,38 +617,41 @@ function showLoginForm() {
     const email = emailInput?.value?.trim();
     const password = passwordInput?.value;
 
+    if (!email) { showToast('Digite seu e-mail', 'warning'); return; }
     if (!password) { showToast('Digite a senha', 'warning'); return; }
 
     loginBtn.disabled = true;
     loginBtn.textContent = 'Entrando...';
 
     try {
-      const body = email ? { email, password } : { password };
-
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ email, password })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erro ao fazer login');
+        const msg = data.error || 'Erro ao fazer login';
+        if (msg.toLowerCase().includes('senha')) {
+          showToast(msg + ' — esqueceu? Clique em "Esqueci minha senha".', 'error');
+        } else {
+          showToast(msg, 'error');
+        }
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Entrar';
+        return;
       }
 
-      const data = await response.json();
       appState.authToken = data.token;
       appState.organizationId = data.organizationId || '';
-
       localStorage.setItem('authToken', data.token);
       if (data.organizationId) localStorage.setItem('organizationId', data.organizationId);
 
-      await Promise.all([
-        loadAppData(),
-        postLoginSetup()
-      ]);
-    } catch (error) {
-      showToast(error.message, 'error');
+      await Promise.all([loadAppData(), postLoginSetup()]);
+    } catch {
+      showToast('Erro de conexão. Tente novamente.', 'error');
       loginBtn.disabled = false;
       loginBtn.textContent = 'Entrar';
     }
@@ -637,6 +660,74 @@ function showLoginForm() {
   loginBtn.onclick = doLogin;
   passwordInput.onkeydown = (e) => { if (e.key === 'Enter') doLogin(); };
   emailInput.onkeydown = (e) => { if (e.key === 'Enter') doLogin(); };
+
+  // ── Esqueci a senha ──
+  document.getElementById('forgotPasswordLink').onclick = () => showView('forgotView');
+  document.getElementById('backToLoginLink').onclick = () => showView('loginView');
+
+  const forgotBtn = document.getElementById('forgotSubmitBtn');
+  forgotBtn.onclick = async () => {
+    const email = document.getElementById('forgotEmail')?.value?.trim();
+    if (!email) { showToast('Digite seu e-mail', 'warning'); return; }
+
+    forgotBtn.disabled = true;
+    forgotBtn.textContent = 'Enviando...';
+
+    try {
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      showToast('Se o e-mail estiver cadastrado, você receberá o link em instantes.', 'success');
+      showView('loginView');
+    } catch {
+      showToast('Erro de conexão. Tente novamente.', 'error');
+    } finally {
+      forgotBtn.disabled = false;
+      forgotBtn.textContent = 'Enviar link';
+    }
+  };
+
+  // ── Redefinir senha ──
+  function setupResetView(token) {
+    const resetBtn = document.getElementById('resetSubmitBtn');
+    resetBtn.onclick = async () => {
+      const password = document.getElementById('resetPassword')?.value;
+      const confirm = document.getElementById('resetPasswordConfirm')?.value;
+
+      if (!password || password.length < 6) { showToast('A senha deve ter no mínimo 6 caracteres', 'warning'); return; }
+      if (password !== confirm) { showToast('As senhas não coincidem', 'warning'); return; }
+
+      resetBtn.disabled = true;
+      resetBtn.textContent = 'Salvando...';
+
+      try {
+        const response = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          showToast(data.error || 'Link inválido ou expirado', 'error');
+          resetBtn.disabled = false;
+          resetBtn.textContent = 'Salvar nova senha';
+          return;
+        }
+
+        showToast('Senha redefinida com sucesso! Faça login.', 'success');
+        // Limpa token da URL e volta para login
+        window.history.replaceState({}, '', '/admin/');
+        showView('loginView');
+      } catch {
+        showToast('Erro de conexão. Tente novamente.', 'error');
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Salvar nova senha';
+      }
+    };
+  }
 }
 
 // ── Switch tab ────────────────────────────────────────────────────────────

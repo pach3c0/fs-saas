@@ -23,9 +23,6 @@ const SubscriptionSchema = new mongoose.Schema({
   currentPeriodEnd: { type: Date, default: null },
   cancelAtPeriodEnd: { type: Boolean, default: false },
 
-  // Trial
-  trialEndsAt: { type: Date, default: null },
-
   // Limites de uso
   limits: {
     maxSessions: { type: Number, default: 5 },      // free: 5, basic: 50, pro: unlimited (-1)

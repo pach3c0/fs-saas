@@ -52,26 +52,74 @@ async function sendEmail(to, subject, html) {
 }
 
 /**
- * Email de boas-vindas apos registro (conta pendente)
+ * Email de boas-vindas apos registro (acesso imediato)
  */
 async function sendWelcomeEmail(email, name, slug) {
-  const subject = 'Cadastro recebido - CliqueZoom';
+  const loginUrl = `https://${slug}.cliquezoom.com.br/admin`;
+  const subject = 'Bem-vindo ao CliqueZoom!';
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
       </div>
 
-      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Ola, ${name}!</h2>
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Bem-vindo, ${name}!</h2>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Recebemos seu cadastro com sucesso. Sua URL reservada e:
-      </p>
-      <p style="background: #f5f5f5; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 600; color: #2563eb; font-size: 0.9375rem;">
-        ${slug}.cliquezoom.com.br
+        Sua conta foi criada com sucesso. Voce ja pode acessar seu painel e comecar a configurar seu portfolio.
       </p>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Sua conta esta em analise e sera aprovada em ate <strong>24 horas uteis</strong>.
-        Voce recebera outro email assim que sua conta for ativada.
+        <strong>Seu site:</strong> <a href="https://${slug}.cliquezoom.com.br" style="color: #2563eb;">${slug}.cliquezoom.com.br</a>
+      </p>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${loginUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Acessar Meu Painel
+        </a>
+      </div>
+
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Use o email e senha que voce cadastrou para fazer login. Com o CliqueZoom voce pode:
+      </p>
+      <ul style="color: #555; line-height: 1.8; font-size: 0.9375rem;">
+        <li>Criar e personalizar seu site de fotografia</li>
+        <li>Gerenciar sessoes e clientes</li>
+        <li>Entregar galerias privadas com selecao de fotos</li>
+        <li>Criar albuns de prova para aprovacao</li>
+      </ul>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(email, subject, html);
+}
+
+/**
+ * Email de recuperacao de senha
+ */
+async function sendPasswordResetEmail(email, name, resetUrl) {
+  const subject = 'Redefinir senha - CliqueZoom';
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Redefinir senha</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Ola, ${name}! Recebemos uma solicitacao para redefinir a senha da sua conta.
+        Clique no botao abaixo para criar uma nova senha.
+      </p>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${resetUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Redefinir Minha Senha
+        </a>
+      </div>
+
+      <p style="color: #999; font-size: 0.8125rem; text-align: center;">
+        Este link expira em <strong>1 hora</strong>. Se voce nao solicitou a troca de senha, ignore este e-mail.
       </p>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
@@ -467,6 +515,7 @@ async function sendDeadlineExpiredEmail(clientEmail, sessionName, orgName) {
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
+  sendPasswordResetEmail,
   sendApprovalEmail,
   sendGalleryAvailableEmail,
   sendPhotosDeliveredEmail,

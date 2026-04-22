@@ -822,9 +822,32 @@
         <div class="login-logo">C</div>
         <h2 class="login-title">CliqueZoom Admin</h2>
         <p class="login-subtitle">Entre para gerenciar sua conta</p>
-        <input type="email" id="adminEmail" class="login-input" placeholder="Email (opcional)">
-        <input type="password" id="adminPassword" class="login-input" placeholder="Senha" style="margin-bottom:1rem;">
-        <button class="login-btn" id="loginSubmitBtn">Entrar</button>
+
+        <!-- Tela: login -->
+        <div id="loginView">
+            <input type="email" id="adminEmail" class="login-input" placeholder="E-mail">
+            <input type="password" id="adminPassword" class="login-input" placeholder="Senha">
+            <div style="text-align:right; margin:-0.25rem 0 1rem;">
+                <button id="forgotPasswordLink" style="background:none;border:none;color:var(--accent);font-size:0.8125rem;cursor:pointer;padding:0;">Esqueci minha senha</button>
+            </div>
+            <button class="login-btn" id="loginSubmitBtn">Entrar</button>
+        </div>
+
+        <!-- Tela: recuperar senha -->
+        <div id="forgotView" style="display:none;">
+            <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+            <input type="email" id="forgotEmail" class="login-input" placeholder="E-mail">
+            <button class="login-btn" id="forgotSubmitBtn">Enviar link</button>
+            <button id="backToLoginLink" style="background:none;border:none;color:var(--text-secondary);font-size:0.8125rem;cursor:pointer;width:100%;margin-top:0.75rem;">Voltar ao login</button>
+        </div>
+
+        <!-- Tela: redefinir senha -->
+        <div id="resetView" style="display:none;">
+            <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite sua nova senha.</p>
+            <input type="password" id="resetPassword" class="login-input" placeholder="Nova senha (mín. 6 caracteres)">
+            <input type="password" id="resetPasswordConfirm" class="login-input" placeholder="Confirmar nova senha">
+            <button class="login-btn" id="resetSubmitBtn">Salvar nova senha</button>
+        </div>
     </div>
 </div>
 

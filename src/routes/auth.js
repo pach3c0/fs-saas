@@ -6,116 +6,111 @@ const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
-const { sendWelcomeEmail, sendApprovalEmail } = require('../utils/email');
+const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail } = require('../utils/email');
 
-// Login com email + senha (novo) ou senha legada (compatibilidade)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
 
-    // Novo fluxo: login por email
-    if (email) {
-      const user = await User.findOne({ email: email.toLowerCase().trim() });
-      if (!user) {
-        return res.status(401).json({ success: false, error: 'Usuário não encontrado' });
-      }
-
-      // Verificar senha
-      const isValid = await bcrypt.compare(password, user.passwordHash);
-      if (!isValid) {
-        return res.status(401).json({ success: false, error: 'Senha incorreta' });
-      }
-
-      // Verificar se usuário está aprovado
-      if (!user.approved) {
-        return res.status(403).json({ success: false, error: 'Conta aguardando aprovação' });
-      }
-
-      // Verificar se organização está ativa
-      const org = await Organization.findById(user.organizationId);
-      if (!org || !org.isActive) {
-        return res.status(403).json({ success: false, error: 'Organização inativa' });
-      }
-
-      // Gerar JWT com userId, organizationId e role
-      const token = jwt.sign(
-        { 
-          userId: user._id,
-          organizationId: user.organizationId,
-          role: user.role 
-        },
-        secret,
-        { expiresIn: '7d' }
-      );
-
-      return res.json({ 
-        success: true, 
-        token,
-        organizationId: user.organizationId.toString(),
-        role: user.role
-      });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email e senha são obrigatórios' });
     }
 
-    // Fluxo legado: login só com senha (manter temporariamente)
-    if (password && !email) {
-      const passwordHash = process.env.ADMIN_PASSWORD_HASH;
-      const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
 
-      let isValid = false;
-      if (passwordHash) {
-        isValid = await bcrypt.compare(password, passwordHash);
-      } else {
-        isValid = password === adminPass;
-      }
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'E-mail não cadastrado' });
+    }
 
-      if (isValid) {
-        // Buscar superadmin para retornar organizationId
-        const superadmin = await User.findOne({ role: 'superadmin' });
-        if (superadmin) {
-          const token = jwt.sign(
-            { 
-              userId: superadmin._id,
-              organizationId: superadmin.organizationId,
-              role: 'superadmin' 
-            },
-            secret,
-            { expiresIn: '7d' }
-          );
-          return res.json({ 
-            success: true, 
-            token,
-            organizationId: superadmin.organizationId.toString(),
-            role: 'superadmin'
-          });
-        }
-        
-        // Fallback: buscar org pelo slug do owner
-        const ownerSlug = process.env.OWNER_SLUG || 'fs';
-        const ownerOrg = await Organization.findOne({ slug: ownerSlug });
-        if (ownerOrg) {
-          const token = jwt.sign(
-            { userId: null, organizationId: ownerOrg._id, role: 'superadmin' },
-            secret,
-            { expiresIn: '7d' }
-          );
-          return res.json({ success: true, token, organizationId: ownerOrg._id.toString(), role: 'superadmin' });
-        }
-        // Ultimo fallback: sem org (servidor precisa da migracao)
-        return res.status(500).json({ success: false, error: 'Execute a migração primeiro: node src/scripts/migrate-to-multitenancy.js' });
-      }
-      
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
       return res.status(401).json({ success: false, error: 'Senha incorreta' });
     }
 
-    res.status(400).json({ success: false, error: 'Email ou senha não fornecidos' });
+    if (!user.approved) {
+      return res.status(403).json({ success: false, error: 'Conta desativada. Entre em contato com o suporte.' });
+    }
+
+    const org = await Organization.findById(user.organizationId);
+    if (!org || !org.isActive) {
+      return res.status(403).json({ success: false, error: 'Conta desativada. Entre em contato com o suporte.' });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, organizationId: user.organizationId, role: user.role },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      token,
+      organizationId: user.organizationId.toString(),
+      role: user.role
+    });
   } catch (error) {
     console.error('Erro no login:', error);
     res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
 
-// Registro self-service (cria org + user pendentes de aprovação)
+// Solicitar recuperação de senha
+router.post('/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'E-mail é obrigatório' });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    // Sempre retorna 200 para não revelar se o e-mail existe
+    if (!user) return res.json({ success: true });
+
+    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+    const token = jwt.sign({ userId: user._id, purpose: 'reset' }, secret, { expiresIn: '1h' });
+
+    const baseUrl = process.env.BASE_URL || 'https://app.cliquezoom.com.br';
+    const resetUrl = `${baseUrl}/admin/?reset=${token}`;
+
+    sendPasswordResetEmail(user.email, user.name, resetUrl).catch(() => {});
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro no forgot-password:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// Redefinir senha com token
+router.post('/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token e senha são obrigatórios' });
+    if (password.length < 6) return res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres' });
+
+    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+    let payload;
+    try {
+      payload = jwt.verify(token, secret);
+    } catch {
+      return res.status(400).json({ error: 'Link inválido ou expirado' });
+    }
+
+    if (payload.purpose !== 'reset') {
+      return res.status(400).json({ error: 'Token inválido' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await User.findByIdAndUpdate(payload.userId, { passwordHash });
+
+    res.json({ success: true, message: 'Senha redefinida com sucesso' });
+  } catch (error) {
+    console.error('Erro no reset-password:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// Registro self-service (cria org + user já ativos)
 router.post('/auth/register', async (req, res) => {
   try {
     const { email, password, name, orgName, slug } = req.body;
@@ -142,15 +137,15 @@ router.post('/auth/register', async (req, res) => {
       return res.status(409).json({ error: 'Slug já está em uso' });
     }
 
-    // Criar organização (inativa)
+    // Criar organização já ativa
     const org = await Organization.create({
       name: orgName,
       slug: slug.toLowerCase().trim(),
-      isActive: false,
+      isActive: true,
       plan: 'free'
     });
 
-    // Criar usuário (não aprovado)
+    // Criar usuário já aprovado
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
       email: email.toLowerCase().trim(),
@@ -158,7 +153,7 @@ router.post('/auth/register', async (req, res) => {
       name,
       role: 'admin',
       organizationId: org._id,
-      approved: false
+      approved: true
     });
 
     // Atualizar ownerId da org
@@ -185,7 +180,7 @@ router.post('/auth/register', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Cadastro realizado! Aguarde a aprovação do administrador.',
+      message: 'Cadastro realizado! Acesse seu painel com o e-mail e senha cadastrados.',
       organizationSlug: org.slug
     });
   } catch (error) {

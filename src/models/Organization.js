@@ -11,6 +11,7 @@ const OrganizationSchema = new mongoose.Schema({
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
   isActive: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
   // Perfil do fotografo
   logo: { type: String, default: '' },
   phone: { type: String, default: '' },
@@ -158,10 +159,6 @@ const OrganizationSchema = new mongoose.Schema({
       question: String,
       answer: String
     }],
-    newsletter: {
-      title: { type: String, default: 'Fique por dentro' },
-      description: { type: String, default: '' }
-    },
   },
   // Estilo personalizado do site
   siteStyle: {
@@ -199,7 +196,6 @@ const OrganizationSchema = new mongoose.Schema({
       sendEmail: { type: Boolean, default: true }
     }
   },
-  subscriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription', default: null }
 }, { timestamps: true });
 
 OrganizationSchema.index({ isActive: 1 });
