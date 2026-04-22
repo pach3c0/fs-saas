@@ -138,6 +138,8 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | I/O sincrono trava todo o servidor | `fs.readdirSync`/`fs.statSync`/`fs.existsSync` no event loop | Sempre `fs.promises.readdir`/`fs.promises.stat`/`fs.promises.access` em rotas async |
 | `require()` dentro de handler | Lookup desnecessaria a cada requisicao | Mover todos os `require()` para o topo do arquivo |
 | Branding de outra marca aparece na galeria do cliente | Fallback hardcoded `'FS FOTOGRAFIAS'` em `gallery.js` ou `index.html` | Fallback sempre `''` ou omitir — nunca string de marca; ver `skills/2_1_clientes_selecao.md` |
+| Fotógrafo com conta suspensa consegue usar o sistema | `isActive=false` não era verificado no middleware | `authenticateToken` em `src/middleware/auth.js` já verifica — retorna 403 com mensagem clara |
+| API lenta para todos os fotógrafos (Neighbor Noise) | Um tenant em loop abusava da API sem limite | `express-rate-limit` em `src/server.js`: 300 req/min por `organizationId`; superadmins e `/site` são isentos |
 
 
 ---
