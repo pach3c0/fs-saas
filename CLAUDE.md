@@ -285,6 +285,55 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 
 ---
 
+## ARQUITETURA DE SOFTWARE — O QUE APLICAMOS E O QUE VEM DEPOIS
+
+> Baseado no estudo de arquitetura realizado em 2026-04-22. Referência completa em `skills/estudoarquitetura.md`.
+
+### JÁ APLICADO (não alterar sem consciência)
+
+| Padrão | Onde está no código | Por que importa |
+|---|---|---|
+| **Arquitetura 3-Tier** | `cliente/` + `admin/` → `src/` → MongoDB | Separação de responsabilidades correta desde o início |
+| **Stateless (JWT)** | `src/middleware/auth.js` — token em cada requisição | Permite PM2 cluster sem Sticky Sessions; qualquer instância responde |
+| **Escalabilidade horizontal (base)** | `ecosystem.config.js` — `instances: 2, exec_mode: 'cluster'` | Para dobrar capacidade: mudar para `instances: 4`, sem alterar código |
+| **Feature Flag (primitiva)** | `Organization.siteEnabled`, `?_preview=1` na URL | Liga/desliga funcionalidade sem deploy |
+| **Rolling deploy sem downtime** | `pm2 reload` reinicia uma instância por vez | Usuários não percebem o deploy; já funciona hoje |
+
+### A APLICAR — RESILIÊNCIA (baixo esforço, alto impacto)
+
+| Padrão | O que fazer | Quando |
+|---|---|---|
+| **SLI/SLO — monitoramento** | ✅ UptimeRobot configurado — monitor `https://cliquezoom.com.br/health` a cada 5 min | Concluído 2026-04-22 |
+| **RPO/RTO — backup automático** | ✅ rclone + Google Drive (2 TB). Cron diário às 3h faz `mongodump` + sync de `/uploads/`. Script em `scripts/backup.sh`. | Concluído 2026-04-22 |
+
+**Detalhes do backup (configurado no VPS em 2026-04-22):**
+- Script: `/root/scripts/backup.sh`
+- Cron: `0 3 * * * /root/scripts/backup.sh >> /var/log/cz-backup.log 2>&1`
+- Destino: Google Drive → pasta `CliqueZoom-Backups/mongodb/` e `CliqueZoom-Backups/uploads/`
+- MongoDB: backup diário comprimido (RPO = 24h)
+- Uploads (fotos): sync incremental diário (primeira sync: 493 arquivos)
+- Dumps locais: apagados após 7 dias automaticamente
+- Verificar log: `tail -f /var/log/cz-backup.log`
+- Se o token do rclone expirar: `rclone config reconnect gdrive:` no VPS
+
+### A APLICAR — CRESCIMENTO (quando atingir 50-100 clientes)
+
+| Padrão | O que fazer | Gatilho |
+|---|---|---|
+| **ACL (Anti-Corruption Layer)** | Criar `src/services/storage.js` com interface única: `upload()`, `getUrl()`, `delete()`. Hoje usa driver `local`; depois troca para `r2` sem mudar o resto do código. | Storage do VPS atingir 60% ou 100 clientes |
+| **Strangler Fig** | Migrar uploads para Cloudflare R2 ($0,015/GB/mês, egress gratuito) usando a abstração acima. Script batch migra arquivos antigos sem downtime. | Junto com ACL |
+
+### NÃO APLICAR AGORA (excesso de engenharia para o estágio atual)
+
+| Padrão | Motivo para adiar |
+|---|---|
+| **BFF (Back-end For Front-end)** | O mesmo Express serve todos os frontends e está correto assim. BFF só faz sentido com equipes grandes e payloads muito divergentes. |
+| **Fault Tolerance total** | Requer 2 VPS + load balancer externo. O PM2 com `instances: 2` já oferece Alta Disponibilidade suficiente para esta fase. |
+| **Blue-Green completo** | Requer infraestrutura duplicada. O `pm2 reload` (Rolling) já resolve deploy sem downtime. |
+| **Microsserviços** | O monolito atual é saudável e produtivo. Separar serviços antes da hora gera complexidade sem retorno. |
+
+---
+
 ## ROADMAP ESTRATÉGICO (Visão 2026)
 
 O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de Vendas Automático**.
