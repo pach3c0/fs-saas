@@ -148,6 +148,7 @@ const connectWithRetry = async () => {
 };
 
 const { checkDeadlines } = require('./utils/deadlineChecker');
+const { checkOffboarding } = require('./utils/offboardingChecker');
 
 // Roda a cada 6h — verifica prazos e envia e-mails para orgs com automação ativada
 let deadlineSchedulerStarted = false;
@@ -155,11 +156,20 @@ function startDeadlineScheduler() {
   if (deadlineSchedulerStarted) return;
   deadlineSchedulerStarted = true;
   const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+
   checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
   setInterval(() => {
     checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
   }, SIX_HOURS);
   console.log('[scheduler] Verificador de prazos iniciado (a cada 6h)');
+
+  // Roda 1x por dia — verifica orgs suspensas e aplica offboarding após grace period
+  checkOffboarding().catch(e => console.error('[scheduler] checkOffboarding:', e));
+  setInterval(() => {
+    checkOffboarding().catch(e => console.error('[scheduler] checkOffboarding:', e));
+  }, ONE_DAY);
+  console.log('[scheduler] Offboarding checker iniciado (a cada 24h)');
 }
 
 connectWithRetry();

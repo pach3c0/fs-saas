@@ -12,6 +12,7 @@ const OrganizationSchema = new mongoose.Schema({
   plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
   isActive: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
+  deactivatedAt: { type: Date, default: null },
   // Perfil do fotografo
   logo: { type: String, default: '' },
   phone: { type: String, default: '' },

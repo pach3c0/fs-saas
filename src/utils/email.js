@@ -512,6 +512,71 @@ async function sendDeadlineExpiredEmail(clientEmail, sessionName, orgName) {
   return sendEmail(clientEmail, subject, html);
 }
 
+/**
+ * E-mail para o fotografo: conta suspensa, aviso de exclusao de arquivos
+ */
+async function sendOffboardingWarningEmail(ownerEmail, orgName, graceDays) {
+  const subject = `Aviso importante: conta "${orgName}" suspensa — arquivos serão excluídos em ${graceDays} dias`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Sua conta foi suspensa</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        A conta <strong>${orgName}</strong> foi suspensa na plataforma CliqueZoom.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Todos os seus arquivos e fotos armazenados serão <strong>excluídos permanentemente em ${graceDays} dias</strong>
+        caso a situação não seja regularizada.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Entre em contato com o suporte o quanto antes para regularizar sua conta e preservar seus dados.
+      </p>
+
+      <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin: 1.5rem 0;">
+        <p style="margin: 0; color: #856404; font-size: 0.9375rem;">
+          ⚠️ Após o prazo, os arquivos não poderão ser recuperados.
+        </p>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html);
+}
+
+/**
+ * E-mail para o fotografo: arquivos excluidos apos grace period
+ */
+async function sendOffboardingDeletedEmail(ownerEmail, orgName) {
+  const subject = `Arquivos da conta "${orgName}" foram excluídos`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Arquivos excluídos</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        O prazo de recuperação da conta <strong>${orgName}</strong> encerrou.
+        Todos os arquivos e fotos armazenados foram excluídos permanentemente.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Caso tenha interesse em reativar uma nova conta, entre em contato com o suporte.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -526,5 +591,7 @@ module.exports = {
   sendPendingDepoimentoEmail,
   sendExtraPhotosRequestedEmail,
   sendDeadlineWarningEmail,
-  sendDeadlineExpiredEmail
+  sendDeadlineExpiredEmail,
+  sendOffboardingWarningEmail,
+  sendOffboardingDeletedEmail
 };

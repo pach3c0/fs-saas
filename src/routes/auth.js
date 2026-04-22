@@ -370,6 +370,7 @@ router.put('/admin/organizations/:id/trash', authenticateToken, requireSuperadmi
 
     org.isActive = false;
     org.deletedAt = new Date();
+    if (!org.deactivatedAt) org.deactivatedAt = new Date();
     await org.save();
 
     res.json({ success: true, message: `"${org.name}" movida para a lixeira` });
@@ -387,6 +388,7 @@ router.put('/admin/organizations/:id/restore', authenticateToken, requireSuperad
 
     org.isActive = true;
     org.deletedAt = null;
+    org.deactivatedAt = null;
     await org.save();
 
     await User.updateMany({ organizationId: org._id }, { approved: true });
@@ -449,6 +451,7 @@ router.put('/admin/organizations/:id/deactivate', authenticateToken, requireSupe
     }
 
     org.isActive = false;
+    if (!org.deactivatedAt) org.deactivatedAt = new Date();
     await org.save();
 
     res.json({
