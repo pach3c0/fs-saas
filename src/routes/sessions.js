@@ -13,7 +13,7 @@ const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
-const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail } = require('../utils/email');
+const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendUpsellEmail } = require('../utils/email');
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 
@@ -322,12 +322,28 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       });
     } catch(e){}
 
-    // Notificar fotografo por e-mail
+    // Notificar fotografo por e-mail + upsell para o cliente
     try {
       const org = await Organization.findById(session.organizationId).select('email name slug');
+      const clientName = participant ? participant.name : session.name;
+
       if (org?.email) {
-        const clientName = participant ? participant.name : session.name;
         sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => {});
+      }
+
+      // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado
+      const clientEmail = participant ? participant.email : session.clientEmail;
+      if (clientEmail && session.extraPhotoPrice > 0) {
+        sendUpsellEmail(
+          clientEmail,
+          clientName,
+          session.name,
+          org?.name || '',
+          session.extraPhotoPrice,
+          session._id,
+          session.accessCode,
+          org?.slug || ''
+        ).catch(() => {});
       }
     } catch(e){}
 

@@ -513,6 +513,57 @@ async function sendDeadlineExpiredEmail(clientEmail, sessionName, orgName) {
 }
 
 /**
+ * E-mail para o cliente: upsell de fotos extras apos envio da selecao
+ */
+async function sendUpsellEmail(clientEmail, clientName, sessionName, orgName, extraPhotoPrice, sessionId, accessCode, orgSlug) {
+  const galleryUrl = orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
+    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+
+  const subject = `Quer mais fotos de ${sessionName}? — ${orgName}`;
+  const priceFormatted = extraPhotoPrice
+    ? `R$ ${Number(extraPhotoPrice).toFixed(2).replace('.', ',')}`
+    : null;
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName}</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Sua seleção foi enviada! 🎉</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Olá${clientName ? `, <strong>${clientName}</strong>` : ''}! Recebemos sua seleção de fotos de <strong>${sessionName}</strong>.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Ficou com vontade de levar mais algumas? Você ainda pode voltar à galeria e solicitar fotos extras
+        ${priceFormatted ? `por apenas <strong>${priceFormatted} cada</strong>` : ''}.
+      </p>
+
+      <div style="background: #f5f5f5; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">
+        <p style="margin: 0 0 0.5rem 0; color: #555; font-size: 0.875rem;">Volte à sua galeria e escolha mais fotos</p>
+        ${priceFormatted ? `<p style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #1a1a1a;">${priceFormatted} <span style="font-size: 0.875rem; font-weight: 400; color: #777;">por foto extra</span></p>` : ''}
+      </div>
+
+      <div style="text-align: center; margin: 1.5rem 0;">
+        <a href="${galleryUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Ver Minha Galeria
+        </a>
+      </div>
+
+      <p style="color: #999; font-size: 0.8125rem; text-align: center;">
+        Esta oferta é válida enquanto a seleção ainda estiver em processamento.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>${orgName} - Fotografia Profissional</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
  * E-mail para o fotografo: conta suspensa, aviso de exclusao de arquivos
  */
 async function sendOffboardingWarningEmail(ownerEmail, orgName, graceDays) {
@@ -593,5 +644,6 @@ module.exports = {
   sendDeadlineWarningEmail,
   sendDeadlineExpiredEmail,
   sendOffboardingWarningEmail,
-  sendOffboardingDeletedEmail
+  sendOffboardingDeletedEmail,
+  sendUpsellEmail
 };
