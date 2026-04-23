@@ -267,7 +267,7 @@ const apiLimiter = rateLimit({
     });
     res.status(429).json({ error: 'Muitas requisições. Aguarde um momento e tente novamente.' });
   },
-  validate: { keyGenerator: false }, // Evita erro de validação IPv6 em ambientes que já tratam IP via Proxy (Nginx)
+  validate: { default: false }, // Desativa avisos de validação (Nginx proxy)
   standardHeaders: true,
   legacyHeaders: false,
 });

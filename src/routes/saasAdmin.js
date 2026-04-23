@@ -208,7 +208,6 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
             Subscription.deleteMany({ organizationId: orgId })
         ]);
 
-        const orgId = org._id.toString();
         await storage.deleteDir(`/${orgId}`);
         await Organization.findByIdAndDelete(orgId);
         res.json({ success: true, message: `"${org.name}" excluída definitivamente` });
