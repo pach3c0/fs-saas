@@ -31,7 +31,13 @@ npx playwright test --headed
 A melhor forma de desenvolver novos testes:
 ```bash
 npx playwright test --ui
+
+
+npx playwright test tests/landing-page.spec.js --headed
 ```
+
+
+
 
 ---
 
