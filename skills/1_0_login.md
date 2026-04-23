@@ -350,3 +350,23 @@ stateDiagram-v2
 - [x] Verificação de `approved` e `org.isActive` no backend (bloqueia apenas se Superadmin desativou).
 - [x] Uso de variáveis CSS no formulário de login.
 - [x] Tratamento de erros com `showToast` (ES Module import, não window.showToast).
+
+
+
+# regras de que eu preciso ter ou testar
+
+1. **Higiene do Banco de Dados (Login e Cadastro):**
+   - **Tabela `users`:**
+     - **Campos Ativos:** `email`, `passwordHash`, `name`, `role`, `organizationId`, `approved`.
+     - **Análise:** Tabela **LIMPA**. Segue rigorosamente o padrão de autenticação JWT do sistema.
+   - **Tabela `organizations` (Tenant):**
+     - **Campos Críticos:** `name`, `slug`, `isActive`, `ownerId`, `plan`.
+     - **Campos Redundantes (Legado vs Ativo):** 
+        * `whatsapp` (Raiz) vs `siteConfig.whatsapp` (Site)
+        * `email` (Raiz) vs `siteConfig.email` (Site)
+        * `address` (Raiz) vs `siteContent.contato.address` (Site)
+     - **Análise de Risco:** O sistema utiliza os campos de "Site" para a vitrine pública e os campos de "Raiz" para o perfil administrativo do fotógrafo. Manter ambos por enquanto para evitar quebra no painel admin.
+     - **Dependência:** Essencial para resolver qual fotógrafo está logado e qual site exibir.
+
+2. **Coleções Suspeitas (Legado):**
+   - **`sitedatas`:** Esta coleção ainda é referenciada em `src/routes/siteData.js` e `src/routes/saasAdmin.js`. Ela serve como uma "ponte" para configurações globais. **NÃO DELETAR**.

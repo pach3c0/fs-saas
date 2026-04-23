@@ -190,3 +190,15 @@ stateDiagram-v2
 ### 4. Manutenção de Conteúdo
 - Todo o conteúdo é gerenciado pela aba **Landing Page** no painel Super-Admin (`/saas-admin`).
 - Alterações salvas refletem instantaneamente para todos os visitantes via `LandingData.findOne()`.
+
+
+# regras de que eu preciso ter ou testar
+
+1. **Higiene do Banco de Dados (Landing Page):**
+   - **Tabela:** `landingdatas` (Coleção ativa no MongoDB `cliquezoom`).
+   - **Mapeamento Atual:** `hero`, `howItWorks`, `features`, `plans`, `testimonials`, `faq`, `cta`, `footer`.
+   - **Análise:** Esta tabela foi criada recentemente e está **100% LIMPA**. Não possui colunas legadas ou dados órfãos.
+   - **Dependência:** Essencial para o funcionamento de `GET /api/landing/config`. **NUNCA DELETAR**.
+
+2. **Verificação de Consistência:**
+   - Garantir que cada nova seção adicionada ao editor no Super-Admin tenha seu campo correspondente no esquema `LandingData.js` para evitar erros de "Mixed Type".
