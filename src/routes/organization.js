@@ -103,4 +103,27 @@ router.get('/organization/public', async (req, res) => {
   }
 });
 
+// GET /api/onboarding - Status do onboarding
+router.get('/onboarding', authenticateToken, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.user.organizationId).select('onboarding');
+    if (!org) return res.status(404).json({ error: 'Organizacao nao encontrada' });
+    res.json({ success: true, onboarding: org.onboarding });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/onboarding/dismiss - Finalizar onboarding manualmente
+router.post('/onboarding/dismiss', authenticateToken, async (req, res) => {
+  try {
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      'onboarding.completed': true
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

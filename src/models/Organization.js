@@ -204,6 +204,16 @@ const OrganizationSchema = new mongoose.Schema({
       sendEmail: { type: Boolean, default: true }
     }
   },
+  // Onboarding
+  onboarding: {
+    completed: { type: Boolean, default: false },
+    steps: {
+      sessionCreated:  { type: Boolean, default: false },
+      photosUploaded:  { type: Boolean, default: false },
+      clientLinked:    { type: Boolean, default: false },
+      linkSent:        { type: Boolean, default: false }
+    }
+  }
 }, { timestamps: true });
 
 OrganizationSchema.index({ isActive: 1 });

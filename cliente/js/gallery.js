@@ -36,6 +36,70 @@ document.addEventListener('DOMContentLoaded', async () => {
     let commentModal = null;
     let currentCommentPhotoId = null;
 
+    // --- IndexedDB Sync Queue ---
+    function openSyncDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('fs-sync-queue', 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('requests')) {
+                    db.createObjectStore('requests', { keyPath: 'id', autoIncrement: true });
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function queueSyncRequest(url, method, headers, body) {
+        const db = await openSyncDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('requests', 'readwrite');
+            const store = tx.objectStore('requests');
+            const req = store.add({ url, method, headers, body, ts: Date.now() });
+            req.onsuccess = () => {
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.sync.register('gallery-sync').catch(console.error);
+                    });
+                }
+                resolve();
+            };
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    // --- Offline Detection ---
+    const offlineBadge = document.createElement('div');
+    offlineBadge.style.cssText = 'display:none; position:fixed; top:0; left:50%; transform:translateX(-50%); background:#d97706; color:white; padding:0.5rem 1rem; border-bottom-left-radius:0.5rem; border-bottom-right-radius:0.5rem; z-index:9999; font-size:0.875rem; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.1);';
+    offlineBadge.innerHTML = '⚠️ Modo Offline — As alterações serão sincronizadas';
+    document.body.appendChild(offlineBadge);
+
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            offlineBadge.style.display = 'none';
+        } else {
+            offlineBadge.style.display = 'block';
+        }
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // --- SW Message Listener ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SYNC_DONE') {
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#16a34a; color:white; padding:0.75rem 1.5rem; border-radius:0.5rem; font-weight:600; z-index:9999; box-shadow:0 4px 6px rgba(0,0,0,0.1); animation:fadeInUp 0.3s ease;';
+                toast.innerText = `✓ ${event.data.count} ações sincronizadas!`;
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.remove(); }, 4000);
+                loadSessionData(true);
+            }
+        });
+    }
+
     // Rastrear respostas do fotógrafo para notificar o cliente
     let knownAdminCommentKeys = new Set(); // "photoId:createdAt"
     let unreadReplies = []; // [{ photoId, text }]
@@ -564,14 +628,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(btn, 'Enviando...');
 
         try {
-            const response = await fetch(`/api/client/comments/${state.sessionId}`, {
+            const url = `/api/client/comments/${state.sessionId}`;
+            const headers = { 'Content-Type': 'application/json' };
+            const body = JSON.stringify({ 
+                accessCode: state.accessCode, 
+                photoId: currentCommentPhotoId,
+                text: text 
+            });
+
+            if (!navigator.onLine) {
+                await queueSyncRequest(url, 'POST', headers, body);
+                
+                // Atualiza localmente otimista
+                const photo = state.photos.find(p => p.id === currentCommentPhotoId);
+                if (photo) {
+                    if (!photo.comments) photo.comments = [];
+                    photo.comments.push({ author: 'client', text, createdAt: new Date() });
+                }
+                
+                openCommentModal(currentCommentPhotoId);
+                renderPhotos();
+                hideLoading(btn);
+                return;
+            }
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    accessCode: state.accessCode, 
-                    photoId: currentCommentPhotoId,
-                    text: text 
-                }),
+                headers,
+                body,
             });
             const result = await response.json();
             if (!result.success) throw new Error(result.error);
@@ -816,11 +900,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             payload.participantId = state.participantId;
         }
 
+        const url = `/api/client/select/${state.sessionId}`;
+        const headers = { 'Content-Type': 'application/json' };
+        const body = JSON.stringify(payload);
+
+        if (!navigator.onLine) {
+            await queueSyncRequest(url, 'PUT', headers, body);
+            return;
+        }
+
         try {
-            await fetch(`/api/client/select/${state.sessionId}`, {
+            await fetch(url, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                headers,
+                body,
             });
         } catch (error) {
             // Revert UI on error

@@ -1,0 +1,12 @@
+---
+id: ad6865ba-107c-4e9d-bed8-218a6a0c91de
+---
+flowchart TD
+    A[Sessões] -->|buscar Clientes| B(Clientes Cadastrados)
+    B --> C{Cliente tem?}
+    C -->|Sim| D[Criar Sessão]
+    C -->|Não| E[Cadastrar Cliente]
+    E --> F[Criar Sessão]
+    F --> G[Criar Galeria]
+    D --> G[Nome da Sessão]
+    

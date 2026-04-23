@@ -76,3 +76,78 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// --- Background Sync e IndexedDB ---
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('fs-sync-queue', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('requests')) {
+        db.createObjectStore('requests', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getQueue() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('requests', 'readonly');
+    const store = tx.objectStore('requests');
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function clearItem(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('requests', 'readwrite');
+    const store = tx.objectStore('requests');
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'gallery-sync') {
+    event.waitUntil(processSyncQueue());
+  }
+});
+
+async function processSyncQueue() {
+  const queue = await getQueue();
+  if (queue.length === 0) return;
+
+  let successCount = 0;
+
+  for (const item of queue) {
+    try {
+      const response = await fetch(item.url, {
+        method: item.method,
+        headers: item.headers,
+        body: item.body
+      });
+      if (response.ok) {
+        await clearItem(item.id);
+        successCount++;
+      }
+    } catch (e) {
+      console.error('Falha ao sincronizar item', item);
+      // Mantém na fila se falhar por rede (não deleta do IndexedDB)
+    }
+  }
+
+  if (successCount > 0) {
+    const clients = await self.clients.matchAll();
+    for (const client of clients) {
+      client.postMessage({ type: 'SYNC_DONE', count: successCount });
+    }
+  }
+}

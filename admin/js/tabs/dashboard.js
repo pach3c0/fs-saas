@@ -19,6 +19,8 @@ export async function renderDashboard(container) {
                 <div id="last-update" style="font-size:0.75rem; color:var(--text-muted);"></div>
             </div>
 
+            <div id="onboarding-container"></div>
+
             <div id="metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
                 ${renderMetricSkeleton()}
             </div>
@@ -57,6 +59,27 @@ export async function renderDashboard(container) {
 
     // 2. Carregar Dados Reais
     loadDashboardData(container);
+
+    // Global listeners para onboarding
+    window.dismissOnboarding = async () => {
+        try {
+            await apiPost('/api/onboarding/dismiss');
+            const el = document.getElementById('onboarding-section');
+            if (el) el.style.display = 'none';
+        } catch (e) { console.error(e); }
+    };
+}
+
+async function apiPost(url, body = {}) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${appState.authToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+    return res.json();
 }
 
 async function loadDashboardData(container) {
@@ -100,10 +123,70 @@ async function loadDashboardData(container) {
 
         container.querySelector('#last-update').innerText = `Atualizado às ${new Date().toLocaleTimeString()}`;
 
+        // Carregar Onboarding
+        const onboardingData = await apiGet('/api/onboarding');
+        if (onboardingData.success && !onboardingData.onboarding?.completed) {
+            renderOnboardingChecklist(container, onboardingData.onboarding.steps);
+        }
+
     } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
         window.showToast?.('Erro ao carregar dados do dashboard', 'error');
     }
+}
+
+function renderOnboardingChecklist(container, steps) {
+    const target = container.querySelector('#onboarding-container');
+    if (!target) return;
+
+    const items = [
+        { key: 'sessionCreated', label: 'Criar sua primeira sessão', hint: 'Clique em "Nova Sessão" no menu' },
+        { key: 'photosUploaded', label: 'Subir as primeiras fotos', hint: 'Acesse a sessão e arraste seus arquivos' },
+        { key: 'clientLinked',   label: 'Vincular um cliente', hint: 'Defina para quem as fotos serão enviadas' },
+        { key: 'linkSent',       label: 'Enviar link de acesso', hint: 'Mande o código de acesso por e-mail' }
+    ];
+
+    const completedCount = items.filter(i => steps[i.key]).length;
+    const progress = Math.round((completedCount / items.length) * 100);
+
+    target.innerHTML = `
+        <div id="onboarding-section" style="background:var(--bg-surface); border:1px solid var(--accent); border-radius:12px; padding:1.5rem; animation: slideIn 0.4s ease; border-left: 4px solid var(--accent);">
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1.5rem;">
+                <div>
+                    <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0;">🚀 Comece por aqui</h3>
+                    <p style="color:var(--text-secondary); font-size:0.875rem; margin-top:0.25rem;">Complete estes passos para dominar o CliqueZoom.</p>
+                </div>
+                <button onclick="dismissOnboarding()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; text-decoration:underline;">Ocultar guia</button>
+            </div>
+
+            <div style="margin-bottom:1.5rem;">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600;">
+                    <span>Progresso do Setup</span>
+                    <span>${progress}%</span>
+                </div>
+                <div style="height:6px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
+                    <div style="height:100%; width:${progress}%; background:var(--accent); transition:width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem;">
+                ${items.map(item => {
+                    const isDone = steps[item.key];
+                    return `
+                        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:8px; opacity:${isDone ? '0.6' : '1'};">
+                            <div style="width:20px; height:20px; border-radius:50%; border:2px solid ${isDone ? 'var(--green)' : 'var(--border)'}; background:${isDone ? 'var(--green)' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                ${isDone ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                            </div>
+                            <div>
+                                <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); text-decoration:${isDone ? 'line-through' : 'none'};">${item.label}</div>
+                                <div style="font-size:0.7rem; color:var(--text-secondary);">${isDone ? 'Concluído!' : item.hint}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
 }
 
 function renderMetricCard(label, value, color, icon) {

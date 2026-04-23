@@ -4,7 +4,8 @@
 
 import { appState } from '../state.js';
 import { formatDate, copyToClipboard, resolveImagePath, escapeHtml } from '../utils/helpers.js';
-import { uploadImage, showUploadProgress } from '../utils/upload.js';
+import { uploadImage, showUploadProgress, UploadQueue } from '../utils/upload.js';
+import { UploadPanel } from '../components/upload-panel.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 
 const STATUS_LABELS = {
@@ -1194,51 +1195,33 @@ export async function renderSessoes(container) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    showUploadProgress('sessionUploadProgress', 0);
-    const totalFiles = files.length;
-    let completedFiles = 0;
+    if (!window.globalUploadPanel) {
+      window.globalUploadPanel = new UploadPanel('upload-panel-root');
+    }
+    const panel = window.globalUploadPanel;
+    panel.show();
 
-    for (let i = 0; i < totalFiles; i++) {
-      const file = files[i];
-      const formData = new FormData();
-      formData.append('photos', file);
-
-      try {
-        await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (ev) => {
-            if (ev.lengthComputable) {
-              const filePercent = ev.loaded / ev.total;
-              const globalPercent = Math.round(((completedFiles + filePercent) / totalFiles) * 100);
-              showUploadProgress('sessionUploadProgress', globalPercent);
-            }
-          });
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              completedFiles++;
-              showUploadProgress('sessionUploadProgress', Math.round((completedFiles / totalFiles) * 100));
-              resolve();
-            } else {
-              reject(new Error('Falha no upload'));
-            }
-          });
-
-          xhr.addEventListener('error', () => reject(new Error('Erro de conexão')));
-
-          xhr.open('POST', `/api/sessions/${currentSessionId}/photos`);
-          xhr.setRequestHeader('Authorization', `Bearer ${appState.authToken}`);
-          xhr.send(formData);
-        });
-      } catch (error) {
-        window.showToast?.(`Erro ao enviar ${file.name}: ${error.message}`, 'error');
-      }
+    if (!window.globalUploadQueue) {
+      window.globalUploadQueue = new UploadQueue({
+        concurrency: 3,
+        onItemUpdate: (item) => panel.updateItem(item),
+        onQueueUpdate: (stats) => panel.updateStats(stats),
+        onQueueDone: async (results) => {
+          window.showToast?.('Uploads finalizados!', 'success');
+          await renderSessoes(container);
+          if (currentSessionId) {
+            viewSessionPhotos(currentSessionId);
+          }
+        }
+      });
+      panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
+      panel.onRetry = (id) => window.globalUploadQueue.retry(id);
     }
 
+    // Adiciona os arquivos à fila, apontando para a sessão atual
+    window.globalUploadQueue.add(files, `/api/sessions/${currentSessionId}/photos`);
+
     e.target.value = '';
-    await renderSessoes(container);
-    viewSessionPhotos(currentSessionId);
   };
 
   // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo

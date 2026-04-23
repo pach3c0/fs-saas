@@ -522,6 +522,11 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
       { $inc: { 'usage.sessions': 1 } }
     );
 
+    // Update onboarding step
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      'onboarding.steps.sessionCreated': true
+    });
+
     // E-mail NAO é enviado aqui. O fotografo envia manualmente via POST /sessions/:id/send-code
 
     res.json({ success: true, session });
@@ -538,6 +543,14 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
       { returnDocument: 'after' }
     );
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Update onboarding se vinculou cliente
+    if (req.body.clientId || req.body.clientEmail) {
+      await Organization.findByIdAndUpdate(req.user.organizationId, {
+        'onboarding.steps.clientLinked': true
+      });
+    }
+
     res.json({ success: true, session });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -558,6 +571,11 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
 
     const org = await Organization.findById(req.user.organizationId).select('name slug');
     await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug);
+
+    // Update onboarding step
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      'onboarding.steps.linkSent': true
+    });
 
     res.json({ success: true, message: `E-mail enviado para ${email}` });
   } catch (error) {
@@ -683,6 +701,11 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       { organizationId: req.user.organizationId },
       { $inc: { 'usage.photos': newPhotos.length } }
     );
+
+    // Update onboarding step
+    await Organization.findByIdAndUpdate(req.user.organizationId, {
+      'onboarding.steps.photosUploaded': true
+    });
 
     res.json({ success: true, photos: newPhotos });
   } catch (error) {
