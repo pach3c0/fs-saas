@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build:css": "npx @tailwindcss/cli -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.css --minify",
-    "deploy": "npm run build:css"
+    "deploy": "npm run build:css",
+    "test": "npx playwright test"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -29,6 +30,7 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/cli": "^4.1.18",
     "nodemon": "^3.0.2",
     "tailwindcss": "^4.1.18"

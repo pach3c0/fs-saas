@@ -6,10 +6,10 @@
 
 ## ARQUITETURA
 
-A Landing Page é uma Single Page Application (SPA) minimalista, desacoplada do core do admin para garantir performance e SEO.
+A Landing Page é uma Single Page Application (SPA) dinâmica, desacoplada do core do admin para garantir performance e SEO.
 
-- **Frontend:** Localizado em `home/`. Utiliza Vanilla JS e CSS interno.
-- **Backend:** Roteador em `src/routes/landing.js` para conteúdo e `src/routes/auth.js` para registro.
+- **Frontend:** Localizado em `home/`. Utiliza Vanilla JS e CSS interno. Renderização dinâmica via API.
+- **Backend:** Roteador em `src/routes/landing.js` (conteúdo) e `src/routes/auth.js` (registro e validação).
 - **Banco de Dados:** Modelo `LandingData` (configurações globais) e `Organization`/`User` (dados do novo assinante).
 
 ---
@@ -25,7 +25,12 @@ flowchart TD
     B -- "Não" --> D["GET /api/landing/config"]
     D --> E["Renderiza Seções (Hero, Planos, FAQ)"]
     E --> F["Interação: Sanitização de Slug"]
-    F --> G["Preenche Formulário de Cadastro"]
+    F --> FS{"Validação em Tempo Real"}
+    FS --> |"GET /auth/check-slug"| FSC{"Slug Disponível?"}
+    FSC -- "Não" --> FSE["Exibe ✗ (Vermelho)"]
+    FSC -- "Sim" --> FSS["Exibe ✓ (Verde)"]
+    
+    FSS --> G["Preenche Formulário de Cadastro"]
     G --> H{"Validação Frontend"}
     H -- "Falha" --> I["Exibe Erro (Toast/Label)"]
     H -- "Sucesso" --> J["POST /api/auth/register"]
@@ -50,10 +55,16 @@ sequenceDiagram
     B->>DB: LandingData.findOne()
     DB-->>B: Configurações (JSON)
     B-->>F: 200 OK (Content)
-    F->>V: Exibe Página Renderizada
+    F->>V: Renderiza Headline, Planos e FAQ dinamicamente
 
-    V->>F: Digita dados de Cadastro (Slug, Email)
-    F->>V: Preview da URL em tempo real
+    V->>F: Digita Slug (URL)
+    Note over F,B: Debounce de 500ms
+    F->>B: GET /api/auth/check-slug/:slug
+    B->>DB: Organization.findOne({slug})
+    DB-->>B: Resultado
+    B-->>F: { available: true/false }
+    F->>V: Feedback visual (Verde/Vermelho)
+
     V->>F: Clica em 'Criar Conta'
     F->>B: POST /api/auth/register (Payload)
     
@@ -110,22 +121,20 @@ erDiagram
 ```mermaid
 graph LR
     subgraph "Visitante"
-        U1["Visualizar Benefícios"]
-        U2["Verificar Preços"]
-        U3["Simular URL (Slug)"]
-        U4["Realizar Cadastro"]
+        U1["Visualizar Conteúdo Dinâmico"]
+        U2["Verificar Disponibilidade de URL"]
+        U3["Realizar Cadastro Self-Service"]
     end
 
     subgraph "Super-Admin"
-        A1["Alterar Preços dos Planos"]
-        A2["Editar FAQ"]
-        A3["Mudar Headline da Hero"]
+        A1["Editar Textos e Preços"]
+        A2["Gerenciar FAQ"]
+        A3["Monitorar Conversões"]
     end
 
     U1 --> V["Landing Page"]
     U2 --> V
-    U3 --> V
-    U4 --> B["Auth API"]
+    U3 --> B["Auth API"]
     A1 --> SA["saas-admin/landing"]
     A2 --> SA
     A3 --> SA
@@ -135,14 +144,17 @@ graph LR
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Navegando: Acessa '/'
+    [*] --> Carregando: Acessa '/'
+    Carregando --> Navegando: Dados da API carregados
     Navegando --> Preenchendo: Clica em 'Criar Conta'
     
     state Preenchendo {
         [*] --> InputDados
-        InputDados --> ValidandoSlug: onInput
-        ValidandoSlug --> InputDados: Slug disponível
-        ValidandoSlug --> Erro: Slug em uso
+        InputDados --> ValidandoSlug: Debounce 500ms
+        ValidandoSlug --> Disponivel: Verde (Disponível)
+        ValidandoSlug --> Ocupado: Vermelho (Ocupado)
+        Disponivel --> InputDados
+        Ocupado --> InputDados
     }
     
     Preenchendo --> Processando: onSubmit
@@ -158,35 +170,23 @@ stateDiagram-v2
 
 ## ESPECIFICAÇÕES TÉCNICAS
 
-### 1. Padrão de Slug
-- No frontend (`home/js/home.js`), o slug é limpo via Regex:
-  `value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-')`
-- No backend, o slug é a **chave primária lógica** para multi-tenancy.
+### 1. Renderização Dinâmica
+- O frontend (`home/js/home.js`) utiliza a função `loadLandingConfig()` para buscar os dados de `GET /api/landing/config`.
+- Os elementos são preenchidos via `innerHTML` e `textContent` usando seletores de ID específicos (ex: `#heroHeadline`).
 
-### 2. Conteúdo Dinâmico (`LandingData`)
-- O site não é 100% estático. Ele busca o conteúdo de `GET /api/landing/config`.
-- Caso o banco esteja vazio, o backend cria um documento inicial com valores `default` (conforme definido em `src/models/LandingData.js`).
+### 2. Validação em Tempo Real (Real-time Slug Check)
+- **Endpoint:** `GET /api/auth/check-slug/:slug`.
+- **Mecânica:** Implementado com **Debounce** de 500ms para evitar sobrecarga no servidor enquanto o usuário digita.
+- **Feedback:** Altera a cor e o texto do `#slugPreview` para indicar disponibilidade (✓ Verde / ✗ Vermelho).
 
 ### 3. Registro (Auth API)
 - Local: `src/routes/auth.js` -> `POST /auth/register`.
 - **Ações ao registrar:**
-    1. Verifica duplicidade de E-mail e Slug.
-    2. Cria `Organization` (com `isActive: true`).
-    3. Cria `User` com `role: 'admin'`.
-    4. Cria `Subscription` com limites do plano `free`.
-    5. Dispara E-mail de Boas-vindas (`sendWelcomeEmail`).
+    1. Validação final de E-mail e Slug.
+    2. Criação da `Organization` e `User` (Admin).
+    3. Inicialização de `Subscription` (Plano Free).
+    4. Disparo de E-mail de Boas-vindas.
 
-### 4. CSS e Design
-- **Estilo:** Baseado no design system da vitrine (não usa o Stitch Dark do admin).
-- **Cores:** Branco (`#fafafa`), Preto (`#1a1a1a`), Verde Sucesso (`#16a34a`).
-- **Responsividade:** Mobile-first com Media Queries no final do arquivo `home/index.html`.
-
----
-
-## MANUTENÇÃO
-
-Para alterar qualquer texto da landing page:
-1. Acesse o painel **Super-Admin** (`/saas-admin`).
-2. Vá na aba **Landing Page**.
-3. Altere os campos e clique em Salvar.
-4. O backend atualizará o documento `LandingData` e a mudança refletirá instantaneamente para todos os visitantes.
+### 4. Manutenção de Conteúdo
+- Todo o conteúdo é gerenciado pela aba **Landing Page** no painel Super-Admin (`/saas-admin`).
+- Alterações salvas refletem instantaneamente para todos os visitantes via `LandingData.findOne()`.
