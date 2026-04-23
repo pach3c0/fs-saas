@@ -186,6 +186,23 @@ router.post('/auth/register', async (req, res) => {
   }
 });
 
+// Verificar disponibilidade de slug
+router.get('/auth/check-slug/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    if (!slug) return res.status(400).json({ error: 'Slug é obrigatório' });
+
+    const existingOrg = await Organization.findOne({ slug: slug.toLowerCase().trim() });
+    res.json({ 
+      success: true, 
+      available: !existingOrg,
+      message: existingOrg ? 'Slug já está em uso' : 'Disponível'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao verificar slug' });
+  }
+});
+
 // Verificar token
 router.post('/auth/verify', (req, res) => {
   const { token } = req.body;

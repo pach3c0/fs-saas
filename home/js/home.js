@@ -179,6 +179,7 @@ window.clearPlan = function () {
 
 var slugInput = document.getElementById('slug');
 var slugPreview = document.getElementById('slugPreview');
+var checkSlugTimeout = null;
 
 slugInput.addEventListener('input', function () {
   var value = this.value
@@ -190,7 +191,29 @@ slugInput.addEventListener('input', function () {
 
   if (value && value.length >= 2) {
     slugPreview.textContent = value + '.cliquezoom.com.br';
-    slugPreview.style.color = '#2563eb';
+    slugPreview.style.color = '#666'; // Cor neutra enquanto digita
+
+    // Debounce para não inundar o servidor
+    clearTimeout(checkSlugTimeout);
+    checkSlugTimeout = setTimeout(async function() {
+      try {
+        const res = await fetch(`/api/auth/check-slug/${value}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          if (data.available) {
+            slugPreview.style.color = '#16a34a'; // Verde - Disponível
+            slugPreview.textContent = '✓ ' + value + '.cliquezoom.com.br (Disponível)';
+          } else {
+            slugPreview.style.color = '#dc2626'; // Vermelho - Ocupado
+            slugPreview.textContent = '✗ ' + value + '.cliquezoom.com.br (Indisponível)';
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar slug:', err);
+      }
+    }, 500); // 500ms de espera
+
   } else {
     slugPreview.textContent = 'seu-estudio.cliquezoom.com.br';
     slugPreview.style.color = '#999';
