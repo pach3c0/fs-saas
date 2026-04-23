@@ -84,8 +84,12 @@ async function apiPost(url, body = {}) {
 
 async function loadDashboardData(container) {
     try {
-        const data = await apiGet('/api/sessions');
-        const sessions = data.sessions || [];
+        const [sessionsData, billingData] = await Promise.all([
+            apiGet('/api/sessions'),
+            apiGet('/api/billing/subscription')
+        ]);
+        const sessions = sessionsData.sessions || [];
+        const storageMB = billingData.usage?.storageMB || 0;
 
         const metricsGrid = container.querySelector('#metrics-grid');
         const sessionsList = container.querySelector('#recent-sessions-list');
@@ -97,7 +101,8 @@ async function loadDashboardData(container) {
 
         metricsGrid.innerHTML = `
             ${renderMetricCard('Total de Sessões', total, 'var(--accent)', 'layers')}
-            ${renderMetricCard('Aguardando Revisão', pending, 'var(--orange)', 'clock')}
+            ${renderMetricCard('Fotos Upadas', sessions.reduce((s, p) => s + (p.photos?.length || 0), 0), 'var(--purple)', 'image')}
+            ${renderMetricCard('Espaço Usado', `${storageMB} MB`, 'var(--orange)', 'hard-drive')}
             ${renderMetricCard('Entregues', delivered, 'var(--green)', 'check-circle')}
         `;
 
@@ -206,7 +211,7 @@ function renderMetricCard(label, value, color, icon) {
 }
 
 function renderMetricSkeleton() {
-    return Array(3).fill(0).map(() => `
+    return Array(4).fill(0).map(() => `
         <div class="skeleton" style="height:88px; border-radius:12px;"></div>
     `).join('');
 }
@@ -236,6 +241,8 @@ function getIconPath(icon) {
         'layers':       '<polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />',
         'clock':        '<circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />',
         'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />',
+        'image':        '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+        'hard-drive':   '<line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/>'
     };
     return icons[icon] || '';
 }

@@ -168,13 +168,23 @@ async function loadMetrics() {
         <div class="metric-value">${data.photos.toLocaleString('pt-BR')}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Usuários</div>
-        <div class="metric-value">${data.users ?? 0}</div>
+        <div class="metric-label">Armazenamento</div>
+        <div class="metric-value" style="font-size:1.375rem; color:#60a5fa;">${formatSize(data.storageBytes)}</div>
+        <div class="metric-sub">uso total em /uploads</div>
       </div>
     `;
   } catch (err) {
     document.getElementById('metricsGrid').innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
   }
+}
+
+// Helper para formatar tamanho
+function formatSize(bytes) {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 // Cache das orgs para filtro client-side
@@ -347,6 +357,10 @@ window.showDetails = async (id) => {
         <div class="detail-card">
           <h4>Storage</h4>
           <div class="val">${stats.storageMB} MB</div>
+          <div style="margin-top:0.4rem; background:#334155; height:4px; border-radius:2px; overflow:hidden;">
+            <div style="background:#60a5fa; width:${Math.min(100, (stats.storageMB / stats.maxStorageMB) * 100)}%; height:100%;"></div>
+          </div>
+          <div style="font-size:0.625rem; color:#64748b; margin-top:0.25rem;">Limite: ${stats.maxStorageMB} MB</div>
         </div>
         <div class="detail-card">
           <h4>Newsletter</h4>

@@ -9,6 +9,7 @@ const { createUploader } = require('../utils/multerConfig');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const storage = require('../services/storage');
 const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
@@ -631,8 +632,8 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
 
       // Tentar limpar arquivos (opcional, pode falhar sem erro)
       session.photos.forEach(p => {
-        if (p.url.startsWith('/uploads/')) {
-          try { fs.unlinkSync(path.join(__dirname, '../..', p.url)); } catch(e){}
+        if (p.url && p.url.startsWith('/uploads/')) {
+          storage.deleteFile(p.url);
         }
       });
       await Session.findByIdAndDelete(req.params.id);
@@ -681,7 +682,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       // Fluxo ready: original ja e a foto final, manter para entrega em alta
       const isPostEdit = session.workflowType === 'post_edit';
       if (isPostEdit) {
-        await fs.promises.unlink(originalPath).catch(() => {});
+        await storage.deleteFile(originalPath);
       }
 
       newPhotos.push({
@@ -733,7 +734,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
 
       if (!photo) {
         // Arquivo não casou — deletar e reportar
-        await fs.promises.unlink(file.path).catch(() => {});
+        await storage.deleteFile(file.path);
         unmatched.push(originalName);
         continue;
       }
@@ -741,7 +742,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
       // Se havia urlOriginal anterior, deletar do disco
       if (photo.urlOriginal) {
         const oldPath = path.join(__dirname, '../..', photo.urlOriginal);
-        await fs.promises.unlink(oldPath).catch(() => {});
+        await storage.deleteFile(oldPath);
       }
 
       photo.urlOriginal = `/uploads/${orgId}/sessions/${file.filename}`;
@@ -770,11 +771,11 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
       const photo = session.photos[idx];
       // Deletar thumb
       if (photo.url && photo.url.startsWith('/uploads/')) {
-        try { fs.unlinkSync(path.join(__dirname, '../..', photo.url)); } catch(e){}
+        storage.deleteFile(photo.url);
       }
       // Deletar original
       if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) {
-        try { fs.unlinkSync(path.join(__dirname, '../..', photo.urlOriginal)); } catch(e){}
+        storage.deleteFile(photo.urlOriginal);
       }
       session.photos.splice(idx, 1);
 

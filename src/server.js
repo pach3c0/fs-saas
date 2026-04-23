@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const Organization = require('./models/Organization');
+const logger = require('./utils/logger');
+const { v4: uuidv4 } = require('uuid');
 
 require('dotenv').config();
 
@@ -16,6 +18,37 @@ app.use(cors());
 // Uploads de imagem/vídeo usam multipart/form-data via multer e não passam por aqui.
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Logging Middleware
+app.use((req, res, next) => {
+    req.requestId = uuidv4();
+    const start = Date.now();
+
+    // Log ao finalizar a resposta
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        const logData = {
+            requestId: req.requestId,
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+            orgId: req.user?.organizationId || req.organizationId || 'anonymous',
+            ip: req.ip,
+            userAgent: req.get('user-agent')
+        };
+
+        if (res.statusCode >= 500) {
+            logger.error('API Request Error', logData);
+        } else if (res.statusCode >= 400) {
+            logger.warn('API Request Warning', logData);
+        } else {
+            logger.info('API Request', logData);
+        }
+    });
+
+    next();
+});
 
 
 // Static files
@@ -226,7 +259,12 @@ const apiLimiter = rateLimit({
   keyGenerator: (req) => req.user?.organizationId || req.ip,
   skip: (req) => req.path.startsWith('/site') || req.user?.role === 'superadmin',
   handler: (req, res) => {
-    console.warn(`[rate-limit] bloqueado org=${req.user?.organizationId || req.ip} path=${req.path}`);
+    const log = req.logger || logger;
+    log.warn('Rate Limit Hit', { 
+      orgId: req.user?.organizationId || 'anon', 
+      ip: req.ip, 
+      path: req.path 
+    });
     res.status(429).json({ error: 'Muitas requisições. Aguarde um momento e tente novamente.' });
   },
   validate: { keyGenerator: false }, // Evita erro de validação IPv6 em ambientes que já tratam IP via Proxy (Nginx)
@@ -264,6 +302,7 @@ app.use('/api', require('./routes/site'));
 app.use('/api', require('./routes/domains'));
 app.use('/api', require('./routes/billing'));
 app.use('/api', require('./routes/landing'));
+app.use('/api', require('./routes/saasAdmin'));
 
 // ============================================================================
 // GLOBAL ERROR HANDLER — deve vir APÓS todas as rotas
@@ -277,9 +316,16 @@ app.use('/api', (req, res) => {
 // Error handler global — captura throws síncronos e promise rejections em handlers async
 // (express 4 propaga async errors via next(err) só se a rota chamar; aqui pegamos o que chegar)
 app.use((err, req, res, next) => {
-  const orgId = req.user?.organizationId || req.organizationId || 'anon';
+  const log = req.logger || logger;
   const status = err.status || err.statusCode || 500;
-  console.error(`[error] org=${orgId} ${req.method} ${req.originalUrl} status=${status}`, err.stack || err.message);
+
+  log.error('Request Error', {
+    status,
+    message: err.message,
+    stack: err.stack,
+    path: req.originalUrl,
+    method: req.method
+  });
 
   if (res.headersSent) return next(err);
 
@@ -290,14 +336,18 @@ app.use((err, req, res, next) => {
 
 // Salvaguardas de processo — evita que uma promise rejeitada ou exceção não tratada
 // derrube o PM2 e afete todos os tenants do cluster
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[unhandledRejection]', reason?.stack || reason);
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection', { 
+    reason: reason?.message || reason,
+    stack: reason?.stack 
+  });
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[uncaughtException]', err?.stack || err);
-  // Não derrubar o processo — PM2 cluster segue servindo. Se o estado estiver corrompido,
-  // o health check vai acusar e o PM2 reinicia na próxima falha de readiness.
+  logger.error('Uncaught Exception', { 
+    message: err.message,
+    stack: err.stack 
+  });
 });
 
 // Iniciar servidor

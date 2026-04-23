@@ -25,7 +25,19 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       });
       await sub.save();
     }
-    res.json({ subscription: sub, planDetails: plans[sub.plan] });
+    
+    const storage = require('../services/storage');
+    const storageBytes = await storage.getDirSize(`/${req.user.organizationId}`);
+    const storageMB = Math.round(storageBytes / 1024 / 1024 * 100) / 100;
+
+    res.json({ 
+      subscription: sub, 
+      planDetails: plans[sub.plan],
+      usage: {
+        storageMB,
+        storageBytes
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Organization = require('../models/Organization');
+const logger = require('../utils/logger');
 
 // Middleware de autenticação
 // JWT agora contém: { userId, organizationId, role }
@@ -26,7 +27,15 @@ const authenticateToken = async (req, res, next) => {
   }
 
   req.user = user; // { userId, organizationId, role }
-  console.log(`[${req.method}] ${req.path} org=${user.organizationId || 'n/a'} role=${user.role}`);
+
+  // Logger contextualizado
+  req.logger = logger.child({
+    requestId: req.requestId,
+    orgId: user.organizationId,
+    userId: user.userId,
+    role: user.role
+  });
+
   next();
 };
 

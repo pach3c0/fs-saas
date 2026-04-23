@@ -1,7 +1,7 @@
 import { apiGet, apiPost } from '../utils/api.js';
 
 export async function renderPlano(container) {
-  const { subscription, planDetails } = await apiGet('/api/billing/subscription');
+  const { subscription, planDetails, usage } = await apiGet('/api/billing/subscription');
   const { plans } = await apiGet('/api/billing/plans');
 
   container.innerHTML = `
@@ -43,6 +43,16 @@ export async function renderPlano(container) {
             </div>
             <div style="background:#374151; height:0.5rem; border-radius:9999px; overflow:hidden;">
               <div style="background:#2563eb; height:100%; width:${subscription.limits.maxPhotos === -1 ? 0 : (subscription.usage.photos / subscription.limits.maxPhotos * 100)}%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+              <span style="color:#d1d5db;">Armazenamento</span>
+              <span style="color:#f3f4f6;">${usage?.storageMB || 0} MB / ${subscription.limits.maxStorage} MB</span>
+            </div>
+            <div style="background:#374151; height:0.5rem; border-radius:9999px; overflow:hidden;">
+              <div style="background:#2563eb; height:100%; width:${Math.min(100, (usage?.storageMB || 0) / subscription.limits.maxStorage * 100)}%;"></div>
             </div>
           </div>
         </div>

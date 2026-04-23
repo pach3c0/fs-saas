@@ -16,9 +16,9 @@ Deploy: VPS Contabo, dominio `cliquezoom.com.br`, path `/var/www/cz-saas`, proce
 4. **Upload SO local** em `/uploads/`. Sem Cloudinary/S3/Atlas.
 5. **`npm run build:css` antes de deploy** se mudou HTML com classes Tailwind novas.
 6. **Admin:** `window.showToast(msg, type)` e `window.showConfirm(msg, opts)`. Nunca `alert/confirm`.
-7. **Saas-admin:** `saasToast()` e `saasConfirm()`. Nunca `alert/confirm`.
-8. **Multi-tenancy:** toda rota e modelo filtra/inclui `organizationId`.
-9. **Fale em portugues** em tudo (mensagens, labels, comentarios).
+10. **Logging:** usar `req.logger` (Winston) para logs estruturados com `orgId/userId/requestId`.
+11. **Storage:** usar `src/services/storage.js` para qualquer operação de arquivo (save/delete/url).
+12. **Fale em portugues** em tudo (mensagens, labels, comentarios).
 
 ---
 
@@ -42,11 +42,10 @@ site/templates/ # elegante, minimalista, moderno, escuro, galeria + shared-site.
 assets/css/     # tailwind-input.css (source), tailwind.css (build), shared.css
 uploads/        # Imagens (Nginx static); /sessions/, /videos/
 src/
-  server.js
-  middleware/   # auth (JWT), tenant, planLimits, stripe
-  models/       # Organization, User, Session, Client, Album, Subscription, Notification, SiteData, LandingData, plans
-  routes/       # auth, sessions, clients, albums, organization, site, siteData, upload, notifications, domains, billing, landing
-  utils/        # multerConfig, notifications, deadlineChecker
+  routes/       # auth, sessions, clients, albums, organization, site, siteData, upload, notifications, domains, billing, landing, saasAdmin
+  utils/        # multerConfig, notifications, deadlineChecker, logger
+  services/     # storage (abstração de arquivos)
+  logs/         # logs diários (winston)
 ecosystem.config.js  # PM2 cluster
 ```
 
@@ -104,6 +103,9 @@ Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart a
 | Novo tab admin | `admin/js/tabs/X.js` exportando `renderX(container)` + botao `.nav-item[data-tab="x"]` em `admin/index.html` + entrada em `TAB_TITLES` em `app.js` |
 | Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` em `server.js` |
 | Novo modelo | Incluir `organizationId: { type: ObjectId, ref: 'Organization', required: true }` + `{ timestamps: true }` |
+| Logging | Usar `req.logger.info/error('msg', { metadata })`. Contexto de tenant/user já injetado via `auth.js`. |
+| Storage | `import storage from '../services/storage.js'`. Usar `storage.deleteFile(url)`, `storage.getUrl(path)`, `storage.getDirSize(path)`. |
+| Super-Admin | Rotas em `src/routes/saasAdmin.js`. Métricas em `/api/admin/saas/metrics`. |
 | Upload imagem | `import { uploadImage, showUploadProgress, UploadQueue } from '../utils/upload.js'` → `UploadQueue` para massa, `uploadImage` para solo. |
 | PWA Offline | `cliente/sw.js` (Sync + IDB) + `gallery.js` (Queue IDB) | Suporte a seleções e comentários offline. |
 | Onboarding | `Organization.onboarding` + `dashboard.js` checklist | Guia de boas-vindas para novos fotógrafos. |
@@ -321,12 +323,10 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 - Verificar log: `tail -f /var/log/cz-backup.log`
 - Se o token do rclone expirar: `rclone config reconnect gdrive:` no VPS
 
-### A APLICAR — CRESCIMENTO (quando atingir 50-100 clientes)
-
-| Padrão | O que fazer | Gatilho |
-|---|---|---|
-| **ACL (Anti-Corruption Layer)** | Criar `src/services/storage.js` com interface única: `upload()`, `getUrl()`, `delete()`. Hoje usa driver `local`; depois troca para `r2` sem mudar o resto do código. | Storage do VPS atingir 60% ou 100 clientes |
-| **Strangler Fig** | Migrar uploads para Cloudflare R2 ($0,015/GB/mês, egress gratuito) usando a abstração acima. Script batch migra arquivos antigos sem downtime. | Junto com ACL |
+| **Observabilidade (Winston)** | ✅ Logs estruturados com rotação diária e tenant-aware (via `req.logger`). | Concluído 2026-04-23 |
+| **Abstração de Storage** | ✅ `src/services/storage.js` implementado e integrado em sessions/upload/saas-admin. | Concluído 2026-04-23 |
+| **Métricas Super-Admin** | ✅ Dashboard `saas-admin` exibe uso de disco e estatísticas globais em tempo real. | Concluído 2026-04-23 |
+| **Strangler Fig (Cloud Migration)** | Migrar uploads para Cloudflare R2 ($0,015/GB/mês, egress gratuito) usando a abstração `StorageService`. Script batch migra arquivos antigos sem downtime. | Quando Storage VPS > 70% |
 
 ### NÃO APLICAR AGORA (excesso de engenharia para o estágio atual)
 

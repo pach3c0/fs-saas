@@ -38,12 +38,11 @@ src/
     domains.js        # Domínios customizados
     landing.js        # Landing page pública
     billing.js        # Planos e pagamento Stripe
-  models/             # 1 arquivo por modelo
-  utils/
-    multerConfig.js   # uploadMiddleware
-    notifications.js  # helpers de notificação
-    deadlineChecker.js # job de verificação de prazos
-```
+  routes/       # auth, sessions, clients, albums, organization, site, siteData, upload, notifications, domains, landing, saasAdmin
+  utils/        # multerConfig, notifications, deadlineChecker, logger
+  services/     # storage (abstração de arquivos)
+  logs/         # logs diários (winston)
+ecosystem.config.js  # PM2 cluster
 
 ---
 
@@ -136,6 +135,61 @@ router.post('/sessions', authenticateToken, checkSessionLimit, async (req, res) 
 ```
 
 Campos em `Subscription`: `limits.maxSessions`, `usage.sessions`, etc. Free plan criado automaticamente.
+
+---
+
+## LOGGING E OBSERVABILIDADE (Winston)
+
+O sistema utiliza o `winston` para logs estruturados e persistentes.
+
+### Uso recomendado via `req.logger`
+Em rotas autenticadas, o middleware injeta um logger já contextualizado:
+```js
+router.get('/data', authenticateToken, async (req, res) => {
+  req.logger.info('Buscando dados', { extra: 'info' });
+  // Log gerado terá: requestId, orgId, userId, role automaticamente
+});
+```
+
+### Uso global ou em rotas públicas
+Importe diretamente de `utils/logger`:
+```js
+const logger = require('../utils/logger');
+logger.error('Erro crítico', { error: err.stack });
+```
+
+---
+
+## ABSTRAÇÃO DE STORAGE (StorageService)
+
+Centralizamos toda manipulação de arquivos no `src/services/storage.js`.
+
+### Padrão de uso
+```js
+const storage = require('../services/storage');
+
+// Deletar arquivo
+await storage.deleteFile(url); // Ex: /uploads/orgId/file.jpg
+
+// Deletar diretório inteiro (ex: ao excluir org ou sessão)
+await storage.deleteDir(`/${orgId}`);
+
+// Obter URL pública (resolver absoluto vs relativo)
+const publicUrl = storage.getUrl('/orgId/file.jpg');
+
+// Obter tamanho de diretório
+const bytes = await storage.getDirSize(`/${orgId}`);
+```
+
+**Benefício:** Se migrarmos para Cloudflare R2 ou S3, alteramos apenas este arquivo.
+
+---
+
+## SUPER-ADMIN E MÉTRICAS
+
+Rotas exclusivas para gestão do SaaS estão em `src/routes/saasAdmin.js`.
+- Protegidas por `authenticateToken` + `requireSuperadmin`.
+- Métricas globais (`/api/admin/saas/metrics`) incluem estatísticas de banco e uso de disco.
 
 ---
 
