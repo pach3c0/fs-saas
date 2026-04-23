@@ -355,3 +355,23 @@ O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de V
 6.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora. Requer `fluent-ffmpeg` + fila de jobs (Bull/BeeQueue).
 
 > Detalhes técnicos e fluxos documentados em `skills/2_1_clientes_selecao.md`.
+
+
+
+# Ajustes
+
+no @claude.md esta que os ids (ids 8/9, porta 3051, cluster), 
+
+na vps esta root@vmi3069803:~# pm2 status
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ cliquezoom-saas    │ cluster  │ 3    │ online    │ 0%       │ 132.8mb  │
+│ 1  │ cliquezoom-saas    │ cluster  │ 3    │ online    │ 0%       │ 141.6mb  │
+│ 2  │ erp-backend        │ fork     │ 0    │ online    │ 0%       │ 283.2mb  │
+│ 3  │ erp-frontend       │ fork     │ 0    │ online    │ 0%       │ 3.4mb    │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@vmi3069803:~# 
+
+corrigor a documentacao para o certo
+
