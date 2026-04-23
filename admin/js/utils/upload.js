@@ -172,7 +172,6 @@ export function showUploadProgress(containerId, percent) {
     const bar = container.querySelector('#progress-bar');
     const text = container.querySelector('#progress-text');
     if (bar) bar.style.width = `${percent}%`;
-}
   }
 }
 
