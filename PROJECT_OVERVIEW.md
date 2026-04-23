@@ -29,7 +29,7 @@ Internet → Nginx (porta 80/443)
            ├── Static: /uploads/, /assets/, /admin/js/
            └── Proxy: localhost:3051 (Node.js + Express)
                       ↓
-                  MongoDB local (:27017)
+                   MongoDB local (:27017) -> Banco: `cliquezoom`
 ```
 
 **Stack:**

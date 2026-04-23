@@ -331,7 +331,7 @@ cd /var/www/cz-saas
 git pull
 npm install
 npm run build:css  # se alterou HTML com Tailwind
-pm2 restart fsfotografias-saas
+pm2 reload cliquezoom-saas
 ```
 
 ### Checklist Pre-Deploy

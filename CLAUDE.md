@@ -2,7 +2,7 @@
 
 ## PROJETO
 
-SaaS de gestao fotografica. Frontends: `home/` (cadastro), `admin/` (painel fotografo), `cliente/` (galeria), `album/` (prova), `saas-admin/` (super-admin), `site/templates/` (5 templates publicos). Backend: `src/` (Express + MongoDB local).
+SaaS de gestao fotografica. Frontends: `home/` (cadastro), `admin/` (painel fotografo), `cliente/` (galeria), `album/` (prova), `saas-admin/` (super-admin), `site/templates/` (5 templates publicos). Backend: `src/` (Express + MongoDB local: mongodb://localhost:27017/cliquezoom).
 
 Deploy: VPS Contabo, dominio `cliquezoom.com.br`, path `/var/www/cz-saas`, processo PM2 `cliquezoom-saas` (ids 8/9, porta 3051, cluster).
 
@@ -92,7 +92,9 @@ pm2 reload ecosystem.config.js --env production
 | Frontend (sem Tailwind novo) | `git pull` (Nginx serve static) |
 | Tailwind classes novas | `npm run build:css` local + commit + `git pull` na VPS |
 
-Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart all`. **Nunca** mexer em `fsfotografias`, `crm-backend`, `vps-hub`. **Nunca** alterar Nginx/porta sem autorizacao.
+Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart all`.
+**AVISO CRÍTICO DE BANCO:** O banco deste projeto é `cliquezoom`. **Nunca** use o banco `fsfotografias` (pertence a outro sistema legado no mesmo servidor).
+**Nunca** mexer em `crm-backend`, `vps-hub`. **Nunca** alterar Nginx/porta sem autorizacao.
 
 ---
 
