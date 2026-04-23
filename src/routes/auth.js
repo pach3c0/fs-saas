@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
       role: user.role
     });
   } catch (error) {
-    console.error('Erro no login:', error);
+    req.logger.error(`Erro crítico no login: ${error.message}`, { stack: error.stack });
     res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
