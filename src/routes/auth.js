@@ -121,29 +121,24 @@ router.post('/auth/register', async (req, res) => {
   try {
     const { email, password, name, orgName, slug } = req.body;
 
-    // Validações
     if (!email || !password || !name || !orgName || !slug) {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
-    // Validar formato do slug
     if (!/^[a-z0-9-]+$/.test(slug)) {
       return res.status(400).json({ error: 'Slug deve conter apenas letras minúsculas, números e hifens' });
     }
 
-    // Verificar se email já existe
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json({ error: 'Email já cadastrado' });
     }
 
-    // Verificar se slug já existe
     const existingOrg = await Organization.findOne({ slug: slug.toLowerCase().trim() });
     if (existingOrg) {
       return res.status(409).json({ error: 'Slug já está em uso' });
     }
 
-    // Criar organização já ativa
     const org = await Organization.create({
       name: orgName,
       slug: slug.toLowerCase().trim(),
@@ -151,7 +146,6 @@ router.post('/auth/register', async (req, res) => {
       plan: 'free'
     });
 
-    // Criar usuário já aprovado
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
       email: email.toLowerCase().trim(),
@@ -162,11 +156,9 @@ router.post('/auth/register', async (req, res) => {
       approved: true
     });
 
-    // Atualizar ownerId da org
     org.ownerId = user._id;
     await org.save();
 
-    // Criar Subscription no plano Free
     await Subscription.create({
       organizationId: org._id,
       plan: 'free',
@@ -181,7 +173,6 @@ router.post('/auth/register', async (req, res) => {
       usage: { sessions: 0, photos: 0, albums: 0, storage: 0 }
     });
 
-    // Enviar email de boas-vindas (async, nao bloqueia resposta)
     sendWelcomeEmail(user.email, user.name, org.slug).catch(() => { });
 
     res.status(201).json({
@@ -205,9 +196,5 @@ router.post('/auth/verify', (req, res) => {
     res.json({ valid: true });
   });
 });
-
-// ============================================================================
-// FIM DAS ROTAS DE AUTH
-// ============================================================================
 
 module.exports = router;
