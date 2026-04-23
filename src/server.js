@@ -229,6 +229,7 @@ const apiLimiter = rateLimit({
     console.warn(`[rate-limit] bloqueado org=${req.user?.organizationId || req.ip} path=${req.path}`);
     res.status(429).json({ error: 'Muitas requisições. Aguarde um momento e tente novamente.' });
   },
+  validate: { keyGenerator: false }, // Evita erro de validação IPv6 em ambientes que já tratam IP via Proxy (Nginx)
   standardHeaders: true,
   legacyHeaders: false,
 });
