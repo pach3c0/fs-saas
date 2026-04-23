@@ -139,6 +139,21 @@ Campos em `Subscription`: `limits.maxSessions`, `usage.sessions`, etc. Free plan
 
 ---
 
+## ONBOARDING & CHECKLIST
+
+O sistema possui um fluxo de onboarding para guiar o fotógrafo nos primeiros passos.
+
+- **Modelo:** `Organization.onboarding` (objeto com `completed` e `steps`).
+- **Passos:** `sessionCreated`, `photosUploaded`, `clientLinked`, `linkSent`.
+- **Lógica:** Os passos são marcados automaticamente nos handlers de rota (`sessions.js`).
+- **Rotas:** 
+  - `GET /api/onboarding` - Retorna o status atual.
+  - `POST /api/onboarding/dismiss` - Finaliza o guia (oculta visualmente).
+
+Sempre que adicionar uma funcionalidade crítica de primeiro uso, considere adicionar um passo ao onboarding.
+
+---
+
 ## VARIÁVEIS DE AMBIENTE (.env)
 
 ```

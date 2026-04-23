@@ -120,12 +120,20 @@ const logoUrl  = (state.session.organization?.logo) || '';
 
 ---
 
-## PWA
+## PWA OFFLINE & BACKGROUND SYNC
 
-- **Manifest dinâmico:** `GET /api/client/manifest/:sessionId` retorna JSON com `name` = org.name e `theme_color` = org.primaryColor
-- **Meta theme-color:** atualizado em JS após login via `document.getElementById('themeColorMeta')`
-- **Service Worker:** `cliente/sw.js` — cacheia assets estáticos, estratégia network-first para API
-- **Ícones PWA:** `cliente/icons/icon-192.png` e `icon-512.png` (genéricos do app)
+Desde a atualização de **2026-04-23**, a galeria é resiliente a falhas de rede.
+
+### Funcionamento do Modo Offline
+- **Detecção:** `gallery.js` monitora `navigator.onLine`. Um badge âmbar "Modo Offline" aparece no topo quando desconectado.
+- **Cache de Fotos:** Thumbs visualizadas são armazenadas no Cache da PWA para visualização offline.
+- **Fila de Ações (IndexedDB):** Seleções de fotos (`PUT /select`) e Comentários (`POST /comments`) feitos offline são salvos no banco local `fs-sync-queue`.
+- **Sincronização:** O `sw.js` usa o evento `sync` para detectar a volta da internet e processar a fila em segundo plano.
+- **Feedback:** Quando a sincronização termina, o SW envia uma mensagem para a galeria, que mostra um toast informando quantas ações foram salvas.
+
+### Tecnologias Usadas
+- **IndexedDB:** Armazenamento persistente das requisições pendentes.
+- **Background Sync API:** Garante que os dados sejam enviados mesmo se o usuário fechar a aba assim que a internet voltar.
 
 ---
 

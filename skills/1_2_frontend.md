@@ -67,6 +67,7 @@ admin/
 |---|---|
 | Toast/notificação | `window.showToast(msg, type)` — types: `success`, `error`, `info` |
 | Confirm dialog | `await window.showConfirm(msg, {title, confirmText, cancelText, danger})` |
+| Upload em Massa | `import { UploadQueue } from '../utils/upload.js'` + `UploadPanel` | Fila concorrente (3), ETA, retry, cancelamento |
 | Upload de imagem | `import { uploadImage, showUploadProgress } from '../utils/upload.js'` → comprime 1200px/85% |
 | Upload de vídeo | `import { uploadVideo } from '../utils/upload.js'` |
 | Crop de foto | `setupPhotoEditor(container, modalId, imageUrl, currentPos, onSave)` |

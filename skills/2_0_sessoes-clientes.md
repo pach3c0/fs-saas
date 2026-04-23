@@ -275,18 +275,28 @@ Os contadores são incrementados/decrementados manualmente via `Subscription.fin
 
 ## Upload de Fotos: como funciona
 
-```
-Admin seleciona arquivos → input#sessionUploadInput (multiple)
-  → loop sequencial (for...of) em sessoes.js
-  → POST /api/sessions/:id/photos (multipart, campo 'photos')
-  → multer salva o original em /uploads/{orgId}/sessions/
-  → sharp gera thumb (1200px, 85%) com prefixo "thumb-"
-  → Session.photos.push({ id, filename, url (thumb), urlOriginal })
-  → Subscription.usage.photos++
-  → Re-render total da tab + reabre modal de fotos
-```
+### Fila Concorrente (UploadQueue)
+Desde a atualização de **2026-04-23**, o upload não é mais um loop sequencial simples.
 
-**Foto de capa:** upload separado via `/api/admin/upload` (rota genérica de upload), não via rota de sessão. A URL é salva em `session.coverPhoto`.
+1. **Seleção:** Admin seleciona arquivos no modal.
+2. **Fila:** Os arquivos entram na `UploadQueue` (`admin/js/utils/upload.js`).
+3. **Concorrência:** Até **3 arquivos** são enviados simultaneamente.
+4. **Painel de Controle:** O `UploadPanel` aparece no canto inferior direito:
+   - Progresso individual por arquivo.
+   - Cálculo de **ETA** (tempo estimado) baseado na velocidade real.
+   - Botão de **Retry** (repetir) se houver falha de rede em arquivos específicos.
+   - Opção de cancelar o lote inteiro ou arquivos individuais.
+5. **Backend:**
+   - Multer salva original e Sharp gera thumb (1200px, 85%).
+   - Incremento de contador de fotos no banco.
+6. **Conclusão:** O painel mostra um resumo e o modal de fotos é atualizado silenciosamente.
+
+### Onboarding Automático
+Ações neste módulo disparam o progresso do fotógrafo:
+- Criar sessão → Marca `sessionCreated`.
+- Upload concluído → Marca `photosUploaded`.
+- Vincular cliente → Marca `clientLinked`.
+- Enviar código por e-mail → Marca `linkSent`.
 
 ---
 

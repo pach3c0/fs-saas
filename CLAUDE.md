@@ -104,7 +104,9 @@ Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart a
 | Novo tab admin | `admin/js/tabs/X.js` exportando `renderX(container)` + botao `.nav-item[data-tab="x"]` em `admin/index.html` + entrada em `TAB_TITLES` em `app.js` |
 | Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` em `server.js` |
 | Novo modelo | Incluir `organizationId: { type: ObjectId, ref: 'Organization', required: true }` + `{ timestamps: true }` |
-| Upload imagem | `import { uploadImage, showUploadProgress } from '../utils/upload.js'` → comprime 1200px/85% → `POST /api/admin/upload` → `{ url: '/uploads/orgId/file.jpg' }` |
+| Upload imagem | `import { uploadImage, showUploadProgress, UploadQueue } from '../utils/upload.js'` → `UploadQueue` para massa, `uploadImage` para solo. |
+| PWA Offline | `cliente/sw.js` (Sync + IDB) + `gallery.js` (Queue IDB) | Suporte a seleções e comentários offline. |
+| Onboarding | `Organization.onboarding` + `dashboard.js` checklist | Guia de boas-vindas para novos fotógrafos. |
 | Dados que aparecem no site publico | Salvar com `apiPut('/api/site/admin/config', { siteContent: { chave: valor } })`. Carregar com `apiGet('/api/site/admin/config')` → `.siteContent.chave`. NUNCA usar `saveAppData` para dados do site publico — ela salva em SiteData (legado) que o site nao le. |
 | Dados internos do admin (hero, faq, etc) | Usar `saveAppData(section, data)` → `/api/site-data` (SiteData). So para dados que o site publico le via SiteData (hero canvas, faq). Verificar qual modelo o `shared-site.js` consome antes de escolher qual rota usar. |
 | Alterar layout de secao nos templates | Editar `site/templates/shared.css` (estrutura: grid, aspect-ratio, breakpoints). Regras visuais (cores, bordas, sombras, animacoes) em cada `style.css` individual |
@@ -297,6 +299,7 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 |---|---|---|
 | **Arquitetura 3-Tier** | `cliente/` + `admin/` → `src/` → MongoDB | Separação de responsabilidades correta desde o início |
 | **Stateless (JWT)** | `src/middleware/auth.js` — token em cada requisição | Permite PM2 cluster sem Sticky Sessions; qualquer instância responde |
+| **PWA Offline & Sync** | `cliente/sw.js` + `IndexedDB` | Resiliência de rede para o cliente final; ações enfileiradas |
 | **Escalabilidade horizontal (base)** | `ecosystem.config.js` — `instances: 2, exec_mode: 'cluster'` | Para dobrar capacidade: mudar para `instances: 4`, sem alterar código |
 | **Feature Flag (primitiva)** | `Organization.siteEnabled`, `?_preview=1` na URL | Liga/desliga funcionalidade sem deploy |
 | **Rolling deploy sem downtime** | `pm2 reload` reinicia uma instância por vez | Usuários não percebem o deploy; já funciona hoje |
@@ -343,7 +346,8 @@ O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de V
 ### Pilares de Evolução:
 1.  **✅ Fluxo Pro (Lightroom):** `Session.workflowType` (`ready`|`post_edit`) + `Session.photoResolution` (960–1600px). Fluxo `post_edit` descarta original no upload; re-upload das editadas via `POST /sessions/:id/photos/upload-edited` (casa por filename). Implementado 2026-04-21.
 2.  **✅ Automação de Prazos (Escassez):** `Organization.integrations.deadlineAutomation`. Scheduler `setInterval` 6h no `server.js`; e-mails `sendDeadlineWarningEmail`/`sendDeadlineExpiredEmail`. Implementado 2026-04-21.
-3.  **Vendedor Automático (Upselling):** E-mail automático após submissão da seleção oferecendo fotos extras com desconto. Próximo passo da automação de marketing.
+3.  **✅ Melhoria na Experiência Principal (Sprint 2):** Bulk Upload com Fila Concorrente, Onboarding Checklist e PWA Offline Sync. Implementado 2026-04-23.
+4.  **Vendedor Automático (Upselling):** E-mail automático após submissão da seleção oferecendo fotos extras com desconto. Próximo passo da automação de marketing.
 4.  **Monetização Direta:** Integração com gateways de pagamento para liberação automática de downloads após quitação de extras.
 5.  **Backup Democrático:** Portabilidade de dados permitindo que o fotógrafo mova sessões antigas para seu próprio Google Drive/Dropbox.
 6.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora. Requer `fluent-ffmpeg` + fila de jobs (Bull/BeeQueue).
