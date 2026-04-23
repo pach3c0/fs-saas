@@ -1,6 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const Organization = require('../models/Organization');
+const User = require('../models/User');
+const Session = require('../models/Session');
+const SiteData = require('../models/SiteData');
+const Notification = require('../models/Notification');
+const Album = require('../models/Album');
+const Client = require('../models/Client');
+const Subscription = require('../models/Subscription');
 const { sendOffboardingWarningEmail, sendOffboardingDeletedEmail } = require('./email');
 
 const GRACE_DAYS = parseInt(process.env.OFFBOARDING_GRACE_DAYS || '30');
@@ -26,19 +33,41 @@ async function checkOffboarding() {
     const daysLeft = GRACE_DAYS - daysSince;
 
     if (daysLeft <= 0) {
-      // Grace period encerrado: deletar uploads
-      const uploadDir = path.join(__dirname, '../../uploads', org._id.toString());
+      // Grace period encerrado: cascade delete completo (banco + uploads)
+      const orgId = org._id;
+
+      try {
+        await Promise.all([
+          User.deleteMany({ organizationId: orgId }),
+          Session.deleteMany({ organizationId: orgId }),
+          SiteData.deleteMany({ organizationId: orgId }),
+          Notification.deleteMany({ organizationId: orgId }),
+          Album.deleteMany({ organizationId: orgId }),
+          Client.deleteMany({ organizationId: orgId }),
+          Subscription.deleteMany({ organizationId: orgId })
+        ]);
+      } catch (e) {
+        console.error(`[offboarding] Erro cascade delete org=${orgId}:`, e.message);
+      }
+
+      const uploadDir = path.join(__dirname, '../../uploads', orgId.toString());
       try {
         await fs.promises.access(uploadDir);
         await fs.promises.rm(uploadDir, { recursive: true, force: true });
-        console.log(`[offboarding] Uploads deletados org=${org._id} name="${org.name}"`);
       } catch {
         // Pasta já inexistente — ok
       }
 
+      try {
+        await Organization.findByIdAndDelete(orgId);
+        console.log(`[offboarding] Org excluída definitivamente org=${orgId} name="${org.name}"`);
+      } catch (e) {
+        console.error(`[offboarding] Erro ao deletar org=${orgId}:`, e.message);
+      }
+
       if (org.email) {
         await sendOffboardingDeletedEmail(org.email, org.name).catch(e =>
-          console.error(`[offboarding] Erro email exclusao org=${org._id}:`, e.message)
+          console.error(`[offboarding] Erro email exclusao org=${orgId}:`, e.message)
         );
       }
       deleted++;

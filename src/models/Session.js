@@ -6,18 +6,23 @@ const sessionSchema = new mongoose.Schema({
     type: String, // Família, Casamento, Evento, etc
     date: Date,
     accessCode: String,
-    photos: [{
-        id: String,
-        filename: String,
-        url: String,         // thumb (comprimida para galeria)
-        urlOriginal: String, // original sem compressao (para entrega em alta)
-        uploadedAt: Date,
-        comments: [{
-            text: String,
-            createdAt: { type: Date, default: Date.now },
-            author: { type: String, enum: ['client', 'admin'], default: 'client' }
-        }]
-    }],
+    photos: {
+        type: [{
+            id: String,
+            filename: String,
+            url: String,         // thumb (comprimida para galeria)
+            urlOriginal: String, // original sem compressao (para entrega em alta)
+            uploadedAt: Date,
+            comments: [{
+                text: String,
+                createdAt: { type: Date, default: Date.now },
+                author: { type: String, enum: ['client', 'admin'], default: 'client' }
+            }]
+        }],
+        // Teto defensivo: evita estourar o limite de 16MB por doc do MongoDB.
+        // 10k fotos por sessão cobre qualquer evento real.
+        validate: [arr => arr.length <= 10000, 'Limite de 10000 fotos por sessão atingido']
+    },
     // Modo da sessao
     mode: { type: String, enum: ['selection', 'gallery', 'multi_selection'], default: 'selection' },
     packageLimit: { type: Number, default: 30 },

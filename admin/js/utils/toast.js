@@ -153,6 +153,65 @@ export function showConfirm(message, { title = 'Confirmar', confirmText = 'Confi
   });
 }
 
+/**
+ * Toast de erro com botão "Tentar de novo". Não fecha automaticamente.
+ * @param {string} message
+ * @param {() => Promise<any>|void} onRetry — chamado ao clicar em "Tentar de novo"
+ */
+export function showToastWithRetry(message, onRetry) {
+  const c = COLORS.error;
+  const icon = ICONS.error;
+  const container = getContainer();
+
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: ${c.bg};
+    border: 1px solid ${c.border};
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    min-width: 300px;
+    max-width: 420px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    pointer-events: all;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  `;
+
+  toast.innerHTML = `
+    <span style="color:${c.icon}; flex-shrink:0;">${icon}</span>
+    <span style="color:${c.text}; font-size:0.875rem; line-height:1.4; flex:1;">${message}</span>
+    <button data-retry style="background:${c.border};color:#fff;border:none;border-radius:0.375rem;padding:0.25rem 0.625rem;cursor:pointer;font-size:0.75rem;font-weight:500;flex-shrink:0;">Tentar de novo</button>
+    <button data-close style="background:none;border:none;color:${c.icon};cursor:pointer;padding:0;flex-shrink:0;opacity:0.7;line-height:1;" aria-label="Fechar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  `;
+
+  const dismiss = () => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    setTimeout(() => toast.remove(), 300);
+  };
+
+  toast.querySelector('[data-close]').onclick = dismiss;
+  toast.querySelector('[data-retry]').onclick = () => {
+    dismiss();
+    try { onRetry?.(); } catch (e) { console.error(e); }
+  };
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(0)';
+  });
+
+  return dismiss;
+}
+
 // Expor globalmente para uso em inline onclick handlers
 window.showToast = showToast;
 window.showConfirm = showConfirm;
+window.showToastWithRetry = showToastWithRetry;

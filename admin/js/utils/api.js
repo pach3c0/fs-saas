@@ -26,9 +26,32 @@ async function apiRequest(method, url, body = null) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Erro ${res.status}`);
+    const friendly =
+      res.status === 429 ? 'Muitas requisições em pouco tempo. Aguarde um minuto e tente de novo.' :
+      res.status === 503 ? 'Servidor temporariamente indisponível. Tente de novo em alguns instantes.' :
+      res.status >= 500 ? 'Erro interno do servidor. Tente de novo em alguns instantes.' :
+      (err.error || `Erro ${res.status}`);
+    const error = new Error(friendly);
+    error.status = res.status;
+    error.retriable = res.status === 429 || res.status >= 500;
+    throw error;
   }
   return res.json();
+}
+
+// Envolve a chamada e mostra toast com botão "Tentar de novo" em erros retriáveis.
+// Uso: apiWithRetry(() => apiPost('/api/sessions', data))
+export async function apiWithRetry(fn, { label = 'Operação' } = {}) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.retriable && window.showToastWithRetry) {
+      window.showToastWithRetry(err.message, () => apiWithRetry(fn, { label }));
+    } else if (window.showToast) {
+      window.showToast(err.message || `Erro em ${label}`, 'error');
+    }
+    throw err;
+  }
 }
 
 export const apiGet = (url) => apiRequest('GET', url);

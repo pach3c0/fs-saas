@@ -13,6 +13,7 @@ const OrganizationSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
   deactivatedAt: { type: Date, default: null },
+  betaFeatures: { type: [String], default: [] },
   // Perfil do fotografo
   logo: { type: String, default: '' },
   phone: { type: String, default: '' },
@@ -93,14 +94,17 @@ const OrganizationSchema = new mongoose.Schema({
       price: String,
       icon: { type: String, default: '📷' }
     }],
-    depoimentos: [{
-      id: String,
-      name: String,
-      text: String,
-      rating: { type: Number, default: 5 },
-      photo: { type: String, default: '' },
-      socialLink: { type: String, default: '' }
-    }],
+    depoimentos: {
+      type: [{
+        id: String,
+        name: String,
+        text: String,
+        rating: { type: Number, default: 5 },
+        photo: { type: String, default: '' },
+        socialLink: { type: String, default: '' }
+      }],
+      validate: [arr => !arr || arr.length <= 500, 'Limite de 500 depoimentos atingido']
+    },
     pendingDepoimentos: [{
       id: String,
       name: String,
@@ -113,12 +117,15 @@ const OrganizationSchema = new mongoose.Schema({
       title: { type: String, default: 'Portfólio' },
       subtitle: { type: String, default: '' },
       gridStyle: { type: String, default: 'standard' },
-      photos: [{
-        url: String,
-        caption: { type: String, default: '' },
-        format: { type: String, default: '16/9' },
-        transform: { type: mongoose.Schema.Types.Mixed, default: {} }
-      }],
+      photos: {
+        type: [{
+          url: String,
+          caption: { type: String, default: '' },
+          format: { type: String, default: '16/9' },
+          transform: { type: mongoose.Schema.Types.Mixed, default: {} }
+        }],
+        validate: [arr => !arr || arr.length <= 2000, 'Limite de 2000 fotos no portfólio atingido']
+      },
       canvasLayers: { type: mongoose.Schema.Types.Mixed, default: [] },
       canvasBg: { type: mongoose.Schema.Types.Mixed, default: {} }
     },

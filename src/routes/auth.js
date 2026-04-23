@@ -415,15 +415,20 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
     const Session = require('../models/Session');
     const SiteData = require('../models/SiteData');
     const Notification = require('../models/Notification');
+    const Album = require('../models/Album');
+    const Client = require('../models/Client');
     const fs = require('fs');
     const path = require('path');
 
-    // Deletar todos os dados do banco
+    // Deletar todos os dados do banco (cascade completo)
     await Promise.all([
       User.deleteMany({ organizationId: orgId }),
       SiteData.deleteMany({ organizationId: orgId }),
       Session.deleteMany({ organizationId: orgId }),
-      Notification.deleteMany({ organizationId: orgId })
+      Notification.deleteMany({ organizationId: orgId }),
+      Album.deleteMany({ organizationId: orgId }),
+      Client.deleteMany({ organizationId: orgId }),
+      Subscription.deleteMany({ organizationId: orgId })
     ]);
 
     // Deletar pasta de uploads
@@ -460,6 +465,26 @@ router.put('/admin/organizations/:id/deactivate', authenticateToken, requireSupe
     });
   } catch (error) {
     console.error('Erro ao desativar organização:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ativar/desativar features beta por org (canary)
+router.put('/admin/organizations/:id/beta-features', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { betaFeatures } = req.body;
+    if (!Array.isArray(betaFeatures)) {
+      return res.status(400).json({ error: 'betaFeatures deve ser um array de strings' });
+    }
+    const org = await Organization.findByIdAndUpdate(
+      req.params.id,
+      { betaFeatures },
+      { new: true, select: '_id name betaFeatures' }
+    ).lean();
+    if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+    res.json({ success: true, org });
+  } catch (error) {
+    console.error('Erro ao atualizar beta features:', error);
     res.status(500).json({ error: error.message });
   }
 });

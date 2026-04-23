@@ -150,6 +150,18 @@ const connectWithRetry = async () => {
 const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
 
+// Evita execuções sobrepostas: se a rodada anterior ainda está em curso, pula o tick
+function safeInterval(fn, ms) {
+  let isRunning = false;
+  const run = async () => {
+    if (isRunning) return;
+    isRunning = true;
+    try { await fn(); } catch (e) { console.error(e); } finally { isRunning = false; }
+  };
+  run();
+  return setInterval(run, ms);
+}
+
 // Roda a cada 6h — verifica prazos e envia e-mails para orgs com automação ativada
 let deadlineSchedulerStarted = false;
 function startDeadlineScheduler() {
@@ -158,17 +170,11 @@ function startDeadlineScheduler() {
   const SIX_HOURS = 6 * 60 * 60 * 1000;
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
-  setInterval(() => {
-    checkDeadlines().catch(e => console.error('[scheduler] checkDeadlines:', e));
-  }, SIX_HOURS);
+  safeInterval(() => checkDeadlines(), SIX_HOURS);
   console.log('[scheduler] Verificador de prazos iniciado (a cada 6h)');
 
   // Roda 1x por dia — verifica orgs suspensas e aplica offboarding após grace period
-  checkOffboarding().catch(e => console.error('[scheduler] checkOffboarding:', e));
-  setInterval(() => {
-    checkOffboarding().catch(e => console.error('[scheduler] checkOffboarding:', e));
-  }, ONE_DAY);
+  safeInterval(() => checkOffboarding(), ONE_DAY);
   console.log('[scheduler] Offboarding checker iniciado (a cada 24h)');
 }
 
@@ -257,6 +263,41 @@ app.use('/api', require('./routes/site'));
 app.use('/api', require('./routes/domains'));
 app.use('/api', require('./routes/billing'));
 app.use('/api', require('./routes/landing'));
+
+// ============================================================================
+// GLOBAL ERROR HANDLER — deve vir APÓS todas as rotas
+// ============================================================================
+
+// 404 para rotas /api/* não mapeadas
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Rota não encontrada', path: req.originalUrl });
+});
+
+// Error handler global — captura throws síncronos e promise rejections em handlers async
+// (express 4 propaga async errors via next(err) só se a rota chamar; aqui pegamos o que chegar)
+app.use((err, req, res, next) => {
+  const orgId = req.user?.organizationId || req.organizationId || 'anon';
+  const status = err.status || err.statusCode || 500;
+  console.error(`[error] org=${orgId} ${req.method} ${req.originalUrl} status=${status}`, err.stack || err.message);
+
+  if (res.headersSent) return next(err);
+
+  const payload = { error: status >= 500 ? 'Erro interno do servidor' : (err.message || 'Erro') };
+  if (process.env.NODE_ENV !== 'production') payload.detail = err.message;
+  res.status(status).json(payload);
+});
+
+// Salvaguardas de processo — evita que uma promise rejeitada ou exceção não tratada
+// derrube o PM2 e afete todos os tenants do cluster
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[unhandledRejection]', reason?.stack || reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err?.stack || err);
+  // Não derrubar o processo — PM2 cluster segue servindo. Se o estado estiver corrompido,
+  // o health check vai acusar e o PM2 reinicia na próxima falha de readiness.
+});
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
