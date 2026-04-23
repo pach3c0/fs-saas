@@ -20,13 +20,13 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
-      req.logger.warn(`Tentativa de login: E-mail não encontrado: ${email}`);
+      console.warn(`Tentativa de login: E-mail não encontrado: ${email}`);
       return res.status(401).json({ success: false, error: 'E-mail não cadastrado' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      req.logger.warn(`Tentativa de login: Senha incorreta para e-mail: ${email}`);
+      console.warn(`Tentativa de login: Senha incorreta para e-mail: ${email}`);
       return res.status(401).json({ success: false, error: 'Senha incorreta' });
     }
 
@@ -52,7 +52,11 @@ router.post('/login', async (req, res) => {
       role: user.role
     });
   } catch (error) {
-    req.logger.error(`Erro crítico no login: ${error.message}`, { stack: error.stack });
+    if (req.logger) {
+      req.logger.error(`Erro crítico no login: ${error.message}`, { stack: error.stack });
+    } else {
+      console.error(`Erro crítico no login: ${error.message}`, error);
+    }
     res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
@@ -74,7 +78,7 @@ router.post('/auth/forgot-password', async (req, res) => {
     const baseUrl = process.env.BASE_URL || 'https://app.cliquezoom.com.br';
     const resetUrl = `${baseUrl}/admin/?reset=${token}`;
 
-    sendPasswordResetEmail(user.email, user.name, resetUrl).catch(() => {});
+    sendPasswordResetEmail(user.email, user.name, resetUrl).catch(() => { });
 
     res.json({ success: true });
   } catch (error) {
@@ -178,7 +182,7 @@ router.post('/auth/register', async (req, res) => {
     });
 
     // Enviar email de boas-vindas (async, nao bloqueia resposta)
-    sendWelcomeEmail(user.email, user.name, org.slug).catch(() => {});
+    sendWelcomeEmail(user.email, user.name, org.slug).catch(() => { });
 
     res.status(201).json({
       success: true,

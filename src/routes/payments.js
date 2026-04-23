@@ -7,12 +7,13 @@ const mercadopago = require('../middleware/mercadopago');
 router.post('/extra-photos', async (req, res) => {
     try {
         const { sessionId, accessCode, photos } = req.body;
-        
+
         // 1. Validar sessão e acesso
-        const session = await Session.findOne({ 
-            _id: sessionId, 
-            accessCode, 
-            isActive: true 
+        const session = await Session.findOne({
+            _id: sessionId,
+            accessCode,
+            isActive: true,
+            organizationId: req.organizationId // Isolamento Multi-tenant
         });
 
         if (!session) return res.status(401).json({ error: 'Acesso negado' });
@@ -22,8 +23,8 @@ router.post('/extra-photos', async (req, res) => {
 
         // 2. Validar fotos selecionadas como extras
         // Garantir que as fotos existem na sessão e não estão na seleção principal
-        const validPhotos = photos.filter(pid => 
-            session.photos.some(p => p.id === pid) && 
+        const validPhotos = photos.filter(pid =>
+            session.photos.some(p => p.id === pid) &&
             !session.selectedPhotos.includes(pid)
         );
 

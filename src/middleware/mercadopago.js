@@ -27,7 +27,8 @@ async function createCheckoutSession(organizationId, planName) {
                     id: planName,
                     title: `Plano ${planName} - CliqueZoom`,
                     quantity: 1,
-                    unit_price: plan.price, // Certifique-se de que plan.price está em BRL (ex: 49.90)
+                    // Converte de centavos (padrão Stripe no plans.js) para decimal, se for o caso
+                    unit_price: plan.price > 1000 ? plan.price / 100 : plan.price,
                     currency_id: 'BRL',
                 }
             ],
@@ -47,63 +48,69 @@ async function createCheckoutSession(organizationId, planName) {
 }
 
 async function handleWebhook(eventBody, eventQuery) {
-    // O Mercado Pago envia notificações via POST. Dependendo de como você configurar,
-    // o ID vem no body ou na query string (topic=payment&id=123)
-    const paymentId = eventBody?.data?.id || eventQuery?.id;
-    const type = eventBody?.type || eventQuery?.topic;
+    try {
+        // O Mercado Pago envia notificações via POST. Dependendo de como você configurar,
+        // o ID vem no body ou na query string (topic=payment&id=123)
+        const paymentId = eventBody?.data?.id || eventQuery?.id;
+        const type = eventBody?.type || eventQuery?.topic;
 
-    if (type === 'payment' && paymentId) {
-        const payment = new Payment(client);
-        const paymentData = await payment.get({ id: paymentId });
+        if (type === 'payment' && paymentId) {
+            const payment = new Payment(client);
+            const paymentData = await payment.get({ id: paymentId });
 
-        if (paymentData.status === 'approved') {
-            const extRef = paymentData.external_reference;
-            
-            // Caso 1: Pagamento de Fotos Extras (orgId:sessionId)
-            if (extRef && extRef.includes(':')) {
-                const [orgId, sessionId] = extRef.split(':');
-                const Session = require('../models/Session');
-                const session = await Session.findById(sessionId);
-                
-                if (session && session.extraRequest.status === 'pending') {
-                    // Mesclar extras na seleção principal
-                    const newSelected = [...new Set([...session.selectedPhotos, ...session.extraRequest.photos])];
-                    
-                    session.selectedPhotos = newSelected;
-                    session.extraRequest.status = 'accepted';
-                    session.extraRequest.paid = true;
-                    session.extraRequest.respondedAt = new Date();
-                    
-                    await session.save();
-                    
-                    // Notificar fotógrafo
-                    const Notification = require('../models/Notification');
-                    await Notification.create({
-                        type: 'extra_photos_paid',
-                        sessionId: session._id,
-                        sessionName: session.name,
-                        message: `Pagamento de ${session.extraRequest.photos.length} fotos extras recebido!`,
-                        organizationId: orgId
-                    });
+            if (paymentData.status === 'approved') {
+                const extRef = paymentData.external_reference;
+
+                // Caso 1: Pagamento de Fotos Extras (orgId:sessionId)
+                if (extRef && extRef.includes(':')) {
+                    const [orgId, sessionId] = extRef.split(':');
+                    const Session = require('../models/Session');
+                    const session = await Session.findById(sessionId);
+
+                    if (session && session.extraRequest.status === 'pending') {
+                        // Mesclar extras na seleção principal
+                        const newSelected = [...new Set([...session.selectedPhotos, ...session.extraRequest.photos])];
+
+                        session.selectedPhotos = newSelected;
+                        session.extraRequest.status = 'accepted';
+                        session.extraRequest.paid = true;
+                        session.extraRequest.respondedAt = new Date();
+
+                        await session.save();
+
+                        // Notificar fotógrafo
+                        const Notification = require('../models/Notification');
+                        await Notification.create({
+                            type: 'extra_photos_paid',
+                            sessionId: session._id,
+                            sessionName: session.name,
+                            message: `Pagamento de ${session.extraRequest.photos.length} fotos extras recebido!`,
+                            organizationId: orgId
+                        });
+                    }
                 }
-            } 
-            // Caso 2: Assinatura de Plano (apenas orgId)
-            else {
-                const orgId = extRef;
-                const planName = paymentData.additional_info?.items?.[0]?.id || 'basic';
+                // Caso 2: Assinatura de Plano (apenas orgId)
+                else {
+                    const orgId = extRef;
+                    const planName = paymentData.additional_info?.items?.[0]?.id || 'basic';
 
-                await Subscription.findOneAndUpdate(
-                    { organizationId: orgId },
-                    {
-                        plan: planName,
-                        status: 'active',
-                        // Atualizar limites conforme plano
-                        limits: plans[planName]?.limits
-                    },
-                    { upsert: true }
-                );
+                    await Subscription.findOneAndUpdate(
+                        { organizationId: orgId },
+                        {
+                            plan: planName,
+                            status: 'active',
+                            // Atualizar limites conforme plano
+                            limits: plans[planName]?.limits
+                        },
+                        { upsert: true }
+                    );
+                }
             }
         }
+    } catch (error) {
+        console.error('Erro ao processar Webhook do Mercado Pago:', error);
+        // Permite que o controller retorne um erro 500 para que o MP realize retentativas
+        throw error;
     }
 }
 
