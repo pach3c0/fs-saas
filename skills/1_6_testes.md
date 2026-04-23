@@ -6,11 +6,10 @@
 
 ## ESTRUTURA DE PASTAS
 
-Todos os testes residem na pasta `/tests`, organizados por categoria:
+Todos os arquivos de teste devem ser salvos diretamente na pasta:
+📂 **`/tests`**
 
-- **`tests/e2e/`**: (End-to-End) Testes que simulam o usuário no navegador. Devem ser nomeados como `*.spec.js`.
-- **`tests/api/`**: Testes leves que validam apenas as respostas JSON dos endpoints.
-- **`tests/helpers/`**: Scripts de apoio, como geradores de massa de dados ou funções de login reutilizáveis.
+Os arquivos devem terminar obrigatoriamente com **`.spec.js`** para que o robô consiga encontrá-los (ex: `landing-page.spec.js`, `login.spec.js`).
 
 ---
 
@@ -55,9 +54,9 @@ Ao criar testes que poluem o banco de produção, tente adicionar um passo de li
 
 ---
 
-## EXEMPLO DE TESTE E2E (Landing Page)
+## EXEMPLO DE TESTE (Landing Page)
 
-Local: `tests/e2e/landing-page.spec.js`
+Local: `tests/landing-page.spec.js`
 
 ```javascript
 const { test, expect } = require('@playwright/test');
