@@ -46,6 +46,9 @@ out/
 # Testing
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+test-results/*
 
 # Deployment
 .env.production.local
