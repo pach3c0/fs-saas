@@ -427,17 +427,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Banner de status da solicitação de extras
         let extraStatusBanner = '';
-        if (extraRequest.status === 'pending') {
-            extraStatusBanner = `<div style="background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#92400e; font-size:0.875rem;">
-                ⏳ Solicitação de <strong>${extraRequest.photos.length} foto(s) extra(s)</strong> enviada — aguardando confirmação do fotógrafo.
-            </div>`;
-        } else if (extraRequest.status === 'accepted') {
+        if (extraRequest.paid) {
             extraStatusBanner = `<div style="background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#166534; font-size:0.875rem;">
-                ✅ Fotógrafo aceitou suas fotos extras! Elas foram adicionadas à sua seleção.
+                🎉 Pagamento recebido! Suas fotos extras foram adicionadas com sucesso.
+            </div>`;
+        } else if (extraRequest.status === 'pending') {
+            extraStatusBanner = `<div style="background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#92400e; font-size:0.875rem;">
+                ⏳ Aguardando confirmação do pagamento de <strong>${extraRequest.photos.length} foto(s)</strong>.
             </div>`;
         } else if (extraRequest.status === 'rejected') {
             extraStatusBanner = `<div style="background:#fee2e2; border:1px solid #dc2626; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#991b1b; font-size:0.875rem;">
-                ❌ O fotógrafo não pôde atender desta vez. Você pode tentar selecionar outras fotos abaixo.
+                ❌ Ocorreu um problema com sua solicitação. Tente novamente ou contate o fotógrafo.
             </div>`;
         }
 
@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;"></div>
                     <div id="extraRequestBar" style="display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
                         <span id="extraRequestCount" style="font-size:0.875rem;"></span>
-                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar</button>
+                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Pagar Extras</button>
                     </div>
                 </div>
             `;
@@ -540,21 +540,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function requestExtraPhotos() {
         if (!extraSelectedPhotos.length) return;
         const btn = document.getElementById('sendExtraRequestBtn');
-        if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Gerando link...'; }
         try {
-            const res = await fetch(`/api/client/request-extra-photos/${state.sessionId}`, {
+            const res = await fetch(`/api/client/payments/extra-photos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos })
+                body: JSON.stringify({ 
+                    sessionId: state.sessionId,
+                    accessCode: state.accessCode, 
+                    photos: extraSelectedPhotos 
+                })
             });
             const result = await res.json();
             if (!result.success) throw new Error(result.error);
-            state.session.extraRequest = { status: 'pending', photos: extraSelectedPhotos };
-            extraSelectedPhotos = [];
-            renderSubmittedScreen();
+            
+            // Redirecionar para o Mercado Pago
+            window.location.href = result.paymentUrl;
+            
         } catch (err) {
-            alert('Erro ao enviar solicitação: ' + err.message);
-            if (btn) { btn.disabled = false; btn.textContent = 'Solicitar'; }
+            alert('Erro ao processar pagamento: ' + err.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Pagar Extras'; }
         }
     }
 
@@ -1131,10 +1136,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Preencher codigo automaticamente via URL (?code=XXXX) — link do email
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromUrl = urlParams.get('code');
+    const paymentStatus = urlParams.get('payment');
+
+    if (paymentStatus === 'success') {
+        alert('🎉 Pagamento confirmado! Suas fotos extras foram liberadas.');
+    } else if (paymentStatus === 'failed') {
+        alert('❌ Houve um problema com o pagamento. Tente novamente.');
+    }
+
     if (codeFromUrl && accessCodeInput) {
         accessCodeInput.value = codeFromUrl;
         // Limpar da URL sem recarregar (UX mais limpa)
-        const cleanUrl = window.location.pathname;
+        const cleanUrl = window.location.pathname + (codeFromUrl ? `?code=${codeFromUrl}` : '');
         window.history.replaceState(null, '', cleanUrl);
     }
 

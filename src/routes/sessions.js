@@ -334,7 +334,7 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
       // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado
       const clientEmail = participant ? participant.email : session.clientEmail;
-      if (clientEmail && session.extraPhotoPrice > 0) {
+      if (clientEmail && session.extraPhotoPrice > 0 && !session.extraRequest?.upsellingSent) {
         sendUpsellEmail(
           clientEmail,
           clientName,
@@ -345,10 +345,20 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
           session.accessCode,
           org?.slug || ''
         ).catch(() => {});
+        
+        // Marcar como enviado
+        await Session.findByIdAndUpdate(session._id, { 'extraRequest.upsellingSent': true });
       }
     } catch(e){}
 
-    res.json({ success: true });
+    const totalPhotos = session.photos?.length || 0;
+    const extraUpsellAvailable = totalPhotos > selectedCount;
+
+    res.json({ 
+      success: true, 
+      extraUpsellAvailable,
+      extraPhotoPrice: session.extraPhotoPrice || 25
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

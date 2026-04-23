@@ -49,7 +49,10 @@ const sessionSchema = new mongoose.Schema({
         status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
         photos: [String],       // IDs das fotos extras solicitadas
         requestedAt: Date,
-        respondedAt: Date
+        respondedAt: Date,
+        paid: { type: Boolean, default: false },
+        paymentId: String,      // Stripe/MP Preference ID
+        upsellingSent: { type: Boolean, default: false }
     },
     isActive: { type: Boolean, default: true },
     organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },

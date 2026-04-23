@@ -301,6 +301,7 @@ app.use('/api', require('./routes/albums'));
 app.use('/api', require('./routes/site'));
 app.use('/api', require('./routes/domains'));
 app.use('/api', require('./routes/billing'));
+app.use('/api', require('./routes/payments'));
 app.use('/api', require('./routes/landing'));
 app.use('/api', require('./routes/saasAdmin'));
 

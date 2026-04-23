@@ -109,9 +109,10 @@ Admin cria sessão
   → E-mail enviado ao cliente (se clientEmail preenchido)
 
 Admin faz upload de fotos
-  → multer salva original em /uploads/{orgId}/sessions/
+  → multer salva original em /uploads/{orgId}/sessions/ (via StorageService local)
   → sharp gera thumb (1200px, 85%) com prefixo "thumb-"
   → Cada foto tem: id, filename, url (thumb), urlOriginal
+  → URLs geradas via `storage.getUrl()`
   → Subscription.usage.photos += count
 
 Cliente acessa galeria (cliquezoom.com.br/cliente/?code=XXXX)
@@ -170,9 +171,9 @@ Cliente baixa fotos entregues
 | GET | `/api/sessions/:id` | — | Buscar sessão por ID |
 | POST | `/api/sessions` | `checkLimit, checkSessionLimit` | Criar sessão |
 | PUT | `/api/sessions/:id` | — | Editar sessão |
-| DELETE | `/api/sessions/:id` | — | Deletar sessão + arquivos |
+| DELETE | `/api/sessions/:id` | — | Deletar sessão + arquivos (via `storage.deleteDir`) |
 | POST | `/api/sessions/:id/photos` | `checkLimit, checkPhotoLimit` | Upload de fotos |
-| DELETE | `/api/sessions/:id/photos/:photoId` | — | Deletar foto |
+| DELETE | `/api/sessions/:id/photos/:photoId` | — | Deletar foto (via `storage.deleteFile`) |
 | PUT | `/api/sessions/:id/reopen` | — | Reabrir seleção |
 | PUT | `/api/sessions/:id/deliver` | — | Marcar como entregue |
 | POST | `/api/sessions/:id/photos/:photoId/comments` | — | Admin comentar foto |
@@ -312,15 +313,15 @@ Ações neste módulo disparam o progresso do fotógrafo:
 
 ## Notificações Geradas
 
-As ações de sessão criam registros no modelo `Notification` que alimentam o sino do admin:
+As ações de sessão criam registros no modelo `Notification` e geram logs via `req.logger` (Winston):
 
-| Evento | `type` |
-|---|---|
-| Cliente acessou galeria | `session_accessed` |
-| Cliente iniciou seleção | `selection_started` |
-| Cliente finalizou seleção | `selection_submitted` |
-| Cliente pediu reabertura | `reopen_requested` |
-| Cliente comentou em foto | `comment_added` |
+| Evento | `type` | Log Context |
+|---|---|---|
+| Cliente acessou galeria | `session_accessed` | orgId, sessionId |
+| Cliente iniciou seleção | `selection_started` | orgId, sessionId |
+| Cliente finalizou seleção | `selection_submitted` | orgId, sessionId, photosCount |
+| Cliente pediu reabertura | `reopen_requested` | orgId, sessionId |
+| Cliente comentou em foto | `comment_added` | orgId, photoId |
 
 ---
 
