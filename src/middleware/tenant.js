@@ -20,8 +20,8 @@ setInterval(clearExpiredCache, 60 * 1000);
 async function resolveTenant(req, res, next) {
   try {
     const host = req.get('host') || '';
-    const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
-    const ownerSlug = process.env.OWNER_SLUG || 'fs';
+    const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
+    const ownerSlug = (process.env.OWNER_SLUG || 'fs').trim();
 
     let slug = null;
 
