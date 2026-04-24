@@ -197,7 +197,7 @@ export async function renderSessoes(container) {
       </div>
     </div>
 
-    <!-- Modal Ver Fotos -->
+    <!-- Modal Ver Fotos (Dual Grid) -->
     <div id="sessionPhotosModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
       <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
         <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Fotos da Sessao</h3>
@@ -222,9 +222,28 @@ export async function renderSessoes(container) {
           <button id="closePhotosModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
-      <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
-        <div id="sessionPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem;">
-        </div>
+      
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:1rem; gap:1.5rem; overflow:hidden;">
+          <!-- Seção 1: Todas as Fotos -->
+          <div style="flex:1.2; display:flex; flex-direction:column; min-height:0;">
+              <h4 style="margin-bottom:0.75rem; color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
+                🖼️ Galeria Geral
+              </h4>
+              <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:0.75rem; border:1px solid var(--border);"></div>
+          </div>
+          
+          <!-- Seção 2: Seleção do Cliente -->
+          <div style="flex:0.8; display:flex; flex-direction:column; min-height:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                  <h4 style="color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
+                    ✅ Seleção do Cliente (<span id="selectionCountBadge">0</span>)
+                  </h4>
+                  <button id="exportSelectionBtn" style="background:var(--purple); color:white; padding:0.4rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:0.4rem;" title="Exportar lista de seleção para o Lightroom">
+                    📋 Exportar Lightroom
+                  </button>
+              </div>
+              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:0.75rem; background:rgba(47,129,247,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--accent);"></div>
+          </div>
       </div>
     </div>
 
@@ -494,10 +513,6 @@ export async function renderSessoes(container) {
               <button onclick="viewSessionPhotos('${session._id}')" style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Fotos
               </button>
-              ${mode === 'selection' && selectedCount > 0 ? `
-              <button onclick="viewSelection('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
-                Selecao
-              </button>` : ''}
               ${isMulti ? `
               <button onclick="viewParticipants('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Participantes
@@ -506,10 +521,6 @@ export async function renderSessoes(container) {
               <button onclick="reopenSelection('${session._id}')" style="background:var(--yellow); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Reabrir
               </button>
-              ${session.workflowType === 'post_edit' ? `
-              <button onclick="window.open('/api/sessions/${session._id}/export?token=${appState.authToken}', '_blank')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;" title="Exportar lista de seleção para o Lightroom">
-                📋 Lightroom
-              </button>` : ''}
               <button onclick="deliverSession('${session._id}')" style="background:${session.workflowType === 'post_edit' ? 'transparent' : 'var(--green)'}; color:${session.workflowType === 'post_edit' ? 'var(--green)' : 'white'}; padding:0.375rem 0.75rem; border-radius:0.375rem; border:${session.workflowType === 'post_edit' ? '1px solid var(--green)' : 'none'}; cursor:pointer; font-size:0.75rem; font-weight:500;" title="${session.workflowType === 'post_edit' ? 'Edite no Lightroom antes de entregar' : ''}">
                 Entregar
               </button>` : ''}
@@ -879,52 +890,37 @@ export async function renderSessoes(container) {
     modal.style.display = 'flex';
   };
 
-  // Ver selecao do cliente
-  window.viewSelection = async (sessionId) => {
-    const session = sessionsData.find(s => s._id === sessionId);
-    if (!session) return;
+    // Renderizar Seleção
+    const selectedPhotos = photos.filter(p => selectedIds.includes(p.id));
+    const selectedGrid = container.querySelector('#selectedPhotosGrid');
+    const badge = container.querySelector('#selectionCountBadge');
+    
+    badge.textContent = `${selectedPhotos.length}/${session.packageLimit || 30}`;
 
-    const modal = container.querySelector('#selectionModal');
-    const title = container.querySelector('#selectionModalTitle');
-    const info = container.querySelector('#selectionModalInfo');
-    const grid = container.querySelector('#selectionPhotosGrid');
-
-    const selectedIds = session.selectedPhotos || [];
-    const limit = session.packageLimit || 30;
-    const extras = Math.max(0, selectedIds.length - limit);
-    const extraPrice = session.extraPhotoPrice || 25;
-
-    title.textContent = `Selecao - ${session.name}`;
-    let infoText = `${selectedIds.length}/${limit} fotos selecionadas`;
-    if (extras > 0) {
-      infoText += ` • ${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})`;
-    }
-    info.textContent = infoText;
-
-    const photos = session.photos || [];
-    // Mostrar selecionadas primeiro, depois as demais
-    const sorted = [...photos].sort((a, b) => {
-      const aSelected = selectedIds.includes(a.id) ? 0 : 1;
-      const bSelected = selectedIds.includes(b.id) ? 0 : 1;
-      return aSelected - bSelected;
-    });
-
-    grid.innerHTML = sorted.map((photo, idx) => {
-      const isSelected = selectedIds.includes(photo.id);
-      return `
-        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : 'opacity:0.4;'}">
-          <img src="${resolveImagePath(photo.url)}" alt="${photo.filename}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:9999px; font-weight:bold;">&#10003;</div>' : ''}
+    if (selectedPhotos.length > 0) {
+      selectedGrid.innerHTML = selectedPhotos.map((photo, idx) => `
+        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.4rem; overflow:hidden; border:2px solid var(--accent);">
+          <img src="${resolveImagePath(photo.url)}" alt="Selecionada" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+          <div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--accent); color:white; font-size:0.5rem; padding:0.1rem 0.3rem; border-radius:999px; font-weight:bold;">&#10003;</div>
         </div>
-      `;
-    }).join('');
+      `).join('');
+    } else {
+      selectedGrid.innerHTML = '<p style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:2rem; font-size:0.875rem;">Aguardando seleção do cliente...</p>';
+    }
 
     // Exportar
-    container.querySelector('#exportSelectionBtn').onclick = () => {
+    const exportBtn = container.querySelector('#exportSelectionBtn');
+    exportBtn.style.display = session.workflowType === 'post_edit' && selectedPhotos.length > 0 ? 'flex' : 'none';
+    exportBtn.onclick = () => {
       window.open(`/api/sessions/${sessionId}/export?token=${appState.authToken}`, '_blank');
     };
 
     modal.style.display = 'flex';
+  };
+
+  // Ver selecao do cliente - Agora aponta para a visão unificada
+  window.viewSelection = async (sessionId) => {
+    window.viewSessionPhotos(sessionId);
   };
 
   // Enviar codigo por email ao cliente (acao manual do fotografo)
@@ -1076,11 +1072,6 @@ export async function renderSessoes(container) {
   container.querySelector('#closePhotosModal').onclick = () => {
     container.querySelector('#sessionPhotosModal').style.display = 'none';
     currentSessionId = null;
-  };
-
-  // Fechar modal de selecao
-  container.querySelector('#closeSelectionModal').onclick = () => {
-    container.querySelector('#selectionModal').style.display = 'none';
   };
 
   // Modal de Comentarios

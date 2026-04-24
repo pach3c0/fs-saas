@@ -754,7 +754,25 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         const oldPath = path.join(__dirname, '../..', photo.urlOriginal);
         await storage.deleteFile(oldPath);
       }
+      
+      // Deletar thumb antiga para substituir pela nova (com a edição final)
+      if (photo.url) {
+        const oldThumbPath = path.join(__dirname, '../..', photo.url);
+        await storage.deleteFile(oldThumbPath);
+      }
 
+      const originalPath = file.path;
+      const thumbFilename = 'thumb-' + file.filename;
+      const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
+
+      // Gerar nova thumb a partir da foto editada
+      const thumbRes = session.photoResolution || 1200;
+      await sharp(originalPath)
+        .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toFile(thumbPath);
+
+      photo.url = `/uploads/${orgId}/sessions/${thumbFilename}`;
       photo.urlOriginal = `/uploads/${orgId}/sessions/${file.filename}`;
       matched.push(originalName);
     }
