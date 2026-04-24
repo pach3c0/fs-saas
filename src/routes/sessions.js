@@ -664,6 +664,7 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (error) {
+    req.logger?.error('Delete Session Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
     res.status(500).json({ error: error.message });
   }
 });
@@ -858,6 +859,7 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
     }
     res.json({ success: true });
   } catch (error) {
+    req.logger?.error('Delete Photo Error', { error: error.message, stack: error.stack, sessionId: req.params.sessionId, photoId: req.params.photoId });
     res.status(500).json({ error: error.message });
   }
 });
