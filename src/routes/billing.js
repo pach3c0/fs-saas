@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { createCheckoutSession, handleWebhook } = require('../middleware/stripe');
 const Subscription = require('../models/Subscription');
 const plans = require('../models/plans');
+const storage = require('../services/storage');
 const stripe = process.env.STRIPE_SECRET_KEY
   ? require('stripe')(process.env.STRIPE_SECRET_KEY)
   : null;
@@ -26,16 +27,27 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       await sub.save();
     }
     
-    const storage = require('../services/storage');
-    const storageBytes = await storage.getDirSize(`/${req.user.organizationId}`);
-    const storageMB = Math.round(storageBytes / 1024 / 1024 * 100) / 100;
+    const orgId = req.user.organizationId;
+    const toMB = b => Math.round(b / 1024 / 1024 * 100) / 100;
+    const [sessionsBytes, siteBytes, videosBytes] = await Promise.all([
+      storage.getDirSize(`/${orgId}/sessions`),
+      storage.getDirSize(`/${orgId}/site`),
+      storage.getDirSize(`/${orgId}/videos`),
+    ]);
+    const storageBytes = sessionsBytes + siteBytes + videosBytes;
+    const storageMB = toMB(storageBytes);
 
-    res.json({ 
-      subscription: sub, 
+    res.json({
+      subscription: sub,
       planDetails: plans[sub.plan],
       usage: {
         storageMB,
-        storageBytes
+        storageBytes,
+        breakdown: {
+          sessionsMB: toMB(sessionsBytes),
+          siteMB: toMB(siteBytes),
+          videosMB: toMB(videosBytes)
+        }
       }
     });
   } catch (error) {

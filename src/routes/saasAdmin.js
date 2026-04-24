@@ -104,11 +104,15 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
         const users = await User.find({ organizationId: org._id }).select('name email role approved createdAt');
         const sessions = await Session.find({ organizationId: org._id }).select('name type mode selectionStatus photos createdAt');
 
-        // Calcular storage usado via helper async
         const orgId = org._id.toString();
-        const storageBytes = await storage.getDirSize(`/${orgId}`);
-
-        const sub = await Subscription.findOne({ organizationId: org._id }).lean();
+        const [sessionsBytes, siteBytes, videosBytes, sub] = await Promise.all([
+            storage.getDirSize(`/${orgId}/sessions`),
+            storage.getDirSize(`/${orgId}/site`),
+            storage.getDirSize(`/${orgId}/videos`),
+            Subscription.findOne({ organizationId: org._id }).lean()
+        ]);
+        const storageBytes = sessionsBytes + siteBytes + videosBytes;
+        const toMB = b => Math.round(b / 1024 / 1024 * 100) / 100;
         const totalPhotos = sessions.reduce((sum, s) => sum + (s.photos?.length || 0), 0);
 
         res.json({
@@ -118,9 +122,14 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 sessions: sessions.length,
                 photos: totalPhotos,
                 newsletterSubs: 0,
-                storageMB: Math.round(storageBytes / 1024 / 1024 * 100) / 100,
-                storageBytes: storageBytes,
-                maxStorageMB: sub?.limits?.maxStorage || 500
+                storageMB: toMB(storageBytes),
+                storageBytes,
+                maxStorageMB: sub?.limits?.maxStorage || 500,
+                breakdown: {
+                    sessionsMB: toMB(sessionsBytes),
+                    siteMB: toMB(siteBytes),
+                    videosMB: toMB(videosBytes)
+                }
             },
             recentSessions: sessions.slice(0, 10).map(s => ({
                 name: s.name,

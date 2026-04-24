@@ -361,6 +361,12 @@ window.showDetails = async (id) => {
             <div style="background:#60a5fa; width:${Math.min(100, (stats.storageMB / stats.maxStorageMB) * 100)}%; height:100%;"></div>
           </div>
           <div style="font-size:0.625rem; color:#64748b; margin-top:0.25rem;">Limite: ${stats.maxStorageMB} MB</div>
+          ${stats.breakdown ? `
+          <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; font-size:0.625rem; color:#94a3b8;">
+            <span>📁 Sessões: ${stats.breakdown.sessionsMB} MB</span>
+            <span>🌐 Site: ${stats.breakdown.siteMB} MB</span>
+            <span>🎬 Vídeos: ${stats.breakdown.videosMB} MB</span>
+          </div>` : ''}
         </div>
         <div class="detail-card">
           <h4>Newsletter</h4>
