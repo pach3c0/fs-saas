@@ -735,17 +735,42 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     if (session.workflowType !== 'post_edit') return res.status(400).json({ error: 'Sessão não usa fluxo de pós-edição' });
 
     const orgId = req.user.organizationId;
+    const allowUnmatched = req.query.allowUnmatched === 'true';
     const matched = [];
     const unmatched = [];
+    const newPhotos = [];
 
     for (const file of req.files) {
       const originalName = file.originalname;
       const photo = session.photos.find(p => p.filename === originalName);
 
       if (!photo) {
-        // Arquivo não casou — deletar e reportar
-        await storage.deleteFile(file.path);
-        unmatched.push(originalName);
+        if (!allowUnmatched) {
+          // Arquivo não casou — deletar e reportar
+          await storage.deleteFile(file.path);
+          unmatched.push(originalName);
+          continue;
+        }
+
+        // Se permitir não-pareadas, tratar como nova foto (subindo como editada/original direto)
+        const originalPath = file.path;
+        const thumbFilename = 'thumb-' + file.filename;
+        const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
+        const thumbRes = session.photoResolution || 1200;
+
+        await sharp(originalPath)
+          .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toFile(thumbPath);
+
+        newPhotos.push({
+          id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          filename: originalName,
+          url: `/uploads/${orgId}/sessions/${thumbFilename}`,
+          urlOriginal: `/uploads/${orgId}/sessions/${file.filename}`,
+          uploadedAt: new Date()
+        });
+        matched.push(originalName);
         continue;
       }
 
@@ -777,10 +802,19 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
       matched.push(originalName);
     }
 
+    if (newPhotos.length > 0) {
+      session.photos.push(...newPhotos);
+      // Incrementar contador de fotos
+      await Subscription.findOneAndUpdate(
+        { organizationId: req.user.organizationId },
+        { $inc: { 'usage.photos': newPhotos.length } }
+      );
+    }
+
     session.markModified('photos');
     await session.save();
 
-    res.json({ success: true, matched, unmatched });
+    res.json({ success: true, matched, unmatched, newCount: newPhotos.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

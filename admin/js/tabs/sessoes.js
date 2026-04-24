@@ -247,6 +247,26 @@ export async function renderSessoes(container) {
       </div>
     </div>
 
+    <!-- Modal de Validacao de Upload -->
+    <div id="uploadValidationModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; align-items:center; justify-content:center; padding:1.5rem;">
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:1rem; width:100%; max-width:500px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+        <div style="padding:1.5rem; border-bottom:1px solid var(--border); background:rgba(255,166,87,0.05);">
+          <h3 style="font-size:1.125rem; font-weight:bold; color:var(--orange); display:flex; align-items:center; gap:0.5rem;">
+            ⚠️ Validação de Entrega
+          </h3>
+          <p style="font-size:0.875rem; color:var(--text-secondary); margin-top:0.25rem;">Analisamos seus arquivos antes de iniciar o upload.</p>
+        </div>
+        
+        <div id="validationContent" style="padding:1.5rem; max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:1rem;">
+        </div>
+
+        <div style="padding:1.25rem; background:var(--bg-base); border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.75rem;">
+          <button id="cancelValidationBtn" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer; font-size:0.875rem;">Cancelar</button>
+          <button id="confirmValidationBtn" style="padding:0.5rem 1.25rem; background:var(--accent); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;"></button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal Editar Sessao -->
     <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
       <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
@@ -925,6 +945,71 @@ export async function renderSessoes(container) {
     window.viewSessionPhotos(sessionId);
   };
 
+  // Modal de Validação de Upload
+  const showUploadValidationModal = (report, onConfirm) => {
+    const modal = container.querySelector('#uploadValidationModal');
+    const content = container.querySelector('#validationContent');
+    const confirmBtn = container.querySelector('#confirmValidationBtn');
+    const cancelBtn = container.querySelector('#cancelValidationBtn');
+
+    let html = '';
+
+    if (report.unmatched.length > 0) {
+      html += `
+        <div style="background:rgba(248,81,73,0.1); border:1px solid rgba(248,81,73,0.2); padding:0.75rem; border-radius:0.5rem;">
+          <strong style="color:var(--red); font-size:0.875rem; display:block; margin-bottom:0.25rem;">🔴 Arquivos Não Encontrados (${report.unmatched.length})</strong>
+          <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Esses nomes não existem na galeria atual. Se continuar, elas serão adicionadas como novas fotos.</p>
+          <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:0.25rem;">
+            ${report.unmatched.join('<br>')}
+          </div>
+        </div>
+      `;
+    }
+
+    if (report.notSelected.length > 0) {
+      html += `
+        <div style="background:rgba(210,153,34,0.1); border:1px solid rgba(210,153,34,0.2); padding:0.75rem; border-radius:0.5rem;">
+          <strong style="color:var(--yellow); font-size:0.875rem; display:block; margin-bottom:0.25rem;">🟡 Não Selecionadas pelo Cliente (${report.notSelected.length})</strong>
+          <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Estas fotos existem na galeria, mas o cliente NÃO as escolheu no pacote.</p>
+          <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:0.25rem;">
+            ${report.notSelected.join('<br>')}
+          </div>
+        </div>
+      `;
+    }
+
+    if (report.extraCount > 0) {
+      html += `
+        <div style="background:rgba(47,129,247,0.1); border:1px solid rgba(47,129,247,0.2); padding:0.75rem; border-radius:0.5rem;">
+          <strong style="color:var(--accent); font-size:0.875rem; display:block; margin-bottom:0.25rem;">📊 Resumo de Quantidade</strong>
+          <p style="font-size:0.875rem; color:var(--text-primary);">Você está enviando <b>${report.total}</b> fotos.</p>
+          <p style="font-size:0.75rem; color:var(--text-secondary);">O limite do pacote/seleção é de <b>${report.limit}</b> fotos. Você está entregando <b>${report.extraCount}</b> fotos a mais (Brinde).</p>
+        </div>
+      `;
+    } else if (report.total > 0) {
+      html += `
+        <div style="background:rgba(63,185,80,0.1); border:1px solid rgba(63,185,80,0.2); padding:0.75rem; border-radius:0.5rem;">
+          <strong style="color:var(--green); font-size:0.875rem; display:block; margin-bottom:0.25rem;">✅ Tudo Certo!</strong>
+          <p style="font-size:0.875rem; color:var(--text-primary);">Total de <b>${report.total}</b> fotos compatíveis com a seleção.</p>
+        </div>
+      `;
+    }
+
+    content.innerHTML = html;
+    confirmBtn.textContent = (report.unmatched.length > 0 || report.notSelected.length > 0) ? 'Subir Tudo (Brinde)' : 'Iniciar Upload';
+    
+    modal.style.display = 'flex';
+
+    confirmBtn.onclick = () => {
+      modal.style.display = 'none';
+      onConfirm(true); // Subir tudo
+    };
+    cancelBtn.onclick = () => {
+      modal.style.display = 'none';
+      onConfirm(false); // Cancelar
+    };
+  };
+
   // Enviar codigo por email ao cliente (acao manual do fotografo)
   window.sendSessionCode = async (sessionId, accessCode) => {
     const session = sessionsData.find(s => s._id === sessionId);
@@ -1274,39 +1359,76 @@ export async function renderSessoes(container) {
     e.target.value = '';
   };
 
-  // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo usando UploadQueue
+  // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo usando UploadQueue com validação prévia
   container.querySelector('#sessionEditedInput').onchange = async (e) => {
     if (!currentSessionId) return;
+    const session = sessionsData.find(s => s._id === currentSessionId);
+    if (!session) return;
+
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    if (!window.globalUploadPanel) {
-      window.globalUploadPanel = new UploadPanel('upload-panel-root');
-    }
-    const panel = window.globalUploadPanel;
-    panel.show();
+    // --- Análise Pré-Upload ---
+    const photosInSession = session.photos || [];
+    const selectedIds = session.selectedPhotos || [];
+    const packageLimit = session.packageLimit || 30;
 
-    if (!window.globalUploadQueue) {
-      window.globalUploadQueue = new UploadQueue({
-        concurrency: 3,
-        onItemUpdate: (item) => panel.updateItem(item),
-        onQueueUpdate: (stats) => panel.updateStats(stats),
-        onQueueDone: async (results) => {
-          window.showToast?.('Uploads de editadas finalizados!', 'success');
-          await renderSessoes(container);
-          if (currentSessionId) {
-            viewSessionPhotos(currentSessionId);
+    const report = {
+      unmatched: [],
+      notSelected: [],
+      extraCount: 0,
+      total: files.length,
+      limit: packageLimit
+    };
+
+    files.forEach(file => {
+      const match = photosInSession.find(p => p.filename === file.name);
+      if (!match) {
+        report.unmatched.push(file.name);
+      } else if (!selectedIds.includes(match.id)) {
+        report.notSelected.push(file.name);
+      }
+    });
+
+    report.extraCount = Math.max(0, files.length - selectedIds.length);
+
+    // --- Disparar Validação ---
+    showUploadValidationModal(report, (confirmed) => {
+      if (!confirmed) {
+        e.target.value = '';
+        return;
+      }
+
+      // Se confirmado, inicia o upload
+      if (!window.globalUploadPanel) {
+        window.globalUploadPanel = new UploadPanel('upload-panel-root');
+      }
+      const panel = window.globalUploadPanel;
+      panel.show();
+
+      if (!window.globalUploadQueue) {
+        window.globalUploadQueue = new UploadQueue({
+          concurrency: 3,
+          onItemUpdate: (item) => panel.updateItem(item),
+          onQueueUpdate: (stats) => panel.updateStats(stats),
+          onQueueDone: async (results) => {
+            window.showToast?.('Uploads de editadas finalizados!', 'success');
+            await renderSessoes(container);
+            if (currentSessionId) {
+              viewSessionPhotos(currentSessionId);
+            }
           }
-        }
-      });
-      panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
-      panel.onRetry = (id) => window.globalUploadQueue.retry(id);
-    }
+        });
+        panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
+        panel.onRetry = (id) => window.globalUploadQueue.retry(id);
+      }
 
-    // Adiciona os arquivos à fila, apontando para a rota de edição
-    window.globalUploadQueue.add(files, `/api/sessions/${currentSessionId}/photos/upload-edited`);
-
-    e.target.value = '';
+      // Adiciona os arquivos à fila, permitindo não-pareadas se detectadas
+      const allowUnmatched = report.unmatched.length > 0;
+      window.globalUploadQueue.add(files, `/api/sessions/${currentSessionId}/photos/upload-edited?allowUnmatched=${allowUnmatched}`);
+      
+      e.target.value = '';
+    });
   };
 
   // Deletar foto individual
