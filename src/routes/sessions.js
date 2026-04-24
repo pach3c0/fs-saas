@@ -653,6 +653,9 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
           deletions.push(storage.deleteFile(p.urlEditada));
         }
       });
+      if (session.coverPhoto && session.coverPhoto.startsWith('/uploads/')) {
+        deletions.push(storage.deleteFile(session.coverPhoto));
+      }
       await Promise.all(deletions);
       await Session.findByIdAndDelete(req.params.id);
 
