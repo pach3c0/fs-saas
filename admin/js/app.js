@@ -7,6 +7,7 @@ import { resolveImagePath, copyToClipboard } from './utils/helpers.js';
 import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, onNotifClick } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
+import { apiGet } from './utils/api.js';
 
 const tabModules = {};
 let previewOpen = false;
@@ -97,7 +98,7 @@ window.toggleSitePreview = function () {
     modal.classList.add('open');
     if (btn) {
       btn.style.background = 'rgba(47,129,247,0.15)';
-      btn.style.color = '#2f81f7';
+      btn.style.color = 'var(--accent)';
       btn.style.borderColor = 'rgba(47,129,247,0.4)';
     }
     loadSitePreview();
@@ -261,7 +262,7 @@ async function builderLoadPreview() {
     // Sem slug não há como montar URL correta — mostrar aviso
     if (loading) loading.classList.add('hidden');
     iframe.src = '';
-    iframe.srcdoc = '<body style="background:#0d1117;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#8b949e;"><p>Configure o slug da organização para visualizar o site.</p></body>';
+    iframe.srcdoc = '<body style="background:var(--bg-base,#0d1117);display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:var(--text-secondary,#8b949e);"><p>Configure o slug da organização para visualizar o site.</p></body>';
     return;
   }
 
@@ -527,42 +528,39 @@ async function showWelcomeBanner() {
   if (localStorage.getItem(LS_BANNER_KEY)) return;
 
   try {
-    const res = await fetch('/api/sessions', {
-      headers: { 'Authorization': `Bearer ${appState.authToken}` }
-    });
-    const data = await res.json();
-    if (!res.ok || (data.sessions && data.sessions.length > 0)) return;
+    const data = await apiGet('/api/sessions');
+    if (data.sessions && data.sessions.length > 0) return;
   } catch (e) { return; }
 
   const banner = document.createElement('div');
   banner.id = 'welcome-banner';
-  banner.style.cssText = 'position:fixed;bottom:1.5rem;left:calc(var(--sidebar-w, 220px) + 1.5rem);z-index:9998;background:#1c2128;border:1px solid #30363d;border-radius:0.75rem;padding:1.25rem 1.5rem;width:300px;box-shadow:0 8px 30px rgba(0,0,0,0.4);';
+  banner.style.cssText = 'position:fixed;bottom:1.5rem;left:calc(var(--sidebar-w, 220px) + 1.5rem);z-index:9998;background:var(--bg-elevated);border:1px solid var(--border);border-radius:0.75rem;padding:1.25rem 1.5rem;width:300px;box-shadow:0 8px 30px rgba(0,0,0,0.4);';
 
   banner.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
-      <div style="font-weight:700;color:#e6edf3;font-size:0.9375rem;">👋 Bem-vindo!</div>
-      <button id="closeBanner" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.25rem;line-height:1;padding:0 0 0 0.5rem;">×</button>
+      <div style="font-weight:700;color:var(--text-primary);font-size:0.9375rem;">👋 Bem-vindo!</div>
+      <button id="closeBanner" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.25rem;line-height:1;padding:0 0 0 0.5rem;">×</button>
     </div>
-    <p style="color:#8b949e;font-size:0.8125rem;margin-bottom:0.875rem;line-height:1.5;">Configure sua conta em 3 passos:</p>
+    <p style="color:var(--text-secondary);font-size:0.8125rem;margin-bottom:0.875rem;line-height:1.5;">Configure sua conta em 3 passos:</p>
     <div style="display:flex;flex-direction:column;gap:0.375rem;">
       <div style="display:flex;align-items:center;gap:0.625rem;padding:0.4rem 0.625rem;">
-        <span style="color:#3fb950;font-size:0.875rem;">✓</span>
-        <span style="color:#484f58;font-size:0.8125rem;text-decoration:line-through;">Conta criada</span>
+        <span style="color:var(--green);font-size:0.875rem;">✓</span>
+        <span style="color:var(--text-muted);font-size:0.8125rem;text-decoration:line-through;">Conta criada</span>
       </div>
-      <button data-goto="perfil" style="display:flex;align-items:center;gap:0.625rem;background:#21262d;border:1px solid #30363d;border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
-        <span style="color:#484f58;font-size:0.875rem;">○</span>
-        <span style="color:#c9d1d9;font-size:0.8125rem;">Complete seu perfil</span>
-        <span style="margin-left:auto;color:#484f58;font-size:0.75rem;">→</span>
+      <button data-goto="perfil" style="display:flex;align-items:center;gap:0.625rem;background:var(--bg-hover);border:1px solid var(--border);border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
+        <span style="color:var(--text-muted);font-size:0.875rem;">○</span>
+        <span style="color:var(--text-primary);font-size:0.8125rem;">Complete seu perfil</span>
+        <span style="margin-left:auto;color:var(--text-muted);font-size:0.75rem;">→</span>
       </button>
-      <button data-goto="sessoes" style="display:flex;align-items:center;gap:0.625rem;background:#21262d;border:1px solid #30363d;border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
-        <span style="color:#484f58;font-size:0.875rem;">○</span>
-        <span style="color:#c9d1d9;font-size:0.8125rem;">Crie sua primeira sessão</span>
-        <span style="margin-left:auto;color:#484f58;font-size:0.75rem;">→</span>
+      <button data-goto="sessoes" style="display:flex;align-items:center;gap:0.625rem;background:var(--bg-hover);border:1px solid var(--border);border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
+        <span style="color:var(--text-muted);font-size:0.875rem;">○</span>
+        <span style="color:var(--text-primary);font-size:0.8125rem;">Crie sua primeira sessão</span>
+        <span style="margin-left:auto;color:var(--text-muted);font-size:0.75rem;">→</span>
       </button>
-      <button data-goto="meu-site" style="display:flex;align-items:center;gap:0.625rem;background:#21262d;border:1px solid #30363d;border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
-        <span style="color:#484f58;font-size:0.875rem;">○</span>
-        <span style="color:#c9d1d9;font-size:0.8125rem;">Configure seu site</span>
-        <span style="margin-left:auto;color:#484f58;font-size:0.75rem;">→</span>
+      <button data-goto="meu-site" style="display:flex;align-items:center;gap:0.625rem;background:var(--bg-hover);border:1px solid var(--border);border-radius:0.375rem;padding:0.4rem 0.625rem;cursor:pointer;text-align:left;width:100%;">
+        <span style="color:var(--text-muted);font-size:0.875rem;">○</span>
+        <span style="color:var(--text-primary);font-size:0.8125rem;">Configure seu site</span>
+        <span style="margin-left:auto;color:var(--text-muted);font-size:0.75rem;">→</span>
       </button>
     </div>
   `;
@@ -761,9 +759,9 @@ export async function switchTab(tabName) {
       console.error(`Erro ao carregar tab ${tabName}:`, error);
       container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem; gap:1rem;">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <p style="color:#f85149; font-weight:500;">Erro ao carregar aba</p>
-          <p style="color:#8b949e; font-size:0.8125rem;">${error.message}</p>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <p style="color:var(--red); font-weight:500;">Erro ao carregar aba</p>
+          <p style="color:var(--text-secondary); font-size:0.8125rem;">${error.message}</p>
         </div>
       `;
       return;
@@ -778,7 +776,7 @@ export async function switchTab(tabName) {
   const renderFunc = mod[funcName];
 
   if (!renderFunc) {
-    container.innerHTML = `<p style="color:#f85149;">Função ${funcName} não encontrada</p>`;
+    container.innerHTML = `<p style="color:var(--red);">Função ${funcName} não encontrada</p>`;
     return;
   }
 
@@ -792,7 +790,7 @@ export async function switchTab(tabName) {
     container.classList.add('fade-in');
   } catch (error) {
     console.error(`Erro ao renderizar ${tabName}:`, error);
-    container.innerHTML = `<p style="color:#f85149;">Erro: ${error.message}</p>`;
+    container.innerHTML = `<p style="color:var(--red);">Erro: ${error.message}</p>`;
   }
 }
 

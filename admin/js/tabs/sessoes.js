@@ -20,17 +20,17 @@ export async function renderSessoes(container) {
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1rem; min-height:calc(100vh - 120px);">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Sessoes de Clientes</h2>
-        <button id="addSessionBtn" style="background:#16a34a; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500;">
+        <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Sessoes de Clientes</h2>
+        <button id="addSessionBtn" style="background:var(--green); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:500;">
           + Nova Sessao
         </button>
       </div>
 
       <!-- Filtros -->
-      <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; flex-direction:column; gap:1rem;">
+      <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:1rem;">
         <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-            <input type="text" id="filterSearch" placeholder="Buscar cliente..." style="flex:1; min-width:200px; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6;">
-            <select id="filterSort" style="padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6;">
+            <input type="text" id="filterSearch" placeholder="Buscar cliente..." style="flex:1; min-width:200px; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary);">
+            <select id="filterSort" style="padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary);">
                 <option value="newest">Mais recentes</option>
                 <option value="oldest">Mais antigos</option>
                 <option value="az">Nome A-Z</option>
@@ -39,14 +39,14 @@ export async function renderSessoes(container) {
         </div>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
             <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;" id="statusFilters">
-                <span style="color:#9ca3af; font-size:0.875rem;">Status:</span>
-                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="pending" checked> Pendente</label>
-                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="in_progress" checked> Em seleção</label>
-                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="submitted" checked> Enviada</label>
-                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="delivered" checked> Entregue</label>
-                <label style="color:#d1d5db; font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="expired" checked> Expirado</label>
+                <span style="color:var(--text-secondary); font-size:0.875rem;">Status:</span>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="pending" checked> Pendente</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="in_progress" checked> Em seleção</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="submitted" checked> Enviada</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="delivered" checked> Entregue</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="expired" checked> Expirado</label>
             </div>
-            <select id="filterMode" style="padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; margin-left:auto;">
+            <select id="filterMode" style="padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); margin-left:auto;">
                 <option value="all">Todos os modos</option>
                 <option value="selection">Seleção</option>
                 <option value="multi_selection">Multi-Seleção</option>
@@ -54,21 +54,21 @@ export async function renderSessoes(container) {
             </select>
         </div>
         <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
-            <span style="color:#9ca3af; font-size:0.875rem;">Período por:</span>
-            <select id="filterDateField" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
+            <span style="color:var(--text-secondary); font-size:0.875rem;">Período por:</span>
+            <select id="filterDateField" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
                 <option value="createdAt">Criado em</option>
                 <option value="date">Data do Evento</option>
                 <option value="selectionDeadline">Prazo de Seleção</option>
             </select>
-            <input type="date" id="filterDateFrom" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
-            <span style="color:#6b7280; font-size:0.875rem;">até</span>
-            <input type="date" id="filterDateTo" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:#f3f4f6; font-size:0.875rem;">
-            <button id="clearDateFilter" style="padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid #374151; background:none; color:#9ca3af; cursor:pointer; font-size:0.75rem;">Limpar</button>
+            <input type="date" id="filterDateFrom" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
+            <span style="color:var(--text-muted); font-size:0.875rem;">até</span>
+            <input type="date" id="filterDateTo" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
+            <button id="clearDateFilter" style="padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); background:none; color:var(--text-secondary); cursor:pointer; font-size:0.75rem;">Limpar</button>
         </div>
       </div>
 
       <div id="sessionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
-        <p style="color:#9ca3af; text-align:center;">Carregando...</p>
+        <p style="color:var(--text-secondary); text-align:center;">Carregando...</p>
       </div>
     </div>
 
@@ -199,8 +199,8 @@ export async function renderSessoes(container) {
 
     <!-- Modal Ver Fotos -->
     <div id="sessionPhotosModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
-      <div style="background:#1f2937; border-bottom:1px solid #374151; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
-        <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Fotos da Sessao</h3>
+      <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+        <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Fotos da Sessao</h3>
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <div id="sessionUploadProgress" style="min-width:150px;"></div>
           <label id="uploadEditedBtn" style="display:none; padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;" title="Upload das fotos já editadas no Lightroom — casa por nome de arquivo">
@@ -208,11 +208,11 @@ export async function renderSessoes(container) {
             <input type="file" id="sessionEditedInput" accept="image/*" multiple style="display:none;">
           </label>
           <div id="editedUploadProgress" style="min-width:100px; font-size:0.75rem; color:var(--text-secondary);"></div>
-          <label id="uploadMoreBtn" style="padding:0.5rem 1rem; background:#2563eb; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
+          <label id="uploadMoreBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
             + Upload
             <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
           </label>
-          <button id="closePhotosModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="closePhotosModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
@@ -223,15 +223,15 @@ export async function renderSessoes(container) {
 
     <!-- Modal Editar Sessao -->
     <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
-        <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Editar Sessao</h3>
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
+        <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Editar Sessao</h3>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Nome da Sessão</label>
-          <input type="text" id="editSessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Nome da Sessão</label>
+          <input type="text" id="editSessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
         </div>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Tipo</label>
-          <select id="editSessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Tipo</label>
+          <select id="editSessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
             <option value="Familia">Familia</option>
             <option value="Casamento">Casamento</option>
             <option value="Evento">Evento</option>
@@ -240,66 +240,66 @@ export async function renderSessoes(container) {
           </select>
         </div>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Cliente Vinculado</label>
-          <select id="editClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Cliente Vinculado</label>
+          <select id="editClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
             <option value="">-- Nenhum cliente vinculado --</option>
           </select>
         </div>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">E-mail do Cliente <span style="color:#6b7280;">(opcional — para notificacoes)</span></label>
-          <input type="email" id="editClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;" placeholder="email@cliente.com">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">E-mail do Cliente <span style="color:var(--text-muted);">(opcional — para notificacoes)</span></label>
+          <input type="email" id="editClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);" placeholder="email@cliente.com">
         </div>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Prazo Seleção</label>
-          <input type="datetime-local" id="editSessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Prazo Seleção</label>
+          <input type="datetime-local" id="editSessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
         </div>
         <div>
-          <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Modo</label>
-          <select id="editMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Modo</label>
+          <select id="editMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
             <option value="selection">Selecao (cliente escolhe favoritas)</option>
             <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
           </select>
         </div>
         <div id="editSelectionFields" style="display:flex; gap:0.75rem;">
           <div style="flex:1;">
-            <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Fotos do pacote</label>
-            <input type="number" id="editLimit" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fotos do pacote</label>
+            <input type="number" id="editLimit" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
           </div>
           <div style="flex:1;">
-            <label style="display:block; font-size:0.75rem; color:#9ca3af; margin-bottom:0.25rem;">Preco foto extra (R$)</label>
-            <input type="number" id="editExtraPrice" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #374151; border-radius:0.375rem; background:#111827; color:#f3f4f6;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Preco foto extra (R$)</label>
+            <input type="number" id="editExtraPrice" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
           </div>
         </div>
-        <p style="font-size:0.6875rem; color:#6b7280;">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
-        <div style="border-top:1px solid #374151; padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+        <p style="font-size:0.6875rem; color:var(--text-muted);">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
+        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editHighResDelivery" style="width:1rem; height:1rem; accent-color:#2563eb; cursor:pointer;">
-            <span style="color:#f3f4f6; font-size:0.875rem; font-weight:500;">Entrega em alta resolucao</span>
+            <input type="checkbox" id="editHighResDelivery" style="width:1rem; height:1rem; accent-color:var(--accent); cursor:pointer;">
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Entrega em alta resolucao</span>
           </label>
-          <p style="font-size:0.6875rem; color:#6b7280; margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
+          <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editCommentsEnabled" style="width:1rem; height:1rem; accent-color:#2563eb; cursor:pointer;">
-            <span style="color:#f3f4f6; font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
+            <input type="checkbox" id="editCommentsEnabled" style="width:1rem; height:1rem; accent-color:var(--accent); cursor:pointer;">
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
           </label>
-          <p style="font-size:0.6875rem; color:#6b7280; margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
+          <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button id="cancelEditSession" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
-          <button id="confirmEditSession" style="padding:0.5rem 1rem; background:#2563eb; color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Salvar</button>
+          <button id="cancelEditSession" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Cancelar</button>
+          <button id="confirmEditSession" style="padding:0.5rem 1rem; background:var(--accent); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Salvar</button>
         </div>
       </div>
     </div>
 
     <!-- Modal Ver Selecao -->
     <div id="selectionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
-      <div style="background:#1f2937; border-bottom:1px solid #374151; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+      <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
         <div>
-          <h3 id="selectionModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Selecao do Cliente</h3>
-          <p id="selectionModalInfo" style="font-size:0.75rem; color:#9ca3af; margin-top:0.25rem;"></p>
+          <h3 id="selectionModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Selecao do Cliente</h3>
+          <p id="selectionModalInfo" style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.25rem;"></p>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button id="exportSelectionBtn" style="padding:0.5rem 1rem; background:#16a34a; color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Lightroom</button>
-          <button id="closeSelectionModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="exportSelectionBtn" style="padding:0.5rem 1rem; background:var(--green); color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Lightroom</button>
+          <button id="closeSelectionModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
@@ -310,31 +310,31 @@ export async function renderSessoes(container) {
 
     <!-- Modal Participantes (Multi-Seleção) -->
     <div id="participantsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
-      <div style="background:#1f2937; border-bottom:1px solid #374151; padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+      <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
         <div>
-            <h3 id="participantsModalTitle" style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Participantes</h3>
-            <p style="font-size:0.75rem; color:#9ca3af;">Gerencie os alunos/clientes desta sessão</p>
+            <h3 id="participantsModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Participantes</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary);">Gerencie os alunos/clientes desta sessão</p>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button id="exportParticipantsBtn" style="padding:0.5rem 1rem; background:#16a34a; color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Seleções</button>
-          <button id="closeParticipantsModal" style="padding:0.5rem 1rem; color:#9ca3af; background:none; border:1px solid #374151; border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="exportParticipantsBtn" style="padding:0.5rem 1rem; background:var(--green); color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Seleções</button>
+          <button id="closeParticipantsModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
         <!-- Form Adicionar -->
-        <div style="background:#111827; padding:1rem; border-radius:0.5rem; border:1px solid #374151; margin-bottom:1.5rem;">
-            <h4 style="color:#f3f4f6; font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
+        <div style="background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border); margin-bottom:1.5rem;">
+            <h4 style="color:var(--text-primary); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
             <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
                 <div style="flex:2; min-width:200px;">
-                    <input type="text" id="newPartName" placeholder="Nome completo" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                    <input type="text" id="newPartName" placeholder="Nome completo" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
                 </div>
                 <div style="flex:1; min-width:150px;">
-                    <input type="email" id="newPartEmail" placeholder="Email (opcional)" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                    <input type="email" id="newPartEmail" placeholder="Email (opcional)" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
                 </div>
                 <div style="flex:1; min-width:100px;">
-                    <input type="number" id="newPartLimit" placeholder="Limite" value="30" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:white;">
+                    <input type="number" id="newPartLimit" placeholder="Limite" value="30" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
                 </div>
-                <button id="addParticipantBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Adicionar</button>
+                <button id="addParticipantBtn" style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Adicionar</button>
             </div>
         </div>
 
@@ -346,17 +346,17 @@ export async function renderSessoes(container) {
 
     <!-- Modal Comentarios -->
     <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:#1f2937; border:1px solid #374151; border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="font-size:1.125rem; font-weight:bold; color:#f3f4f6;">Comentários da Foto</h3>
-            <button id="closeCommentsModal" style="color:#9ca3af; background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
+            <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Comentários da Foto</h3>
+            <button id="closeCommentsModal" style="color:var(--text-secondary); background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
         </div>
-        <div id="commentsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.75rem; min-height:200px; max-height:400px; background:#111827; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
+        <div id="commentsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.75rem; min-height:200px; max-height:400px; background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
             <!-- Comentarios aqui -->
         </div>
         <div style="display:flex; gap:0.5rem;">
-            <input type="text" id="adminCommentInput" placeholder="Escreva uma resposta..." style="flex:1; padding:0.5rem; border-radius:0.375rem; border:1px solid #374151; background:#111827; color:white;">
-            <button id="sendAdminCommentBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Enviar</button>
+            <input type="text" id="adminCommentInput" placeholder="Escreva uma resposta..." style="flex:1; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:white;">
+            <button id="sendAdminCommentBtn" style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Enviar</button>
         </div>
       </div>
     </div>
@@ -432,7 +432,7 @@ export async function renderSessoes(container) {
   function renderList(items) {
     const list = container.querySelector('#sessionsList');
     if (items.length === 0) {
-        list.innerHTML = '<p style="color:#9ca3af; text-align:center; padding:2rem;">Nenhuma sessão encontrada com os filtros atuais.</p>';
+        list.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:2rem;">Nenhuma sessão encontrada com os filtros atuais.</p>';
         return;
     }
 
@@ -816,7 +816,7 @@ export async function renderSessoes(container) {
         </div>
       `}).join('');
     } else {
-      grid.innerHTML = '<p style="color:#9ca3af; text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto. Use o botao Upload acima.</p>';
+      grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto. Use o botao Upload acima.</p>';
     }
 
     modal.style.display = 'flex';
@@ -1047,18 +1047,18 @@ export async function renderSessoes(container) {
 
   function renderCommentsList(comments) {
     if (!comments || comments.length === 0) {
-        commentsList.innerHTML = '<p style="color:#6b7280; text-align:center; font-style:italic;">Nenhum comentário.</p>';
+        commentsList.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-style:italic;">Nenhum comentário.</p>';
         return;
     }
     commentsList.innerHTML = comments.map(c => {
         const isAdmin = c.author === 'admin';
         const date = new Date(c.createdAt).toLocaleString('pt-BR');
         return `
-            <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? '#1e3a8a' : '#374151'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
-                <div style="font-size:0.75rem; color:${isAdmin ? '#93c5fd' : '#d1d5db'}; margin-bottom:0.25rem; font-weight:bold;">
+            <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? 'rgba(47,129,247,0.2)' : 'var(--bg-elevated)'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
+                <div style="font-size:0.75rem; color:${isAdmin ? 'var(--accent)' : 'var(--text-secondary)'}; margin-bottom:0.25rem; font-weight:bold;">
                     ${isAdmin ? 'Você' : 'Cliente'} <span style="font-weight:normal; opacity:0.7;">${date}</span>
                 </div>
-                <div style="color:#f3f4f6; font-size:0.875rem;">${escapeHtml(c.text)}</div>
+                <div style="color:var(--text-primary); font-size:0.875rem;">${escapeHtml(c.text)}</div>
             </div>
         `;
     }).join('');
@@ -1116,7 +1116,7 @@ export async function renderSessoes(container) {
 
   function renderParticipantsList(participants) {
     if (!participants || participants.length === 0) {
-        participantsList.innerHTML = '<p style="color:#9ca3af; text-align:center;">Nenhum participante adicionado.</p>';
+        participantsList.innerHTML = '<p style="color:var(--text-secondary); text-align:center;">Nenhum participante adicionado.</p>';
         return;
     }
 
@@ -1124,20 +1124,20 @@ export async function renderSessoes(container) {
         const status = STATUS_LABELS[p.selectionStatus] || STATUS_LABELS.pending;
         const count = (p.selectedPhotos || []).length;
         return `
-        <div style="background:#1f2937; border:1px solid #374151; border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <div style="color:#f3f4f6; font-weight:600;">${p.name}</div>
-                <div style="color:#9ca3af; font-size:0.75rem;">
-                    Código: <span style="font-family:monospace; color:#60a5fa; cursor:pointer;" onclick="copySessionCode('${p.accessCode}')" title="Copiar">${p.accessCode}</span>
+                <div style="color:var(--text-primary); font-weight:600;">${p.name}</div>
+                <div style="color:var(--text-secondary); font-size:0.75rem;">
+                    Código: <span style="font-family:monospace; color:var(--accent); cursor:pointer;" onclick="copySessionCode('${p.accessCode}')" title="Copiar">${p.accessCode}</span>
                     • ${count}/${p.packageLimit} fotos
                     • <span style="color:${status.color};">${status.text}</span>
                 </div>
             </div>
             <div style="display:flex; gap:0.5rem;">
                 ${p.selectionStatus === 'submitted' ? `
-                <button onclick="deliverParticipant('${p._id}')" style="background:#16a34a; color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">Entregar</button>
+                <button onclick="deliverParticipant('${p._id}')" style="background:var(--green); color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">Entregar</button>
                 ` : ''}
-                <button onclick="deleteParticipant('${p._id}')" style="background:#7f1d1d; color:#fca5a5; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">X</button>
+                <button onclick="deleteParticipant('${p._id}')" style="background:rgba(248,81,73,0.15); color:var(--red); padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">X</button>
             </div>
         </div>
         `;

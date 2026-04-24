@@ -280,7 +280,70 @@ Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **tod
 4. `footer.js` — ✅ concluido (migrado para siteContent.footer; shared-site.js atualizado para redes sociais, copyright e quickLinks; newsletter removida completamente do app)
 5. `hero.js` — ✅ concluido (migrado para siteConfig; backend atualizado com merge por sub-chave; 35 cores → CSS variables; preview sync adicionado)
 6. `faq.js`, `integracoes.js` — ✅ concluido (CSS variables + preview sync no faq; integracoes sem preview sync pois nao e secao visual)
+7. `app.js` (Login/Landing) — ✅ concluido em 2026-04-24 (hexcodes → CSS variables; fetch manual → apiGet; import apiGet adicionado; landing.js console.error → req.logger; testes Playwright melhorados: email dinamico, +2 casos de erro no login)
 
+### Modulos pendentes de auditoria 360 (proxima sequencia)
+
+| Modulo | Frontend | Backend | Testes Playwright | Skill atualizada |
+|---|---|---|---|---|
+| `sessoes.js` | ✅ hexcodes → CSS variables (2026-04-24) | — | `tests/2_0_login.spec.js` ✅ | `skills/2_0_sessoes-clientes.md` ✅ |
+| `clientes.js` | 🔄 pendente (`escapeHtml` duplicado, importar de helpers.js) | — | pendente | pendente |
+| `dashboard.js` | 🔄 pendente (auditoria nao feita) | — | pendente | pendente |
+| `perfil.js` | ✅ (ja auditado) | — | pendente | pendente |
+| `plano.js` | 🔄 pendente | — | pendente | pendente |
+| `dominio.js` | 🔄 pendente | — | pendente | pendente |
+| `marketing.js` | 🔄 pendente | — | pendente | pendente |
+
+---
+
+## PROTOCOLO DE INÍCIO DE CONVERSA
+
+> Toda IA que iniciar uma sessão neste projeto deve seguir este protocolo antes de qualquer outra ação.
+
+### 1. Leia o estado atual
+
+Antes de responder qualquer pergunta sobre "o que fazer", leia:
+- A tabela **"Módulos pendentes de auditoria 360"** na seção `AJUSTES PENDENTES` deste arquivo
+- O primeiro módulo marcado com 🔄 é o próximo a ser auditado
+- Pergunte ao usuário se deseja continuar por esse módulo ou tem outra prioridade
+
+### 2. Sequência canônica de auditoria por módulo
+
+Para cada módulo na tabela de pendências, siga esta ordem:
+
+| Passo | Ação |
+|---|---|
+| 1 | Ler a skill correspondente (`skills/X.md`) e verificar se está atualizada |
+| 2 | Ler o arquivo frontend (`admin/js/tabs/X.js`) completo |
+| 3 | Identificar: `confirm()`/`alert()` nativos, hexcodes hardcoded, código morto, `escapeHtml` duplicado |
+| 4 | Aplicar correções (CSS variables, `window.showConfirm`, importar de helpers.js) |
+| 5 | Ler o arquivo backend correspondente em `src/routes/` |
+| 6 | Verificar: `require()` dentro de handlers, I/O síncrono, queries sem `.lean()` |
+| 7 | Criar teste Playwright em `tests/N_0_modulo.spec.js` cobrindo o caminho crítico |
+| 8 | Rodar: `npx playwright test tests/N_0_modulo.spec.js --workers=1 --headed` |
+| 9 | Atualizar a skill do módulo com o que foi alterado |
+| 10 | Marcar o módulo como ✅ na tabela de pendências |
+
+### 3. Credenciais de teste (produção)
+
+```
+Email:  ricardopacheco.nunes59@gmail.com
+Senha:  qUzsov-zetkek-wokwo3
+URL admin: https://www.cliquezoom.com.br/admin
+Galeria cliente: https://fsfotografias.cliquezoom.com.br/cliente/
+```
+
+### 4. Regras operacionais de teste (aprendidas na prática)
+
+- **`--workers=1` obrigatório** em testes admin — testes paralelos causam race condition no `switchTab`
+- **Dados de teste com prefixo `test-auto-`** — permite limpeza fácil no banco
+- **`switchTab` é async** — após login, aguardar `.dashboard-stats` + `waitForTimeout(1500)` antes de navegar para outra tab
+- **Login correto:** `POST /api/login` (não `/api/auth/login`)
+- **Modal de confirmação customizado:** botão `#confirmOk` (nunca `window.confirm` nativo)
+- **Subdomínio ativo com SSL:** apenas `fsfotografias.cliquezoom.com.br` — usar este para testes de UI de galeria
+- **Não fazer commit/push sem pedido explícito do usuário**
+
+---
 
 # Regra Geral sobre Commit e push
 
@@ -358,20 +421,24 @@ O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de V
 
 
 
-# Ajustes
+# Ajustes, limnpezas, organizacao e refatoracao
 
-no @claude.md esta que os ids (ids 8/9, porta 3051, cluster), 
+- inicialmente estou organizando por modulos, por exemplo 
 
-na vps esta root@vmi3069803:~# pm2 status
-┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
-│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
-├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
-│ 0  │ cliquezoom-saas    │ cluster  │ 3    │ online    │ 0%       │ 132.8mb  │
-│ 1  │ cliquezoom-saas    │ cluster  │ 3    │ online    │ 0%       │ 141.6mb  │
-│ 2  │ erp-backend        │ fork     │ 0    │ online    │ 0%       │ 283.2mb  │
-│ 3  │ erp-frontend       │ fork     │ 0    │ online    │ 0%       │ 3.4mb    │
-└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
-root@vmi3069803:~# 
+primeiro vamos revisar o modulo, suas skills de documentacao, e dentro do modulo vamos revisar os arquivos de front e back e banco de dados para ver se esta tudo ok com o codigo, se precisa de refatoracao, se tem muito codigo comentado, codigo morto, colunas que nao sao usadas, no banco de dados e que estao sendo legadas, como ainda estamos em preocesso de desenvolvimento entao temos que ter um cuidado especial para nao quebrar nada, hoje tenho somente o cliente fsfotografias Flavia Cristina Pacheco da Silva que é minha esposa defato funcionando, no momento ela esta usando somente o site do app, entao se alguma informacao da fsfottografia estiver em dados legado, precisamos verificar a melhor forma de deixar no padrao do app, se tem arquivo desnecessario, etc, depois da tudo verificado preciso criar teste Playwright /skills/1_6_testes.md sem documentar na skills do modulo todas as alteracoes e como o modulo funciona e criar tambem na skills do modulo os fluxo /skills/fluxo.md Edited 1_6_testes.md
 
-corrigor a documentacao para o certo
+
+Aqui está o resumo da sua metodologia de trabalho descrita no **`CLAUDE.md`**:
+
+### 🎯 Objetivo: Ciclo de Qualidade por Módulo
+A estratégia consiste em uma revisão 360º de cada parte do sistema, seguindo esta ordem:
+
+1.  **Análise de Documentação:** Revisar as `skills` do módulo para garantir que explicam bem o funcionamento, atencao se a skill esta errada com o que o modulo de fato é, se esta desatualizada, atualize a skiil
+2.  **Auditoria de Código (Tríade):**
+    *   **Frontend/Backend:** Limpar códigos comentados, mortos e aplicar refatoração onde necessário.
+    *   **Banco de Dados:** Identificar e remover colunas/tabelas legadas ou inúteis.
+3.  **Segurança da Produção (Caso FS Fotografia):** Cuidado redobrado para não quebrar o site da única cliente real ativa (sua esposa). Se houver dados legados dela, eles devem ser migrados com segurança para o novo padrão do App.
+4.  **Validação Final:**
+    *   Criar testes automatizados com **Playwright** (`skills/1_6_testes.md`).
+    *   Documentar todos os novos fluxos e alterações em diagramas (`skills/fluxo.md`).
 

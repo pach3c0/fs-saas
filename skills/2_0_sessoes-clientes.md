@@ -210,7 +210,7 @@ let currentCommentSessionId = null;
 let currentCommentPhotoId = null;
 ```
 
-> **Atenção:** sessoes.js **NÃO usa `apiGet/apiPut` das utils** — usa `fetch` direto com header manual. Isso é uma **inconsistência** em relação ao padrão canônico (ver `clientes.js` que usa `apiGet/apiPost/apiPut/apiDelete`). Não reproduzir esse padrão em módulos novos.
+> **Padrão atual:** sessoes.js usa `apiGet/apiPost/apiPut/apiDelete` das utils (migrado em 2026-04-24). O único `fetch` direto remanescente é o upload das fotos editadas (endpoint `/photos/upload-edited`), que usa `FormData` multipart e não pode ser substituído pelo wrapper `apiPost`.
 
 ### Renderização após ações
 
@@ -229,11 +229,9 @@ const effectiveStatus = isExpired ? 'expired' : session.selectionStatus;
 
 Se o status for `submitted` ou `delivered`, o prazo é ignorado (sessão já finalizada).
 
-### CSS: inconsistência com o padrão
+### CSS: padrão corrigido (2026-04-24)
 
-`sessoes.js` usa **hexcodes hardcoded** (`#1f2937`, `#374151`, `#f3f4f6`) em vez de CSS variables (`var(--bg-surface)`, `var(--border)`, `var(--text-primary)`). `clientes.js` já usa CSS variables corretamente.
-
-> **Quando refatorar:** substituir todos os hex hardcoded de `sessoes.js` por CSS variables do design system.
+`sessoes.js` usa CSS variables do design system (`var(--bg-surface)`, `var(--border)`, `var(--text-primary)` etc.) em todo o arquivo. A inconsistência anterior com hexcodes hardcoded foi resolvida.
 
 ---
 
@@ -369,14 +367,13 @@ Todos os envios são `fire-and-forget` (`.catch(() => {})`), não bloqueiam a re
 
 ## Redundâncias e Débitos Técnicos
 
-| Problema | Localização | Ação recomendada |
-|---|---|---|
-| `fetch` direto com header manual | `sessoes.js` (todo o arquivo) | Substituir por `apiGet/apiPost/apiPut/apiDelete` das utils |
-| `confirm()` nativo | `sessoes.js` (múltiplos locais) | Substituir por `window.showConfirm()` |
-| Hexcodes hardcoded no CSS | `sessoes.js` (todo o arquivo) | Substituir por CSS variables (`var(--bg-surface)` etc.) |
-| `escapeHtml` duplicada | `clientes.js` linha 356 | Importar de `../utils/helpers.js` |
-| Não usa `apiGet` no mount | `sessoes.js` linha 293 | Usar `apiGet('/api/sessions')` |
-| `deliverParticipant` re-fetcha todas as sessões | `sessoes.js` linha 927 | Buscar apenas `GET /api/sessions/:id` em vez de todas |
+| Problema | Localização | Status | Ação recomendada |
+|---|---|---|---|
+| `fetch` direto com header manual | `sessoes.js` | ✅ Resolvido (2026-04-24) | Migrado para `apiGet/apiPost/apiPut/apiDelete`. Único `fetch` restante é o upload de editadas (FormData multipart — correto) |
+| `confirm()` nativo | `sessoes.js` | ✅ Resolvido (2026-04-24) | Usa `window.showConfirm?.()` em todos os lugares |
+| Hexcodes hardcoded no CSS | `sessoes.js` | ✅ Resolvido (2026-04-24) | Substituídos por CSS variables (`var(--bg-surface)`, `var(--text-primary)` etc.) |
+| `escapeHtml` duplicada | `clientes.js` linha 356 | ⏳ Pendente | Importar de `../utils/helpers.js` e remover função local |
+| `deliverParticipant` re-fetcha todas as sessões | `sessoes.js` | ⏳ Pendente (baixa prioridade) | Buscar apenas `GET /api/sessions/:id` em vez de todas |
 
 ---
 

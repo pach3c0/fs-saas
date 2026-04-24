@@ -44,7 +44,7 @@ npx playwright test tests/landing-page.spec.js --headed
 ## PADRÕES DE ESCRITA (Best Practices)
 
 ### 1. Isole os Testes
-Sempre use dados aleatórios ou timestamps para evitar que um teste falhe porque um e-mail ou slug já foi cadastrado por um teste anterior.
+Sempre use dados aleatórios ou timestamps para evitar que um teste falhe porque um e-mail ou slug já foi cadastrado por um teste anterior, mais se necessario so pedir para o Pacheco - Desenvolvedor da Plataforma limpar o banco de dados.
 ```javascript
 const uniqueId = Date.now();
 const testEmail = `user-${uniqueId}@example.com`;
