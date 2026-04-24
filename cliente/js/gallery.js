@@ -269,9 +269,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <span id="clientBellBadge" style="position:absolute; top:-2px; right:-4px; background:#ef4444; color:white; font-size:0.55rem; font-weight:700; border-radius:9999px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px;"></span>
                     </button>
                     <button id="switchGalleryBtn"
-                        style="background:none; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); padding:0.3rem 0.7rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer; white-space:nowrap;"
-                        title="Trocar de galeria">
-                        Trocar galeria
+                        style="background:none; border:1px solid #d1d5db; color:#374151; padding:0.4rem 0.8rem; border-radius:0.375rem; font-size:0.75rem; font-weight:500; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:0.4rem; transition: all 0.2s;"
+                        onmouseover="this.style.background='#f3f4f6'"
+                        onmouseout="this.style.background='none'"
+                        title="Sair da galeria">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Sair
                     </button>
                 </div>
             </div>
@@ -405,7 +408,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <h2 class="status-title">${title}</h2>
                 <p class="status-desc">${message}</p>
                 ${buttonHtml}
-                <button id="statusLogoutBtn" style="margin-top:1rem; background:none; border:1px solid #d1d5db; color:#aaa; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Trocar de galeria</button>
+                <button id="statusLogoutBtn" style="margin-top:1.5rem; background:none; border:1px solid #d1d5db; color:#4b5563; padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.875rem; font-weight:500; cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Sair da Galeria
+                </button>
             </div>
         `;
         document.getElementById('statusLogoutBtn').addEventListener('click', () => {
@@ -472,8 +478,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Preciso alterar minha seleção
                     </button>
                 </div>` : ''}
-                <div style="text-align:center; margin-top:0.75rem;">
-                    <button id="submittedLogoutBtn" style="background:none; border:none; color:#bbb; font-size:0.7rem; cursor:pointer; text-decoration:underline;">Trocar de galeria</button>
+                <div style="text-align:center; margin-top:1rem;">
+                    <button id="submittedLogoutBtn" style="background:none; border:none; color:#6b7280; font-size:0.875rem; font-weight:500; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Sair da Galeria
+                    </button>
                 </div>
             </div>
         `;
