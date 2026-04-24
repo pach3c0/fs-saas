@@ -203,15 +203,22 @@ export async function renderSessoes(container) {
         <h3 id="photosModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Fotos da Sessao</h3>
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <div id="sessionUploadProgress" style="min-width:150px;"></div>
-          <label id="uploadEditedBtn" style="display:none; padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;" title="Upload das fotos já editadas no Lightroom — casa por nome de arquivo">
-            ✏️ Upload Editadas
-            <input type="file" id="sessionEditedInput" accept="image/*" multiple style="display:none;">
-          </label>
-          <div id="editedUploadProgress" style="min-width:100px; font-size:0.75rem; color:var(--text-secondary);"></div>
-          <label id="uploadMoreBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
-            + Upload
-            <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
-          </label>
+          
+          <!-- Unified Upload Group -->
+          <div id="uploadButtonGroup" style="display:flex; align-items:stretch; border-radius:0.375rem; position:relative;">
+            <label id="mainUploadBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem 0 0 0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
+            <button id="uploadDropdownToggle" style="padding:0.5rem 0.6rem; background:var(--accent); color:white; border-radius:0 0.375rem 0.375rem 0; cursor:pointer; border:none; border-left:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1rem; transition: background 0.2s;">⌄</button>
+            
+            <!-- Dropdown Menu -->
+            <div id="uploadDropdownMenu" style="display:none; position:absolute; top:100%; right:0; margin-top:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.4); z-index:100; min-width:220px; overflow:hidden;">
+              <label id="secondaryUploadBtn" style="display:flex; align-items:center; gap:0.6rem; padding:0.75rem 1rem; color:var(--text-primary); cursor:pointer; font-size:0.875rem; transition:background 0.2s;"></label>
+            </div>
+          </div>
+
+          <!-- Hidden Inputs -->
+          <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
+          <input type="file" id="sessionEditedInput" accept="image/*" multiple style="display:none;">
+          
           <button id="closePhotosModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
         </div>
       </div>
@@ -787,9 +794,59 @@ export async function renderSessoes(container) {
 
     title.textContent = `Fotos - ${session.name}`;
 
-    // Mostrar botão de upload das editadas apenas para sessões post_edit
-    const uploadEditedBtn = container.querySelector('#uploadEditedBtn');
-    uploadEditedBtn.style.display = session.workflowType === 'post_edit' ? '' : 'none';
+    // Lógica do Botão de Upload Unificado
+    const uploadGroup = container.querySelector('#uploadButtonGroup');
+    const mainBtn = container.querySelector('#mainUploadBtn');
+    const secondaryBtn = container.querySelector('#secondaryUploadBtn');
+    const dropdownToggle = container.querySelector('#uploadDropdownToggle');
+    const dropdownMenu = container.querySelector('#uploadDropdownMenu');
+
+    // Reset Dropdown
+    dropdownMenu.style.display = 'none';
+    dropdownToggle.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
+    mainBtn.style.borderRadius = session.workflowType === 'post_edit' ? '0.375rem 0 0 0.375rem' : '0.375rem';
+
+    const labelAdd = `<span>+</span> Upload`;
+    const labelEdit = `<span>✏️</span> Subir Editadas`;
+
+    if (session.workflowType === 'post_edit' && session.selectionStatus === 'submitted') {
+        // Primário: Subir Editadas
+        mainBtn.innerHTML = labelEdit;
+        mainBtn.htmlFor = 'sessionEditedInput';
+        mainBtn.title = "Upload das fotos editadas no Lightroom — substitui por nome de arquivo";
+        mainBtn.style.background = 'var(--purple)';
+        dropdownToggle.style.background = 'var(--purple)';
+
+        secondaryBtn.innerHTML = labelAdd;
+        secondaryBtn.htmlFor = 'sessionUploadInput';
+        secondaryBtn.onmouseenter = () => secondaryBtn.style.background = 'var(--bg-hover)';
+        secondaryBtn.onmouseleave = () => secondaryBtn.style.background = '';
+    } else {
+        // Primário: Upload Normal
+        mainBtn.innerHTML = labelAdd;
+        mainBtn.htmlFor = 'sessionUploadInput';
+        mainBtn.title = "Adicionar novas fotos à galeria";
+        mainBtn.style.background = 'var(--accent)';
+        dropdownToggle.style.background = 'var(--accent)';
+
+        secondaryBtn.innerHTML = labelEdit;
+        secondaryBtn.htmlFor = 'sessionEditedInput';
+        secondaryBtn.onmouseenter = () => secondaryBtn.style.background = 'var(--bg-hover)';
+        secondaryBtn.onmouseleave = () => secondaryBtn.style.background = '';
+        
+        // Se for ready, o menu de editadas nem deve aparecer
+        if (session.workflowType === 'ready') {
+          dropdownToggle.style.display = 'none';
+          mainBtn.style.borderRadius = '0.375rem';
+        }
+    }
+
+    // Toggle Dropdown
+    dropdownToggle.onclick = (e) => {
+        e.stopPropagation();
+        const isVisible = dropdownMenu.style.display === 'block';
+        dropdownMenu.style.display = isVisible ? 'none' : 'block';
+    };
 
     const photos = session.photos || [];
 
@@ -1224,43 +1281,38 @@ export async function renderSessoes(container) {
     e.target.value = '';
   };
 
-  // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo
+  // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo usando UploadQueue
   container.querySelector('#sessionEditedInput').onchange = async (e) => {
     if (!currentSessionId) return;
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    const progressEl = container.querySelector('#editedUploadProgress');
-    progressEl.textContent = 'Enviando...';
-
-    const formData = new FormData();
-    files.forEach(f => formData.append('photos', f));
-
-    try {
-      const res = await fetch(`/api/sessions/${currentSessionId}/photos/upload-edited`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${appState.authToken}` },
-        body: formData
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro no upload');
-
-      const matchedCount = data.matched?.length || 0;
-      const unmatchedCount = data.unmatched?.length || 0;
-      progressEl.textContent = '';
-
-      if (unmatchedCount > 0) {
-        window.showToast?.(`${matchedCount} editadas aplicadas. ${unmatchedCount} não encontradas: ${data.unmatched.join(', ')}`, 'warning');
-      } else {
-        window.showToast?.(`${matchedCount} fotos editadas aplicadas com sucesso`, 'success');
-      }
-
-      await renderSessoes(container);
-      viewSessionPhotos(currentSessionId);
-    } catch (error) {
-      progressEl.textContent = '';
-      window.showToast?.('Erro: ' + error.message, 'error');
+    if (!window.globalUploadPanel) {
+      window.globalUploadPanel = new UploadPanel('upload-panel-root');
     }
+    const panel = window.globalUploadPanel;
+    panel.show();
+
+    if (!window.globalUploadQueue) {
+      window.globalUploadQueue = new UploadQueue({
+        concurrency: 3,
+        onItemUpdate: (item) => panel.updateItem(item),
+        onQueueUpdate: (stats) => panel.updateStats(stats),
+        onQueueDone: async (results) => {
+          window.showToast?.('Uploads de editadas finalizados!', 'success');
+          await renderSessoes(container);
+          if (currentSessionId) {
+            viewSessionPhotos(currentSessionId);
+          }
+        }
+      });
+      panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
+      panel.onRetry = (id) => window.globalUploadQueue.retry(id);
+    }
+
+    // Adiciona os arquivos à fila, apontando para a rota de edição
+    window.globalUploadQueue.add(files, `/api/sessions/${currentSessionId}/photos/upload-edited`);
+
     e.target.value = '';
   };
 
