@@ -105,7 +105,7 @@ export class UploadPanel {
     
     this.statsContainer.textContent = `${done}/${total} concluídos${etaText}`;
 
-    if (pending === 0 && error === 0) {
+    if (pending === 0) {
       this.container.querySelector('#upload-panel-close').style.display = 'block';
     }
   }
