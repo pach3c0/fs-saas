@@ -229,7 +229,7 @@ export async function renderSessoes(container) {
               <h4 style="margin-bottom:0.75rem; color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
                 🖼️ Galeria Geral
               </h4>
-              <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 150px)); gap:0.5rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:0.75rem; border:1px solid var(--border); align-content:start;"></div>
+              <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:0.5rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:0.75rem; border:1px solid var(--border); align-content:start;"></div>
           </div>
           
           <!-- Seção 2: Fotos Finais (Entrega) -->
@@ -242,7 +242,7 @@ export async function renderSessoes(container) {
                     📋 Exportar Lightroom
                   </button>
               </div>
-              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 130px)); gap:0.5rem; background:rgba(0,192,115,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--green); align-content:start;"></div>
+              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:0.5rem; background:rgba(0,192,115,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--green); align-content:start;"></div>
           </div>
       </div>
     </div>
