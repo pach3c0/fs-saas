@@ -482,12 +482,14 @@ async function postLoginSetup() {
 
 async function loadSidebarStorage() {
   try {
-    const res = await fetch('/api/site/admin/storage', {
-      headers: { 'Authorization': `Bearer ${appState.authToken}` }
-    });
-    if (!res.ok) return;
-    const storage = await res.json();
-    const pct = Math.min(storage.storageMB / 5120 * 100, 100).toFixed(1);
+    const [storageRes, billingRes] = await Promise.all([
+      fetch('/api/site/admin/storage', { headers: { 'Authorization': `Bearer ${appState.authToken}` } }),
+      fetch('/api/billing/subscription', { headers: { 'Authorization': `Bearer ${appState.authToken}` } })
+    ]);
+    if (!storageRes.ok) return;
+    const storage = await storageRes.json();
+    const maxMB = billingRes.ok ? ((await billingRes.json()).subscription?.limits?.maxStorage || 500) : 500;
+    const pct = Math.min(storage.storageMB / maxMB * 100, 100).toFixed(1);
     const widget = document.getElementById('sidebar-storage');
     const bar = document.getElementById('sidebar-storage-bar');
     const label = document.getElementById('sidebar-storage-label');
@@ -496,7 +498,8 @@ async function loadSidebarStorage() {
     bar.style.width = pct + '%';
     bar.style.background = pct > 80 ? 'var(--red)' : 'var(--accent)';
     label.textContent = storage.storageMB + ' MB';
-    pctEl.textContent = pct + '% de 5 GB';
+    const maxLabel = maxMB >= 1024 ? (maxMB / 1024).toFixed(0) + ' GB' : maxMB + ' MB';
+    pctEl.textContent = pct + '% de ' + maxLabel;
     widget.style.display = 'block';
   } catch (e) { /* silencioso */ }
 }
