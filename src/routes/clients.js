@@ -46,7 +46,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
 
     res.json({ success: true, clients: result });
   } catch (error) {
-    console.error('Erro ao listar clientes:', error);
+    req.logger.error('Erro ao listar clientes', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -76,7 +76,7 @@ router.post('/clients', authenticateToken, async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ success: false, error: 'Já existe um cliente com este e-mail' });
     }
-    console.error('Erro ao criar cliente:', error);
+    req.logger.error('Erro ao criar cliente', { error: error.message, body: req.body });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -112,7 +112,7 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ success: false, error: 'Já existe um cliente com este e-mail' });
     }
-    console.error('Erro ao editar cliente:', error);
+    req.logger.error('Erro ao editar cliente', { clientId: req.params.id, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -136,7 +136,7 @@ router.delete('/clients/:id', authenticateToken, async (req, res) => {
     await client.deleteOne();
     res.json({ success: true });
   } catch (error) {
-    console.error('Erro ao deletar cliente:', error);
+    req.logger.error('Erro ao deletar cliente', { clientId: req.params.id, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -146,7 +146,7 @@ router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
 
-    const client = await Client.findOne({ _id: req.params.id, organizationId: orgId });
+    const client = await Client.findOne({ _id: req.params.id, organizationId: orgId }).lean();
     if (!client) {
       return res.status(404).json({ success: false, error: 'Cliente não encontrado' });
     }
@@ -158,7 +158,7 @@ router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
 
     res.json({ success: true, sessions });
   } catch (error) {
-    console.error('Erro ao buscar sessoes do cliente:', error);
+    req.logger.error('Erro ao buscar sessoes do cliente', { clientId: req.params.id, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

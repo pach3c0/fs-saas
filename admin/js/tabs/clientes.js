@@ -4,6 +4,7 @@
  */
 
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
+import { escapeHtml } from '../utils/helpers.js';
 
 let clientesData = [];
 let searchTerm = '';
@@ -286,7 +287,8 @@ async function deletarCliente(container, id) {
     ? `Excluir "${cliente.name}"? Este cliente possui ${sessoes} sessão(ões) vinculada(s). As sessões não serão excluídas, apenas desvinculadas.`
     : `Excluir "${cliente.name}"?`;
 
-  if (!confirm(msg)) return;
+  const confirmado = await window.showConfirm?.(msg);
+  if (!confirmado) return;
 
   try {
     await apiDelete(`/api/clients/${id}`);
@@ -323,11 +325,11 @@ async function verSessoesCliente(container, id) {
       expired: 'Expirada'
     };
     const statusColor = {
-      pending: '#9ca3af',
-      in_progress: '#60a5fa',
-      submitted: '#facc15',
-      delivered: '#34d399',
-      expired: '#f87171'
+      pending: 'var(--text-muted)',
+      in_progress: 'var(--accent)',
+      submitted: 'var(--yellow)',
+      delivered: 'var(--green)',
+      expired: 'var(--red)'
     };
 
     lista.innerHTML = sessoes.map(s => {
@@ -353,11 +355,3 @@ async function verSessoesCliente(container, id) {
   }
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
