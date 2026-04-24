@@ -645,6 +645,9 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
         if (p.url && p.url.startsWith('/uploads/')) {
           storage.deleteFile(p.url);
         }
+        if (p.urlOriginal && p.urlOriginal.startsWith('/uploads/')) {
+          storage.deleteFile(p.urlOriginal);
+        }
       });
       await Session.findByIdAndDelete(req.params.id);
 
