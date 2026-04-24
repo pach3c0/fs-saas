@@ -232,17 +232,17 @@ export async function renderSessoes(container) {
               <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:0.75rem; border:1px solid var(--border);"></div>
           </div>
           
-          <!-- Seção 2: Seleção do Cliente -->
+          <!-- Seção 2: Fotos Finais (Entrega) -->
           <div style="flex:0.8; display:flex; flex-direction:column; min-height:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
                   <h4 style="color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
-                    ✅ Seleção do Cliente (<span id="selectionCountBadge">0</span>)
+                    🚀 Entrega Final (Alta Res: <span id="deliveryCountBadge">0</span>)
                   </h4>
                   <button id="exportSelectionBtn" style="background:var(--purple); color:white; padding:0.4rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:0.4rem;" title="Exportar lista de seleção para o Lightroom">
                     📋 Exportar Lightroom
                   </button>
               </div>
-              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:0.75rem; background:rgba(47,129,247,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--accent);"></div>
+              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:0.75rem; background:rgba(0,192,115,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--green);"></div>
           </div>
       </div>
     </div>
@@ -887,22 +887,27 @@ export async function renderSessoes(container) {
       grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto. Use o botao Upload acima.</p>';
     }
 
-    // Renderizar Seleção
-    const selectedPhotos = photos.filter(p => selectedIds.includes(p.id));
+    // Renderizar Entrega Final (Fotos com urlOriginal)
+    const deliveredPhotos = photos.filter(p => p.urlOriginal);
     const selectedGrid = container.querySelector('#selectedPhotosGrid');
-    const badge = container.querySelector('#selectionCountBadge');
+    const badge = container.querySelector('#deliveryCountBadge');
     
-    badge.textContent = `${selectedPhotos.length}/${session.packageLimit || 30}`;
+    const selectedCount = (session.selectedPhotos || []).length;
+    badge.textContent = `${deliveredPhotos.length}/${selectedCount || photos.length}`;
 
-    if (selectedPhotos.length > 0) {
-      selectedGrid.innerHTML = selectedPhotos.map((photo, idx) => `
-        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.4rem; overflow:hidden; border:2px solid var(--accent);">
-          <img src="${resolveImagePath(photo.url)}" alt="Selecionada" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          <div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--accent); color:white; font-size:0.5rem; padding:0.1rem 0.3rem; border-radius:999px; font-weight:bold;">&#10003;</div>
+    if (deliveredPhotos.length > 0) {
+      selectedGrid.innerHTML = deliveredPhotos.map((photo, idx) => `
+        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.4rem; overflow:hidden; border:2px solid var(--green);">
+          <img src="${resolveImagePath(photo.url)}" alt="Final" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+          <div style="position:absolute; bottom:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.5rem; padding:0.1rem 0.3rem; border-radius:4px; font-weight:bold;">ALTA RES</div>
         </div>
       `).join('');
     } else {
-      selectedGrid.innerHTML = '<p style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:2rem; font-size:0.875rem;">Aguardando seleção do cliente...</p>';
+      selectedGrid.innerHTML = `
+        <div style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:2rem; font-size:0.875rem;">
+          <p>Nenhuma foto final enviada ainda.</p>
+          <p style="font-size:0.75rem; margin-top:0.5rem;">Use o botão <b>Subir Editadas</b> para preencher esta área.</p>
+        </div>`;
     }
 
     // Exportar
