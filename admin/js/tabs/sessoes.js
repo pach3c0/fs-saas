@@ -860,9 +860,9 @@ export async function renderSessoes(container) {
     };
 
     const photos = session.photos || [];
+    const selectedIds = session.selectedPhotos || [];
 
     if (photos.length > 0) {
-      const selectedIds = session.selectedPhotos || [];
       grid.innerHTML = photos.map((photo, idx) => {
         const isSelected = selectedIds.includes(photo.id);
         const hasComments = photo.comments && photo.comments.length > 0;
@@ -886,9 +886,6 @@ export async function renderSessoes(container) {
     } else {
       grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto. Use o botao Upload acima.</p>';
     }
-
-    modal.style.display = 'flex';
-  };
 
     // Renderizar Seleção
     const selectedPhotos = photos.filter(p => selectedIds.includes(p.id));
