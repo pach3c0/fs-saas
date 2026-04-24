@@ -729,6 +729,11 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
     res.json({ success: true, photos: newPhotos });
   } catch (error) {
+    req.logger?.error('Upload Photos Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
+    // Limpar arquivos físicos que o multer salvou para evitar órfãos
+    if (req.files) {
+      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -825,6 +830,10 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
 
     res.json({ success: true, matched, unmatched, newCount: newPhotos.length });
   } catch (error) {
+    req.logger?.error('Upload Edited Photos Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
+    if (req.files) {
+      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+    }
     res.status(500).json({ error: error.message });
   }
 });
