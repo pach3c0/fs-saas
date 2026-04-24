@@ -10,7 +10,34 @@ const Notification = require('../models/Notification');
 const Album = require('../models/Album');
 const Client = require('../models/Client');
 const path = require('path');
+const fs = require('fs');
 const storage = require('../services/storage');
+const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
+
+function loadPlanLimits() {
+    try {
+        return JSON.parse(fs.readFileSync(PLAN_LIMITS_PATH, 'utf8'));
+    } catch {
+        return {
+            free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
+            basic: { maxSessions: 50,  maxPhotos: 5000, maxAlbums: 10, maxStorage: 10000, customDomain: false },
+            pro:   { maxSessions: -1,  maxPhotos: -1,   maxAlbums: -1, maxStorage: 50000, customDomain: true  }
+        };
+    }
+}
+
+async function getDirSizeAbs(dirPath) {
+    try {
+        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        const sizes = await Promise.all(entries.map(e => {
+            const full = path.join(dirPath, e.name);
+            return e.isDirectory() ? getDirSizeAbs(full) : fs.promises.stat(full).then(s => s.size).catch(() => 0);
+        }));
+        return sizes.reduce((a, b) => a + b, 0);
+    } catch {
+        return 0;
+    }
+}
 
 // ============================================================================
 // METRICS & GLOBAL STATS
@@ -25,29 +52,43 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
             totalSessions, 
             totalPhotos, 
             planGroups,
-            storageSize
+            storageSize,
+            adminBytes,
+            siteBytes,
+            assetsBytes,
+            clienteBytes,
+            albumBytes,
+            homeBytes
         ] = await Promise.all([
             Organization.countDocuments(),
             Organization.countDocuments({ isActive: true }),
             User.countDocuments(),
             Session.countDocuments(),
             Session.aggregate([
-                { $project: { count: { $size: '$photos' } } }, 
+                { $project: { count: { $size: '$photos' } } },
                 { $group: { _id: null, total: { $sum: '$count' } } }
             ]),
             Organization.aggregate([{ $group: { _id: '$plan', count: { $sum: 1 } } }]),
-            storage.getDirSize()
+            storage.getDirSize(),
+            getDirSizeAbs(path.join(__dirname, '../../admin')),
+            getDirSizeAbs(path.join(__dirname, '../../site')),
+            getDirSizeAbs(path.join(__dirname, '../../assets')),
+            getDirSizeAbs(path.join(__dirname, '../../cliente')),
+            getDirSizeAbs(path.join(__dirname, '../../album')),
+            getDirSizeAbs(path.join(__dirname, '../../home')),
         ]);
 
         const byPlan = {};
         planGroups.forEach(g => { byPlan[g._id] = g.count; });
+        const platformBytes = adminBytes + siteBytes + assetsBytes + clienteBytes + albumBytes + homeBytes;
 
         res.json({
             organizations: { total: totalOrgs, active: activeOrgs, pending: totalOrgs - activeOrgs, byPlan },
             users: totalUsers,
             sessions: totalSessions,
             photos: totalPhotos[0]?.total || 0,
-            storageBytes: storageSize
+            storageBytes: storageSize,
+            platformBytes
         });
     } catch (error) {
         req.logger.error('Saas Metrics Error', { error: error.message });
@@ -125,6 +166,9 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 storageMB: toMB(storageBytes),
                 storageBytes,
                 maxStorageMB: sub?.limits?.maxStorage || 500,
+                maxSessions: sub?.limits?.maxSessions ?? 5,
+                maxPhotos: sub?.limits?.maxPhotos ?? 100,
+                maxAlbums: sub?.limits?.maxAlbums ?? 1,
                 breakdown: {
                     sessionsMB: toMB(sessionsBytes),
                     siteMB: toMB(siteBytes),
@@ -228,16 +272,45 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
 router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin, async (req, res) => {
     try {
         const { plan } = req.body;
-        const PLAN_LIMITS = {
-            free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
-            basic: { maxSessions: 50,  maxPhotos: 5000, maxAlbums: 10, maxStorage: 10000, customDomain: false },
-            pro:   { maxSessions: -1,  maxPhotos: -1,   maxAlbums: -1, maxStorage: 50000, customDomain: true  }
-        };
-        if (!PLAN_LIMITS[plan]) return res.status(400).json({ error: 'Plano inválido' });
-        
+        const planLimits = loadPlanLimits();
+        if (!planLimits[plan]) return res.status(400).json({ error: 'Plano inválido' });
+
         const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { new: true });
-        await Subscription.findOneAndUpdate({ organizationId: org._id }, { plan, limits: PLAN_LIMITS[plan] });
+        await Subscription.findOneAndUpdate({ organizationId: org._id }, { plan, limits: planLimits[plan] });
         res.json({ success: true, message: `Plano alterado para ${plan}` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Limites padrão dos planos
+router.get('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, (req, res) => {
+    res.json(loadPlanLimits());
+});
+
+router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const limits = req.body;
+        const valid = ['free', 'basic', 'pro'];
+        for (const plan of valid) {
+            if (!limits[plan]) return res.status(400).json({ error: `Faltando plano: ${plan}` });
+        }
+        await fs.promises.writeFile(PLAN_LIMITS_PATH, JSON.stringify(limits, null, 2));
+        res.json({ success: true, message: 'Limites dos planos atualizados' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Override de limites por org
+router.put('/admin/organizations/:id/limits', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain } = req.body;
+        await Subscription.findOneAndUpdate(
+            { organizationId: req.params.id },
+            { $set: { limits: { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain } } }
+        );
+        res.json({ success: true, message: 'Limites customizados salvos' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

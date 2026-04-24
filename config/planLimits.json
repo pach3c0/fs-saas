@@ -1,0 +1,5 @@
+{
+  "free":  { "maxSessions": 5,   "maxPhotos": 100,  "maxAlbums": 1,  "maxStorage": 500,   "customDomain": false },
+  "basic": { "maxSessions": 50,  "maxPhotos": 5000, "maxAlbums": 10, "maxStorage": 10000, "customDomain": false },
+  "pro":   { "maxSessions": -1,  "maxPhotos": -1,   "maxAlbums": -1, "maxStorage": 50000, "customDomain": true  }
+}

@@ -124,7 +124,54 @@ function logout() {
 // ============================================================================
 
 async function loadDashboard() {
-  await Promise.all([loadMetrics(), loadOrganizations()]);
+  await Promise.all([loadMetrics(), loadOrganizations(), loadPlanLimitsConfig()]);
+}
+
+async function loadPlanLimitsConfig() {
+  const grid = document.getElementById('planLimitsGrid');
+  try {
+    const limits = await apiRequest('GET', '/api/admin/saas/plan-limits');
+    const plans = ['free', 'basic', 'pro'];
+    const labels = { maxStorage: 'Storage (MB)', maxSessions: 'Sessões (-1=∞)', maxPhotos: 'Fotos (-1=∞)', maxAlbums: 'Álbuns (-1=∞)' };
+
+    grid.innerHTML = plans.map(plan => `
+      <div style="background:#0f172a; border:1px solid #334155; border-radius:0.375rem; padding:0.875rem;">
+        <div style="font-size:0.75rem; font-weight:700; color:#93c5fd; text-transform:uppercase; margin-bottom:0.625rem;">${plan}</div>
+        ${Object.entries(labels).map(([key, label]) => `
+          <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem;">
+            ${label}
+            <input data-plan="${plan}" data-key="${key}" type="number" value="${limits[plan][key]}" min="-1"
+              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.3rem 0.5rem; font-size:0.8rem; width:100%;">
+          </label>
+        `).join('')}
+      </div>
+    `).join('');
+
+    document.getElementById('savePlanLimitsBtn').onclick = async () => {
+      const btn = document.getElementById('savePlanLimitsBtn');
+      btn.textContent = 'Salvando...';
+      btn.disabled = true;
+      try {
+        const payload = {};
+        plans.forEach(plan => {
+          payload[plan] = { customDomain: plan === 'pro' };
+          Object.keys(labels).forEach(key => {
+            payload[plan][key] = parseInt(grid.querySelector(`[data-plan="${plan}"][data-key="${key}"]`).value);
+          });
+        });
+        await apiRequest('PUT', '/api/admin/saas/plan-limits', payload);
+        btn.textContent = 'Salvo!';
+        btn.style.background = '#065f46';
+        setTimeout(() => { btn.textContent = 'Salvar'; btn.style.background = '#0369a1'; btn.disabled = false; }, 2000);
+      } catch (err) {
+        saasToast('Erro: ' + err.message, 'error');
+        btn.textContent = 'Salvar';
+        btn.disabled = false;
+      }
+    };
+  } catch (err) {
+    grid.innerHTML = `<div style="color:#f87171; font-size:0.8rem;">Erro ao carregar limites: ${err.message}</div>`;
+  }
 }
 
 async function loadMetrics() {
@@ -169,8 +216,20 @@ async function loadMetrics() {
       </div>
       <div class="metric-card">
         <div class="metric-label">Armazenamento</div>
-        <div class="metric-value" style="font-size:1.375rem; color:#60a5fa;">${formatSize(data.storageBytes)}</div>
-        <div class="metric-sub">uso total em /uploads</div>
+        <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.25rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+            <span style="color:#94a3b8;">👥 Tenants</span>
+            <span style="color:#60a5fa; font-weight:600;">${formatSize(data.storageBytes)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+            <span style="color:#94a3b8;">🖥️ Plataforma</span>
+            <span style="color:#a78bfa; font-weight:600;">${formatSize(data.platformBytes)}</span>
+          </div>
+          <div style="border-top:1px solid #334155; margin-top:0.25rem; padding-top:0.25rem; display:flex; justify-content:space-between; font-size:0.8rem;">
+            <span style="color:#94a3b8;">Total</span>
+            <span style="color:#f1f5f9; font-weight:700;">${formatSize((data.storageBytes || 0) + (data.platformBytes || 0))}</span>
+          </div>
+        </div>
       </div>
     `;
   } catch (err) {
@@ -375,6 +434,35 @@ window.showDetails = async (id) => {
       </div>
 
       <div class="detail-section">
+        <h3>Limites Customizados</h3>
+        <div id="customLimitsForm" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0.75rem; margin-top:0.75rem;">
+          <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.75rem; color:#94a3b8;">
+            Storage (MB)
+            <input id="lim_storage" type="number" value="${stats.maxStorageMB}" min="0"
+              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.875rem;">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.75rem; color:#94a3b8;">
+            Sessões (-1 = ∞)
+            <input id="lim_sessions" type="number" value="${stats.maxSessions ?? -1}" min="-1"
+              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.875rem;">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.75rem; color:#94a3b8;">
+            Fotos (-1 = ∞)
+            <input id="lim_photos" type="number" value="${stats.maxPhotos ?? -1}" min="-1"
+              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.875rem;">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.75rem; color:#94a3b8;">
+            Álbuns (-1 = ∞)
+            <input id="lim_albums" type="number" value="${stats.maxAlbums ?? -1}" min="-1"
+              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.875rem;">
+          </label>
+        </div>
+        <button id="saveLimitsBtn" style="margin-top:0.75rem; background:#0369a1; color:white; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">
+          Salvar limites desta org
+        </button>
+      </div>
+
+      <div class="detail-section">
         <h3>Usuarios</h3>
         <ul class="detail-list">${usersHtml}</ul>
       </div>
@@ -405,6 +493,27 @@ window.showDetails = async (id) => {
       } catch (err) {
         saasToast('Erro: ' + err.message, 'error');
         btn.textContent = 'Salvar';
+        btn.disabled = false;
+      }
+    };
+    content.querySelector('#saveLimitsBtn').onclick = async () => {
+      const btn = content.querySelector('#saveLimitsBtn');
+      btn.textContent = 'Salvando...';
+      btn.disabled = true;
+      try {
+        await apiRequest('PUT', `/api/admin/organizations/${id}/limits`, {
+          maxStorage:  parseInt(content.querySelector('#lim_storage').value),
+          maxSessions: parseInt(content.querySelector('#lim_sessions').value),
+          maxPhotos:   parseInt(content.querySelector('#lim_photos').value),
+          maxAlbums:   parseInt(content.querySelector('#lim_albums').value),
+          customDomain: false
+        });
+        btn.textContent = 'Salvo!';
+        btn.style.background = '#065f46';
+        setTimeout(() => { btn.textContent = 'Salvar limites desta org'; btn.style.background = '#0369a1'; btn.disabled = false; }, 2000);
+      } catch (err) {
+        saasToast('Erro: ' + err.message, 'error');
+        btn.textContent = 'Salvar limites desta org';
         btn.disabled = false;
       }
     };
