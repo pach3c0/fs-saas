@@ -935,6 +935,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function submitSelection() {
+        const limit = state.session.packageLimit || 0;
+        const count = state.selectedPhotos.length;
+
+        if (count < limit) {
+            alert(`Ops! Você selecionou ${count} foto(s), mas o seu pacote inclui ${limit} foto(s). \n\nPor favor, selecione pelo menos ${limit} fotos para concluir o envio da sua seleção.`);
+            return;
+        }
+
         if (!confirm('Tem certeza que deseja finalizar sua seleção? Após o envio, não será possível fazer alterações sem solicitar ao fotógrafo.')) {
             return;
         }
@@ -965,9 +973,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // --- Modal de Reabertura ---
+
+    function createReopenModal() {
+        if (document.getElementById('reopenModal')) return;
+
+        const modalHtml = `
+            <div id="reopenModal" style="display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; padding:1rem;">
+                <div style="position:absolute; inset:0; background:rgba(0,0,0,0.75);"></div>
+                <div style="position:relative; background:white; border-radius:1rem; width:100%; max-width:28rem; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+                    <div style="padding:2rem; text-align:center;">
+                        <div style="width:56px; height:56px; background:#eff6ff; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:#2563eb;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </div>
+                        <h3 style="font-size:1.25rem; font-weight:700; color:#111827; margin-bottom:0.75rem;">Solicitar Alteração</h3>
+                        <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:0.5rem; padding:1rem; margin-bottom:1.5rem; text-align:left;">
+                            <p style="font-size:0.875rem; color:#9a3412; line-height:1.5;">
+                                <strong>Como funciona:</strong><br>
+                                Ao clicar em enviar, o fotógrafo receberá seu pedido de reabertura. Assim que ele aprovar, sua galeria voltará ao modo de seleção e você poderá trocar suas fotos.
+                            </p>
+                        </div>
+                        <p style="font-size:0.9375rem; color:#6b7280; margin-bottom:2rem;">Deseja enviar o pedido de reabertura agora?</p>
+                        
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                            <button id="cancelReopenBtn" style="width:100%; padding:0.875rem; background:#f3f4f6; color:#374151; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer;">Cancelar</button>
+                            <button id="confirmReopenBtn" style="width:100%; padding:0.875rem; background:#2563eb; color:white; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer;">Enviar Pedido</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modal = document.getElementById('reopenModal');
+        document.getElementById('cancelReopenBtn').addEventListener('click', () => modal.style.display = 'none');
+        document.getElementById('confirmReopenBtn').addEventListener('click', () => {
+            modal.style.display = 'none';
+            requestReopen();
+        });
+    }
+
+    function openReopenModal() {
+        createReopenModal();
+        document.getElementById('reopenModal').style.display = 'flex';
+    }
+
     async function requestReopen() {
         const btn = document.getElementById('reopenRequestBtn');
-        showLoading(btn, 'Enviando pedido...');
+        if (btn) showLoading(btn, 'Enviando pedido...');
+        
         try {
             const response = await fetch(`/api/client/request-reopen/${state.sessionId}`, {
                 method: 'POST',
@@ -978,12 +1032,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!result.success) throw new Error(result.error);
 
             alert('Seu pedido de reabertura foi enviado ao fotógrafo!');
-            btn.textContent = 'Pedido Enviado';
-            btn.disabled = true;
+            if (btn) {
+                btn.textContent = 'Pedido Enviado';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
 
         } catch (error) {
             alert('Erro ao solicitar reabertura: ' + error.message);
-            hideLoading(btn);
+            if (btn) hideLoading(btn);
         }
     }
 
@@ -1196,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     statusScreen.addEventListener('click', (e) => {
         if (e.target.id === 'reopenRequestBtn') {
-            requestReopen();
+            openReopenModal();
         }
         if (e.target.id === 'viewDeliveredBtn') {
             initializeGallery();
