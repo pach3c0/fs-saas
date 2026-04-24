@@ -256,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         galleryHeader.innerHTML = `
             <div class="container mx-auto flex justify-between items-center">
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                    ${logoHtml}
                     ${clientBadge}
                 </div>
                 <div class="flex items-center gap-3">
