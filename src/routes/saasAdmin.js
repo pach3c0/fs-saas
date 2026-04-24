@@ -296,6 +296,12 @@ router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, asyn
             if (!limits[plan]) return res.status(400).json({ error: `Faltando plano: ${plan}` });
         }
         await fs.promises.writeFile(PLAN_LIMITS_PATH, JSON.stringify(limits, null, 2));
+
+        // Atualizar Subscriptions no banco para refletir os novos limites de cada plano
+        await Promise.all(valid.map(plan =>
+            Subscription.updateMany({ plan }, { $set: { limits: limits[plan] } })
+        ));
+
         res.json({ success: true, message: 'Limites dos planos atualizados' });
     } catch (error) {
         res.status(500).json({ error: error.message });
