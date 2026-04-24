@@ -684,6 +684,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
     const orgId = req.user.organizationId;
     const newPhotos = [];
+    const generatedThumbs = [];
 
     for (const file of req.files) {
       const originalPath = file.path;
@@ -696,6 +697,8 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85 })
         .toFile(thumbPath);
+        
+      generatedThumbs.push(thumbPath);
 
       // Fluxo post_edit: original nao editada nao tem valor — deletar do disco, urlOriginal fica vazio
       // Fluxo ready: original ja e a foto final, manter para entrega em alta
@@ -734,6 +737,9 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     if (req.files) {
       await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
     }
+    if (generatedThumbs && generatedThumbs.length > 0) {
+      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => {})));
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -753,6 +759,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     const matched = [];
     const unmatched = [];
     const newPhotos = [];
+    const generatedThumbs = [];
 
     for (const file of req.files) {
       const originalName = file.originalname;
@@ -776,6 +783,8 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
           .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 85 })
           .toFile(thumbPath);
+
+        generatedThumbs.push(thumbPath);
 
         newPhotos.push({
           id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -811,6 +820,8 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         .jpeg({ quality: 85 })
         .toFile(thumbPath);
 
+      generatedThumbs.push(thumbPath);
+
       photo.url = `/uploads/${orgId}/sessions/${thumbFilename}`;
       photo.urlOriginal = `/uploads/${orgId}/sessions/${file.filename}`;
       matched.push(originalName);
@@ -833,6 +844,9 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     req.logger?.error('Upload Edited Photos Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
     if (req.files) {
       await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+    }
+    if (generatedThumbs && generatedThumbs.length > 0) {
+      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => {})));
     }
     res.status(500).json({ error: error.message });
   }

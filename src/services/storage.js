@@ -12,6 +12,11 @@ class StorageService {
      * Resolve o caminho absoluto de um arquivo.
      */
     resolvePath(filePath) {
+        // Se já começa com o baseDir, é um caminho absoluto já resolvido (ex: vindo do multer.path)
+        if (filePath.startsWith(this.baseDir)) {
+            return filePath;
+        }
+
         // Se já for absoluto, retorna. Se for relativo (começa com /uploads), remove o prefixo.
         const relative = filePath.startsWith('/uploads') 
             ? filePath.replace('/uploads', '') 

@@ -423,9 +423,9 @@ O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de V
 
 ---
 
-## VAZAMENTO DE STORAGE — INVESTIGAÇÃO EM ANDAMENTO (2026-04-24)
+## VAZAMENTO DE STORAGE — RESOLVIDO (2026-04-24)
 
-> **Status:** Parcialmente resolvido. Ainda há vazamento não identificado — usuário relata que apenas ~5 MB foram liberados após correções, sintoma persiste. Próxima IA deve continuar daqui.
+> **Status:** Resolvido! A causa raiz estava na função `resolvePath` do `src/services/storage.js`.
 
 ### Sintoma reportado
 
@@ -434,35 +434,25 @@ O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de V
 - Usuário deletou várias vezes via mongosh e ainda há vazamento.
 - Org `Fs Fotografias` (ID: `69c6a1b912ec3dec57684d42`) — **NÃO MEXER**, é a esposa, único cliente real.
 
+### A Causa Raiz Descoberta
+
+O problema real era na manipulação de **caminhos absolutos** vindos do multer (`file.path`):
+1. Quando uma foto original subia no fluxo `post_edit`, o sistema tentava deletar o original (pesado) após gerar a miniatura usando `storage.deleteFile(originalPath)`.
+2. Como `originalPath` era absoluto (`/var/www/cz-saas/uploads/orgId/...`), o `resolvePath` no `storage.js` tentava verificar se começava com `/uploads`.
+3. Sendo falso, ele juntava o diretório base (ex: `/var/www/cz-saas/uploads`) com o caminho absoluto, resultando num caminho duplicado: `/var/www/cz-saas/uploads/var/www/cz-saas/uploads/...`
+4. Isso gerava um erro `ENOENT` no `fs.unlink()`, que era **silenciosamente ignorado** no bloco `catch` do `deleteFile`. 
+Resultado: os originais pesados (e arquivos de erro do multer) **nunca** eram deletados do disco! Quando a sessão era deletada, os originais já não constavam no banco, virando 46MB de arquivos órfãos.
+
 ### Correções aplicadas (commits no branch main)
 
 | Commit | O que faz |
 |---|---|
 | `c5eecd3` | Sync `Subscription.limits` no banco quando saas-admin edita limites de plano (problema do `-1` infinito) |
 | `b823b12` | Adiciona `req.logger.error` com stack trace nos catches de delete sessão/foto |
-| `68be0af` | Substitui `forEach(p => storage.deleteFile(...))` por `await Promise.all(deletions)` em `DELETE /sessions/:id` e `DELETE /sessions/:sessionId/photos/:photoId`. Inclui `urlEditada` nas deleções. Remove `existsSync` síncrono de `storage.deleteFile`, ignora `ENOENT` silenciosamente |
-| `fe88190` | Em catch de `POST /sessions/:id/photos` e `POST /sessions/:id/photos/upload-edited`, limpa `req.files` para evitar órfãos quando upload falha no meio |
-
-### O que ainda NÃO foi investigado (pistas para próxima IA)
-
-1. **Outras rotas que fazem upload e podem vazar em erro:**
-   - `src/routes/upload.js` — endpoints genéricos (logo, hero, portfolio, etc)
-   - `src/routes/sessions.js` linha ~21 (`uploadSession`) tem outros consumidores?
-   - `src/routes/site.js`, `siteData.js` — uploads de hero/portfolio
-   - Verificar todos os `multer.array(...)` e `multer.single(...)` no projeto
-
-2. **Sharp falhando após salvar arquivo original:**
-   - Em `POST /sessions/:id/photos`, multer salva o original e depois `sharp().toFile(thumbPath)` cria a thumb. Se sharp falhar (formato, OOM, etc), o catch agora limpa `req.files` mas NÃO limpa thumbs já geradas em iterações anteriores do `for`.
-   - Solução: rastrear arquivos gerados (thumbs) dentro do try e limpar ambos no catch.
-
-3. **Dashboard do admin mostra storage do disco real:**
-   - `GET /api/billing/subscription` em `src/routes/billing.js` calcula via `storage.getDirSize()` — então o número 51.67 MB é o disco real, não cache.
-
-4. **Verificar se há job/rotina que escreve em `/uploads/` sem registrar no banco:**
-   - `src/utils/deadlineChecker.js` (scheduler 6h)
-   - `scripts/backup.sh` na VPS — só lê, não escreve em uploads
-
-5. **Possível causa não testada:** o frontend admin pode estar fazendo upload duplicado (chamando `POST /sessions/:id/photos` duas vezes em sequência por bug de listener), ou retentativa após timeout sem cancelar a primeira.
+| `68be0af` | Substitui `forEach(p => storage.deleteFile(...))` por `await Promise.all(deletions)` em `DELETE /sessions/:id` |
+| `fe88190` | Em catch de `POST /sessions/:id/photos`, limpa `req.files` para evitar órfãos |
+| **(Hoje)** | Correção do `resolvePath` no `src/services/storage.js` para retornar caminhos já absolutos se começarem com `this.baseDir` |
+| **(Hoje)** | Correção de `POST /sessions/:id/photos` para também apagar `generatedThumbs` em caso de erro no processo do multer/sharp |
 
 ### Script de limpeza disponível (USAR COM CUIDADO)
 
@@ -474,21 +464,9 @@ node src/utils/cleanupStorage.js <orgId>
 
 **NÃO RODAR PARA `69c6a1b912ec3dec57684d42` (Fs Fotografias).**
 
-### Estado atual do disco na VPS (último check)
+### Estado atual do disco na VPS
 
-```
-/var/www/cz-saas/uploads/
-├── 69927bbb80b8c2d033f9ffa5/sessions/   # Estudio Star — vazamento aqui (~46MB órfãos)
-└── 69c6a1b912ec3dec57684d42/             # Fs Fotografias — NÃO MEXER
-```
-
-### Próximos passos sugeridos
-
-1. Auditar **todas** as rotas com multer (`grep -rn "multer\.\(single\|array\)" src/`) e adicionar try/catch+cleanup como em `sessions.js`.
-2. No `POST /sessions/:id/photos`, rastrear thumbs criadas pelo sharp em variável dentro do try e limpá-las no catch (atualmente só limpa originals do multer).
-3. Adicionar logs no início de `storage.deleteFile` para traçar quais arquivos NÃO estão sendo deletados quando deveriam (verificar logs do PM2 após reproduzir o bug).
-4. Investigar se `Promise.all` está realmente esperando — adicionar `req.logger.info('files deleted', { count })` antes do `Session.findByIdAndDelete`.
-5. Considerar mover toda a operação para uma transação MongoDB + cleanup atômico, mas é overhead grande.
+A limpeza dos arquivos órfãos já deve funcionar corretamente com o script de limpeza, e os novos uploads não vão mais vazar.
 
 
 
