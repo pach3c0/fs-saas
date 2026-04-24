@@ -912,7 +912,7 @@ export async function renderSessoes(container) {
 
     // Exportar
     const exportBtn = container.querySelector('#exportSelectionBtn');
-    exportBtn.style.display = session.workflowType === 'post_edit' && selectedPhotos.length > 0 ? 'flex' : 'none';
+    exportBtn.style.display = session.workflowType === 'post_edit' && selectedIds.length > 0 ? 'flex' : 'none';
     exportBtn.onclick = () => {
       window.open(`/api/sessions/${sessionId}/export?token=${appState.authToken}`, '_blank');
     };
