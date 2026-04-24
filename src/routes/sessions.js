@@ -640,15 +640,20 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
     if (session) {
       const photoCount = session.photos.length;
 
-      // Tentar limpar arquivos (opcional, pode falhar sem erro)
+      // Limpar arquivos físicos antes de remover do banco
+      const deletions = [];
       session.photos.forEach(p => {
         if (p.url && p.url.startsWith('/uploads/')) {
-          storage.deleteFile(p.url);
+          deletions.push(storage.deleteFile(p.url));
         }
         if (p.urlOriginal && p.urlOriginal.startsWith('/uploads/')) {
-          storage.deleteFile(p.urlOriginal);
+          deletions.push(storage.deleteFile(p.urlOriginal));
+        }
+        if (p.urlEditada && p.urlEditada.startsWith('/uploads/')) {
+          deletions.push(storage.deleteFile(p.urlEditada));
         }
       });
+      await Promise.all(deletions);
       await Session.findByIdAndDelete(req.params.id);
 
       // Decrementar contadores
@@ -835,14 +840,17 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
     const idx = session.photos.findIndex(p => p.id === req.params.photoId);
     if (idx > -1) {
       const photo = session.photos[idx];
-      // Deletar thumb
+      const deletions = [];
       if (photo.url && photo.url.startsWith('/uploads/')) {
-        storage.deleteFile(photo.url);
+        deletions.push(storage.deleteFile(photo.url));
       }
-      // Deletar original
       if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) {
-        storage.deleteFile(photo.urlOriginal);
+        deletions.push(storage.deleteFile(photo.urlOriginal));
       }
+      if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) {
+        deletions.push(storage.deleteFile(photo.urlEditada));
+      }
+      await Promise.all(deletions);
       session.photos.splice(idx, 1);
 
       if (session.selectedPhotos) {

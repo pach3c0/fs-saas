@@ -45,12 +45,11 @@ class StorageService {
     async deleteFile(filePath) {
         try {
             const absolutePath = this.resolvePath(filePath);
-            if (fsSync.existsSync(absolutePath)) {
-                await fs.unlink(absolutePath);
-            }
+            await fs.unlink(absolutePath);
         } catch (error) {
-            logger.error('Storage Delete Error', { path: filePath, error: error.message });
-            // Não jogamos erro aqui para não travar fluxos de delete que podem ser parciais
+            if (error.code !== 'ENOENT') {
+                logger.error('Storage Delete Error', { path: filePath, error: error.message });
+            }
         }
     }
 
