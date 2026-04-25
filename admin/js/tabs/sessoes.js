@@ -432,44 +432,44 @@ export async function renderSessoes(container) {
     const dateTo = dateToVal ? new Date(dateToVal + 'T23:59:59') : null;
 
     let filtered = sessionsData.filter(session => {
-        // Filtro de Texto
-        if (searchTerm && !session.name.toLowerCase().includes(searchTerm)) return false;
+      // Filtro de Texto
+      if (searchTerm && !session.name.toLowerCase().includes(searchTerm)) return false;
 
-        // Filtro de Modo
-        if (modeValue !== 'all' && session.mode !== modeValue) return false;
+      // Filtro de Modo
+      if (modeValue !== 'all' && session.mode !== modeValue) return false;
 
-        // Verificar expiração para filtro de status
-        const now = new Date();
-        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
-        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
+      // Verificar expiração para filtro de status
+      const now = new Date();
+      const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+      const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
 
-        // Determinar status efetivo para filtro
-        let effectiveStatus = session.selectionStatus;
-        if (isExpired) effectiveStatus = 'expired';
+      // Determinar status efetivo para filtro
+      let effectiveStatus = session.selectionStatus;
+      if (isExpired) effectiveStatus = 'expired';
 
-        // Filtro de Status
-        if (!checkedStatuses.includes(effectiveStatus)) return false;
+      // Filtro de Status
+      if (!checkedStatuses.includes(effectiveStatus)) return false;
 
-        // Filtro de Periodo (campo selecionável)
-        if (dateFrom || dateTo) {
-            const dateField = container.querySelector('#filterDateField')?.value || 'createdAt';
-            const rawValue = session[dateField];
-            if (!rawValue) return (dateFrom || dateTo) ? false : true;
-            const fieldDate = new Date(rawValue);
-            if (dateFrom && fieldDate < dateFrom) return false;
-            if (dateTo && fieldDate > dateTo) return false;
-        }
+      // Filtro de Periodo (campo selecionável)
+      if (dateFrom || dateTo) {
+        const dateField = container.querySelector('#filterDateField')?.value || 'createdAt';
+        const rawValue = session[dateField];
+        if (!rawValue) return (dateFrom || dateTo) ? false : true;
+        const fieldDate = new Date(rawValue);
+        if (dateFrom && fieldDate < dateFrom) return false;
+        if (dateTo && fieldDate > dateTo) return false;
+      }
 
-        return true;
+      return true;
     });
 
     // Ordenação
     filtered.sort((a, b) => {
-        if (sortValue === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-        if (sortValue === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-        if (sortValue === 'az') return a.name.localeCompare(b.name);
-        if (sortValue === 'za') return b.name.localeCompare(a.name);
-        return 0;
+      if (sortValue === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortValue === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sortValue === 'az') return a.name.localeCompare(b.name);
+      if (sortValue === 'za') return b.name.localeCompare(a.name);
+      return 0;
     });
 
     renderList(filtered);
@@ -478,36 +478,51 @@ export async function renderSessoes(container) {
   function renderList(items) {
     const list = container.querySelector('#sessionsList');
     if (items.length === 0) {
-        list.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:2rem;">Nenhuma sessão encontrada com os filtros atuais.</p>';
-        return;
+      list.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:2rem;">Nenhuma sessão encontrada com os filtros atuais.</p>';
+      return;
     }
 
     list.innerHTML = items.map(session => {
-        const now = new Date();
-        const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
-        const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
-        
-        // Usar status 'expired' se aplicável, senão o status original
-        const statusKey = isExpired ? 'expired' : session.selectionStatus;
-        const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
-        
-        const mode = session.mode || 'gallery';
-        const isMulti = mode === 'multi_selection';
-        const selectedCount = (session.selectedPhotos || []).length;
-        const limit = session.packageLimit || 30;
-        const extras = Math.max(0, selectedCount - limit);
-        const extraPrice = session.extraPhotoPrice || 25;
-        const deliveredPhotosCount = (session.photos || []).filter(p => p.urlOriginal).length;
-        const isSubmitted = session.selectionStatus === 'submitted';
+      const now = new Date();
+      const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+      const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
 
-        return `
-        <div style="border:1px solid var(--border); border-radius:0.75rem; padding:1rem; background:var(--bg-surface);">
+      // Usar status 'expired' se aplicável, senão o status original
+      const statusKey = isExpired ? 'expired' : session.selectionStatus;
+      const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
+
+      const mode = session.mode || 'gallery';
+      const isMulti = mode === 'multi_selection';
+      const selectedCount = (session.selectedPhotos || []).length;
+      const limit = session.packageLimit || 30;
+      const extras = Math.max(0, selectedCount - limit);
+      const extraPrice = session.extraPhotoPrice || 25;
+      const deliveredPhotosCount = (session.photos || []).filter(p => p.urlOriginal).length;
+      const isSubmitted = session.selectionStatus === 'submitted';
+
+      // BG e Borda super leves para identificar o tipo visualmente sem usar badges
+      let cardBg = 'var(--bg-surface)';
+      let cardBorder = 'var(--border)';
+
+      if (mode === 'selection') {
+        cardBg = 'rgba(63, 185, 80, 0.04)'; // Verde super leve
+        cardBorder = 'rgba(63, 185, 80, 0.15)';
+      } else if (mode === 'multi_selection') {
+        cardBg = 'rgba(255, 166, 87, 0.04)'; // Laranja super leve
+        cardBorder = 'rgba(255, 166, 87, 0.15)';
+      } else if (mode === 'gallery') {
+        cardBg = 'rgba(188, 140, 255, 0.04)'; // Roxo super leve
+        cardBorder = 'rgba(188, 140, 255, 0.15)';
+      }
+
+      return `
+        <div style="border:1px solid ${cardBorder}; border-radius:0.75rem; padding:1rem; background:${cardBg};">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div style="display:flex; gap:1rem; flex:1;">
               <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; overflow:hidden; background:var(--bg-base); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
-                ${session.coverPhoto 
-                  ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">` 
-                  : `<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>`}
+                ${session.coverPhoto
+          ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">`
+          : `<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>`}
               </div>
               <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
@@ -518,9 +533,6 @@ export async function renderSessoes(container) {
                   ${status.text}
                 </span>
                 ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
-                <span class="badge" style="background:rgba(188, 140, 255, 0.1); color:var(--purple); border-color:rgba(188, 140, 255, 0.3);">
-                  ${mode === 'selection' ? 'Seleção' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
-                </span>
               </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
@@ -591,15 +603,15 @@ export async function renderSessoes(container) {
   container.querySelector('#filterSort').addEventListener('change', filterAndRender);
   container.querySelector('#filterMode').addEventListener('change', filterAndRender);
   container.querySelectorAll('#statusFilters input').forEach(cb => {
-      cb.addEventListener('change', filterAndRender);
+    cb.addEventListener('change', filterAndRender);
   });
   container.querySelector('#filterDateFrom').addEventListener('change', filterAndRender);
   container.querySelector('#filterDateTo').addEventListener('change', filterAndRender);
   container.querySelector('#filterDateField').addEventListener('change', filterAndRender);
   container.querySelector('#clearDateFilter').addEventListener('click', () => {
-      container.querySelector('#filterDateFrom').value = '';
-      container.querySelector('#filterDateTo').value = '';
-      filterAndRender();
+    container.querySelector('#filterDateFrom').value = '';
+    container.querySelector('#filterDateTo').value = '';
+    filterAndRender();
   });
 
   // Toggle campos de selecao no modal
@@ -750,7 +762,7 @@ export async function renderSessoes(container) {
   // --- Validação cruzada de datas ---
   function validateDates() {
     const createdVal = container.querySelector('#sessionCreatedAtDate').value;
-    const eventVal   = container.querySelector('#sessionDate').value;
+    const eventVal = container.querySelector('#sessionDate').value;
     const deadlineVal = container.querySelector('#sessionDeadline').value;
     const msg = container.querySelector('#dateValidationMsg');
 
@@ -761,7 +773,7 @@ export async function renderSessoes(container) {
     }
     if (eventVal && deadlineVal) {
       const eventDate = new Date(eventVal + 'T00:00:00');
-      const deadline  = new Date(deadlineVal);
+      const deadline = new Date(deadlineVal);
       if (deadline < eventDate) {
         msg.textContent = '⚠ O Prazo de Seleção não pode ser anterior à Data do Evento.';
         msg.style.display = 'block';
@@ -864,7 +876,7 @@ export async function renderSessoes(container) {
     secondaryBtn.style.background = 'var(--purple)';
     secondaryBtn.title = "Upload das fotos editadas — substitui por nome de arquivo";
     // Na visualização inicial, se for Galeria Geral, esconde o botão de editadas
-    secondaryBtn.style.display = 'none'; 
+    secondaryBtn.style.display = 'none';
 
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
@@ -898,7 +910,7 @@ export async function renderSessoes(container) {
     const deliveredPhotos = photos.filter(p => p.urlOriginal);
     const selectedGrid = container.querySelector('#selectedPhotosGrid');
     const badge = container.querySelector('#deliveryCountBadge');
-    
+
     const selectedCount = (session.selectedPhotos || []).length;
     badge.textContent = `${deliveredPhotos.length}/${selectedCount || photos.length}`;
 
@@ -932,71 +944,71 @@ export async function renderSessoes(container) {
 
   // Funcao para trocar abas de fotos
   window.switchPhotoTab = (tab) => {
-      const tabGeral = container.querySelector('#tabGeral');
-      const tabEntrega = container.querySelector('#tabEntrega');
-      const btnGeral = container.querySelector('#tabGeralBtn');
-      const btnEntrega = container.querySelector('#tabEntregaBtn');
-      
-      const mainBtn = container.querySelector('#mainUploadBtn');
-      const secondaryBtn = container.querySelector('#secondaryUploadBtn');
-      
-      const session = sessionsData.find(s => s._id === currentSessionId);
-      if (!session) return;
+    const tabGeral = container.querySelector('#tabGeral');
+    const tabEntrega = container.querySelector('#tabEntrega');
+    const btnGeral = container.querySelector('#tabGeralBtn');
+    const btnEntrega = container.querySelector('#tabEntregaBtn');
 
-      if (tab === 'geral') {
-          tabGeral.style.display = 'flex';
-          tabEntrega.style.display = 'none';
-          btnGeral.style.borderBottomColor = 'var(--accent)';
-          btnGeral.style.color = 'var(--text-primary)';
-          btnEntrega.style.borderBottomColor = 'transparent';
-          btnEntrega.style.color = 'var(--text-secondary)';
-          
-          mainBtn.style.display = 'flex';
-          secondaryBtn.style.display = 'flex';
+    const mainBtn = container.querySelector('#mainUploadBtn');
+    const secondaryBtn = container.querySelector('#secondaryUploadBtn');
+
+    const session = sessionsData.find(s => s._id === currentSessionId);
+    if (!session) return;
+
+    if (tab === 'geral') {
+      tabGeral.style.display = 'flex';
+      tabEntrega.style.display = 'none';
+      btnGeral.style.borderBottomColor = 'var(--accent)';
+      btnGeral.style.color = 'var(--text-primary)';
+      btnEntrega.style.borderBottomColor = 'transparent';
+      btnEntrega.style.color = 'var(--text-secondary)';
+
+      mainBtn.style.display = 'flex';
+      secondaryBtn.style.display = 'flex';
+    } else {
+      tabGeral.style.display = 'none';
+      tabEntrega.style.display = 'flex';
+      btnGeral.style.borderBottomColor = 'transparent';
+      btnGeral.style.color = 'var(--text-secondary)';
+      btnEntrega.style.borderBottomColor = 'var(--accent)';
+      btnEntrega.style.color = 'var(--text-primary)';
+
+      // Aba Entrega Final: Esconde upload normal
+      mainBtn.style.display = 'none';
+
+      const selectedCount = (session.selectedPhotos || []).length;
+      const limit = session.packageLimit || 30;
+      const isSubmitted = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
+      const meetsLimit = selectedCount >= limit;
+
+      // Sempre mostra o botão de editadas na Entrega Final, mas bloqueia se não estiver pronto
+      secondaryBtn.style.display = 'flex';
+
+      if (isSubmitted && meetsLimit) {
+        secondaryBtn.style.opacity = '1';
+        secondaryBtn.style.pointerEvents = 'auto';
+        secondaryBtn.style.cursor = 'pointer';
+        secondaryBtn.title = "Subir fotos editadas";
       } else {
-          tabGeral.style.display = 'none';
-          tabEntrega.style.display = 'flex';
-          btnGeral.style.borderBottomColor = 'transparent';
-          btnGeral.style.color = 'var(--text-secondary)';
-          btnEntrega.style.borderBottomColor = 'var(--accent)';
-          btnEntrega.style.color = 'var(--text-primary)';
-          
-          // Aba Entrega Final: Esconde upload normal
-          mainBtn.style.display = 'none';
-          
-          const selectedCount = (session.selectedPhotos || []).length;
-          const limit = session.packageLimit || 30;
-          const isSubmitted = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
-          const meetsLimit = selectedCount >= limit;
-          
-          // Sempre mostra o botão de editadas na Entrega Final, mas bloqueia se não estiver pronto
-          secondaryBtn.style.display = 'flex';
+        secondaryBtn.style.opacity = '0.5';
+        secondaryBtn.style.pointerEvents = 'none';
+        secondaryBtn.style.cursor = 'not-allowed';
+        secondaryBtn.title = "Aguardando cliente finalizar seleção";
 
-          if (isSubmitted && meetsLimit) {
-              secondaryBtn.style.opacity = '1';
-              secondaryBtn.style.pointerEvents = 'auto';
-              secondaryBtn.style.cursor = 'pointer';
-              secondaryBtn.title = "Subir fotos editadas";
-          } else {
-              secondaryBtn.style.opacity = '0.5';
-              secondaryBtn.style.pointerEvents = 'none';
-              secondaryBtn.style.cursor = 'not-allowed';
-              secondaryBtn.title = "Aguardando cliente finalizar seleção";
+        // Mostrar aviso se não houver fotos originais (não entregues ainda)
+        const selectedGrid = container.querySelector('#selectedPhotosGrid');
+        const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
 
-              // Mostrar aviso se não houver fotos originais (não entregues ainda)
-              const selectedGrid = container.querySelector('#selectedPhotosGrid');
-              const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
-
-              if (deliveredCount === 0) {
-                  selectedGrid.innerHTML = `
+        if (deliveredCount === 0) {
+          selectedGrid.innerHTML = `
                       <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
                           <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>
                           <p style="color:var(--text-secondary); max-width:400px; margin:0 auto;">Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
                       </div>
                   `;
-              }
-          }
+        }
       }
+    }
   };
 
   // Ver selecao do cliente - Agora aponta para a visão unificada
@@ -1056,7 +1068,7 @@ export async function renderSessoes(container) {
 
     content.innerHTML = html;
     confirmBtn.textContent = (report.unmatched.length > 0 || report.notSelected.length > 0) ? 'Subir Tudo (Brinde)' : 'Iniciar Upload';
-    
+
     modal.style.display = 'flex';
 
     confirmBtn.onclick = () => {
@@ -1158,7 +1170,7 @@ export async function renderSessoes(container) {
     container.querySelector('#editSessionName').value = session.name || '';
     container.querySelector('#editSessionType').value = session.type || 'Familia';
     container.querySelector('#editClientEmail').value = session.clientEmail || '';
-    
+
     const clientSelect = container.querySelector('#editClientId');
     clientSelect.innerHTML = '<option value="">-- Nenhum cliente vinculado --</option>';
     try {
@@ -1240,13 +1252,13 @@ export async function renderSessoes(container) {
 
   function renderCommentsList(comments) {
     if (!comments || comments.length === 0) {
-        commentsList.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-style:italic;">Nenhum comentário.</p>';
-        return;
+      commentsList.innerHTML = '<p style="color:var(--text-muted); text-align:center; font-style:italic;">Nenhum comentário.</p>';
+      return;
     }
     commentsList.innerHTML = comments.map(c => {
-        const isAdmin = c.author === 'admin';
-        const date = new Date(c.createdAt).toLocaleString('pt-BR');
-        return `
+      const isAdmin = c.author === 'admin';
+      const date = new Date(c.createdAt).toLocaleString('pt-BR');
+      return `
             <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? 'rgba(47,129,247,0.2)' : 'var(--bg-elevated)'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
                 <div style="font-size:0.75rem; color:${isAdmin ? 'var(--accent)' : 'var(--text-secondary)'}; margin-bottom:0.25rem; font-weight:bold;">
                     ${isAdmin ? 'Você' : 'Cliente'} <span style="font-weight:normal; opacity:0.7;">${date}</span>
@@ -1271,24 +1283,24 @@ export async function renderSessoes(container) {
     btn.textContent = 'Enviando...';
 
     try {
-        const result = await apiPost(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, { text });
+      const result = await apiPost(`/api/sessions/${currentCommentSessionId}/photos/${currentCommentPhotoId}/comments`, { text });
 
-        // Atualiza dados locais sem re-renderizar a tela inteira
-        const session = sessionsData.find(s => s._id === currentCommentSessionId);
-        if (session) {
-            const photo = session.photos.find(p => p.id === currentCommentPhotoId);
-            if (photo) {
-                if (!photo.comments) photo.comments = [];
-                photo.comments.push(result.comment);
-                renderCommentsList(photo.comments);
-            }
+      // Atualiza dados locais sem re-renderizar a tela inteira
+      const session = sessionsData.find(s => s._id === currentCommentSessionId);
+      if (session) {
+        const photo = session.photos.find(p => p.id === currentCommentPhotoId);
+        if (photo) {
+          if (!photo.comments) photo.comments = [];
+          photo.comments.push(result.comment);
+          renderCommentsList(photo.comments);
         }
-        commentInput.value = '';
+      }
+      commentInput.value = '';
     } catch (error) {
-        window.showToast?.('Erro: ' + error.message, 'error');
+      window.showToast?.('Erro: ' + error.message, 'error');
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Enviar';
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
     }
   };
 
@@ -1309,14 +1321,14 @@ export async function renderSessoes(container) {
 
   function renderParticipantsList(participants) {
     if (!participants || participants.length === 0) {
-        participantsList.innerHTML = '<p style="color:var(--text-secondary); text-align:center;">Nenhum participante adicionado.</p>';
-        return;
+      participantsList.innerHTML = '<p style="color:var(--text-secondary); text-align:center;">Nenhum participante adicionado.</p>';
+      return;
     }
 
     participantsList.innerHTML = participants.map(p => {
-        const status = STATUS_LABELS[p.selectionStatus] || STATUS_LABELS.pending;
-        const count = (p.selectedPhotos || []).length;
-        return `
+      const status = STATUS_LABELS[p.selectionStatus] || STATUS_LABELS.pending;
+      const count = (p.selectedPhotos || []).length;
+      return `
         <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <div style="color:var(--text-primary); font-weight:600;">${p.name}</div>
@@ -1345,12 +1357,12 @@ export async function renderSessoes(container) {
     if (!name) return window.showToast?.('Nome é obrigatório', 'warning');
 
     try {
-        const result = await apiPost(`/api/sessions/${currentParticipantsSessionId}/participants`, { name, email, packageLimit });
-        if (result.success || result.participants) {
-            renderParticipantsList(result.participants || result.session.participants);
-            container.querySelector('#newPartName').value = '';
-            container.querySelector('#newPartEmail').value = '';
-        }
+      const result = await apiPost(`/api/sessions/${currentParticipantsSessionId}/participants`, { name, email, packageLimit });
+      if (result.success || result.participants) {
+        renderParticipantsList(result.participants || result.session.participants);
+        container.querySelector('#newPartName').value = '';
+        container.querySelector('#newPartEmail').value = '';
+      }
     } catch (e) { window.showToast?.(e.message, 'error'); }
   };
 
@@ -1486,7 +1498,7 @@ export async function renderSessoes(container) {
       // Adiciona os arquivos à fila, permitindo não-pareadas se detectadas
       const allowUnmatched = report.unmatched.length > 0;
       window.globalUploadQueue.add(files, `/api/sessions/${currentSessionId}/photos/upload-edited?allowUnmatched=${allowUnmatched}`);
-      
+
       e.target.value = '';
     });
   };
