@@ -223,26 +223,30 @@ export async function renderSessoes(container) {
         </div>
       </div>
       
-      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:1rem; gap:1.5rem; overflow:hidden;">
+      <!-- Abas de Navegacao -->
+      <div style="padding:0 1.5rem; display:flex; gap:1.5rem; border-bottom:1px solid var(--border); background:var(--bg-surface); flex-shrink:0;">
+          <button id="tabGeralBtn" style="padding:1rem 0; background:none; border:none; border-bottom:2px solid var(--accent); color:var(--text-primary); font-weight:600; cursor:pointer; font-size:0.875rem; display:flex; align-items:center; gap:0.5rem;" onclick="window.switchPhotoTab('geral')">
+              🖼️ Galeria Geral
+          </button>
+          <button id="tabEntregaBtn" style="padding:1rem 0; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-weight:600; cursor:pointer; font-size:0.875rem; display:flex; align-items:center; gap:0.5rem;" onclick="window.switchPhotoTab('entrega')">
+              🚀 Entrega Final (<span id="deliveryCountBadge">0</span>)
+          </button>
+      </div>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:1.5rem; overflow:hidden; background:var(--bg-base);">
           <!-- Seção 1: Todas as Fotos -->
-          <div style="flex:1.2; display:flex; flex-direction:column; min-height:0;">
-              <h4 style="margin-bottom:0.75rem; color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
-                🖼️ Galeria Geral
-              </h4>
-              <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:0.5rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:0.75rem; border:1px solid var(--border); align-content:start;"></div>
+          <div id="tabGeral" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+              <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); grid-auto-rows: max-content; gap:1rem; align-content:start;"></div>
           </div>
           
           <!-- Seção 2: Fotos Finais (Entrega) -->
-          <div style="flex:0.8; display:flex; flex-direction:column; min-height:0;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-                  <h4 style="color:var(--text-secondary); font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;">
-                    🚀 Entrega Final (Alta Res: <span id="deliveryCountBadge">0</span>)
-                  </h4>
-                  <button id="exportSelectionBtn" style="background:var(--purple); color:white; padding:0.4rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:0.4rem;" title="Exportar lista de seleção para o Lightroom">
+          <div id="tabEntrega" style="flex:1; display:flex; flex-direction:column; min-height:0; display:none;">
+              <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:1rem;">
+                  <button id="exportSelectionBtn" style="background:var(--purple); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.875rem; font-weight:600; display:flex; align-items:center; gap:0.5rem;" title="Exportar lista de seleção para o Lightroom">
                     📋 Exportar Lightroom
                   </button>
               </div>
-              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:0.5rem; background:rgba(0,192,115,0.05); padding:1rem; border-radius:0.75rem; border:1px dashed var(--green); align-content:start;"></div>
+              <div id="selectedPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); grid-auto-rows: max-content; gap:1rem; align-content:start;"></div>
           </div>
       </div>
     </div>
@@ -937,7 +941,34 @@ export async function renderSessoes(container) {
       window.open(`/api/sessions/${sessionId}/export?token=${appState.authToken}`, '_blank');
     };
 
+    // Reseta para a aba Geral ao abrir
+    window.switchPhotoTab('geral');
+
     modal.style.display = 'flex';
+  };
+
+  // Funcao para trocar abas de fotos
+  window.switchPhotoTab = (tab) => {
+      const tabGeral = container.querySelector('#tabGeral');
+      const tabEntrega = container.querySelector('#tabEntrega');
+      const btnGeral = container.querySelector('#tabGeralBtn');
+      const btnEntrega = container.querySelector('#tabEntregaBtn');
+
+      if (tab === 'geral') {
+          tabGeral.style.display = 'flex';
+          tabEntrega.style.display = 'none';
+          btnGeral.style.borderBottomColor = 'var(--accent)';
+          btnGeral.style.color = 'var(--text-primary)';
+          btnEntrega.style.borderBottomColor = 'transparent';
+          btnEntrega.style.color = 'var(--text-secondary)';
+      } else {
+          tabGeral.style.display = 'none';
+          tabEntrega.style.display = 'flex';
+          btnGeral.style.borderBottomColor = 'transparent';
+          btnGeral.style.color = 'var(--text-secondary)';
+          btnEntrega.style.borderBottomColor = 'var(--accent)';
+          btnEntrega.style.color = 'var(--text-primary)';
+      }
   };
 
   // Ver selecao do cliente - Agora aponta para a visão unificada
