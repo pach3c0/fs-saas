@@ -6,117 +6,155 @@
     <title>CliqueZoom | Painel SaaS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/tokens.css">
+
+    <script>
+        (function applyTheme() {
+            try {
+                var t = localStorage.getItem('cz-admin-theme');
+                document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+            document.documentElement.setAttribute('data-surface', 'admin');
+        })();
+    </script>
+
     <style>
+        :root {
+            /* Aliases para tokens DS — mesmo padrao do admin do fotografo */
+            --bg-base: var(--ad-bg-base);
+            --bg-surface: var(--ad-bg-surface);
+            --bg-elevated: var(--ad-bg-elevated);
+            --bg-hover: var(--ad-bg-hover);
+            --border: var(--ad-border);
+            --border-muted: var(--ad-border-muted);
+            --text-primary: var(--ad-text);
+            --text-secondary: var(--ad-text-muted);
+            --text-muted: var(--ad-text-dim);
+            --accent: var(--ad-accent);
+            --accent-hover: var(--ad-accent-hover);
+            --accent-soft: var(--ad-accent-soft);
+            --accent-on: var(--ad-accent-on);
+            --green: var(--ad-green);
+            --red: var(--ad-red);
+            --yellow: var(--ad-yellow);
+            --orange: var(--ad-orange);
+            --input-bg: var(--ad-input-bg);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
 
         /* Login */
         #loginScreen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .login-box { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 2.5rem; width: 24rem; max-width: 90vw; }
-        .login-box h1 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 0.25rem; }
-        .login-box p { color: #94a3b8; font-size: 0.8125rem; text-align: center; margin-bottom: 1.5rem; }
-        .login-box input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #334155; border-radius: 0.375rem; background: #0f172a; color: #e2e8f0; font-size: 0.875rem; margin-bottom: 0.75rem; outline: none; }
-        .login-box input:focus { border-color: #6366f1; }
-        .login-box button { width: 100%; padding: 0.625rem; background: #6366f1; color: white; border: none; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: background 0.15s; }
-        .login-box button:hover { background: #4f46e5; }
-        .login-error { color: #f87171; font-size: 0.75rem; margin-bottom: 0.5rem; display: none; }
+        .login-box { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 2.5rem; width: 24rem; max-width: 90vw; box-shadow: var(--ad-shadow-lg); }
+        .login-box h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.75rem; font-weight: 700; text-align: center; margin-bottom: 0.25rem; color: var(--text-primary); letter-spacing: 0.01em; }
+        .login-box p { color: var(--text-secondary); font-size: 0.8125rem; text-align: center; margin-bottom: 1.5rem; }
+        .login-box input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--border); border-radius: 0.375rem; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem; margin-bottom: 0.75rem; outline: none; font-family: inherit; }
+        .login-box input:focus { border-color: var(--accent); }
+        .login-box button { width: 100%; padding: 0.625rem; background: var(--accent); color: var(--accent-on); border: none; border-radius: 0.375rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: background 0.15s; font-family: inherit; }
+        .login-box button:hover { background: var(--accent-hover); }
+        .login-error { color: var(--red); font-size: 0.75rem; margin-bottom: 0.5rem; display: none; }
 
         /* Layout */
         #app { display: none; }
-        .topbar { background: #1e293b; border-bottom: 1px solid #334155; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
-        .topbar h1 { font-size: 1.125rem; font-weight: 700; }
-        .topbar h1 span { color: #6366f1; }
+        .topbar { background: var(--bg-surface); border-bottom: 1px solid var(--border); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+        .topbar h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.125rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.01em; }
         .topbar-right { display: flex; align-items: center; gap: 1rem; }
-        .topbar-user { color: #94a3b8; font-size: 0.75rem; }
-        .btn-logout { background: none; border: 1px solid #475569; color: #94a3b8; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; }
-        .btn-logout:hover { border-color: #ef4444; color: #ef4444; }
+        .topbar-user { color: var(--text-secondary); font-size: 0.75rem; }
+        .btn-logout { background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; font-family: inherit; }
+        .btn-logout:hover { border-color: var(--red); color: var(--red); }
+        .btn-theme { background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; font-family: inherit; }
+        .btn-theme:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+        .btn-theme svg { width: 14px; height: 14px; }
 
         .container { max-width: 80rem; margin: 0 auto; padding: 1.5rem; }
 
         /* Métricas */
         .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .metric-card { background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 1.25rem; }
-        .metric-label { font-size: 0.6875rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-        .metric-value { font-size: 1.75rem; font-weight: 700; color: #f1f5f9; }
-        .metric-sub { font-size: 0.6875rem; color: #64748b; margin-top: 0.125rem; }
+        .metric-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.25rem; }
+        .metric-label { font-size: 0.6875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+        .metric-sub { font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem; }
 
         /* Tabela */
         .section-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
-        .table-wrap { background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; overflow: hidden; }
+        .table-wrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #0f172a; text-align: left; padding: 0.75rem 1rem; font-size: 0.6875rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-        td { padding: 0.75rem 1rem; border-top: 1px solid #1e293b; font-size: 0.8125rem; }
-        tr:hover td { background: #1e293b80; }
+        th { background: var(--bg-elevated); text-align: left; padding: 0.75rem 1rem; font-size: 0.6875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        td { padding: 0.75rem 1rem; border-top: 1px solid var(--border-muted); font-size: 0.8125rem; }
+        tr:hover td { background: var(--bg-hover); }
         .badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; }
-        .badge-active { background: #065f46; color: #6ee7b7; }
-        .badge-pending { background: #78350f; color: #fbbf24; }
-        .badge-inactive { background: #7f1d1d; color: #fca5a5; }
+        .badge-active { background: rgba(63,185,80,0.12); color: var(--green); }
+        .badge-pending { background: rgba(210,153,34,0.12); color: var(--yellow); }
+        .badge-inactive { background: rgba(248,81,73,0.12); color: var(--red); }
 
-        .btn { padding: 0.375rem 0.75rem; border-radius: 0.25rem; border: none; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
-        .btn-approve { background: #065f46; color: #6ee7b7; }
-        .btn-approve:hover { background: #047857; }
-        .btn-deactivate { background: #7f1d1d; color: #fca5a5; }
-        .btn-deactivate:hover { background: #991b1b; }
-        .btn-details { background: #1e3a5f; color: #93c5fd; }
-        .btn-details:hover { background: #1e40af; }
+        .btn { padding: 0.375rem 0.75rem; border-radius: 0.25rem; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.15s; font-family: inherit; background: var(--bg-surface); color: var(--text-primary); }
+        .btn-approve { background: rgba(63,185,80,0.12); color: var(--green); border-color: transparent; }
+        .btn-approve:hover { background: rgba(63,185,80,0.22); }
+        .btn-deactivate { background: rgba(248,81,73,0.12); color: var(--red); border-color: transparent; }
+        .btn-deactivate:hover { background: rgba(248,81,73,0.22); }
+        .btn-details { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+        .btn-details:hover { background: var(--accent); color: var(--accent-on); }
         .btn-actions { display: flex; gap: 0.375rem; }
 
         /* Modal detalhes */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.active { display: flex; }
-        .modal { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; width: 48rem; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+        .modal { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; width: 48rem; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--ad-shadow-lg); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-        .modal-header h2 { font-size: 1.25rem; font-weight: 700; }
-        .modal-close { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; }
         .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
-        .detail-card { background: #0f172a; border-radius: 0.375rem; padding: 1rem; }
-        .detail-card h4 { font-size: 0.6875rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.375rem; }
-        .detail-card .val { font-size: 1.25rem; font-weight: 700; }
+        .detail-card { background: var(--bg-elevated); border-radius: 0.375rem; padding: 1rem; }
+        .detail-card h4 { font-size: 0.6875rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.375rem; }
+        .detail-card .val { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
         .detail-section { margin-bottom: 1rem; }
-        .detail-section h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #cbd5e1; }
+        .detail-section h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary); }
         .detail-list { list-style: none; }
-        .detail-list li { padding: 0.375rem 0; border-bottom: 1px solid #334155; font-size: 0.8125rem; display: flex; justify-content: space-between; }
+        .detail-list li { padding: 0.375rem 0; border-bottom: 1px solid var(--border-muted); font-size: 0.8125rem; display: flex; justify-content: space-between; }
 
-        .loading { text-align: center; padding: 3rem; color: #64748b; }
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted); }
 
         /* Tabs */
-        .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid #334155; }
-        .tab-btn { background: none; border: none; color: #94a3b8; padding: 0.75rem 1.25rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-        .tab-btn:hover { color: #e2e8f0; }
-        .tab-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
+        .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .tab-btn { background: none; border: none; color: var(--text-secondary); padding: 0.75rem 1.25rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: inherit; }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         /* Botões extras */
-        .btn-trash { background: #78350f; color: #fbbf24; }
-        .btn-trash:hover { background: #92400e; }
-        .btn-restore { background: #065f46; color: #6ee7b7; }
-        .btn-restore:hover { background: #047857; }
-        .btn-delete-permanent { background: #7f1d1d; color: #fca5a5; }
-        .btn-delete-permanent:hover { background: #991b1b; }
-        .btn-panel { background: #312e81; color: #a5b4fc; }
-        .btn-panel:hover { background: #3730a3; }
+        .btn-trash { background: rgba(210,153,34,0.12); color: var(--yellow); border-color: transparent; }
+        .btn-trash:hover { background: rgba(210,153,34,0.22); }
+        .btn-restore { background: rgba(63,185,80,0.12); color: var(--green); border-color: transparent; }
+        .btn-restore:hover { background: rgba(63,185,80,0.22); }
+        .btn-delete-permanent { background: rgba(248,81,73,0.12); color: var(--red); border-color: transparent; }
+        .btn-delete-permanent:hover { background: rgba(248,81,73,0.22); }
+        .btn-panel { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+        .btn-panel:hover { background: var(--accent); color: var(--accent-on); }
 
         /* Painel lateral do usuário */
-        #orgPanel { position: fixed; top: 0; right: -700px; width: 700px; max-width: 95vw; height: 100vh; background: #0f172a; border-left: 1px solid #334155; z-index: 200; display: flex; flex-direction: column; transition: right 0.3s ease; box-shadow: -8px 0 32px rgba(0,0,0,0.5); }
+        #orgPanel { position: fixed; top: 0; right: -700px; width: 700px; max-width: 95vw; height: 100vh; background: var(--bg-surface); border-left: 1px solid var(--border); z-index: 200; display: flex; flex-direction: column; transition: right 0.3s ease; box-shadow: var(--ad-shadow-lg); }
         #orgPanel.open { right: 0; }
-        #orgPanelOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; display: none; }
+        #orgPanelOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199; display: none; }
         #orgPanelOverlay.open { display: block; }
 
-        .panel-header { background: #1e293b; border-bottom: 1px solid #334155; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .panel-header h2 { font-size: 1rem; font-weight: 700; }
-        .panel-header .panel-slug { font-size: 0.75rem; color: #6366f1; margin-top: 0.125rem; }
-        .panel-close { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; line-height: 1; }
+        .panel-header { background: var(--bg-elevated); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .panel-header h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+        .panel-header .panel-slug { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.125rem; }
+        .panel-close { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; line-height: 1; }
 
         .panel-body { display: flex; flex: 1; min-height: 0; }
 
         /* Nav lateral do painel */
-        .panel-nav { width: 180px; flex-shrink: 0; background: #0f172a; border-right: 1px solid #1e293b; padding: 0.75rem 0; overflow-y: auto; }
-        .panel-nav-group { padding: 0.5rem 0.75rem 0.25rem; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; font-weight: 600; }
-        .panel-nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem; font-size: 0.8125rem; color: #94a3b8; cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
-        .panel-nav-item:hover { color: #e2e8f0; background: #1e293b; }
-        .panel-nav-item.active { color: #a5b4fc; border-left-color: #6366f1; background: #1e1b4b20; font-weight: 500; }
+        .panel-nav { width: 180px; flex-shrink: 0; background: var(--bg-base); border-right: 1px solid var(--border-muted); padding: 0.75rem 0; overflow-y: auto; }
+        .panel-nav-group { padding: 0.5rem 0.75rem 0.25rem; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; }
+        .panel-nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem; font-size: 0.8125rem; color: var(--text-secondary); cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
+        .panel-nav-item:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .panel-nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 500; }
         .panel-nav-item .nav-icon { font-size: 0.875rem; width: 1.125rem; text-align: center; }
         .panel-nav-item.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
@@ -125,29 +163,29 @@
 
         /* Reset cards */
         .reset-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-        .reset-item { display: flex; align-items: center; justify-content: space-between; background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; padding: 0.75rem 1rem; }
+        .reset-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem 1rem; }
         .reset-item-info { display: flex; align-items: center; gap: 0.625rem; }
         .reset-item-icon { font-size: 1rem; width: 1.5rem; text-align: center; }
-        .reset-item-label { font-size: 0.875rem; font-weight: 500; color: #e2e8f0; }
-        .reset-item-desc { font-size: 0.6875rem; color: #64748b; margin-top: 0.125rem; }
-        .btn-reset { background: #7f1d1d30; color: #fca5a5; border: 1px solid #7f1d1d; padding: 0.375rem 0.875rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-        .btn-reset:hover { background: #7f1d1d; }
-        .btn-reset-all { background: #7f1d1d; color: white; border: none; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 1rem; }
-        .btn-reset-all:hover { background: #991b1b; }
+        .reset-item-label { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
+        .reset-item-desc { font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem; }
+        .btn-reset { background: rgba(248,81,73,0.10); color: var(--red); border: 1px solid rgba(248,81,73,0.30); padding: 0.375rem 0.875rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
+        .btn-reset:hover { background: rgba(248,81,73,0.22); }
+        .btn-reset-all { background: var(--red); color: #fff; border: none; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 1rem; font-family: inherit; }
+        .btn-reset-all:hover { filter: brightness(0.92); }
 
         /* Coming soon */
-        .coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: #475569; gap: 0.5rem; }
+        .coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--text-muted); gap: 0.5rem; }
         .coming-soon .cs-icon { font-size: 2rem; }
         .coming-soon p { font-size: 0.875rem; }
 
         /* Modal confirmação */
-        .confirm-input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #334155; border-radius: 0.375rem; background: #0f172a; color: #e2e8f0; font-size: 0.875rem; margin: 1rem 0; outline: none; }
-        .confirm-input:focus { border-color: #ef4444; }
-        .confirm-warning { color: #fbbf24; font-size: 0.8125rem; line-height: 1.6; margin-bottom: 0.5rem; }
+        .confirm-input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--border); border-radius: 0.375rem; background: var(--input-bg); color: var(--text-primary); font-size: 0.875rem; margin: 1rem 0; outline: none; font-family: inherit; }
+        .confirm-input:focus { border-color: var(--red); }
+        .confirm-warning { color: var(--yellow); font-size: 0.8125rem; line-height: 1.6; margin-bottom: 0.5rem; }
         .confirm-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
-        .btn-cancel { background: #334155; color: #94a3b8; padding: 0.5rem 1.25rem; border: none; border-radius: 0.375rem; font-size: 0.8125rem; cursor: pointer; }
-        .btn-confirm-delete { background: #dc2626; color: white; padding: 0.5rem 1.25rem; border: none; border-radius: 0.375rem; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
-        .btn-confirm-delete:disabled { background: #475569; cursor: not-allowed; }
+        .btn-cancel { background: var(--bg-elevated); color: var(--text-secondary); padding: 0.5rem 1.25rem; border: 1px solid var(--border); border-radius: 0.375rem; font-size: 0.8125rem; cursor: pointer; font-family: inherit; }
+        .btn-confirm-delete { background: var(--red); color: #fff; padding: 0.5rem 1.25rem; border: none; border-radius: 0.375rem; font-size: 0.8125rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-confirm-delete:disabled { background: var(--text-muted); cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -155,8 +193,8 @@
 <!-- Login -->
 <div id="loginScreen">
     <div class="login-box">
-        <h1>FS <span style="color:#6366f1;">SaaS</span></h1>
-        <p>Painel de administracao da plataforma</p>
+        <h1>CliqueZoom</h1>
+        <p>Painel SaaS — administração da plataforma</p>
         <div id="loginError" class="login-error"></div>
         <input type="email" id="loginEmail" placeholder="Email">
         <input type="password" id="loginPassword" placeholder="Senha">
@@ -167,9 +205,13 @@
 <!-- App -->
 <div id="app">
     <div class="topbar">
-        <h1>FS <span>SaaS</span> Admin</h1>
+        <h1>CliqueZoom <span style="font-family:'Inter',sans-serif; font-size:0.75rem; font-weight:500; color:var(--text-secondary); letter-spacing:0.08em; text-transform:uppercase; margin-left:0.5rem;">Painel SaaS</span></h1>
         <div class="topbar-right">
             <span class="topbar-user" id="userInfo"></span>
+            <button class="btn-theme" onclick="toggleAdminTheme()" title="Alternar tema" aria-label="Alternar tema">
+                <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
             <button class="btn-logout" id="logoutBtn">Sair</button>
         </div>
     </div>
@@ -181,13 +223,13 @@
         </div>
 
         <!-- Configuração de Limites dos Planos -->
-        <div id="planLimitsSection" style="margin:1.5rem 0; background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1.25rem;">
+        <div id="planLimitsSection" style="margin:1.5rem 0; background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <h3 style="color:#f1f5f9; font-size:0.9375rem; font-weight:600; margin:0;">Configuração de Limites dos Planos</h3>
-                <button id="savePlanLimitsBtn" style="background:#0369a1; color:white; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar</button>
+                <h3 style="color:var(--text-primary); font-size:0.9375rem; font-weight:600; margin:0;">Configuração de Limites dos Planos</h3>
+                <button id="savePlanLimitsBtn" style="background:var(--accent); color:var(--accent-on); border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer; font-family:inherit;">Salvar</button>
             </div>
             <div id="planLimitsGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem;">
-                <div class="loading" style="color:#64748b; font-size:0.8rem;">Carregando...</div>
+                <div class="loading" style="color:var(--text-muted); font-size:0.8rem;">Carregando...</div>
             </div>
         </div>
 
@@ -263,7 +305,7 @@
     <div class="modal-overlay" id="confirmDeleteModal">
         <div class="modal" style="width:32rem;">
             <div class="modal-header">
-                <h2 style="color:#fca5a5;">Excluir Definitivamente</h2>
+                <h2 style="color:var(--red);">Excluir Definitivamente</h2>
                 <button class="modal-close" onclick="closeConfirmDelete()">&times;</button>
             </div>
             <div>
@@ -271,8 +313,8 @@
                     Esta acao e <strong>irreversivel</strong>. Todos os dados serao apagados permanentemente:
                     usuarios, site, sessoes, fotos, newsletter e arquivos de upload.
                 </p>
-                <p style="color:#94a3b8; font-size:0.8125rem;">
-                    Digite o nome da organizacao para confirmar: <strong id="confirmOrgName" style="color:#f1f5f9;"></strong>
+                <p style="color:var(--text-secondary); font-size:0.8125rem;">
+                    Digite o nome da organizacao para confirmar: <strong id="confirmOrgName" style="color:var(--text-primary);"></strong>
                 </p>
                 <input type="text" class="confirm-input" id="confirmInput" placeholder="Digite o nome da organizacao">
                 <div class="confirm-actions">
@@ -293,10 +335,10 @@
                 <h2 id="saasConfirmTitle" style="font-size:1rem;">Confirmar</h2>
                 <button class="modal-close" onclick="saasConfirmResolve(false)">&times;</button>
             </div>
-            <p id="saasConfirmMsg" style="color:#94a3b8; font-size:0.875rem; margin:0 0 1.25rem;"></p>
+            <p id="saasConfirmMsg" style="color:var(--text-secondary); font-size:0.875rem; margin:0 0 1.25rem;"></p>
             <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
                 <button class="btn-cancel" onclick="saasConfirmResolve(false)">Cancelar</button>
-                <button id="saasConfirmOkBtn" onclick="saasConfirmResolve(true)" style="padding:0.4rem 1rem; border-radius:6px; border:none; font-weight:600; cursor:pointer;">Confirmar</button>
+                <button id="saasConfirmOkBtn" onclick="saasConfirmResolve(true)" style="padding:0.4rem 1rem; border-radius:6px; border:none; font-weight:600; cursor:pointer; font-family:inherit;">Confirmar</button>
             </div>
         </div>
     </div>
@@ -375,6 +417,25 @@
             </div>
         </div>
     </div>
+<script>
+    window.toggleAdminTheme = function() {
+        var html = document.documentElement;
+        var current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        try { localStorage.setItem('cz-admin-theme', next); } catch (e) {}
+        window.syncThemeIcon();
+    };
+    window.syncThemeIcon = function() {
+        var theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        var sun = document.getElementById('themeIconSun');
+        var moon = document.getElementById('themeIconMoon');
+        if (!sun || !moon) return;
+        sun.style.display = theme === 'light' ? '' : 'none';
+        moon.style.display = theme === 'dark' ? '' : 'none';
+    };
+    window.syncThemeIcon();
+</script>
 <script src="/saas-admin/js/componentes.js"></script>
 <script type="module" src="/saas-admin/js/app.js"></script>
 </body>
