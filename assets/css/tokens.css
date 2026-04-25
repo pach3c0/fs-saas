@@ -139,20 +139,22 @@
 /* Dark theme — opt-in via [data-theme='dark'] */
 [data-surface='admin'][data-theme='dark'],
 .surface-admin[data-theme='dark'] {
-  --ad-bg-base: #0d1117;
-  --ad-bg-surface: #161b22;
-  --ad-bg-elevated: #1c2128;
-  --ad-bg-hover: #21262d;
-  --ad-border: #30363d;
-  --ad-border-muted: #21262d;
-  --ad-text: #e6edf3;
-  --ad-text-muted: #8b949e;
-  --ad-text-dim: #484f58;
-  --ad-accent: #e6edf3;           /* tinta clara como accent no dark */
+  /* Cinzas neutros (sem o azulado do GitHub-dark). Tom medio-escuro,
+     nao chega no preto puro — alinhado com a paleta CliqueZoom. */
+  --ad-bg-base: #2a2a2c;          /* workspace */
+  --ad-bg-surface: #323234;       /* sidebar, cards, tabelas */
+  --ad-bg-elevated: #3a3a3c;      /* modais, dropdowns */
+  --ad-bg-hover: #444446;
+  --ad-border: #4a4a4c;
+  --ad-border-muted: #3a3a3c;
+  --ad-text: #f2f2f2;
+  --ad-text-muted: #b5b5b7;
+  --ad-text-dim: #8a8a8c;
+  --ad-accent: #f2f2f2;           /* tinta clara como accent no dark */
   --ad-accent-hover: #ffffff;
-  --ad-accent-soft: rgba(230,237,243,0.08);
-  --ad-accent-on: #0d1117;
-  --ad-input-bg: #0d1117;         /* dark: input mantem o tom mais escuro */
+  --ad-accent-soft: rgba(242,242,242,0.08);
+  --ad-accent-on: #2a2a2c;
+  --ad-input-bg: #2a2a2c;
 
   --ad-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --ad-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
