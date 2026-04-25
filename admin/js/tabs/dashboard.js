@@ -29,7 +29,7 @@ export async function renderDashboard(container) {
                 <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
                     <div style="padding:1.25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
                         <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Sessões Recentes</h3>
-                        <button onclick="switchTab('sessoes')" style="background:none; border:none; color:var(--accent); font-size:0.8125rem; cursor:pointer; font-weight:500;">Ver todas</button>
+                        <button onclick="switchTab('sessoes')" class="btn btn-ghost btn-sm" style="color:var(--accent);">Ver todas</button>
                     </div>
                     <div id="recent-sessions-list" style="min-height:200px;">
                         <p style="padding:2rem; text-align:center; color:var(--text-muted);">Carregando sessões...</p>
@@ -161,7 +161,7 @@ function renderOnboardingChecklist(container, steps) {
                     <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0;">Comece por aqui</h3>
                     <p style="color:var(--text-secondary); font-size:0.875rem; margin-top:0.25rem;">Complete estes passos para dominar o CliqueZoom.</p>
                 </div>
-                <button onclick="dismissOnboarding()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; text-decoration:underline;">Ocultar guia</button>
+                <button onclick="dismissOnboarding()" class="btn btn-ghost btn-sm" style="color:var(--text-muted); text-decoration:underline;">Ocultar guia</button>
             </div>
 
             <div style="margin-bottom:1.5rem;">

@@ -59,6 +59,34 @@
         * { box-sizing: border-box; margin: var(--sp-0); padding: var(--sp-0); }
         html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-base); color: var(--text-primary); font-size: 14px; }
 
+        
+        /* ── Buttons (Phase 3) ── */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            font-family: inherit; font-size: 13px; font-weight: 500;
+            padding: 6px 14px; min-height: 30px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 120ms;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-success { background: #238636; border-color: #238636; color: #fff; }
+        .btn-success:hover { background: #2ea043; border-color: #2ea043; }
+        .btn-danger { background: transparent; border-color: var(--border); color: var(--red); }
+        .btn-danger:hover { background: var(--red); border-color: var(--red); color: #fff; }
+        .btn-ghost { background: transparent; border-color: transparent; color: var(--text-secondary); }
+        .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); border-color: transparent; }
+        .btn-sm { padding: 4px 10px; min-height: 24px; font-size: 12px; }
+        .btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.75; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -853,14 +881,14 @@
             <div style="text-align:right; margin:-0.25rem var(--sp-0) var(--sp-4);">
                 <button id="forgotPasswordLink" style="background:none;border:none;color:var(--accent);font-size:0.8125rem;cursor:pointer;padding:var(--sp-0);">Esqueci minha senha</button>
             </div>
-            <button class="login-btn" id="loginSubmitBtn">Entrar</button>
+            <button class="btn btn-primary" style="width:100%; height:48px; font-size:0.9375rem;" id="loginSubmitBtn">Entrar</button>
         </div>
 
         <!-- Tela: recuperar senha -->
         <div id="forgotView" style="display:none;">
             <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
             <input type="email" id="forgotEmail" class="login-input" placeholder="E-mail">
-            <button class="login-btn" id="forgotSubmitBtn">Enviar link</button>
+            <button class="btn btn-primary" style="width:100%; height:48px; font-size:0.9375rem;" id="forgotSubmitBtn">Enviar link</button>
             <button id="backToLoginLink" style="background:none;border:none;color:var(--text-secondary);font-size:0.8125rem;cursor:pointer;width:100%;margin-top:0.75rem;">Voltar ao login</button>
         </div>
 
@@ -869,7 +897,7 @@
             <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite sua nova senha.</p>
             <input type="password" id="resetPassword" class="login-input" placeholder="Nova senha (mín. 6 caracteres)">
             <input type="password" id="resetPasswordConfirm" class="login-input" placeholder="Confirmar nova senha">
-            <button class="login-btn" id="resetSubmitBtn">Salvar nova senha</button>
+            <button class="btn btn-primary" style="width:100%; height:48px; font-size:0.9375rem;" id="resetSubmitBtn">Salvar nova senha</button>
         </div>
     </div>
 </div>
@@ -896,7 +924,7 @@
             <div id="notifDropdown">
                 <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-elevated); z-index:10;">
                     <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
-                    <button onclick="markAllNotificationsRead()" style="font-size:0.75rem; color:var(--accent); background:none; border:none; cursor:pointer; padding:var(--sp-1) var(--sp-2); border-radius:var(--radius-xs); transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background='none'">Marcar lidas</button>
+                    <button onclick="markAllNotificationsRead()" class="btn btn-ghost btn-sm" style="color:var(--accent);">Marcar lidas</button>
                 </div>
                 <div id="notifList" style="padding:var(--sp-1) var(--sp-0); min-height:80px;">
                     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--sp-6) var(--sp-4); color:var(--text-muted); gap:var(--sp-2);">
@@ -983,7 +1011,7 @@
                 <span id="sidebar-storage-pct" style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem; display:block;"></span>
             </div>
 
-            <button onclick="logout()" class="sidebar-link-btn danger">
+            <button onclick="logout()" class="btn btn-ghost" style="color:var(--red); justify-content:flex-start;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Sair
             </button>
@@ -996,7 +1024,7 @@
         <header id="topbar">
             <span id="topbar-title">Dashboard</span>
             <div id="topbar-actions">
-                <button class="topbar-btn" id="previewToggleBtn" onclick="toggleSitePreview()" title="Abrir prévia do site (tecla P)">
+                <button class="btn" id="previewToggleBtn" onclick="toggleSitePreview()" title="Abrir prévia do site (tecla P)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Ver Prévia
                 </button>
@@ -1028,7 +1056,7 @@
                         <span class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>
                         Salvando...
                     </span>
-                    <button onclick="exitBuilderMode()" title="Sair do editor (Esc)" style="display:flex;align-items:center;gap:var(--sp-1);padding:0.3125rem 0.625rem;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;font-size:0.75rem;transition:all 0.12s;" onmouseenter="this.style.color='var(--text-primary)'" onmouseleave="this.style.color='var(--text-secondary)'">
+                    <button onclick="exitBuilderMode()" title="Sair do editor (Esc)" class="btn btn-ghost btn-sm">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Sair
                     </button>
@@ -1059,11 +1087,11 @@
                     </button>
                 </div>
                 <div style="display:flex; gap:var(--sp-2);">
-                    <button onclick="builderRefreshPreview()" title="Recarregar" style="display:flex;align-items:center;gap:var(--sp-1);padding:0.3125rem 0.625rem;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;font-size:0.75rem;" onmouseenter="this.style.color='var(--text-primary)'" onmouseleave="this.style.color='var(--text-secondary)'">
+                    <button onclick="builderRefreshPreview()" title="Recarregar" class="btn btn-ghost btn-sm">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                         Recarregar
                     </button>
-                    <a id="builder-open-site" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:var(--sp-1);padding:0.3125rem 0.625rem;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);text-decoration:none;font-size:0.75rem;" onmouseenter="this.style.color='var(--text-primary)'" onmouseleave="this.style.color='var(--text-secondary)'">
+                    <a id="builder-open-site" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         Abrir
                     </a>
@@ -1096,7 +1124,7 @@
     <div id="preview-toolbar">
         <div id="preview-toolbar-left">
             <span style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Prévia do Site</span>
-            <button onclick="refreshSitePreview()" id="refreshPreviewBtn" title="Recarregar (R)" style="display:flex;align-items:center;gap:var(--sp-1);padding:0.3125rem 0.625rem;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;font-size:0.75rem;transition:all 0.12s;" onmouseenter="this.style.color='var(--text-primary)'" onmouseleave="this.style.color='var(--text-secondary)'">
+            <button onclick="refreshSitePreview()" id="refreshPreviewBtn" title="Recarregar (R)" class="btn btn-ghost btn-sm">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 Recarregar
             </button>
@@ -1120,11 +1148,11 @@
 
         <div id="preview-toolbar-right">
             <input id="preview-url-bar" type="text" readonly value="" title="URL do site">
-            <a id="openSiteNewTab" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:0.375rem;padding:0.3125rem var(--sp-3);background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);text-decoration:none;font-size:0.8125rem;transition:all 0.12s;" onmouseenter="this.style.color='var(--text-primary)'" onmouseleave="this.style.color='var(--text-secondary)'">
+            <a id="openSiteNewTab" href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 Abrir
             </a>
-            <button onclick="toggleSitePreview()" title="Fechar prévia (Esc)" style="display:flex;align-items:center;gap:var(--sp-1);padding:0.3125rem var(--sp-3);background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);cursor:pointer;font-size:0.8125rem;transition:all 0.12s;" onmouseenter="this.style.color='var(--text-primary)';this.style.borderColor='var(--text-muted)'" onmouseleave="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border)'">
+            <button onclick="toggleSitePreview()" title="Fechar prévia (Esc)" class="btn btn-ghost btn-sm">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 Fechar
             </button>

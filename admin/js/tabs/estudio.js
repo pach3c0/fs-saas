@@ -63,7 +63,7 @@ export async function renderEstudio(container) {
             style="width:4rem; padding:0.25rem 0.5rem; border:1px solid var(--border); border-radius:0.25rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
         </div>
       </div>
-      <button onclick="removeWhatsappMessage(${idx})" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1rem; padding:0.25rem;" title="Remover">🗑️</button>
+      <button onclick="removeWhatsappMessage(${idx})" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Remover">🗑️</button>
     </div>
   `).join('');
 
@@ -167,7 +167,7 @@ export async function renderEstudio(container) {
             <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Mensagens do WhatsApp</h3>
             <p style="font-size:0.75rem; color:var(--text-secondary);">Mensagens que aparecem na bolha flutuante em sequencia</p>
           </div>
-          <button id="addWhatsappMsgBtn" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.875rem; font-weight:500;">
+          <button id="addWhatsappMsgBtn" class="btn btn-success">
             + Nova Mensagem
           </button>
         </div>
@@ -185,7 +185,7 @@ export async function renderEstudio(container) {
           </div>
           <div style="display:flex; gap:0.5rem; align-items:center;">
             ${_studio.videoUrl ? `
-              <button id="removeVideoBtn" style="background:var(--red); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.875rem; font-weight:600;">
+              <button id="removeVideoBtn" class="btn btn-danger">
                 Remover Video
               </button>
             ` : ''}
@@ -212,7 +212,7 @@ export async function renderEstudio(container) {
         ` : '<p style="color:var(--text-secondary); text-align:center; padding:1.5rem;">Nenhum video. Use o botao acima para adicionar.</p>'}
       </div>
 
-      <button id="saveStudioBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+      <button id="saveStudioBtn" class="btn btn-primary">
         Salvar Tudo
       </button>
     </div>

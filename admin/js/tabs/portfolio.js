@@ -110,8 +110,8 @@ export async function renderPortfolio(container) {
         </div>
         
         <div style="display:flex; gap:0.25rem; background:var(--bg-surface); padding:0.25rem; border-radius:0.375rem; border:1px solid var(--border);">
-          <button id="styleStandardBtn" style="padding:0.4rem 0.8rem; border:none; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; background:${_gridStyle === 'standard' ? 'var(--accent)' : 'transparent'}; color:${_gridStyle === 'standard' ? 'white' : 'var(--text-secondary)'}; transition:all 0.2s;">Padrão</button>
-          <button id="styleMixedBtn" style="padding:0.4rem 0.8rem; border:none; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; background:${_gridStyle === 'mixed' ? 'var(--accent)' : 'transparent'}; color:${_gridStyle === 'mixed' ? 'white' : 'var(--text-secondary)'}; transition:all 0.2s;">Misto (Dinâmico)</button>
+          <button id="styleStandardBtn" class="btn ${_gridStyle === \'standard\' ? \'btn-primary\' : \'btn-ghost\'}">Padrão</button>
+          <button id="styleMixedBtn" class="btn ${_gridStyle === \'mixed\' ? \'btn-primary\' : \'btn-ghost\'}">Misto (Dinâmico)</button>
         </div>
       </div>
 
@@ -129,14 +129,12 @@ export async function renderPortfolio(container) {
       <div id="pBulkActions">
         <span id="pBulkCount" style="font-size:0.85rem; font-weight:600;">0 selecionadas</span>
         <div style="display:flex; gap:0.5rem;">
-          <button id="pBulkCancelBtn" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:0.4rem 0.8rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;">Limpar</button>
-          <button id="pBulkDelBtn" style="background:#f85149; border:none; color:white; padding:0.4rem 0.8rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem; font-weight:bold;">Excluir</button>
+          <button id="pBulkCancelBtn" class="btn btn-ghost" style="color:white;">Limpar</button>
+          <button id="pBulkDelBtn" class="btn btn-danger" style="background:var(--red); color:white; border-color:var(--red);">Excluir</button>
         </div>
       </div>
 
-      <button id="pClearBtn" style="display:none; background:transparent; color:var(--red);
-              border:1px solid rgba(248,81,73,0.3); padding:0.5rem; border-radius:0.375rem;
-              font-size:0.75rem; cursor:pointer; margin-top:2rem; width:100%;">
+      <button id="pClearBtn" class="btn btn-danger" style="display:none; margin-top:2rem; width:100%;">
         Remover Todas as Fotos
       </button>
     </div>
@@ -393,7 +391,7 @@ function openPhotoEditor(idx, container) {
     <div style="background:var(--bg-surface); width:100%; max-width:1200px; height:90vh; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
       <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); flex-shrink:0;">
         <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto</h3>
-        <button id="pModalClose" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:1.5rem;">✕</button>
+        <button id="pModalClose" class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       
       <div class="p-modal-body">

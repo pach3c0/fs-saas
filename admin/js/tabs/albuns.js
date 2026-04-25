@@ -57,13 +57,13 @@ export async function renderAlbuns(container) {
           <img src="${resolveImagePath(photoObj.url)}" alt="Foto ${photoIdx + 1}" style="width:100%; height:100%; object-fit:cover; object-position:${photoObj.transform.x}% ${photoObj.transform.y}%; transform:scale(${photoObj.transform.scale}); pointer-events:none;">
           <div class="album-photo-overlay" data-album="${idx}" data-photo="${photoIdx}"
             style="position:absolute; inset:0; background:rgba(0,0,0,0.6); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem;">
-            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" style="background:var(--accent); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Definir como capa">
+            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" class="btn btn-sm btn-primary" style="width:80%;" title="Definir como capa">
               📷 Capa
             </button>
-            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" style="background:var(--blue); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Editar">
+            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" class="btn btn-sm" style="width:80%;" title="Editar">
               ✏️ Editar
             </button>
-            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="background:var(--red); color:white; padding:0.4rem 0.75rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.75rem; font-weight:600; width:80%;" title="Remover">
+            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" class="btn btn-sm btn-danger" style="width:80%; background:var(--red); color:white;" title="Remover">
               🗑️ Remover
             </button>
           </div>
@@ -90,7 +90,7 @@ export async function renderAlbuns(container) {
           <div style="width:8rem; height:8rem; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; flex-shrink:0;">
             ${coverUrl ? `<img src="${resolveImagePath(coverUrl)}" alt="Capa" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:var(--text-secondary);">Sem capa</div>`}
           </div>
-          <button onclick="removeAlbum(${idx})" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover álbum">
+          <button onclick="removeAlbum(${idx})" class="btn btn-ghost btn-sm" title="Remover álbum">
             🗑️
           </button>
         </div>
@@ -130,12 +130,12 @@ export async function renderAlbuns(container) {
           <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Álbuns</h2>
           <p style="font-size:0.875rem; color:var(--text-secondary);">Crie e gerencie os álbuns da galeria</p>
         </div>
-        <button id="addAlbumBtn" style="background:var(--green); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">
+        <button id="addAlbumBtn" class="btn btn-success">
           + Criar Álbum
         </button>
       </div>
 
-      <button id="saveAlbumsBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+      <button id="saveAlbumsBtn" class="btn btn-primary">
         Salvar Alterações
       </button>
 
@@ -305,7 +305,7 @@ export async function renderAlbuns(container) {
       <div style="background:var(--bg-surface); width:100%; max-width:1200px; height:90vh; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
         <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); flex-shrink:0;">
           <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto (${album.title})</h3>
-          <button id="aModalClose" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:1.5rem;">✕</button>
+          <button id="aModalClose" class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         
         <div class="a-modal-body">

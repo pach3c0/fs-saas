@@ -14,7 +14,7 @@ export async function renderClientes(container) {
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Clientes</h2>
-        <button id="btnNovoCliente" style="background:var(--green); color:white; padding:0.5rem 1.25rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+        <button id="btnNovoCliente" class="btn btn-success">
           + Adicionar Cliente
         </button>
       </div>
@@ -71,10 +71,10 @@ export async function renderClientes(container) {
         <div id="modalClienteErro" style="display:none; color:var(--red); font-size:0.875rem; margin-top:0.75rem;"></div>
 
         <div style="display:flex; gap:0.75rem; margin-top:1.25rem; justify-content:flex-end;">
-          <button id="btnCancelarCliente" style="background:var(--bg-hover); color:var(--text-primary); padding:0.5rem 1.25rem; border-radius:0.375rem; border:none; cursor:pointer;">
+          <button id="btnCancelarCliente" class="btn">
             Cancelar
           </button>
-          <button id="btnSalvarCliente" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+          <button id="btnSalvarCliente" class="btn btn-primary">
             Salvar
           </button>
         </div>
@@ -86,7 +86,9 @@ export async function renderClientes(container) {
       <div style="background:var(--bg-surface); border-radius:0.5rem; padding:1.5rem; width:100%; max-width:600px; margin:1rem; max-height:90vh; overflow-y:auto;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
           <h3 id="modalSessoesTitulo" style="font-size:1.25rem; font-weight:bold; color:var(--text-primary); margin:0;">Sessões do Cliente</h3>
-          <button id="btnFecharSessoes" style="background:none; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer; line-height:1;">×</button>
+          <button id="btnFecharSessoes" class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div id="sessoesClienteLista"></div>
       </div>
@@ -154,12 +156,10 @@ function renderLista(container) {
       </div>
 
       <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-        <button data-editar="${c._id}"
-          style="background:var(--bg-hover); color:var(--accent); padding:0.4rem 0.75rem; border-radius:0.375rem; border:none; font-size:0.8rem; cursor:pointer;">
+        <button data-editar="${c._id}" class="btn btn-sm btn-ghost">
           Editar
         </button>
-        <button data-deletar="${c._id}"
-          style="background:var(--bg-hover); color:var(--red); padding:0.4rem 0.75rem; border-radius:0.375rem; border:none; font-size:0.8rem; cursor:pointer;">
+        <button data-deletar="${c._id}" class="btn btn-sm btn-danger">
           Excluir
         </button>
       </div>

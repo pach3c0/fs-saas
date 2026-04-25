@@ -18,7 +18,7 @@ export async function renderPlano(container) {
             </p>
           </div>
           ${subscription.plan !== 'pro' ? `
-            <button id="upgradeBtn" style="background:var(--accent); color:white; padding:0.75rem 1.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">
+            <button id="upgradeBtn" class="btn btn-primary">
               Fazer Upgrade
             </button>
           ` : ''}
@@ -77,11 +77,11 @@ export async function renderPlano(container) {
               ${plan.features.map(f => `<li style="color:var(--text-secondary);">✓ ${f}</li>`).join('')}
             </ul>
             ${subscription.plan === key ? `
-              <button disabled style="background:var(--bg-hover); color:var(--text-muted); padding:0.75rem; border-radius:0.375rem; border:none; width:100%; cursor:not-allowed;">
+              <button disabled class="btn" style="width:100%;">
                 Plano Atual
               </button>
             ` : plan.price > 0 ? `
-              <button class="selectPlanBtn" data-plan="${key}" style="background:var(--accent); color:white; padding:0.75rem; border-radius:0.375rem; border:none; width:100%; cursor:pointer; font-weight:600;">
+              <button class="btn btn-primary selectPlanBtn" data-plan="${key}" style="width:100%;">
                 Selecionar
               </button>
             ` : ''}

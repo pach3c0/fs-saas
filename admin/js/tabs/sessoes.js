@@ -184,8 +184,8 @@ export async function renderSessoes(container) {
         </div>
 
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button id="cancelNewSession" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Cancelar</button>
-          <button id="confirmNewSession" style="padding:0.5rem 1rem; background:var(--green); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Criar Sessão</button>
+          <button id="cancelNewSession" class="btn">Cancelar</button>
+          <button id="confirmNewSession" class="btn btn-success">Criar Sessão</button>
         </div>
       </div>
     </div>
@@ -207,7 +207,7 @@ export async function renderSessoes(container) {
           <input type="file" id="sessionUploadInput" accept="image/*" multiple style="display:none;">
           <input type="file" id="sessionEditedInput" accept="image/*" multiple style="display:none;">
           
-          <button id="closePhotosModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="closePhotosModal" class="btn">Fechar</button>
         </div>
       </div>
       
@@ -253,8 +253,8 @@ export async function renderSessoes(container) {
         </div>
 
         <div style="padding:1.25rem; background:var(--bg-base); border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.75rem;">
-          <button id="cancelValidationBtn" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer; font-size:0.875rem;">Cancelar</button>
-          <button id="confirmValidationBtn" style="padding:0.5rem 1.25rem; background:var(--accent); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem;"></button>
+          <button id="cancelValidationBtn" class="btn">Cancelar</button>
+          <button id="confirmValidationBtn" class="btn btn-primary"></button>
         </div>
       </div>
     </div>
@@ -317,8 +317,8 @@ export async function renderSessoes(container) {
           <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button id="cancelEditSession" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Cancelar</button>
-          <button id="confirmEditSession" style="padding:0.5rem 1rem; background:var(--accent); color:white; border:none; border-radius:0.375rem; cursor:pointer; font-weight:600;">Salvar</button>
+          <button id="cancelEditSession" class="btn">Cancelar</button>
+          <button id="confirmEditSession" class="btn btn-primary">Salvar</button>
         </div>
       </div>
     </div>
@@ -331,8 +331,8 @@ export async function renderSessoes(container) {
           <p id="selectionModalInfo" style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.25rem;"></p>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button id="exportSelectionBtn" style="padding:0.5rem 1rem; background:var(--green); color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Lightroom</button>
-          <button id="closeSelectionModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="exportSelectionBtn" class="btn btn-success">Exportar Lightroom</button>
+          <button id="closeSelectionModal" class="btn">Fechar</button>
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
@@ -349,8 +349,8 @@ export async function renderSessoes(container) {
             <p style="font-size:0.75rem; color:var(--text-secondary);">Gerencie os alunos/clientes desta sessão</p>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button id="exportParticipantsBtn" style="padding:0.5rem 1rem; background:var(--green); color:white; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.875rem;">Exportar Seleções</button>
-          <button id="closeParticipantsModal" style="padding:0.5rem 1rem; color:var(--text-secondary); background:none; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">Fechar</button>
+          <button id="exportParticipantsBtn" class="btn btn-success">Exportar Seleções</button>
+          <button id="closeParticipantsModal" class="btn">Fechar</button>
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
@@ -367,7 +367,7 @@ export async function renderSessoes(container) {
                 <div style="flex:1; min-width:100px;">
                     <input type="number" id="newPartLimit" placeholder="Limite" value="30" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
                 </div>
-                <button id="addParticipantBtn" style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Adicionar</button>
+                <button id="addParticipantBtn" class="btn btn-primary">Adicionar</button>
             </div>
         </div>
 
@@ -389,7 +389,7 @@ export async function renderSessoes(container) {
         </div>
         <div style="display:flex; gap:0.5rem;">
             <input type="text" id="adminCommentInput" placeholder="Escreva uma resposta..." style="flex:1; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:white;">
-            <button id="sendAdminCommentBtn" style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600;">Enviar</button>
+            <button id="sendAdminCommentBtn" class="btn btn-primary">Enviar</button>
         </div>
       </div>
     </div>
@@ -518,15 +518,15 @@ export async function renderSessoes(container) {
               </div>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
-              <button onclick="viewSessionPhotos('${session._id}')" style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="viewSessionPhotos(\'${session._id}\')" class="btn btn-sm btn-primary">
                 Fotos
               </button>
               ${isMulti ? `
-              <button onclick="viewParticipants('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="viewParticipants(\'${session._id}\')" class="btn btn-sm" style="background:var(--purple); border-color:var(--purple); color:white;">
                 Participantes
               </button>` : ''}
               ${!isMulti && isSubmitted ? `
-              <button onclick="reopenSelection('${session._id}')" style="background:var(--yellow); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="reopenSelection(\'${session._id}\')" class="btn btn-sm" style="background:var(--yellow); border-color:var(--yellow); color:white;">
                 Reabrir
               </button>` : ''}
               <button onclick="deliverSession('${session._id}')" 
@@ -540,10 +540,10 @@ export async function renderSessoes(container) {
                 Entregar
               </button>
               ${session.extraRequest?.status === 'pending' ? `
-              <button onclick="acceptExtraRequest('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;" title="Aceitar fotos extras">
+              <button onclick="acceptExtraRequest(\'${session._id}\')" class="btn btn-sm btn-success" title="Aceitar fotos extras">
                 ✅ Aceitar extras
               </button>
-              <button onclick="rejectExtraRequest('${session._id}')" style="background:rgba(248,81,73,0.1); color:var(--red); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid rgba(248,81,73,0.3); cursor:pointer; font-size:0.75rem;" title="Recusar fotos extras">
+              <button onclick="rejectExtraRequest(\'${session._id}\')" class="btn btn-sm btn-danger" title="Recusar fotos extras">
                 ✗ Recusar
               </button>` : ''}
               <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')" 
@@ -555,10 +555,10 @@ export async function renderSessoes(container) {
                 title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
                 📧 Enviar
               </button>
-              <button onclick="editSession('${session._id}')" style="background:var(--orange); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
+              <button onclick="editSession(\'${session._id}\')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
                 Config
               </button>
-              <button onclick="deleteSession('${session._id}')" style="background:rgba(248, 81, 73, 0.1); color:var(--red); padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid rgba(248, 81, 73, 0.3); cursor:pointer; font-size:0.75rem;" title="Deletar">
+              <button onclick="deleteSession(\'${session._id}\')" class="btn btn-sm btn-danger" title="Deletar">
                 &times;
               </button>
             </div>
@@ -1315,9 +1315,9 @@ export async function renderSessoes(container) {
             </div>
             <div style="display:flex; gap:0.5rem;">
                 ${p.selectionStatus === 'submitted' ? `
-                <button onclick="deliverParticipant('${p._id}')" style="background:var(--green); color:white; padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">Entregar</button>
+                <button onclick="deliverParticipant(\'${p._id}\')" class="btn btn-sm btn-success">Entregar</button>
                 ` : ''}
-                <button onclick="deleteParticipant('${p._id}')" style="background:rgba(248,81,73,0.15); color:var(--red); padding:0.25rem 0.5rem; border-radius:0.25rem; border:none; cursor:pointer; font-size:0.75rem;">X</button>
+                <button onclick="deleteParticipant(\'${p._id}\')" class="btn btn-sm btn-danger">X</button>
             </div>
         </div>
         `;
