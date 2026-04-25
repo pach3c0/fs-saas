@@ -204,15 +204,10 @@ export async function renderSessoes(container) {
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <div id="sessionUploadProgress" style="min-width:150px;"></div>
           
-          <!-- Unified Upload Group -->
-          <div id="uploadButtonGroup" style="display:flex; align-items:stretch; border-radius:0.375rem; position:relative;">
-            <label id="mainUploadBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem 0 0 0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
-            <button id="uploadDropdownToggle" style="padding:0.5rem 0.6rem; background:var(--accent); color:white; border-radius:0 0.375rem 0.375rem 0; cursor:pointer; border:none; border-left:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:1rem; transition: background 0.2s;">⌄</button>
-            
-            <!-- Dropdown Menu -->
-            <div id="uploadDropdownMenu" style="display:none; position:absolute; top:100%; right:0; margin-top:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.4); z-index:100; min-width:220px; overflow:hidden;">
-              <label id="secondaryUploadBtn" style="display:flex; align-items:center; gap:0.6rem; padding:0.75rem 1rem; color:var(--text-primary); cursor:pointer; font-size:0.875rem; transition:background 0.2s;"></label>
-            </div>
+          <!-- Independent Upload Buttons -->
+          <div id="uploadButtonGroup" style="display:flex; gap:0.5rem; align-items:center;">
+            <label id="mainUploadBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
+            <label id="secondaryUploadBtn" style="padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
           </div>
 
           <!-- Hidden Inputs -->
@@ -555,22 +550,28 @@ export async function renderSessoes(container) {
               <button onclick="rejectExtraRequest('${session._id}')" style="background:rgba(248,81,73,0.1); color:var(--red); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid rgba(248,81,73,0.3); cursor:pointer; font-size:0.75rem;" title="Recusar fotos extras">
                 ✗ Recusar
               </button>` : ''}
-              <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); cursor:pointer; font-size:0.75rem;" title="Enviar código por e-mail ao cliente">
+              <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')" 
+                style="background:${(session.photos?.length || 0) >= limit ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'}; 
+                       color:${(session.photos?.length || 0) >= limit ? 'var(--text-secondary)' : 'var(--text-muted)'}; 
+                       padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); 
+                       cursor:${(session.photos?.length || 0) >= limit ? 'pointer' : 'not-allowed'}; font-size:0.75rem;" 
+                ${(session.photos?.length || 0) >= limit ? '' : 'disabled'}
+                title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
                 📧 Enviar
               </button>
               <button onclick="editSession('${session._id}')" style="background:var(--orange); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Config
-              </button>
-              <button onclick="copySessionCode('${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); cursor:pointer; font-size:0.75rem;" title="Copiar codigo">
-                Codigo
               </button>
               <button onclick="deleteSession('${session._id}')" style="background:rgba(248, 81, 73, 0.1); color:var(--red); padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid rgba(248, 81, 73, 0.3); cursor:pointer; font-size:0.75rem;" title="Deletar">
                 &times;
               </button>
             </div>
           </div>
-          <div style="font-size:0.75rem; background:var(--bg-base); border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:var(--accent); margin-top:0.5rem; border:1px solid var(--border);">
-            Codigo: ${session.accessCode}
+          <div style="font-size:0.75rem; background:var(--bg-base); border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:var(--accent); margin-top:0.5rem; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <span>Codigo: ${session.accessCode}</span>
+            <button onclick="copySessionCode('${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.2rem 0.5rem; border-radius:0.25rem; border:1px solid var(--border); cursor:pointer; font-size:0.625rem; font-family:sans-serif;" title="Copiar codigo">
+                Copiar
+            </button>
           </div>
         </div>
       `}).join('');
@@ -829,59 +830,20 @@ export async function renderSessoes(container) {
 
     title.textContent = `Fotos - ${session.name}`;
 
-    // Lógica do Botão de Upload Unificado
-    const uploadGroup = container.querySelector('#uploadButtonGroup');
+    // Lógica dos Botões de Upload (Independentes)
     const mainBtn = container.querySelector('#mainUploadBtn');
     const secondaryBtn = container.querySelector('#secondaryUploadBtn');
-    const dropdownToggle = container.querySelector('#uploadDropdownToggle');
-    const dropdownMenu = container.querySelector('#uploadDropdownMenu');
 
-    // Reset Dropdown
-    dropdownMenu.style.display = 'none';
-    dropdownToggle.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
-    mainBtn.style.borderRadius = session.workflowType === 'post_edit' ? '0.375rem 0 0 0.375rem' : '0.375rem';
+    mainBtn.innerHTML = `<span>+</span> Upload`;
+    mainBtn.htmlFor = 'sessionUploadInput';
+    mainBtn.style.background = 'var(--accent)';
+    mainBtn.title = "Adicionar novas fotos à galeria";
 
-    const labelAdd = `<span>+</span> Upload`;
-    const labelEdit = `<span>✏️</span> Subir Editadas`;
-
-    if (session.workflowType === 'post_edit' && session.selectionStatus === 'submitted') {
-        // Primário: Subir Editadas
-        mainBtn.innerHTML = labelEdit;
-        mainBtn.htmlFor = 'sessionEditedInput';
-        mainBtn.title = "Upload das fotos editadas no Lightroom — substitui por nome de arquivo";
-        mainBtn.style.background = 'var(--purple)';
-        dropdownToggle.style.background = 'var(--purple)';
-
-        secondaryBtn.innerHTML = labelAdd;
-        secondaryBtn.htmlFor = 'sessionUploadInput';
-        secondaryBtn.onmouseenter = () => secondaryBtn.style.background = 'var(--bg-hover)';
-        secondaryBtn.onmouseleave = () => secondaryBtn.style.background = '';
-    } else {
-        // Primário: Upload Normal
-        mainBtn.innerHTML = labelAdd;
-        mainBtn.htmlFor = 'sessionUploadInput';
-        mainBtn.title = "Adicionar novas fotos à galeria";
-        mainBtn.style.background = 'var(--accent)';
-        dropdownToggle.style.background = 'var(--accent)';
-
-        secondaryBtn.innerHTML = labelEdit;
-        secondaryBtn.htmlFor = 'sessionEditedInput';
-        secondaryBtn.onmouseenter = () => secondaryBtn.style.background = 'var(--bg-hover)';
-        secondaryBtn.onmouseleave = () => secondaryBtn.style.background = '';
-        
-        // Se for ready, o menu de editadas nem deve aparecer
-        if (session.workflowType === 'ready') {
-          dropdownToggle.style.display = 'none';
-          mainBtn.style.borderRadius = '0.375rem';
-        }
-    }
-
-    // Toggle Dropdown
-    dropdownToggle.onclick = (e) => {
-        e.stopPropagation();
-        const isVisible = dropdownMenu.style.display === 'block';
-        dropdownMenu.style.display = isVisible ? 'none' : 'block';
-    };
+    secondaryBtn.innerHTML = `<span>✏️</span> Subir Editadas`;
+    secondaryBtn.htmlFor = 'sessionEditedInput';
+    secondaryBtn.style.background = 'var(--purple)';
+    secondaryBtn.title = "Upload das fotos editadas — substitui por nome de arquivo";
+    secondaryBtn.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
 
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
@@ -953,6 +915,12 @@ export async function renderSessoes(container) {
       const tabEntrega = container.querySelector('#tabEntrega');
       const btnGeral = container.querySelector('#tabGeralBtn');
       const btnEntrega = container.querySelector('#tabEntregaBtn');
+      
+      const mainBtn = container.querySelector('#mainUploadBtn');
+      const secondaryBtn = container.querySelector('#secondaryUploadBtn');
+      
+      const session = sessionsData.find(s => s._id === currentSessionId);
+      if (!session) return;
 
       if (tab === 'geral') {
           tabGeral.style.display = 'flex';
@@ -961,6 +929,9 @@ export async function renderSessoes(container) {
           btnGeral.style.color = 'var(--text-primary)';
           btnEntrega.style.borderBottomColor = 'transparent';
           btnEntrega.style.color = 'var(--text-secondary)';
+          
+          mainBtn.style.display = 'flex';
+          secondaryBtn.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
       } else {
           tabGeral.style.display = 'none';
           tabEntrega.style.display = 'flex';
@@ -968,6 +939,35 @@ export async function renderSessoes(container) {
           btnGeral.style.color = 'var(--text-secondary)';
           btnEntrega.style.borderBottomColor = 'var(--accent)';
           btnEntrega.style.color = 'var(--text-primary)';
+          
+          // Aba Entrega Final: Esconde upload normal
+          mainBtn.style.display = 'none';
+          
+          const selectedCount = (session.selectedPhotos || []).length;
+          const limit = session.packageLimit || 30;
+          const isSubmitted = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
+          const meetsLimit = selectedCount >= limit;
+          
+          if (session.workflowType === 'post_edit') {
+            if (isSubmitted && meetsLimit) {
+                secondaryBtn.style.display = 'flex';
+            } else {
+                secondaryBtn.style.display = 'none';
+                // Mostrar aviso se não estiver pronto
+                const selectedGrid = container.querySelector('#selectedPhotosGrid');
+                if ((session.photos?.filter(p => p.urlOriginal) || []).length === 0) {
+                    selectedGrid.innerHTML = `
+                        <div style="background:rgba(255,166,87,0.1); border:1px solid rgba(255,166,87,0.2); color:var(--orange); padding:2rem; border-radius:0.5rem; text-align:center; grid-column:1/-1; font-size:0.875rem;">
+                            <p style="font-weight:600; margin-bottom:0.5rem;">⚠️ Aguardando Finalização</p>
+                            <p>Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
+                        </div>
+                    `;
+                }
+            }
+          } else {
+            // Se for 'ready', não precisa de 'Subir Editadas' na entrega (já subiu na geral)
+            secondaryBtn.style.display = 'none';
+          }
       }
   };
 
