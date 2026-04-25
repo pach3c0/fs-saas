@@ -43,4 +43,7 @@ test('Login — sucesso e painel carregado', async ({ page }) => {
 
   await expect(page.locator('#adminPanel')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('.nav-item').first()).toBeVisible();
+  
+  // Verifica se o conteúdo do dashboard carregou (auditoria 360)
+  await expect(page.locator('#dashboard-content')).toBeVisible({ timeout: 15000 });
 });

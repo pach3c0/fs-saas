@@ -1,0 +1,59 @@
+1
+00:00:00,000 --> 00:00:01,000
+<font face="Playfair Display" color="#1a1a1a"> </font>
+
+2
+00:00:01,000 --> 00:00:01,150
+<font face="Playfair Display" color="#1a1a1a"><b>C</b></font>
+
+3
+00:00:01,150 --> 00:00:01,300
+<font face="Playfair Display" color="#1a1a1a"><b>Cl</b></font>
+
+4
+00:00:01,300 --> 00:00:01,450
+<font face="Playfair Display" color="#1a1a1a"><b>Cli</b></font>
+
+5
+00:00:01,450 --> 00:00:01,600
+<font face="Playfair Display" color="#1a1a1a"><b>Cliq</b></font>
+
+6
+00:00:01,600 --> 00:00:01,750
+<font face="Playfair Display" color="#1a1a1a"><b>Cliqu</b></font>
+
+7
+00:00:01,750 --> 00:00:01,900
+<font face="Playfair Display" color="#1a1a1a"><b>Clique</b></font>
+
+8
+00:00:01,900 --> 00:00:02,050
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZ</b></font>
+
+9
+00:00:02,050 --> 00:00:02,200
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZo</b></font>
+
+10
+00:00:02,200 --> 00:00:02,350
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZoo</b></font>
+
+11
+00:00:02,350 --> 00:00:04,500
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZoom</b></font>
+
+12
+00:00:04,500 --> 00:00:04,600
+<font face="Playfair Display" color="#888888"><b>CliqueZoom</b></font>
+
+13
+00:00:04,600 --> 00:00:04,700
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZoom</b></font>
+
+14
+00:00:04,700 --> 00:00:04,800
+<font face="Playfair Display" color="#888888"><b>CliqueZoom</b></font>
+
+15
+00:00:04,800 --> 00:00:07,000
+<font face="Playfair Display" color="#1a1a1a"><b>CliqueZoom</b></font>

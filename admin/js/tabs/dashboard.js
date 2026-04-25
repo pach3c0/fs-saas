@@ -46,8 +46,8 @@ export async function renderDashboard(container) {
                         <span style="font-weight:500;">Nova Sessão</span>
                     </button>
 
-                    <button onclick="toggleSitePreview()" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--purple)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">
-                        <div style="width:32px; height:32px; border-radius:8px; background:rgba(188,140,255,0.15); color:var(--purple); display:flex; align-items:center; justify-content:center;">
+                    <button onclick="openMySite()" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">
+                        <div style="width:32px; height:32px; border-radius:8px; background:rgba(47,129,247,0.1); color:var(--accent); display:flex; align-items:center; justify-content:center;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </div>
                         <span style="font-weight:500;">Ver meu Site</span>

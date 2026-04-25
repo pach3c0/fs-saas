@@ -211,3 +211,19 @@ Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar fea
 ---
 ## ARQUITETURA APLICADA (nao alterar sem consciencia)
 3-Tier (frontends → `src/` → MongoDB); Stateless JWT (`auth.js`); PWA Offline+Sync (`cliente/sw.js`+IDB); Escala horizontal base (PM2 `instances:2,cluster`); Feature Flag primitiva (`siteEnabled`,`?_preview=1`); Rolling deploy (`pm2 reload`); Observabilidade Winston tenant-aware; Storage abstraction (`services/storage.js`); Metricas Super-Admin em `/api/admin/saas/metrics`.
+
+
+
+## ajuste
+
+Dashboard
+  - [Error] Fetch API cannot load https://cliquezoom.com.br/api/notifications/unread-count due to access control checks.
+	loadNotifications (notifications.js:37)
+	startNotificationPolling (notifications.js:22)
+
+  - [Error] Fetch API cannot load https://cliquezoom.com.br/api/notifications/unread-count due to access control checks.
+	loadNotifications (notifications.js:37)
+	startNotificationPolling (notifications.js:22)
+
+  - o botao toggleSitePreview() nao esta direceionando para o site do fotografo
+  

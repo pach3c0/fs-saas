@@ -4,12 +4,11 @@ const { test, expect } = require('@playwright/test');
  * Teste do módulo de Clientes (CRM) - LOCAL
  */
 
-const TEST_EMAIL = 'test-auto-admin@exemplo.com';
-const TEST_PASSWORD = 'password123';
-const BASE_URL = 'http://localhost:3051';
+const TEST_EMAIL = 'ricardopacheco.nunes59@gmail.com';
+const TEST_PASSWORD = 'qUzsov-zetkek-wokwo3';
 
 async function loginAdmin(page) {
-  await page.goto(`${BASE_URL}/admin`);
+  await page.goto('/admin');
   await page.locator('#adminEmail').fill(TEST_EMAIL);
   await page.locator('#adminPassword').fill(TEST_PASSWORD);
   await page.locator('#loginSubmitBtn').click();

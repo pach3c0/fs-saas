@@ -6,7 +6,7 @@ const Organization = require('../models/Organization');
 // GET /api/organization/profile - Dados do perfil da organizacao
 router.get('/organization/profile', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId);
+    const org = await Organization.findById(req.user.organizationId).lean();
     if (!org) {
       return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
     }
@@ -35,7 +35,7 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erro ao buscar perfil:', error);
+    req.logger.error('Erro ao buscar perfil', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -68,7 +68,7 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: org });
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error);
+    req.logger.error('Erro ao atualizar perfil', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -98,7 +98,7 @@ router.get('/organization/public', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erro ao buscar dados publicos:', error);
+    req.logger.error('Erro ao buscar dados publicos', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -106,10 +106,11 @@ router.get('/organization/public', async (req, res) => {
 // GET /api/onboarding - Status do onboarding
 router.get('/onboarding', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId).select('onboarding');
+    const org = await Organization.findById(req.user.organizationId).select('onboarding').lean();
     if (!org) return res.status(404).json({ error: 'Organizacao nao encontrada' });
     res.json({ success: true, onboarding: org.onboarding });
   } catch (error) {
+    req.logger.error('Erro ao buscar onboarding', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -122,6 +123,7 @@ router.post('/onboarding/dismiss', authenticateToken, async (req, res) => {
     });
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao finalizar onboarding', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

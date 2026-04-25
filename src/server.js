@@ -13,7 +13,11 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant']
+}));
 // Limite de 5MB para JSON — suficiente para payloads reais (arrays de fotos, layers, configs).
 // Uploads de imagem/vídeo usam multipart/form-data via multer e não passam por aqui.
 app.use(express.json({ limit: '5mb' }));

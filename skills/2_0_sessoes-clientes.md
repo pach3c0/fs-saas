@@ -256,10 +256,4 @@ A partir de 2026-04-25 só existe um fluxo. A única variável da sessão é a *
 | **L1** | 960px | Sobe fotos (brutas ou já editadas) | Thumbs (960px) | Após seleção, re-upload das editadas |
 | **L2** | 1200px | Sobe fotos (brutas ou já editadas) | Thumbs (1200px) | Após seleção, re-upload das editadas |
 | **L3** | 1600px | Sobe fotos (brutas ou já editadas) | Thumbs (1600px) | Após seleção, re-upload das editadas |
-# ajustes urgentes (Resolvidos)
 
-- [x] Remoção do botão "Subir Editadas" da Galeria Geral.
-- [x] Botão "Selecionar/Desmarcar Tudo" na galeria do cliente (/cliente).
-- [x] Botão "Entregar" bloqueado até que o upload de editadas atinja a quantidade selecionada.
-- [x] Persistência na aba de "Entrega Final" após upload no admin.
-- [x] Bloqueio automático do dropdown "Modo" após envio da seleção pelo cliente (liberado apenas via "Reabrir").

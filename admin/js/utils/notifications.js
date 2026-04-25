@@ -34,13 +34,22 @@ export function stopNotificationPolling() {
 async function loadNotifications() {
   if (!appState.authToken) return;
   try {
-    const res = await fetch('/api/notifications/unread-count', {
+    // Usar caminho relativo garante que o browser use o domínio atual.
+    // Adicionamos um cache-buster para evitar problemas com proxies agressivos.
+    const res = await fetch(`/api/notifications/unread-count?_=${Date.now()}`, {
       headers: { 'Authorization': `Bearer ${appState.authToken}` }
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        console.warn('[Notifications] Autenticação inválida ou expirada.');
+      }
+      return;
+    }
     const data = await res.json();
     updateBadge(data.count || 0);
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    console.error('[Notifications] Erro ao carregar contagem:', e.message);
+  }
 }
 
 function updateBadge(count) {

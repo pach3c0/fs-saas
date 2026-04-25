@@ -139,6 +139,22 @@ function loadSitePreview() {
   requestAnimationFrame(() => applyDeviceFrame(previewDevice));
 }
 
+window.openMySite = function () {
+  const slug = appState.orgSlug;
+  if (!slug) {
+    showToast('Slug da organização não carregado. Tente novamente em instantes.', 'warning');
+    return;
+  }
+
+  // Se estivermos em produção e houver um slug, tentamos abrir o subdomínio
+  const isProd = window.location.hostname.includes('cliquezoom.com.br');
+  const url = isProd 
+    ? `https://${slug}.cliquezoom.com.br` 
+    : `${window.location.origin}/site?_tenant=${slug}`;
+
+  window.open(url, '_blank');
+};
+
 window.setPreviewDevice = function (device) {
   previewDevice = device;
   document.querySelectorAll('.pv-device-btn').forEach(b => {
