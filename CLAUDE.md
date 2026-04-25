@@ -195,6 +195,8 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 | Newsletter | `footer.js`, `shared-site.js` (labels, allSections, bloco de codigo) | Nao existe mais no app |
 | Tab Logo (`logo.js`) | `admin/js/tabs/logo.js` deletado | Codigo morto; logo gerenciado via Perfil → `Organization.logo` |
 | Secoes Extras (customSections) | `meu-site.js`, `shared-site.js`, `Organization.js`, `site.js` | Funcionalidade descontinuada em 2026-04-18 |
+| `Session.workflowType` (`ready` vs `post_edit`) | `Session.js`, `sessions.js` (backend), `sessoes.js` (admin) | Fluxo unificado em 2026-04-25 — só existe `post_edit`. Quem quer "entregar pronto" sobe a editada como se fosse RAW |
+| `Session.highResDelivery` | `Session.js`, modal de editar sessão | Removido junto com workflowType — `urlOriginal` (editada re-subida) sempre é servido quando existe |
 
 ---
 
@@ -411,7 +413,7 @@ sempre que alterar algum feature que precise de build (css novo, arquivo na past
 O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de Vendas Automático**.
 
 ### Pilares de Evolução:
-1.  **✅ Fluxo Pro (Lightroom):** `Session.workflowType` (`ready`|`post_edit`) + `Session.photoResolution` (960–1600px). Fluxo `post_edit` descarta original no upload; re-upload das editadas via `POST /sessions/:id/photos/upload-edited` (casa por filename). Implementado 2026-04-21.
+1.  **✅ Fluxo Pro (Lightroom):** `Session.photoResolution` (960–1600px). Todo upload descarta o original e mantém só a thumb; o re-upload das editadas via `POST /sessions/:id/photos/upload-edited` (casa por filename) preenche `urlOriginal` e regenera a thumb. Implementado 2026-04-21, unificado em 2026-04-25 (removido `workflowType` e `highResDelivery`).
 2.  **✅ Automação de Prazos (Escassez):** `Organization.integrations.deadlineAutomation`. Scheduler `setInterval` 6h no `server.js`; e-mails `sendDeadlineWarningEmail`/`sendDeadlineExpiredEmail`. Implementado 2026-04-21.
 3.  **✅ Melhoria na Experiência Principal (Sprint 2):** Bulk Upload com Fila Concorrente, Onboarding Checklist e PWA Offline Sync. Implementado 2026-04-23.
 4.  **Vendedor Automático (Upselling):** E-mail automático após submissão da seleção oferecendo fotos extras com desconto. Próximo passo da automação de marketing.

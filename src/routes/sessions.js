@@ -703,18 +703,15 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         
       generatedThumbs.push(thumbPath);
 
-      // Fluxo post_edit: original nao editada nao tem valor — deletar do disco, urlOriginal fica vazio
-      // Fluxo ready: original ja e a foto final, manter para entrega em alta
-      const isPostEdit = session.workflowType === 'post_edit';
-      if (isPostEdit) {
-        await storage.deleteFile(originalPath);
-      }
+      // Original do upload nao tem valor (sera substituida pela editada via upload-edited).
+      // Deleta do disco, urlOriginal fica vazio ate a re-subida.
+      await storage.deleteFile(originalPath);
 
       newPhotos.push({
         id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         filename: file.originalname, // Nome original preservado para exportação e Lightroom
         url: `/uploads/${orgId}/sessions/${thumbFilename}`,
-        urlOriginal: isPostEdit ? '' : `/uploads/${orgId}/sessions/${file.filename}`,
+        urlOriginal: '',
         uploadedAt: new Date()
       });
     }
@@ -755,7 +752,6 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
       organizationId: req.user.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.workflowType !== 'post_edit') return res.status(400).json({ error: 'Sessão não usa fluxo de pós-edição' });
 
     const orgId = req.user.organizationId;
     const allowUnmatched = req.query.allowUnmatched === 'true';
@@ -1124,9 +1120,8 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     const photo = session.photos.find(p => p.id === req.params.photoId);
     if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
 
-    // post_edit: serve sempre a original editada (subida após seleção); ready: depende de highResDelivery
-    const useOriginal = session.workflowType === 'post_edit' ? !!photo.urlOriginal : (session.highResDelivery && !!photo.urlOriginal);
-    const urlToServe = useOriginal ? photo.urlOriginal : photo.url;
+    // Sempre que houver urlOriginal (foto editada re-subida), servir ela; senao, a thumb
+    const urlToServe = photo.urlOriginal || photo.url;
     const filePath = path.join(__dirname, '../..', urlToServe);
 
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
@@ -1170,8 +1165,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     archive.pipe(res);
 
     for (const photo of photosToZip) {
-      const useOriginal = session.workflowType === 'post_edit' ? !!photo.urlOriginal : (session.highResDelivery && !!photo.urlOriginal);
-      const urlToServe = useOriginal ? photo.urlOriginal : photo.url;
+      const urlToServe = photo.urlOriginal || photo.url;
       const filePath = path.join(__dirname, '../..', urlToServe);
       if (fs.existsSync(filePath)) {
         archive.file(filePath, { name: photo.filename || path.basename(filePath) });

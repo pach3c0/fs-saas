@@ -161,13 +161,6 @@ export async function renderSessoes(container) {
             </select>
           </div>
           <div style="margin-top:0.75rem;">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fluxo de trabalho</label>
-            <select id="sessionWorkflow" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-              <option value="ready">Pronto para Entrega — fotos já editadas</option>
-              <option value="post_edit">Edição Pós-Seleção — exportar para Lightroom após seleção</option>
-            </select>
-          </div>
-          <div style="margin-top:0.75rem;">
             <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Resolução das fotos de seleção</label>
             <select id="sessionResolution" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
               <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
@@ -317,11 +310,6 @@ export async function renderSessoes(container) {
         </div>
         <p style="font-size:0.6875rem; color:var(--text-muted);">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
         <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editHighResDelivery" style="width:1rem; height:1rem; accent-color:var(--accent); cursor:pointer;">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Entrega em alta resolucao</span>
-          </label>
-          <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente baixa os arquivos originais sem compressao.</p>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editCommentsEnabled" style="width:1rem; height:1rem; accent-color:var(--accent); cursor:pointer;">
             <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
@@ -520,7 +508,6 @@ export async function renderSessoes(container) {
                 <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--purple); background:rgba(188, 140, 255, 0.1); border:1px solid rgba(188, 140, 255, 0.3); font-weight:500;">
                   ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
-                ${session.workflowType === 'post_edit' ? `<span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--yellow); background:rgba(210,153,34,0.12); border:1px solid rgba(210,153,34,0.35); font-weight:500;">✏️ Pós-Edição</span>` : ''}
               </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
                 ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
@@ -791,7 +778,6 @@ export async function renderSessoes(container) {
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
     const photoResolution = parseInt(container.querySelector('#sessionResolution').value) || 1200;
-    const workflowType = container.querySelector('#sessionWorkflow').value || 'ready';
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const clientId = container.querySelector('#sessionClientId').value || null;
 
@@ -810,7 +796,7 @@ export async function renderSessoes(container) {
     try {
       const result = await apiPost('/api/sessions', {
         name, clientEmail, type, date, selectionDeadline,
-        mode, packageLimit, extraPhotoPrice, photoResolution, workflowType, coverPhoto, clientId
+        mode, packageLimit, extraPhotoPrice, photoResolution, coverPhoto, clientId
       });
 
       newSessionModal.style.display = 'none';
@@ -920,7 +906,7 @@ export async function renderSessoes(container) {
 
     // Exportar
     const exportBtn = container.querySelector('#exportSelectionBtn');
-    exportBtn.style.display = session.workflowType === 'post_edit' && selectedIds.length > 0 ? 'flex' : 'none';
+    exportBtn.style.display = selectedIds.length > 0 ? 'flex' : 'none';
     exportBtn.onclick = () => {
       window.open(`/api/sessions/${sessionId}/export?token=${appState.authToken}`, '_blank');
     };
@@ -953,7 +939,7 @@ export async function renderSessoes(container) {
           btnEntrega.style.color = 'var(--text-secondary)';
           
           mainBtn.style.display = 'flex';
-          secondaryBtn.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
+          secondaryBtn.style.display = 'flex';
       } else {
           tabGeral.style.display = 'none';
           tabEntrega.style.display = 'flex';
@@ -970,36 +956,32 @@ export async function renderSessoes(container) {
           const isSubmitted = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
           const meetsLimit = selectedCount >= limit;
           
-          if (session.workflowType === 'post_edit') {
-            // Sempre mostra o botão de editadas na Entrega Final, mas bloqueia se não estiver pronto
-            secondaryBtn.style.display = 'flex';
-            
-            if (isSubmitted && meetsLimit) {
-                secondaryBtn.style.opacity = '1';
-                secondaryBtn.style.pointerEvents = 'auto';
-                secondaryBtn.style.cursor = 'pointer';
-                secondaryBtn.title = "Subir fotos editadas";
-            } else {
-                secondaryBtn.style.opacity = '0.5';
-                secondaryBtn.style.pointerEvents = 'none';
-                secondaryBtn.style.cursor = 'not-allowed';
-                secondaryBtn.title = "Aguardando cliente finalizar seleção";
-                
-                // Mostrar aviso se não houver fotos originais (não entregues ainda)
-                const selectedGrid = container.querySelector('#selectedPhotosGrid');
-                const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
-                
-                if (deliveredCount === 0) {
-                    selectedGrid.innerHTML = `
-                        <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
-                            <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>
-                            <p style="color:var(--text-secondary); max-width:400px; margin:0 auto;">Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
-                        </div>
-                    `;
-                }
-            }
+          // Sempre mostra o botão de editadas na Entrega Final, mas bloqueia se não estiver pronto
+          secondaryBtn.style.display = 'flex';
+
+          if (isSubmitted && meetsLimit) {
+              secondaryBtn.style.opacity = '1';
+              secondaryBtn.style.pointerEvents = 'auto';
+              secondaryBtn.style.cursor = 'pointer';
+              secondaryBtn.title = "Subir fotos editadas";
           } else {
-            secondaryBtn.style.display = 'none';
+              secondaryBtn.style.opacity = '0.5';
+              secondaryBtn.style.pointerEvents = 'none';
+              secondaryBtn.style.cursor = 'not-allowed';
+              secondaryBtn.title = "Aguardando cliente finalizar seleção";
+
+              // Mostrar aviso se não houver fotos originais (não entregues ainda)
+              const selectedGrid = container.querySelector('#selectedPhotosGrid');
+              const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
+
+              if (deliveredCount === 0) {
+                  selectedGrid.innerHTML = `
+                      <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
+                          <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>
+                          <p style="color:var(--text-secondary); max-width:400px; margin:0 auto;">Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
+                      </div>
+                  `;
+              }
           }
       }
   };
@@ -1183,7 +1165,6 @@ export async function renderSessoes(container) {
     editModeSelect.disabled = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
     container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
-    container.querySelector('#editHighResDelivery').checked = session.highResDelivery || false;
     container.querySelector('#editCommentsEnabled').checked = session.commentsEnabled !== false;
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
 
@@ -1205,11 +1186,10 @@ export async function renderSessoes(container) {
     const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
-    const highResDelivery = container.querySelector('#editHighResDelivery').checked;
     const commentsEnabled = container.querySelector('#editCommentsEnabled').checked;
 
     try {
-      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, highResDelivery, commentsEnabled });
+      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, commentsEnabled });
 
       editModal.style.display = 'none';
       editingSessionId = null;

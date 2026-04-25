@@ -18,37 +18,20 @@ O sistema é dividido em três frentes que se comunicam através do `organizatio
 
 ## 2. Fluxos de Documentação
 
-### 2.1. Fluxograma de Decisão de Fluxo (Flowchart)
+### 2.1. Fluxograma do Fluxo Único (Flowchart)
 
 ```mermaid
 flowchart TD
-    Start(["Início: Nova Sessão"]) --> Config{"Configuração do Fotógrafo"}
-    
-    %% Linha 1: Pronto para Entregar
-    Config -- "Fluxo: PRONTO (ready)" --> R_Upload["Upload de FOTOS EDITADAS"]
-    R_Upload --> R_Res{"Resolução: 960/1200/1400/1600px"}
-    R_Res --> R_Storage["Storage: Salva Thumb + Preserva Original"]
-    R_Storage --> Client_Sel["CLIENTE: Seleciona e Finaliza"]
-    
-    %% Linha 2: Edição Pós-Seleção
-    Config -- "Fluxo: PÓS-EDIÇÃO (post_edit)" --> P_Upload["Upload de THUMBS (Brutas)"]
-    P_Upload --> P_Res{"Resolução: 960/1200/1400/1600px"}
-    P_Res --> P_Storage["Storage: Salva Thumb + DELETA Original"]
-    P_Storage --> Client_Sel
-    
-    %% Finalização comum com ramificação de entrega
-    Client_Sel --> Decision_Flow{"Qual foi o fluxo inicial?"}
-    
-    Decision_Flow -- "ready" --> Deliver_Ready["Admin clica em 'Entregar'"]
-    
-    Decision_Flow -- "post_edit" --> Edit_Cycle["Admin edita selecionadas via Lightroom"]
+    Start(["Início: Nova Sessão"]) --> Upload["Upload de FOTOS"]
+    Upload --> Res{"Resolução: 960/1200/1400/1600px"}
+    Res --> Storage["Storage: Salva Thumb + DELETA Original"]
+    Storage --> Client_Sel["CLIENTE: Seleciona e Finaliza"]
+    Client_Sel --> Edit_Cycle["Admin edita selecionadas via Lightroom"]
     Edit_Cycle --> Re_Upload["Admin faz RE-UPLOAD das Editadas"]
-    Re_Upload --> Deliver_Ready
-    
-    Deliver_Ready --> End(["Status: DELIVERED (Alta liberada)"])
+    Re_Upload --> Deliver["Admin clica em 'Entregar'"]
+    Deliver --> End(["Status: DELIVERED (Alta liberada)"])
 
-    style R_Upload fill:#e1f5fe,stroke:#01579b
-    style P_Upload fill:#f3e5f5,stroke:#4a148c
+    style Upload fill:#f3e5f5,stroke:#4a148c
     style Edit_Cycle fill:#fff3e0,stroke:#e65100
 ```
 
@@ -64,14 +47,10 @@ sequenceDiagram
     participant S as Storage / DB
 
     Note over P, S: Configuração Inicial
-    P->>F: Define Fluxo (ready vs post_edit) e Resolução (960-1600px)
+    P->>F: Define Resolução (960-1600px)
     P->>F: Upload de Fotos (Fila Concorrente)
     F->>B: POST /api/sessions/:id/photos
-    alt post_edit
-        B->>S: Salva thumb, DELETA arquivo original do disco
-    else ready
-        B->>S: Salva thumb E preserva arquivo original
-    end
+    B->>S: Salva thumb, DELETA arquivo original do disco
 
     Note over C, S: Acesso e Seleção
     C->>F: Acessa link com ?code=
@@ -81,13 +60,11 @@ sequenceDiagram
     F->>B: POST /api/client/submit-selection/:id
     B->>S: Status = 'submitted'
 
-    alt post_edit
-        Note over P, S: Ciclo de Edição Real
-        P->>F: Baixa TXT Lightroom (fotos selecionadas)
-        P->>F: Re-upload das fotos editadas
-        F->>B: POST /api/sessions/:id/photos/upload-edited
-        B->>S: Substitui original ausente pela nova editada
-    end
+    Note over P, S: Ciclo de Edição
+    P->>F: Baixa TXT Lightroom (fotos selecionadas)
+    P->>F: Re-upload das fotos editadas
+    F->>B: POST /api/sessions/:id/photos/upload-edited
+    B->>S: Substitui thumb e preenche urlOriginal com a editada
 
     P->>F: Marcar como 'Entregue' (Deliver)
     B->>S: watermark = false
@@ -189,7 +166,7 @@ stateDiagram-v2
 - **`mode`**: `selection` (escolha de fotos), `gallery` (só visualizar/baixar), `multi_selection` (vários participantes).
 - **`accessCode`**: Gerado via HEX de 4 bytes. Único por sessão (ou por participante no modo multi).
 - **`photoResolution`**: Definido no upload (960 | 1200 | 1400 | 1600). Não pode ser alterado após criação.
-- **`workflowType`**: `ready` (original mantida) ou `post_edit` (original deletada após thumb, requer re-upload das editadas).
+- **Fluxo único** (a partir de 2026-04-25): Todo upload gera thumb e deleta o original. A entrega final usa `urlOriginal`, que só é preenchido depois que o fotógrafo re-sobe a foto editada via `POST /sessions/:id/photos/upload-edited`. Quem só quer "entregar pronto" sobe a editada como se fosse o RAW e o ciclo segue igual.
 
 ### 3.2. Client (`src/models/Client.js`)
 - **Multi-tenancy**: Obrigatório `{ organizationId: 1, email: 1 }` como índice único sparse.
@@ -245,7 +222,7 @@ Dependendo da combinação escolhida pelo fotógrafo no momento da criação, o 
     - 1600px: Foco em qualidade de visualização (ideal para ensaios fine-art).
 - **Upload**: O valor é fixo por sessão para garantir que todas as thumbnails tenham o mesmo padrão visual.
 
-### 7.2. Lógica de Matching no Fluxo `post_edit`
+### 7.2. Lógica de Matching no Re-upload de Editadas
 No fluxo de edição pós-seleção, o sistema realiza um "casamento" automático de arquivos:
 1. **Trigger**: Admin clica em "✏️ Upload Editadas".
 2. **Identificação**: O sistema varre o array `session.photos` existente buscando o `filename` original.
@@ -264,29 +241,21 @@ Se o cliente desejar mais fotos que o limite (`packageLimit`):
 3. **Aprovação**: O admin recebe uma notificação. Ao aceitar, o sistema mescla as fotos extras no array `selectedPhotos` permanentemente.
 
 ### 7.4. Regras de Download e ZIP
-O comportamento do download varia conforme o `workflowType` e as configurações:
 
-| Caso | Botão "Baixar Tudo" (ZIP) | Botão "Baixar Individual" |
-|---|---|---|
-| **Fluxo `ready` + Alta Res** | Serve `urlOriginal` (todas as selecionadas) | Serve `urlOriginal` |
-| **Fluxo `ready` + Web Res** | Serve `url` (comprimida) | Serve `url` |
-| **Fluxo `post_edit`** | Sempre serve `urlOriginal` (a foto editada) | Serve `urlOriginal` |
+Sempre que `urlOriginal` (foto editada re-subida) estiver presente, o download serve essa versão. Caso contrário, serve a `url` (thumb).
 
 > **Nota**: Em sessões no modo `gallery`, o ZIP contém **todas** as fotos da sessão, ignorando limites de seleção.
 ---
 
-## 8. Matriz de Cenários Reais (Cada Linha de Fluxo)
+## 8. Matriz de Cenários Reais
 
-Esta tabela resume o comportamento para cada combinação que o fotógrafo pode escolher:
+A partir de 2026-04-25 só existe um fluxo. A única variável da sessão é a **resolução das thumbs**:
 
-| Cenário | Fluxo Escolhido | Resolução | Ação do Admin no Início | O que o Cliente vê | Ciclo de Edição | Entrega Final |
-|---|---|---|---|---|---|---|
-| **L1** | `ready` | 960px | Sobe fotos editadas | Fotos leves (960px) | Nenhum | Rápida (ready) |
-| **L2** | `ready` | 1200px | Sobe fotos editadas | Fotos padrão (1200px) | Nenhum | Rápida (ready) |
-| **L3** | `ready` | 1600px | Sobe fotos editadas | Fotos alta-def (1600px) | Nenhum | Rápida (ready) |
-| **L4** | `post_edit` | 960px | Sobe fotos brutas | Thumbs (960px) | Edita após seleção | Re-upload editadas |
-| **L5** | `post_edit` | 1200px | Sobe fotos brutas | Thumbs (1200px) | Edita após seleção | Re-upload editadas |
-| **L6** | `post_edit` | 1600px | Sobe fotos brutas | Thumbs (1600px) | Edita após seleção | Re-upload editadas |
+| Cenário | Resolução | Ação do Admin no Início | O que o Cliente vê | Ciclo |
+|---|---|---|---|---|
+| **L1** | 960px | Sobe fotos (brutas ou já editadas) | Thumbs (960px) | Após seleção, re-upload das editadas |
+| **L2** | 1200px | Sobe fotos (brutas ou já editadas) | Thumbs (1200px) | Após seleção, re-upload das editadas |
+| **L3** | 1600px | Sobe fotos (brutas ou já editadas) | Thumbs (1600px) | Após seleção, re-upload das editadas |
 # ajustes urgentes (Resolvidos)
 
 - [x] Remoção do botão "Subir Editadas" da Galeria Geral.
