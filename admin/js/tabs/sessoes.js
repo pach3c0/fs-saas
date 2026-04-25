@@ -569,7 +569,7 @@ export async function renderSessoes(container) {
           </div>
           <div style="font-size:0.75rem; background:var(--bg-base); border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:var(--accent); margin-top:0.5rem; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
             <span>Codigo: ${session.accessCode}</span>
-            <button onclick="copySessionCode('${session.accessCode}')" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.2rem 0.5rem; border-radius:0.25rem; border:1px solid var(--border); cursor:pointer; font-size:0.625rem; font-family:sans-serif;" title="Copiar codigo">
+            <button onclick="copySessionCode('${session.accessCode}', this)" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.2rem 0.5rem; border-radius:0.25rem; border:1px solid var(--border); cursor:pointer; font-size:0.625rem; font-family:sans-serif; transition: all 0.2s;" title="Copiar codigo">
                 Copiar
             </button>
           </div>
@@ -812,9 +812,21 @@ export async function renderSessoes(container) {
     }
   };
 
-  // Copiar codigo
-  window.copySessionCode = (code) => {
+  // Copiar codigo com feedback visual
+  window.copySessionCode = (code, btn) => {
     copyToClipboard(code);
+    if (btn) {
+      const originalText = btn.textContent;
+      const originalBg = btn.style.background;
+      btn.textContent = 'Copiado!';
+      btn.style.background = 'var(--green)';
+      btn.style.color = 'white';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = originalBg;
+        btn.style.color = 'var(--text-secondary)';
+      }, 2000);
+    }
   };
 
   // Ver fotos da sessao
@@ -949,23 +961,34 @@ export async function renderSessoes(container) {
           const meetsLimit = selectedCount >= limit;
           
           if (session.workflowType === 'post_edit') {
+            // Sempre mostra o botão de editadas na Entrega Final, mas bloqueia se não estiver pronto
+            secondaryBtn.style.display = 'flex';
+            
             if (isSubmitted && meetsLimit) {
-                secondaryBtn.style.display = 'flex';
+                secondaryBtn.style.opacity = '1';
+                secondaryBtn.style.pointerEvents = 'auto';
+                secondaryBtn.style.cursor = 'pointer';
+                secondaryBtn.title = "Subir fotos editadas";
             } else {
-                secondaryBtn.style.display = 'none';
-                // Mostrar aviso se não estiver pronto
+                secondaryBtn.style.opacity = '0.5';
+                secondaryBtn.style.pointerEvents = 'none';
+                secondaryBtn.style.cursor = 'not-allowed';
+                secondaryBtn.title = "Aguardando cliente finalizar seleção";
+                
+                // Mostrar aviso se não houver fotos originais (não entregues ainda)
                 const selectedGrid = container.querySelector('#selectedPhotosGrid');
-                if ((session.photos?.filter(p => p.urlOriginal) || []).length === 0) {
+                const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
+                
+                if (deliveredCount === 0) {
                     selectedGrid.innerHTML = `
-                        <div style="background:rgba(255,166,87,0.1); border:1px solid rgba(255,166,87,0.2); color:var(--orange); padding:2rem; border-radius:0.5rem; text-align:center; grid-column:1/-1; font-size:0.875rem;">
-                            <p style="font-weight:600; margin-bottom:0.5rem;">⚠️ Aguardando Finalização</p>
-                            <p>Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
+                        <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
+                            <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>
+                            <p style="color:var(--text-secondary); max-width:400px; margin:0 auto;">Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
                         </div>
                     `;
                 }
             }
           } else {
-            // Se for 'ready', não precisa de 'Subir Editadas' na entrega (já subiu na geral)
             secondaryBtn.style.display = 'none';
           }
       }
