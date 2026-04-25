@@ -213,7 +213,7 @@ async function renderSiteContent(container, builderTabsEl) {
               <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0 0 0.2rem;">${t.name}</h4>
               <p style="color:var(--text-secondary,#8b949e); font-size:0.75rem; margin:0;">${t.desc}</p>
             </div>
-            ${isActive ? `<span class="material-symbols-outlined" style="color:var(--green,#3fb950); font-size:20px; font-variation-settings:'FILL' 1;">check_circle</span>` : ''}
+            ${isActive ? `<span class="material-symbols-outlined" style="color:var(--green,#3fb950); font-size:20px; font-variation-settings:&quot;FILL&quot; 1;">check_circle</span>` : ''}
           </div>
 
           <div style="display:flex; align-items:center; justify-content:space-between;">

@@ -678,6 +678,7 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
 });
 
 router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLimit, uploadSession.array('photos'), async (req, res) => {
+  const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -687,7 +688,6 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
     const orgId = req.user.organizationId;
     const newPhotos = [];
-    const generatedThumbs = [];
 
     for (const file of req.files) {
       const originalPath = file.path;
@@ -746,6 +746,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
 // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo
 router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSession.array('photos'), async (req, res) => {
+  const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -758,7 +759,6 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     const matched = [];
     const unmatched = [];
     const newPhotos = [];
-    const generatedThumbs = [];
 
     for (const file of req.files) {
       const originalName = file.originalname;
