@@ -76,6 +76,10 @@ function renderSite(data, opts = {}) {
     ? data.siteSections
     : ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 
+  // Definir o tema no elemento root para refletir o site-tokens.css instantaneamente
+  const theme = data.siteTheme || 'elegante';
+  document.documentElement.setAttribute('data-theme', theme);
+
   // Aplicar estilo personalizado
   applyCustomStyle(data.siteStyle);
 

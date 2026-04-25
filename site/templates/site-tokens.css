@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;700;900&family=Roboto:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ===========================================
+   THEME TOKENS (from DS)
+   =========================================== */
+/* ── SURFACE C · PHOTOGRAPHER THEMES ──
+   Five opinionated looks for the photographer's public site.
+   These are MUTUALLY EXCLUSIVE — a site picks exactly one.
+   Tokens are prefixed by theme key.
+*/
+
+/* THEME 1 · Elegante — serif + gold on warm neutral */
+[data-theme='elegante'] {
+  --t-bg: #fafafa;
+  --t-bg-alt: #f3f4f6;
+  --t-ink: #111827;
+  --t-ink-muted: #6b7280;
+  --t-primary: #1a1a1a;
+  --t-accent: #c9a96e;
+  --t-accent-rgb: 201,169,110;
+  --t-border: rgba(0,0,0,0.08);
+  --t-font-body: 'Inter', sans-serif;
+  --t-font-display: 'Playfair Display', serif;
+}
+/* THEME 2 · Moderno — gradient + sans on cool neutral */
+[data-theme='moderno'] {
+  --t-bg: #f8fafc;
+  --t-bg-alt: #ffffff;
+  --t-ink: #1e293b;
+  --t-ink-muted: #64748b;
+  --t-primary: #3b82f6;
+  --t-accent: #60a5fa;
+  --t-accent-rgb: 96,165,250;
+  --t-border: #e2e8f0;
+  --t-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --t-font-body: 'Poppins', sans-serif;
+  --t-font-display: 'Poppins', sans-serif;
+}
+/* THEME 3 · Minimalista — black on white, very light type */
+[data-theme='minimalista'] {
+  --t-bg: #ffffff;
+  --t-bg-alt: #fafafa;
+  --t-ink: #000000;
+  --t-ink-muted: #666666;
+  --t-primary: #000000;
+  --t-accent: #666666;
+  --t-accent-rgb: 102,102,102;
+  --t-border: #e5e5e5;
+  --t-font-body: 'Inter', sans-serif;
+  --t-font-display: 'Inter', sans-serif;
+}
+/* THEME 4 · Escuro — dark + burnt-orange */
+[data-theme='escuro'] {
+  --t-bg: #0a0a0a;
+  --t-bg-alt: #1a1a1a;
+  --t-ink: #ffffff;
+  --t-ink-muted: #a0a0a0;
+  --t-primary: #000000;
+  --t-accent: #ff9500;
+  --t-accent-rgb: 255,149,0;
+  --t-border: #2a2a2a;
+  --t-font-body: 'Montserrat', sans-serif;
+  --t-font-display: 'Montserrat', sans-serif;
+}
+/* THEME 5 · Galeria — warm-neutral + serif, masonry-friendly */
+[data-theme='galeria'] {
+  --t-bg: #fafafa;
+  --t-bg-alt: #ffffff;
+  --t-ink: #2c2c2c;
+  --t-ink-muted: #757575;
+  --t-primary: #2c2c2c;
+  --t-accent: #8b7355;
+  --t-accent-rgb: 139,115,85;
+  --t-border: #e0e0e0;
+  --t-font-body: 'Roboto', sans-serif;
+  --t-font-display: 'Libre Baskerville', serif;
+}
+
+/* ===========================================
+   THEME PRIMITIVES (from DS)
+   =========================================== */
+/* ============ theme surface base ============ */
+  .t-surface {
+    font-family: var(--t-font-body);
+    color: var(--t-ink);
+    background: var(--t-bg);
+  }
+  .t-surface * { box-sizing: border-box; }
+  .t-surface .t-display { font-family: var(--t-font-display); }
+
+  /* ============ shared primitives (themed via --t-*) ============ */
+  .t-surface .t-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--t-border);
+  }
+  .t-surface .t-nav-brand { font-family: var(--t-font-display); font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .t-surface .t-nav-links { display: flex; gap: 24px; }
+  .t-surface .t-nav-link { font-size: 13px; color: var(--t-ink-muted); text-decoration: none; }
+  .t-surface .t-nav-link:hover { color: var(--t-ink); }
+
+  .t-surface .t-hero { padding: 56px 32px 48px; }
+  .t-surface .t-hero h1 { font-family: var(--t-font-display); margin: 0 0 12px; font-size: 44px; line-height: 1.1; letter-spacing: -0.01em; }
+  .t-surface .t-hero p { font-size: 15px; color: var(--t-ink-muted); margin: 0; max-width: 480px; line-height: 1.6; }
+
+  .t-surface .t-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--t-font-body); font-size: 14px; font-weight: 500;
+    padding: 12px 22px;
+    border-radius: 4px;
+    border: 1px solid var(--t-primary);
+    background: var(--t-primary);
+    color: var(--t-bg);
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 150ms;
+  }
+  .t-surface .t-btn:hover { opacity: 0.85; }
+  .t-surface .t-btn-outline { background: transparent; color: var(--t-primary); }
+
+  .t-surface .t-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 0 32px 32px;
+  }
+  .t-surface .t-tile {
+    aspect-ratio: 3/4;
+    background: var(--t-bg-alt);
+    background-image:
+      linear-gradient(45deg, var(--t-border) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--t-border) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--t-border) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--t-border) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    border: 1px solid var(--t-border);
+  }
+
+  .t-surface .t-footer {
+    padding: 32px; border-top: 1px solid var(--t-border);
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--t-ink-muted);
+  }
+
+  /* ============ per-theme overrides ============ */
+  /* Elegante */
+  [data-theme='elegante'] .t-surface .t-nav-brand em { font-style: italic; color: var(--t-accent); font-weight: 400; }
+  [data-theme='elegante'] .t-surface .t-hero h1 em { font-style: italic; font-weight: 400; color: var(--t-ink-muted); }
+  [data-theme='elegante'] .t-surface .t-btn { border-radius: 2px; padding: 14px 28px; letter-spacing: 0.02em; }
+  [data-theme='elegante'] .t-surface .gold-rule { height: 1px; width: 40px; background: var(--t-accent); margin: 0 0 16px; }
+  [data-theme='elegante'] .t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  [data-theme='elegante'] .t-surface .t-tile { aspect-ratio: 3/2; }
+
+  /* Moderno */
+  [data-theme='moderno'] .t-surface .t-hero h1 { background: var(--t-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  [data-theme='moderno'] .t-surface .t-btn { background: var(--t-gradient); border: 0; border-radius: 999px; color: #fff; padding: 14px 28px; box-shadow: 0 8px 30px rgba(102,126,234,0.3); }
+  [data-theme='moderno'] .t-surface .t-btn-outline { background: transparent; color: var(--t-primary); border: 1px solid var(--t-border); box-shadow: none; }
+  [data-theme='moderno'] .t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  [data-theme='moderno'] .t-surface .t-tile { aspect-ratio: 1/1; border-radius: 12px; }
+
+  /* Minimalista */
+  [data-theme='minimalista'] .t-surface { font-weight: 300; }
+  [data-theme='minimalista'] .t-surface .t-nav { padding: 28px 40px; border: 0; }
+  [data-theme='minimalista'] .t-surface .t-nav-brand { font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; font-size: 14px; font-family: var(--t-font-body); }
+  [data-theme='minimalista'] .t-surface .t-hero { padding: 96px 40px; }
+  [data-theme='minimalista'] .t-surface .t-hero h1 { font-weight: 300; font-size: 64px; letter-spacing: -0.03em; }
+  [data-theme='minimalista'] .t-surface .t-btn { background: transparent; color: var(--t-ink); border: 1px solid var(--t-ink); border-radius: 0; letter-spacing: 0.15em; text-transform: uppercase; font-size: 11px; font-weight: 400; padding: 14px 28px; }
+  [data-theme='minimalista'] .t-surface .t-btn:hover { background: var(--t-ink); color: var(--t-bg); }
+  [data-theme='minimalista'] .t-surface .t-gallery { grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 0 40px 40px; }
+  [data-theme='minimalista'] .t-surface .t-tile { aspect-ratio: 1/1; border: 0; }
+
+  /* Escuro */
+  [data-theme='escuro'] .t-surface .t-nav-brand { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 900; }
+  [data-theme='escuro'] .t-surface .t-hero h1 { text-transform: uppercase; font-weight: 900; font-size: 52px; letter-spacing: -0.01em; background: linear-gradient(135deg, var(--t-accent), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  [data-theme='escuro'] .t-surface .t-btn { background: var(--t-accent); border-color: var(--t-accent); color: #000; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; font-size: 12px; padding: 14px 28px; }
+  [data-theme='escuro'] .t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  [data-theme='escuro'] .t-surface .t-tile { aspect-ratio: 21/9; grid-column: span 3; background-image: none; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); border: 0; }
+  [data-theme='escuro'] .t-surface .t-tile:nth-child(1) { grid-column: span 3; }
+  [data-theme='escuro'] .t-surface .t-tile:nth-child(n+2) { grid-column: span 1; aspect-ratio: 1/1; }
+
+  /* Galeria */
+  [data-theme='galeria'] .t-surface .t-nav-brand { font-style: italic; }
+  [data-theme='galeria'] .t-surface .t-hero h1 { font-style: italic; font-size: 40px; font-weight: 700; }
+  [data-theme='galeria'] .t-surface .t-hero p { font-weight: 300; }
+  [data-theme='galeria'] .t-surface .t-btn { border-radius: 0; border: 1px solid var(--t-accent); background: transparent; color: var(--t-accent); padding: 12px 24px; font-style: italic; }
+  [data-theme='galeria'] .t-surface .t-gallery { display: block; column-count: 3; column-gap: 8px; padding: 0 32px 32px; }
+  [data-theme='galeria'] .t-surface .t-tile { aspect-ratio: auto; margin-bottom: 8px; break-inside: avoid; border: 0; background: var(--t-bg-alt); }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(1) { height: 280px; }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(2) { height: 180px; }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(3) { height: 220px; }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(4) { height: 160px; }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(5) { height: 240px; }
+  [data-theme='galeria'] .t-surface .t-tile:nth-child(6) { height: 200px; }
+
+/* ===========================================
+   SHARED STRUCTURAL CSS — CliqueZoom Templates
+   Regras ESTRUTURAIS compartilhadas entre todos os templates.
+   Regras VISUAIS (cores, bordas, sombras, animações específicas)
+   ficam em cada style.css individual.
+   =========================================== */
+
+/* --- PORTFOLIO GRID --- */
+.portfolio-grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* 1. Grid Padrão (Uniforme) */
+.portfolio-grid[data-style="standard"] {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.portfolio-grid[data-style="standard"] .portfolio-item {
+  aspect-ratio: 16/9;
+}
+
+/* 2. Grid Misto (Encaixe Dinâmico) */
+.portfolio-grid[data-style="mixed"] {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 250px;
+  grid-auto-flow: dense;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-16-9 {
+  grid-column: span 2; grid-row: span 1;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-9-16 {
+  grid-column: span 1; grid-row: span 2;
+}
+.portfolio-grid[data-style="mixed"] .portfolio-item.format-1-1 {
+  grid-column: span 1; grid-row: span 1;
+}
+
+/* --- PORTFOLIO ITEM BASE --- */
+.portfolio-item {
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+/* --- IMAGENS --- */
+.portfolio-item img,
+.portfolio-masonry img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* --- MASONRY (template Galeria) --- */
+.portfolio-masonry {
+  max-width: 1600px;
+  margin: 0 auto;
+  column-gap: 1rem;
+}
+
+.portfolio-masonry .portfolio-item {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+/* --- ÁLBUNS GRID --- */
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.album-card { transition: transform 0.2s; }
+.album-card:hover { transform: translateY(-4px); }
+
+/* --- RESPONSIVO --- */
+@media (max-width: 1024px) {
+  /* Se não houver data-style (legado), aplica isso: */
+  .portfolio-grid:not([data-style]) { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .portfolio-grid:not([data-style]) { grid-template-columns: 1fr; }
+  
+  .portfolio-grid[data-style="standard"] { grid-template-columns: 1fr; }
+  
+  .portfolio-grid[data-style="mixed"] {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+  .portfolio-grid[data-style="mixed"] .portfolio-item {
+    grid-column: span 1 !important;
+    grid-row: span 1 !important;
+    aspect-ratio: 16/9;
+  }
+  .portfolio-masonry { column-count: 1; }
+  .albums-grid { grid-template-columns: repeat(2, 1fr); }
+}
+

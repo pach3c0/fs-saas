@@ -11,35 +11,37 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/site/templates/shared.css">
-  <link rel="stylesheet" href="/site/templates/elegante/css/style.css">
+  
+  <link rel="stylesheet" href="/site/templates/site-tokens.css">
+  <link rel="stylesheet" href="/site/templates/master/css/style.css">
 </head>
-<body>
+<body class="t-surface">
 
   <!-- NAV -->
-  <nav id="siteNav">
+  <nav id="siteNav" class="t-nav">
     <div class="nav-inner">
-      <a href="#" class="nav-logo" id="navLogo">Estúdio</a>
-      <div class="nav-links" id="navLinks"></div>
-      <button class="nav-cta" id="navCta">Agendar Sessão</button>
-      <button class="nav-hamburger" id="navHamburger">☰</button>
+      <a href="#" class="t-nav-brand" id="navLogo">Estúdio</a>
+      <div class="t-nav-links" id="navLinks"></div>
+      <button class="t-btn" id="navCta">Agendar Sessão</button>
+      <button class="t-btn t-btn-outline nav-hamburger" id="navHamburger">☰</button>
     </div>
   </nav>
 
   <!-- HERO -->
-  <section id="section-hero" class="section-hero">
+  <section id="section-hero" class="t-hero" style="position:relative; overflow:hidden;">
     <div id="heroTopBar" style="position:absolute;top:0;left:0;right:0;height:0;background:#000;z-index:4;pointer-events:none;"></div>
     <div class="hero-bg" id="heroBg"></div>
     <div id="heroBottomBar" style="position:absolute;bottom:0;left:0;right:0;height:0;background:#000;z-index:4;pointer-events:none;"></div>
     <div class="hero-overlay" id="heroOverlay"></div>
     <div id="heroLayers" style="position:absolute;inset:0;z-index:5;pointer-events:none;"></div>
     <div class="hero-content" id="heroContent" style="display:none;">
+      <div class="gold-rule"></div>
       <p class="hero-eyebrow" id="heroEyebrow">Fotografia Profissional</p>
-      <h1 class="hero-title" id="heroTitle">Eternizando Momentos</h1>
+      <h1 id="heroTitle">Eternizando Momentos</h1>
       <p class="hero-subtitle" id="heroSubtitle">Cada clique conta uma história única</p>
       <div class="hero-buttons">
-        <a href="#section-portfolio" class="btn-primary">Ver Portfólio</a>
-        <a href="#section-contato" class="btn-secondary">Falar Comigo</a>
+        <a href="#section-portfolio" class="t-btn">Ver Portfólio</a>
+        <a href="#section-contato" class="t-btn t-btn-outline">Falar Comigo</a>
       </div>
     </div>
   </section>
@@ -52,9 +54,9 @@
           <img id="sobreImage" src="" alt="Fotógrafo" loading="lazy">
         </div>
         <div class="sobre-text">
-          <h2 class="section-title" id="sobreTitle">Sobre Mim</h2>
+          <h2 class="t-display" id="sobreTitle">Sobre Mim</h2>
           <p class="section-text" id="sobreText"></p>
-          <a href="#section-contato" class="btn-primary" style="margin-top:1.5rem; display:inline-block;">Entre em Contato</a>
+          <a href="#section-contato" class="t-btn" style="margin-top:1.5rem; display:inline-block;">Entre em Contato</a>
         </div>
       </div>
     </div>
@@ -64,7 +66,7 @@
   <section id="section-portfolio" class="section-portfolio section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title" id="portfolioTitle">Portfólio</h2>
+        <h2 class="t-display" id="portfolioTitle">Portfólio</h2>
         <p class="section-subtitle" id="portfolioSubtitle"></p>
       </div>
       <div class="portfolio-grid" id="portfolioGrid"></div>
@@ -75,7 +77,7 @@
   <section id="section-servicos" class="section-servicos section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Serviços</h2>
+        <h2 class="t-display">Serviços</h2>
       </div>
       <div class="servicos-grid" id="servicosGrid"></div>
     </div>
@@ -85,7 +87,7 @@
   <section id="section-depoimentos" class="section-depoimentos section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Depoimentos</h2>
+        <h2 class="t-display">Depoimentos</h2>
       </div>
       <div class="depoimentos-track" id="depoimentosTrack"></div>
     </div>
@@ -95,7 +97,7 @@
   <section id="section-albuns" class="section-albuns section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Álbuns</h2>
+        <h2 class="t-display">Álbuns</h2>
       </div>
       <div id="albumsGrid" class="albums-grid"></div>
     </div>
@@ -104,7 +106,7 @@
   <section id="section-estudio" class="section-estudio section-padded" style="display:none;">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title" id="studioTitle">Nosso Estúdio</h2>
+        <h2 class="t-display" id="studioTitle">Nosso Estúdio</h2>
         <p class="section-subtitle" id="studioDesc"></p>
       </div>
       <div id="studioPhotosGrid" class="studio-grid"></div>
@@ -117,7 +119,7 @@
   <section id="section-faq" class="section-faq section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Perguntas Frequentes</h2>
+        <h2 class="t-display">Perguntas Frequentes</h2>
       </div>
       <div id="faqList" class="faq-list"></div>
     </div>
@@ -127,7 +129,7 @@
   <section id="section-depoimento-form" class="section-depoimento-form section-padded">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Deixe seu Depoimento</h2>
+        <h2 class="t-display">Deixe seu Depoimento</h2>
         <p class="section-subtitle">Sua experiência é muito importante para nós</p>
       </div>
       <form id="depoimentoForm" class="depoimento-form-public" style="max-width:540px;margin:0 auto;">
@@ -144,7 +146,7 @@
             <option value="1">⭐ (1)</option>
           </select>
         </div>
-        <button type="submit" class="btn-primary">Enviar Depoimento</button>
+        <button type="submit" class="t-btn">Enviar Depoimento</button>
         <p id="depoimentoFormMsg" style="display:none;margin-top:0.75rem;"></p>
       </form>
     </div>
@@ -155,7 +157,7 @@
     <div class="container">
       <div class="contato-grid">
         <div>
-          <h2 class="section-title" id="contatoTitle">Entre em Contato</h2>
+          <h2 class="t-display" id="contatoTitle">Entre em Contato</h2>
           <p class="section-text" id="contatoText"></p>
           <div class="contato-info" id="contatoInfo"></div>
         </div>
@@ -165,7 +167,7 @@
             <input type="email" name="email" placeholder="Seu e-mail" required>
             <input type="text" name="assunto" placeholder="Assunto">
             <textarea name="mensagem" placeholder="Mensagem" rows="4" required></textarea>
-            <button type="submit" class="btn-primary" style="width:100%;">Enviar Mensagem</button>
+            <button type="submit" class="t-btn" style="width:100%;">Enviar Mensagem</button>
           </form>
         </div>
       </div>

@@ -90,7 +90,7 @@ app.get('/galeria/:id', (req, res) => {
 
 // SPA route for photographer site (serves template based on siteTheme)
 app.get('/site', async (req, res) => {
-  const fallback = path.join(__dirname, '../site/templates/elegante/index.html');
+  const masterPath = path.join(__dirname, '../site/templates/master/index.html');
   try {
     const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
     let theme = 'elegante';
@@ -126,18 +126,17 @@ app.get('/site', async (req, res) => {
       }
     }
 
-    const templatePath = path.join(__dirname, `../site/templates/${theme}/index.html`);
+    let html = await fs.promises.readFile(masterPath, 'utf-8');
+    html = html.replace('<html lang="pt-BR">', `<html lang="pt-BR" data-theme="${theme}">`);
+    res.send(html);
 
-    try {
-      await fs.promises.access(templatePath);
-    } catch {
-      return res.sendFile(fallback);
-    }
-
-    res.sendFile(templatePath);
   } catch (error) {
     console.error('Erro ao servir template do site:', error);
-    res.sendFile(fallback);
+    try {
+      res.sendFile(masterPath); // Fallback to send the raw file if string replacement fails
+    } catch {
+      res.status(500).send('Erro interno ao carregar o site.');
+    }
   }
 });
 

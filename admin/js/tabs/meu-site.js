@@ -630,8 +630,8 @@ async function renderSiteContent(container, builderTabsEl) {
       // Atualiza URL na barra do browser chrome
       const browserUrl = document.getElementById('builder-browser-url');
       if (browserUrl && orgSlug) browserUrl.textContent = `${orgSlug}.cliquezoom.com.br`;
-      // Troca de tema requer reload completo do iframe (templates diferentes)
-      window.builderScheduleRefresh?.();
+      // Tema agora é instantâneo via CSS data-theme (sem reload)
+      liveRefresh({ siteTheme: newTheme });
     });
   };
 
