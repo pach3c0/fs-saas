@@ -15,7 +15,7 @@ let previewDevice = 'desktop';
 
 // ── Tab titles ──────────────────────────────────────────────────────────────
 const TAB_TITLES = {
-  dashboard: 'Dashboard',
+  dashboard: 'Painel',
   sessoes: 'Sessões',
   clientes: 'Clientes',
   'albuns-prova': 'Prova de Álbuns',

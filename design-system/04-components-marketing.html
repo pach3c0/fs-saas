@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>04 · Marketing kit — CliqueZoom DS</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============ marketing tokens (scoped) ============ */
+  .mk {
+    --mk-bg: #fafafa;
+    --mk-surface: #ffffff;
+    --mk-ink: #1a1a1a;
+    --mk-ink-2: #555;
+    --mk-ink-3: #888;
+    --mk-border: #eee;
+    --mk-green: #16a34a;
+    --mk-green-soft: #f0fdf4;
+    --mk-red: #dc2626;
+    --mk-red-soft: #fef2f2;
+    --mk-yellow: #d97706;
+    --mk-yellow-soft: #fffbeb;
+
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--mk-ink);
+    background: var(--mk-surface);
+  }
+  .mk * { box-sizing: border-box; }
+
+  /* ============ typography ============ */
+  .mk h1, .mk h2, .mk h3, .mk .display { font-family: 'Playfair Display', serif; font-weight: 700; letter-spacing: -0.015em; }
+  .mk .display { font-size: 3.5rem; line-height: 1.1; letter-spacing: -0.02em; }
+  .mk h1 { font-size: 2.25rem; line-height: 1.2; margin: 0 0 12px; }
+  .mk h2 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; margin: 0 0 8px; }
+  .mk h3 { font-size: 1.125rem; line-height: 1.4; font-family: 'Inter', sans-serif; font-weight: 700; letter-spacing: -0.005em; margin: 0 0 6px; }
+  .mk p { font-size: 0.9375rem; line-height: 1.65; color: var(--mk-ink-2); margin: 0; }
+  .mk em.signature { font-family: 'Playfair Display', serif; font-weight: 600; font-style: italic; color: var(--mk-ink-3); }
+  .mk .eyebrow { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mk-ink-3); }
+
+  /* ============ buttons ============ */
+  .mk .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: inherit; font-size: 0.9375rem; font-weight: 500;
+    padding: 12px 20px; border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 150ms cubic-bezier(0.22,1,0.36,1);
+    text-decoration: none;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .mk .btn-primary { background: var(--mk-ink); color: #fff; }
+  .mk .btn-primary:hover { background: #000; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .mk .btn-secondary { background: #fff; color: var(--mk-ink); border-color: var(--mk-ink); }
+  .mk .btn-secondary:hover { background: var(--mk-ink); color: #fff; }
+  .mk .btn-ghost { background: transparent; color: var(--mk-ink); }
+  .mk .btn-ghost:hover { background: #f5f5f5; }
+  .mk .btn-link { background: transparent; color: var(--mk-ink); padding: 0; border-bottom: 1px solid currentColor; border-radius: 0; padding-bottom: 2px; }
+  .mk .btn-link:hover { color: var(--mk-ink-3); }
+  .mk .btn-sm { padding: 8px 14px; font-size: 0.8125rem; }
+  .mk .btn-lg { padding: 16px 28px; font-size: 1rem; }
+
+  /* ============ badges ============ */
+  .mk .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.6875rem; font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .mk .badge-success { background: var(--mk-green-soft); color: var(--mk-green); }
+  .mk .badge-warning { background: var(--mk-yellow-soft); color: var(--mk-yellow); }
+  .mk .badge-neutral { background: #f5f5f5; color: var(--mk-ink-2); }
+  .mk .badge-popular { background: var(--mk-ink); color: #fff; text-transform: uppercase; }
+  .mk .badge-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ============ forms ============ */
+  .mk .input {
+    font-family: inherit; font-size: 0.9375rem;
+    padding: 12px 14px;
+    border: 1px solid var(--mk-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--mk-ink);
+    transition: border-color 150ms;
+    width: 100%;
+  }
+  .mk .input::placeholder { color: var(--mk-ink-3); }
+  .mk .input:focus { outline: none; border-color: var(--mk-ink); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  .mk .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .mk .input-group label { font-size: 0.8125rem; font-weight: 500; color: var(--mk-ink); }
+  .mk .input-hint { font-size: 0.75rem; color: var(--mk-ink-3); }
+  .mk .input-error { color: var(--mk-red); font-size: 0.75rem; }
+  .mk .input.has-error { border-color: var(--mk-red); }
+
+  /* ============ cards ============ */
+  .mk .card {
+    background: #fff;
+    border: 1px solid var(--mk-border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 250ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .mk .card:hover { border-color: #ccc; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+
+  .mk .solution-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .mk .solution-card .s-icon {
+    width: 40px; height: 40px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .mk .solution-card .s-icon svg { width: 20px; height: 20px; stroke: var(--mk-ink); stroke-width: 1.5; fill: none; }
+  .mk .solution-card h3 { margin-bottom: 4px; }
+  .mk .solution-card .arrow { position: absolute; top: 24px; right: 24px; opacity: 0; transition: opacity 200ms; }
+  .mk .solution-card:hover .arrow { opacity: 1; }
+
+  /* plan card */
+  .mk .plan {
+    background: #fff;
+    border: 1px solid var(--mk-border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    display: flex; flex-direction: column;
+    position: relative;
+    transition: all 250ms cubic-bezier(0.22,1,0.36,1);
+  }
+  .mk .plan.featured { border: 2px solid var(--mk-ink); transform: scale(1.02); }
+  .mk .plan.featured::before {
+    content: "MAIS POPULAR";
+    position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    background: var(--mk-ink); color: #fff;
+    font-size: 0.625rem; font-weight: 700; letter-spacing: 0.12em;
+    padding: 4px 12px; border-radius: 999px;
+  }
+  .mk .plan .p-name { font-family: 'Playfair Display', serif; font-size: 1.375rem; font-weight: 600; margin-bottom: 4px; }
+  .mk .plan .p-desc { color: var(--mk-ink-3); font-size: 0.8125rem; margin-bottom: 24px; }
+  .mk .plan .p-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+  .mk .plan .p-price .p-currency { font-size: 1rem; color: var(--mk-ink-2); }
+  .mk .plan .p-price .p-amount { font-size: 2.75rem; font-weight: 700; font-family: 'Playfair Display', serif; line-height: 1; }
+  .mk .plan .p-price .p-period { color: var(--mk-ink-3); font-size: 0.875rem; }
+  .mk .plan .p-orig { color: var(--mk-ink-3); text-decoration: line-through; font-size: 0.8125rem; margin-bottom: 20px; }
+  .mk .plan ul { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .mk .plan li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; color: var(--mk-ink-2); }
+  .mk .plan li svg { flex-shrink: 0; width: 16px; height: 16px; stroke: var(--mk-green); stroke-width: 2; fill: none; margin-top: 2px; }
+
+  /* testimonial */
+  .mk .quote {
+    background: #fff;
+    border: 1px solid var(--mk-border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .mk .quote .q-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.125rem; line-height: 1.5;
+    font-weight: 500;
+    color: var(--mk-ink);
+  }
+  .mk .quote .q-text::before { content: "\201C"; font-size: 2.5rem; line-height: 0.5; color: var(--mk-ink-3); margin-right: 4px; vertical-align: -0.2em; }
+  .mk .quote .q-author { display: flex; align-items: center; gap: 12px; }
+  .mk .quote .q-avatar { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #d1d5db 0 30%, #9ca3af 30% 100%); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; font-size: 0.875rem; }
+  .mk .quote .q-name { font-size: 0.875rem; font-weight: 600; }
+  .mk .quote .q-role { font-size: 0.75rem; color: var(--mk-ink-3); }
+  .mk .quote .stars { display: flex; gap: 2px; color: #facc15; font-size: 0.875rem; }
+
+  /* navbar */
+  .mk .navbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--mk-border);
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+  }
+  .mk .nav-logo { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+  .mk .nav-logo::before { content: ""; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #1a1a1a 0 60%, #555 60% 100%); box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px #1a1a1a; }
+  .mk .nav-links { display: flex; align-items: center; gap: 24px; }
+  .mk .nav-link { font-size: 0.875rem; color: var(--mk-ink-2); text-decoration: none; }
+  .mk .nav-link:hover { color: var(--mk-ink); }
+  .mk .nav-link.active { color: var(--mk-ink); font-weight: 500; }
+  .mk .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* footer */
+  .mk .footer {
+    background: var(--mk-ink);
+    color: #ddd;
+    padding: 48px 32px 24px;
+    border-radius: 12px;
+  }
+  .mk .footer .f-cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+  .mk .footer h4 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; margin: 0 0 12px; font-family: 'Inter', sans-serif; }
+  .mk .footer a { color: #aaa; text-decoration: none; font-size: 0.875rem; display: block; padding: 3px 0; }
+  .mk .footer a:hover { color: #fff; }
+  .mk .footer .f-bottom { padding-top: 24px; border-top: 1px solid #333; display: flex; justify-content: space-between; font-size: 0.75rem; color: #888; }
+  .mk .footer .f-logo { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .mk .footer .f-tag { font-size: 0.8125rem; color: #aaa; max-width: 280px; line-height: 1.5; }
+
+  /* newsletter */
+  .mk .newsletter {
+    background: #f5f5f5;
+    border-radius: 16px;
+    padding: 32px;
+    display: flex; flex-direction: column; gap: 12px;
+    max-width: 520px;
+  }
+  .mk .newsletter form { display: flex; gap: 8px; }
+  .mk .newsletter .input { background: #fff; }
+
+  /* demo frame helpers */
+  .demo-frame {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin: var(--sp-4) 0 var(--sp-6);
+    background: #fafafa;
+  }
+  .demo-label {
+    background: #fff; border-bottom: 1px solid var(--ds-border);
+    padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #666;
+    display: flex; justify-content: space-between;
+  }
+  .demo-body { padding: 32px; background: var(--mk-bg); }
+  .demo-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .demo-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .demo-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  @media (max-width: 720px) { .demo-grid-3, .demo-grid-4 { grid-template-columns: 1fr; } }
+
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="ds-header">
+    <div class="ds-crumb"><a href="index.html">Design System</a> / <span>04 · Marketing kit</span></div>
+    <div class="ds-crumb"><a href="03-iconography.html">← Iconography</a> &nbsp; <a href="05-components-admin.html">Admin kit →</a></div>
+  </div>
+
+  <div class="ds-eyebrow">Kits · Surface A</div>
+  <h1 class="ds-title">Marketing <em>kit</em></h1>
+  <p class="ds-lede">
+    Every component on the public-facing site (cliquezoom.com.br), the signup flow,
+    the pricing page, and the post-login onboarding. Editorial — not enterprise.
+  </p>
+
+  <!-- ============ BUTTONS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.1 Buttons</div>
+    <h2 class="ds-h2">Four variants. One primary per view.</h2>
+    <p class="ds-p">The primary is black, period. The secondary is the outlined version of the primary. The ghost is for tertiary actions in dense UIs. The link button is for in-flow clickable text.</p>
+
+    <div class="demo-frame">
+      <div class="demo-label"><span>Buttons · variants &amp; sizes</span><span>class="mk btn"</span></div>
+      <div class="demo-body mk">
+        <div class="demo-row" style="margin-bottom: 20px;">
+          <button class="btn btn-primary btn-lg">Começar grátis</button>
+          <button class="btn btn-secondary btn-lg">Ver demonstração</button>
+          <button class="btn btn-ghost btn-lg">Saiba mais</button>
+          <a class="btn btn-link btn-lg" href="#">Contato comercial</a>
+        </div>
+        <div class="demo-row" style="margin-bottom: 20px;">
+          <button class="btn btn-primary">Cadastrar</button>
+          <button class="btn btn-secondary">Entrar</button>
+          <button class="btn btn-ghost">Cancelar</button>
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            Com ícone
+          </button>
+        </div>
+        <div class="demo-row">
+          <button class="btn btn-primary btn-sm">Comprar</button>
+          <button class="btn btn-secondary btn-sm">Detalhes</button>
+          <button class="btn btn-ghost btn-sm">Mais</button>
+          <button class="btn btn-primary" disabled style="opacity:0.4; cursor: not-allowed;">Desabilitado</button>
+        </div>
+      </div>
+    </div>
+
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>btn-primary</dt><dd>One per screen. The single action the user is here to do.</dd>
+      <dt>btn-secondary</dt><dd>Supporting action. "Ver demo" next to "Começar grátis".</dd>
+      <dt>btn-ghost</dt><dd>Tertiary. Cancel buttons, small menu items.</dd>
+      <dt>btn-link</dt><dd>In-flow clickable text. Use for nav items and inline CTAs.</dd>
+    </dl>
+  </section>
+
+  <!-- ============ BADGES ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.2 Badges</div>
+    <h2 class="ds-h2">Pill-shaped. Status only.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Badges</span><span>class="mk badge"</span></div>
+      <div class="demo-body mk">
+        <div class="demo-row">
+          <span class="badge badge-success badge-dot">Online</span>
+          <span class="badge badge-warning">Em teste</span>
+          <span class="badge badge-neutral">Rascunho</span>
+          <span class="badge badge-popular">Mais popular</span>
+          <span class="badge badge-success">Plano ativo</span>
+          <span class="badge badge-success"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Verificado</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FORMS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.3 Forms</div>
+    <h2 class="ds-h2">Labels above. Hints below. Errors in red.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Inputs · default, focus, error, with hint</span><span>class="mk input"</span></div>
+      <div class="demo-body mk" style="max-width: 420px;">
+        <div style="display:flex; flex-direction: column; gap: 20px;">
+          <div class="input-group">
+            <label>E-mail profissional</label>
+            <input class="input" placeholder="voce@estudio.com" value="maria@fotografia.com">
+            <span class="input-hint">Usaremos este e-mail para enviar suas entregas.</span>
+          </div>
+          <div class="input-group">
+            <label>Subdomínio</label>
+            <input class="input" value="maria-silva" style="border-color: var(--mk-ink); box-shadow: 0 0 0 3px rgba(0,0,0,0.05);">
+            <span class="input-hint">maria-silva.cliquezoom.com.br</span>
+          </div>
+          <div class="input-group">
+            <label>Senha</label>
+            <input class="input has-error" type="password" value="1234">
+            <span class="input-error">Senha precisa ter no mínimo 8 caracteres.</span>
+          </div>
+          <div class="input-group">
+            <label>Sobre seu estúdio</label>
+            <textarea class="input" rows="3" placeholder="Conte em uma ou duas frases sobre seu trabalho…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-frame">
+      <div class="demo-label"><span>Newsletter · inline form</span><span>pattern</span></div>
+      <div class="demo-body mk">
+        <div class="newsletter">
+          <div>
+            <div class="eyebrow" style="margin-bottom: 6px;">NEWSLETTER</div>
+            <h2 style="margin:0;">Dicas mensais <em class="signature">para fotógrafos</em></h2>
+          </div>
+          <p>Novas funcionalidades, dicas de marketing e descontos. Sem spam.</p>
+          <form onsubmit="event.preventDefault()">
+            <input class="input" placeholder="seu@email.com">
+            <button class="btn btn-primary">Assinar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SOLUTION CARDS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.4 Solution card</div>
+    <h2 class="ds-h2">The "Tudo que um fotógrafo precisa" grid.</h2>
+    <p class="ds-p">Used on the home page to showcase the 6 core features. Monochrome icon tile, short h3, two-line description, optional arrow on hover.</p>
+
+    <div class="demo-frame">
+      <div class="demo-label"><span>Solution cards · grid-3</span><span>class="mk solution-card"</span></div>
+      <div class="demo-body mk">
+        <div class="demo-grid-3">
+          <div class="card solution-card">
+            <div class="s-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Portfólio Online</h3>
+            <p>Site profissional com subdomínio exclusivo. 5 temas responsivos.</p>
+            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+          <div class="card solution-card">
+            <div class="s-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke-linecap="round"/></svg></div>
+            <h3>Seleção de Fotos</h3>
+            <p>Clientes escolhem favoritas via link. Exporte em 1 clique.</p>
+            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+          <div class="card solution-card">
+            <div class="s-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-linecap="round"/><line x1="2" y1="10" x2="22" y2="10" stroke-linecap="round"/></svg></div>
+            <h3>Venda de Álbuns</h3>
+            <p>Loja integrada com Pix, cartão e boleto. Receba em 1 dia.</p>
+            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLAN / PRICING CARDS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.5 Pricing cards</div>
+    <h2 class="ds-h2">Three tiers. One featured.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Plans · featured = Profissional</span><span>class="mk plan"</span></div>
+      <div class="demo-body mk">
+        <div class="demo-grid-3" style="gap: 20px; align-items: stretch;">
+          <div class="plan">
+            <div class="p-name">Essencial</div>
+            <div class="p-desc">Para começar com o pé direito</div>
+            <div class="p-price"><span class="p-currency">R$</span><span class="p-amount">39</span><span class="p-period">/mês</span></div>
+            <div class="p-orig">de R$ 59/mês</div>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Portfólio com 50 fotos</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>1 galeria de seleção</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Subdomínio exclusivo</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Suporte por e-mail</li>
+            </ul>
+            <button class="btn btn-secondary">Começar</button>
+          </div>
+          <div class="plan featured">
+            <div class="p-name">Profissional</div>
+            <div class="p-desc">Para quem já vive da fotografia</div>
+            <div class="p-price"><span class="p-currency">R$</span><span class="p-amount">79</span><span class="p-period">/mês</span></div>
+            <div class="p-orig">de R$ 119/mês</div>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Portfólio com fotos ilimitadas</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Galerias ilimitadas</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Venda de álbuns (5% taxa)</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>CRM de clientes</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Suporte via WhatsApp</li>
+            </ul>
+            <button class="btn btn-primary">Começar grátis</button>
+          </div>
+          <div class="plan">
+            <div class="p-name">Estúdio</div>
+            <div class="p-desc">Para equipes e estúdios</div>
+            <div class="p-price"><span class="p-currency">R$</span><span class="p-amount">149</span><span class="p-period">/mês</span></div>
+            <div class="p-orig">de R$ 199/mês</div>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Tudo do Profissional</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Até 5 fotógrafos</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Domínio próprio</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Venda de álbuns (3% taxa)</li>
+              <li><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>Gerente de conta</li>
+            </ul>
+            <button class="btn btn-secondary">Falar com vendas</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TESTIMONIALS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.6 Testimonials</div>
+    <h2 class="ds-h2">Real photographers, real words.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Quote cards · grid-3</span><span>class="mk quote"</span></div>
+      <div class="demo-body mk">
+        <div class="demo-grid-3">
+          <div class="quote">
+            <div class="stars">★★★★★</div>
+            <div class="q-text">Reduzi o tempo de entrega em 60%. Os clientes adoram poder escolher as fotos pelo celular.</div>
+            <div class="q-author">
+              <div class="q-avatar">MS</div>
+              <div>
+                <div class="q-name">Maria Silva</div>
+                <div class="q-role">Fotografia de Casamento · Curitiba</div>
+              </div>
+            </div>
+          </div>
+          <div class="quote">
+            <div class="stars">★★★★★</div>
+            <div class="q-text">Finalmente um sistema que entende nosso workflow. Não preciso mais do Dropbox, Wetransfer e PicTime juntos.</div>
+            <div class="q-author">
+              <div class="q-avatar">RA</div>
+              <div>
+                <div class="q-name">Ricardo Alves</div>
+                <div class="q-role">Fotógrafo de Ensaios · São Paulo</div>
+              </div>
+            </div>
+          </div>
+          <div class="quote">
+            <div class="stars">★★★★★</div>
+            <div class="q-text">Vendi 3 álbuns no primeiro mês usando a loja integrada. O preço do plano se pagou em uma semana.</div>
+            <div class="q-author">
+              <div class="q-avatar">JC</div>
+              <div>
+                <div class="q-name">Julia Costa</div>
+                <div class="q-role">Estúdio JC Photography · Porto Alegre</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NAVBAR ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.7 Navbar</div>
+    <h2 class="ds-h2">Quiet, sticky, backdrop-blurred.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Marketing navbar</span><span>class="mk navbar"</span></div>
+      <div class="demo-body mk" style="padding: 0;">
+        <nav class="navbar">
+          <div class="nav-logo">CliqueZoom</div>
+          <div class="nav-links">
+            <a class="nav-link active" href="#">Soluções</a>
+            <a class="nav-link" href="#">Planos</a>
+            <a class="nav-link" href="#">Clientes</a>
+            <a class="nav-link" href="#">Blog</a>
+          </div>
+          <div class="nav-actions">
+            <a class="nav-link" href="#">Entrar</a>
+            <button class="btn btn-primary btn-sm">Começar grátis</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.8 Footer</div>
+    <h2 class="ds-h2">Black. Four columns. Mono bottom line.</h2>
+    <div class="demo-frame">
+      <div class="demo-label"><span>Footer</span><span>class="mk footer"</span></div>
+      <div class="demo-body mk" style="background: #fff;">
+        <footer class="footer">
+          <div class="f-cols">
+            <div>
+              <div class="f-logo">CliqueZoom</div>
+              <p class="f-tag">Site, seleção de fotos e entrega — em 1 só lugar. Feito para fotógrafos brasileiros.</p>
+            </div>
+            <div>
+              <h4>Produto</h4>
+              <a href="#">Soluções</a>
+              <a href="#">Temas</a>
+              <a href="#">Planos</a>
+              <a href="#">Novidades</a>
+            </div>
+            <div>
+              <h4>Empresa</h4>
+              <a href="#">Sobre</a>
+              <a href="#">Blog</a>
+              <a href="#">Contato</a>
+              <a href="#">Carreiras</a>
+            </div>
+            <div>
+              <h4>Legal</h4>
+              <a href="#">Termos</a>
+              <a href="#">Privacidade</a>
+              <a href="#">LGPD</a>
+            </div>
+          </div>
+          <div class="f-bottom">
+            <span style="font-family:'JetBrains Mono',monospace;">© 2026 Rhyno · Curitiba, PR</span>
+            <span style="font-family:'JetBrains Mono',monospace;">cliquezoom.com.br</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DON'T ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">4.9 Don't</div>
+    <h2 class="ds-h2">Common mistakes we reject in review.</h2>
+    <table class="lex">
+      <thead><tr><th>Pattern</th><th>Status</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="bad">Two primary buttons side-by-side</td><td>Reject</td><td class="note">One action per view. Use secondary for the alternate.</td></tr>
+        <tr><td class="bad">Gradient text on body copy</td><td>Reject</td><td class="note">Reserved for occasional display headlines on photographer sites only.</td></tr>
+        <tr><td class="bad">Filled icons in marketing UI</td><td>Reject</td><td class="note">Outline-only. Filled is admin-only for status.</td></tr>
+        <tr><td class="bad">Card with both shadow AND thick border</td><td>Reject</td><td class="note">Pick one. Hairline border at rest, shadow on hover.</td></tr>
+        <tr><td class="bad">"Get started free!!!" copy</td><td>Reject</td><td class="note">Editorial voice — no marketing exclamations. See Content.</td></tr>
+        <tr><td class="bad">Stock photography of generic people</td><td>Reject</td><td class="note">Either real customer photography or checkerboard placeholder.</td></tr>
+        <tr><td class="bad">"Buy now" / "Click here"</td><td>Reject</td><td class="note">Use the action verb. "Começar grátis", "Ver planos", "Falar com vendas".</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="ds-foot" style="margin-top: var(--sp-9); padding-top: var(--sp-5); border-top: 1px solid #eee; display:flex; justify-content: space-between; font-size:13px;">
+    <a href="03-iconography.html" style="color:#888; text-decoration:none;">← 03 · Iconography</a>
+    <a href="05-components-admin.html" style="color:#1a1a1a; font-weight:500; text-decoration:none;">05 · Admin kit →</a>
+  </footer>
+
+</main>
+</body>
+</html>

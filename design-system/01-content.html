@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>01 · Content fundamentals — CliqueZoom DS</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .voice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: var(--sp-4); margin: var(--sp-5) 0; }
+  .voice-card {
+    border: 1px solid #eee; border-radius: var(--radius-lg);
+    padding: var(--sp-5); background: #fff;
+  }
+  .voice-card h4 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin: 0 0 var(--sp-2); font-weight: 600; }
+  .voice-card h4::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1a1a1a; margin-right: 10px; vertical-align: middle; }
+  .voice-card.warm h4::before { background: #c9a96e; }
+  .voice-card.clear h4::before { background: #2f81f7; }
+  .voice-card.confident h4::before { background: #16a34a; }
+  .voice-card p { margin: 0; font-size: 14px; color: #555; line-height: 1.65; }
+
+  .copy-ex {
+    background: #fff; border: 1px solid #eee; border-radius: var(--radius-lg);
+    padding: var(--sp-5); margin: var(--sp-3) 0;
+  }
+  .copy-ex-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: #888; letter-spacing: 0.08em;
+    margin-bottom: var(--sp-2); text-transform: uppercase;
+  }
+  .copy-ex blockquote {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.375rem; line-height: 1.35; margin: 0;
+    color: #1a1a1a;
+  }
+  .copy-ex blockquote em { color: #666; }
+  .copy-ex .meta { margin-top: var(--sp-3); font-size: 13px; color: #777; }
+
+  table.lex {
+    width: 100%; border-collapse: collapse; font-size: 14px; margin: var(--sp-4) 0;
+  }
+  table.lex th, table.lex td {
+    padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee;
+  }
+  table.lex th {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #888; font-weight: 600;
+  }
+  table.lex td.good { color: #1a1a1a; font-weight: 500; }
+  table.lex td.bad { color: #b91c1c; text-decoration: line-through; text-decoration-color: rgba(185,28,28,0.4); }
+  table.lex td.note { color: #777; font-size: 13px; }
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="ds-header">
+    <div class="ds-crumb"><a href="index.html">Design System</a> / <span>01 · Content</span></div>
+    <div class="ds-crumb"><a href="02-foundations.html">Next: Foundations →</a></div>
+  </div>
+
+  <div class="ds-eyebrow">Fundamentals · 01</div>
+  <h1 class="ds-title">Content <em>fundamentals</em></h1>
+  <p class="ds-lede">
+    Before we pick a color or a font, we agree on how CliqueZoom talks. Brazilian
+    photographers can smell a generic SaaS from a kilometer away — and they scroll past it.
+    Our copy has to sound like a photographer wrote it, not a growth team.
+  </p>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.1 Voice</div>
+    <h2 class="ds-h2">Three words.</h2>
+    <p class="ds-p">
+      Every piece of copy CliqueZoom writes has to pass three filters. If a sentence fails one, rewrite it.
+    </p>
+    <div class="voice-grid">
+      <div class="voice-card warm">
+        <h4>Warm, not chummy</h4>
+        <p>We treat fotógrafos like peers — adults running a business. We use second-person ("você configura…") but we don't high-five them. No emojis in product copy. No exclamation in body text.</p>
+      </div>
+      <div class="voice-card clear">
+        <h4>Clear before clever</h4>
+        <p>Labels describe what the button does. A CTA called "Criar conta grátis" beats "Começar sua jornada". Portuguese is direct — we honor that.</p>
+      </div>
+      <div class="voice-card confident">
+        <h4>Confident, not loud</h4>
+        <p>We don't promise "revolução". We describe what exists. "Seus clientes selecionam as fotos favoritas diretamente no site" — fact, not slogan.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.2 Voice in practice</div>
+    <h2 class="ds-h2">Three sentences, one voice.</h2>
+
+    <div class="copy-ex">
+      <div class="copy-ex-label">Hero · landing page</div>
+      <blockquote>Site, seleção de fotos e entrega online. <em>Tudo em 1 só lugar.</em></blockquote>
+      <div class="meta">The italicized tail carries the promise. Serif italic is the signature move — use it sparingly (one per page, always in the hero or a section title).</div>
+    </div>
+
+    <div class="copy-ex">
+      <div class="copy-ex-label">Section lede · pricing</div>
+      <blockquote>Comece grátis e evolua conforme sua necessidade. <em>Sem surpresas.</em></blockquote>
+      <div class="meta">"Sem surpresas" is reassurance, not marketing. Every plan page must end with a factual line about what happens when you cancel.</div>
+    </div>
+
+    <div class="copy-ex">
+      <div class="copy-ex-label">Empty state · admin</div>
+      <blockquote style="font-family: 'Inter', sans-serif; font-size: 1rem; line-height: 1.6;">Você ainda não tem sessões. Crie a primeira para começar a receber fotos de clientes.</blockquote>
+      <div class="meta">Empty states name the thing that's missing and the single next action. Never "Oops" or "Nada por aqui!".</div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.3 Lexicon</div>
+    <h2 class="ds-h2">Say this, not that.</h2>
+    <p class="ds-p">
+      The product has a fixed vocabulary. We never call a feature by two names —
+      confusion in UI is a bug. Below is the canonical list.
+    </p>
+    <table class="lex">
+      <thead>
+        <tr><th>Concept</th><th>We say</th><th>We don't say</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>The public site of a photographer</td><td class="good">Site</td><td class="bad">Landing page, portfólio</td><td class="note">Photographers already call it "meu site".</td></tr>
+        <tr><td>A delivery to an end client</td><td class="good">Sessão</td><td class="bad">Projeto, job, evento</td><td class="note">Matches how shoots are billed in Brazil.</td></tr>
+        <tr><td>The client picking favorites</td><td class="good">Seleção de fotos</td><td class="bad">Proofing, curadoria</td><td class="note">Portuguese-first; "proofing" is jargon.</td></tr>
+        <tr><td>The photographer's control panel</td><td class="good">Painel</td><td class="bad">Dashboard, console</td><td class="note">"Painel" is the standard in pt-BR SaaS.</td></tr>
+        <tr><td>A collection of finished photos</td><td class="good">Álbum</td><td class="bad">Galeria, coleção</td><td class="note">Galeria = one view of an álbum.</td></tr>
+        <tr><td>Free tier</td><td class="good">Grátis</td><td class="bad">Free, gratuito (formal)</td><td class="note">Marketing register, not formal.</td></tr>
+        <tr><td>Monthly fee</td><td class="good">R$ X/mês</td><td class="bad">$X, X per month</td><td class="note">Always Real, always "/mês".</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.4 Never</div>
+    <h2 class="ds-h2">Things we never write.</h2>
+    <div class="ds-do-dont">
+      <div class="ds-dont">
+        <div class="ds-dont-label">Avoid</div>
+        <ul style="margin:0; padding-left: var(--sp-5); color:#555; font-size:14px; line-height:1.8;">
+          <li>"Revolucione seu negócio"</li>
+          <li>"Simples assim!" / "Muito fácil!"</li>
+          <li>"A plataforma #1 para fotógrafos"</li>
+          <li>Emoji in product UI (only in onboarding emails, sparingly)</li>
+          <li>ALL-CAPS for emphasis in body text</li>
+          <li>"Desbloqueie", "Turbine", "Alavanque"</li>
+        </ul>
+      </div>
+      <div class="ds-do">
+        <div class="ds-do-label">Prefer</div>
+        <ul style="margin:0; padding-left: var(--sp-5); color:#555; font-size:14px; line-height:1.8;">
+          <li>"Seus clientes selecionam as fotos direto no site"</li>
+          <li>"Leva menos de 2 minutos"</li>
+          <li>"Projetado para fotógrafos"</li>
+          <li>Iconography + clear label pairs</li>
+          <li>Italic serif for emphasis in display type</li>
+          <li>"Configure", "Envie", "Organize"</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.5 Density</div>
+    <h2 class="ds-h2">Length rules.</h2>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>Hero headline</dt><dd>Max 12 words. Must contain one concrete noun (site, seleção, entrega).</dd>
+      <dt>Hero subhead</dt><dd>Max 22 words. One sentence. No semicolons.</dd>
+      <dt>Section title</dt><dd>Max 6 words. Sentence case. Period only if multi-clause.</dd>
+      <dt>Feature card title</dt><dd>2–4 words. Noun phrase, never a verb.</dd>
+      <dt>Feature card body</dt><dd>Max 22 words. Answer "what does this do for me?" in one breath.</dd>
+      <dt>Button label</dt><dd>2–4 words. Verb-first. "Criar conta", "Ver exemplo", "Assinar Basic".</dd>
+      <dt>Empty state</dt><dd>1 sentence naming the missing thing + 1 sentence with next action.</dd>
+      <dt>Error message</dt><dd>Plain language. Never a code. Always tell the user what to do next.</dd>
+    </dl>
+  </section>
+
+  <section class="ds-section">
+    <div class="ds-eyebrow">1.6 Localization</div>
+    <h2 class="ds-h2">It's Brazilian Portuguese, not "Portuguese".</h2>
+    <p class="ds-p">
+      The product is pt-BR first. Spelling follows current Brazilian orthography (no trema,
+      no "ideia" acute, no "linguiça" trema). Avoid Portugal-specific vocabulary.
+    </p>
+    <div class="ds-note">
+      <strong>Dates:</strong> <code class="inline">DD/MM/AAAA</code>. <strong>Prices:</strong> <code class="inline">R$ 1.299,00</code> (period as thousand separator, comma as decimal). <strong>Times:</strong> 24h, never AM/PM.
+    </div>
+    <div class="ds-note">
+      <strong>Formal vs. informal:</strong> use "você", never "tu". In legal/billing copy, the register shifts slightly formal — "Você poderá cancelar" becomes acceptable.
+    </div>
+  </section>
+
+  <footer class="ds-foot" style="margin-top: var(--sp-9); padding-top: var(--sp-5); border-top: 1px solid #eee; display:flex; justify-content: space-between; font-size:13px; color:#888;">
+    <a href="index.html" style="color:#888; text-decoration:none;">← Index</a>
+    <a href="02-foundations.html" style="color:#1a1a1a; font-weight:500; text-decoration:none;">02 · Visual Foundations →</a>
+  </footer>
+
+</main>
+</body>
+</html>

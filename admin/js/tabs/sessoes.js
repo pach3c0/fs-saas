@@ -878,7 +878,7 @@ export async function renderSessoes(container) {
         </div>
       `}).join('');
     } else {
-      grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto. Use o botao Upload acima.</p>';
+      grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto na sessão. Use o Upload acima.</p>';
     }
 
     // Renderizar Entrega Final (Fotos com urlOriginal)
@@ -899,8 +899,8 @@ export async function renderSessoes(container) {
     } else {
       selectedGrid.innerHTML = `
         <div style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:2rem; font-size:0.875rem;">
-          <p>Nenhuma foto final enviada ainda.</p>
-          <p style="font-size:0.75rem; margin-top:0.5rem;">Use o botão <b>Subir Editadas</b> para preencher esta área.</p>
+          <p>Nenhuma foto editada enviada.</p>
+          <p style="font-size:0.75rem; margin-top:0.5rem;">Use o botão <b>Subir Editadas</b> para enviar as fotos de entrega.</p>
         </div>`;
     }
 

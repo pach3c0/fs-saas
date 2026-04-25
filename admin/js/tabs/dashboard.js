@@ -108,7 +108,7 @@ async function loadDashboardData(container) {
 
         // Renderizar lista de sessões
         if (sessions.length === 0) {
-            sessionsList.innerHTML = `<p style="padding:3rem; text-align:center; color:var(--text-muted);">Nenhuma sessão encontrada. Comece criando uma!</p>`;
+            sessionsList.innerHTML = `<p style="padding:3rem; text-align:center; color:var(--text-muted);">Você ainda não tem sessões. Crie a primeira para começar.</p>`;
         } else {
             sessionsList.innerHTML = sessions.slice(0, 5).map(session => `
                 <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; transition:background 0.2s;" onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background='transparent'">
@@ -158,7 +158,7 @@ function renderOnboardingChecklist(container, steps) {
         <div id="onboarding-section" style="background:var(--bg-surface); border:1px solid var(--accent); border-radius:12px; padding:1.5rem; animation: slideIn 0.4s ease; border-left: 4px solid var(--accent);">
             <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1.5rem;">
                 <div>
-                    <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0;">🚀 Comece por aqui</h3>
+                    <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0;">Comece por aqui</h3>
                     <p style="color:var(--text-secondary); font-size:0.875rem; margin-top:0.25rem;">Complete estes passos para dominar o CliqueZoom.</p>
                 </div>
                 <button onclick="dismissOnboarding()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; text-decoration:underline;">Ocultar guia</button>

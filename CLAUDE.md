@@ -493,3 +493,18 @@ A estratégia consiste em uma revisão 360º de cada parte do sistema, seguindo 
     *   Criar testes automatizados com **Playwright** (`skills/1_6_testes.md`).
     *   Documentar todos os novos fluxos e alterações em diagramas (`skills/fluxo.md`).
 
+
+
+## DESIGN SYSTEM
+
+Antes de qualquer trabalho visual (HTML, CSS, componentes, copy de UI),
+LEIA `design-system/SKILL.md` e os arquivos relevantes em `design-system/`.
+
+Regras invioláveis:
+- 3 superfícies separadas: Marketing (home/), Admin (admin/, saas-admin/),
+  Temas do fotógrafo (site/templates/*). Nunca misturar.
+- Tokens vivem em `design-system/tokens.css` — nunca inventar cores/fontes novas.
+- Marketing usa Playfair + Inter. Admin é Inter only, dark, denso.
+- Voz sempre PT-BR, sempre "você", nunca exclamações em CTAs.
+- Iconografia: Lucide outline 1.5px stroke. Nunca filled (exceto estado selected).
+- Imagens: nunca stock genérico — placeholder em xadrez ou foto real do cliente.

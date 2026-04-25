@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>02 · Visual foundations — CliqueZoom DS</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* palette strip */
+  .palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-3); margin: var(--sp-4) 0; }
+  .palette .chip {
+    border-radius: var(--radius-md); overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: #fff;
+  }
+  .palette .chip .swatch { height: 88px; }
+  .palette .chip .meta { padding: 10px 12px; font-size: 12px; }
+  .palette .chip .name { font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .palette .chip .hex { font-family: 'JetBrains Mono', monospace; color: #777; }
+  .palette .chip .use { color: #999; margin-top: 4px; font-size: 11px; line-height: 1.4; }
+
+  /* surface panels */
+  .surface-panel {
+    border-radius: var(--radius-xl);
+    padding: var(--sp-6);
+    margin: var(--sp-4) 0 var(--sp-6);
+    border: 1px solid #eee;
+  }
+  .surface-panel.sp-marketing { background: #fff; }
+  .surface-panel.sp-admin { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+  .surface-panel.sp-themes { background: linear-gradient(180deg, #fafafa, #fff); }
+  .surface-panel h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; margin: 0 0 4px; font-weight: 600;
+  }
+  .surface-panel .sp-sub { color: #777; margin-bottom: var(--sp-5); font-size: 14px; }
+  .sp-admin h3 { color: #e6edf3; }
+  .sp-admin .sp-sub { color: #8b949e; }
+
+  /* type scale */
+  .type-scale { display: flex; flex-direction: column; gap: var(--sp-3); margin: var(--sp-4) 0; }
+  .type-row {
+    display: grid; grid-template-columns: 80px 140px 1fr;
+    align-items: baseline; gap: var(--sp-4);
+    padding: var(--sp-3) 0;
+    border-bottom: 1px dashed #eee;
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-token { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #888; }
+  .type-size { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555; }
+  .type-spec { color: #1a1a1a; }
+
+  /* spacing viz */
+  .sp-strip { display: flex; gap: 0; align-items: flex-end; margin: var(--sp-4) 0; padding: var(--sp-4); background: #fff; border: 1px solid #eee; border-radius: var(--radius-md); flex-wrap: wrap; }
+  .sp-block { background: #1a1a1a; margin-right: 16px; position: relative; }
+  .sp-block::after { content: attr(data-label); position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #888; }
+
+  /* radius viz */
+  .radius-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--sp-4); margin: var(--sp-4) 0; }
+  .radius-tile {
+    height: 110px; background: #1a1a1a;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 10px; font-family: 'JetBrains Mono', monospace;
+    color: #fff; font-size: 11px;
+  }
+
+  /* shadow viz */
+  .shadow-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-5); margin: var(--sp-5) 0; padding: var(--sp-6); background: #fafafa; border-radius: var(--radius-lg); }
+  .shadow-tile {
+    background: #fff; border-radius: var(--radius-md);
+    padding: var(--sp-4); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #555; text-align: center;
+  }
+  .shadow-tile small { display: block; margin-top: 6px; color: #999; }
+  @media (max-width: 640px) { .shadow-grid { grid-template-columns: 1fr; } }
+
+  /* theme compare */
+  .theme-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-3); margin: var(--sp-4) 0; }
+  .theme-card {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid #eee;
+  }
+  .theme-card .t-preview {
+    height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--t-font-display);
+    font-size: 1.5rem; font-weight: 600;
+  }
+  .theme-card .t-meta {
+    padding: 12px 14px; background: #fff; font-size: 12px;
+  }
+  .theme-card .t-name { font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .theme-card .t-fonts { color: #888; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="ds-header">
+    <div class="ds-crumb"><a href="index.html">Design System</a> / <span>02 · Foundations</span></div>
+    <div class="ds-crumb"><a href="01-content.html">← Content</a> &nbsp; <a href="03-iconography.html">Iconography →</a></div>
+  </div>
+
+  <div class="ds-eyebrow">Fundamentals · 02</div>
+  <h1 class="ds-title">Visual <em>foundations</em></h1>
+  <p class="ds-lede">
+    Three surfaces share primitives (spacing, radii, motion) but keep their own color
+    and type. This is intentional — the admin panel should feel like a precision
+    tool; the marketing site should feel like a magazine.
+  </p>
+
+  <!-- ============ COLOR ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.1 Color</div>
+    <h2 class="ds-h2">Three palettes, three jobs.</h2>
+    <p class="ds-p">
+      A single global palette was the wrong answer — the marketing site wants warmth
+      and white space, the admin wants GitHub's quiet dark, and each photographer theme has
+      its own mood. We tokenize per surface so tokens never leak.
+    </p>
+
+    <!-- Marketing palette -->
+    <div class="surface-panel sp-marketing">
+      <h3>Surface A · Marketing</h3>
+      <p class="sp-sub">Editorial monochrome. Accent is restraint; we earn color with type and photography, not with hue.</p>
+      <div class="palette">
+        <div class="chip"><div class="swatch" style="background:#fafafa;border-bottom:1px solid #eee;"></div><div class="meta"><div class="name">--mk-bg</div><div class="hex">#fafafa</div><div class="use">Page canvas</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#fff;border-bottom:1px solid #eee;"></div><div class="meta"><div class="name">--mk-surface</div><div class="hex">#ffffff</div><div class="use">Cards, forms</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#1a1a1a;"></div><div class="meta"><div class="name">--mk-ink</div><div class="hex">#1a1a1a</div><div class="use">Headlines, CTAs</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#555;"></div><div class="meta"><div class="name">--mk-ink-2</div><div class="hex">#555555</div><div class="use">Body copy</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#888;"></div><div class="meta"><div class="name">--mk-ink-3</div><div class="hex">#888888</div><div class="use">Meta, hints</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#eee;"></div><div class="meta"><div class="name">--mk-border</div><div class="hex">#eeeeee</div><div class="use">Hairlines</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#f0fdf4;border-bottom:1px solid #dcfce7;"></div><div class="meta"><div class="name">--mk-accent-soft</div><div class="hex">#f0fdf4</div><div class="use">Success badge bg</div></div></div>
+        <div class="chip"><div class="swatch" style="background:#16a34a;"></div><div class="meta"><div class="name">--mk-accent-soft-ink</div><div class="hex">#16a34a</div><div class="use">Success text, ticks</div></div></div>
+      </div>
+    </div>
+
+    <!-- Admin palette -->
+    <div class="surface-panel sp-admin">
+      <h3>Surface B · Admin</h3>
+      <p class="sp-sub">Dark-first, GitHub-adjacent. Accent blue + five categorical colors for status, nothing else.</p>
+      <div class="palette">
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#0d1117;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-bg-base</div><div class="hex" style="color:#8b949e;">#0d1117</div><div class="use" style="color:#8b949e;">Page bg</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#161b22;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-bg-surface</div><div class="hex" style="color:#8b949e;">#161b22</div><div class="use" style="color:#8b949e;">Sidebar, topbar</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#1c2128;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-bg-elevated</div><div class="hex" style="color:#8b949e;">#1c2128</div><div class="use" style="color:#8b949e;">Inputs, dropdowns</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#2f81f7;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-accent</div><div class="hex" style="color:#8b949e;">#2f81f7</div><div class="use" style="color:#8b949e;">Primary actions</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#3fb950;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-green</div><div class="hex" style="color:#8b949e;">#3fb950</div><div class="use" style="color:#8b949e;">Success</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#f85149;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-red</div><div class="hex" style="color:#8b949e;">#f85149</div><div class="use" style="color:#8b949e;">Danger, logout</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#d29922;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-yellow</div><div class="hex" style="color:#8b949e;">#d29922</div><div class="use" style="color:#8b949e;">Warnings</div></div></div>
+        <div class="chip" style="background:#161b22;border-color:#30363d;"><div class="swatch" style="background:#bc8cff;"></div><div class="meta" style="background:#161b22;color:#e6edf3;"><div class="name" style="color:#e6edf3;">--ad-purple</div><div class="hex" style="color:#8b949e;">#bc8cff</div><div class="use" style="color:#8b949e;">Pro tier</div></div></div>
+      </div>
+      <div class="ds-note" style="border-left-color:#2f81f7;color:#8b949e;"><strong style="color:#e6edf3;">Rule:</strong> no gradient in functional UI. Gradients exist only in the brand logo mark and the Builder "Save theme" button.</div>
+    </div>
+
+    <!-- Themes palette -->
+    <div class="surface-panel sp-themes">
+      <h3>Surface C · Photographer Themes</h3>
+      <p class="sp-sub">Five opinionated palettes. A photographer picks one and stays in it. Tokens are prefixed <code class="inline">--t-</code> with a <code class="inline">data-theme</code> attr.</p>
+
+      <div class="theme-compare">
+        <div class="theme-card">
+          <div class="t-preview" data-theme="elegante" style="background:var(--t-bg);color:var(--t-ink);border-bottom:3px solid var(--t-accent);">Elegante</div>
+          <div class="t-meta"><div class="t-name">Elegante</div><div class="t-fonts">Inter + Playfair · #c9a96e</div></div>
+        </div>
+        <div class="theme-card">
+          <div class="t-preview" data-theme="moderno" style="background:var(--t-bg-alt);border-bottom:3px solid var(--t-primary);"><span style="background:var(--t-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Moderno</span></div>
+          <div class="t-meta"><div class="t-name">Moderno</div><div class="t-fonts">Poppins · gradient</div></div>
+        </div>
+        <div class="theme-card">
+          <div class="t-preview" data-theme="minimalista" style="background:var(--t-bg);color:var(--t-ink);font-weight:300;border-bottom:3px solid var(--t-ink);">Minimalista</div>
+          <div class="t-meta"><div class="t-name">Minimalista</div><div class="t-fonts">Inter 300 · #000</div></div>
+        </div>
+        <div class="theme-card">
+          <div class="t-preview" data-theme="escuro" style="background:var(--t-bg);color:var(--t-ink);border-bottom:3px solid var(--t-accent);">Escuro</div>
+          <div class="t-meta"><div class="t-name">Escuro</div><div class="t-fonts">Montserrat · #ff9500</div></div>
+        </div>
+        <div class="theme-card">
+          <div class="t-preview" data-theme="galeria" style="background:var(--t-bg);color:var(--t-ink);border-bottom:3px solid var(--t-accent);font-style:italic;">Galeria</div>
+          <div class="t-meta"><div class="t-name">Galeria</div><div class="t-fonts">Roboto + Libre Baskerville</div></div>
+        </div>
+      </div>
+      <div class="ds-note"><strong>Rule:</strong> theme tokens never leak into marketing or admin. If you find yourself writing <code class="inline">var(--t-accent)</code> outside a photographer site, you have a bug.</div>
+    </div>
+  </section>
+
+  <!-- ============ TYPE ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.2 Type</div>
+    <h2 class="ds-h2">Inter for work, Playfair for story.</h2>
+    <p class="ds-p">
+      Across Marketing and Admin we use one sans (Inter) paired with one serif
+      (Playfair Display). The serif is reserved for headlines and brand marks —
+      using it anywhere else dilutes it. Photographer themes each have their own pairings, documented below.
+    </p>
+
+    <div class="ds-demo">
+      <div class="ds-demo-label"><span>Marketing &amp; Admin — type scale</span><span>Inter / Playfair</span></div>
+      <div class="type-scale">
+        <div class="type-row"><code class="type-token">display</code><code class="type-size">56 / 1.1 · Playfair 700</code><div class="type-spec" style="font-family:'Playfair Display',serif;font-size:3.5rem;line-height:1.1;font-weight:700;letter-spacing:-0.02em;">Site, seleção <em style="font-style:italic;color:#666;">e entrega</em></div></div>
+        <div class="type-row"><code class="type-token">h1</code><code class="type-size">36 / 1.2 · Playfair 700</code><div class="type-spec" style="font-family:'Playfair Display',serif;font-size:2.25rem;line-height:1.2;font-weight:700;letter-spacing:-0.015em;">Escolha o plano ideal</div></div>
+        <div class="type-row"><code class="type-token">h2</code><code class="type-size">24 / 1.3 · Playfair 600</code><div class="type-spec" style="font-family:'Playfair Display',serif;font-size:1.5rem;line-height:1.3;font-weight:600;">Tudo que um fotógrafo precisa</div></div>
+        <div class="type-row"><code class="type-token">h3</code><code class="type-size">18 / 1.4 · Inter 700</code><div class="type-spec" style="font-family:Inter,sans-serif;font-size:1.125rem;line-height:1.4;font-weight:700;">Portfólio Online</div></div>
+        <div class="type-row"><code class="type-token">body</code><code class="type-size">15 / 1.65 · Inter 400</code><div class="type-spec" style="font-family:Inter,sans-serif;font-size:0.9375rem;line-height:1.65;">Seu site profissional com subdomínio exclusivo. Mostre seu trabalho de forma elegante e atraia novos clientes.</div></div>
+        <div class="type-row"><code class="type-token">small</code><code class="type-size">13 / 1.5 · Inter 500</code><div class="type-spec" style="font-family:Inter,sans-serif;font-size:0.8125rem;line-height:1.5;font-weight:500;color:#555;">Sem cartão de crédito · Cadastro em 2 minutos</div></div>
+        <div class="type-row"><code class="type-token">eyebrow</code><code class="type-size">11 / 1.2 · Inter 700 caps</code><div class="type-spec" style="font-family:Inter,sans-serif;font-size:0.6875rem;line-height:1.2;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#888;">SOLUÇÕES</div></div>
+        <div class="type-row"><code class="type-token">mono</code><code class="type-size">12 / 1.4 · JetBrains</code><div class="type-spec" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">seu-estudio.cliquezoom.com.br</div></div>
+      </div>
+    </div>
+
+    <h3 class="ds-h3">The italic move</h3>
+    <p class="ds-p">
+      <em style="font-family:'Playfair Display',serif;font-weight:600;">Playfair italic</em> is the brand signature. It appears exactly once per long-form page — inside a display headline, usually as the emotional tail: "<em>Tudo em 1 só lugar.</em>". Never italicize body copy for emphasis; use weight instead.
+    </p>
+
+    <h3 class="ds-h3">Per-theme pairings</h3>
+    <table class="lex">
+      <thead><tr><th>Theme</th><th>Body</th><th>Display</th><th>Signature</th></tr></thead>
+      <tbody>
+        <tr><td class="good">Elegante</td><td>Inter 400</td><td>Playfair 700</td><td class="note">Gold accent under underlined links</td></tr>
+        <tr><td class="good">Moderno</td><td>Poppins 400</td><td>Poppins 800</td><td class="note">Gradient text on hero h1 only</td></tr>
+        <tr><td class="good">Minimalista</td><td>Inter 300</td><td>Inter 300</td><td class="note">Letterspacing on uppercase buttons</td></tr>
+        <tr><td class="good">Escuro</td><td>Montserrat 400</td><td>Montserrat 900 UPPER</td><td class="note">Orange → white gradient clipped hero</td></tr>
+        <tr><td class="good">Galeria</td><td>Roboto 300</td><td>Libre Baskerville 700</td><td class="note">Column-count masonry, no captions</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ SPACING ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.3 Spacing</div>
+    <h2 class="ds-h2">4-pixel base. Ten stops. Stop inventing numbers.</h2>
+    <p class="ds-p">
+      Every gap, every padding, every margin resolves to a token. If a designer hand-types <code class="inline">18px</code>, they're working around the system.
+    </p>
+    <div class="sp-strip" style="padding-bottom: var(--sp-6);">
+      <div class="sp-block" data-label="sp-1 · 4" style="width:4px;height:4px;"></div>
+      <div class="sp-block" data-label="sp-2 · 8" style="width:8px;height:8px;"></div>
+      <div class="sp-block" data-label="sp-3 · 12" style="width:12px;height:12px;"></div>
+      <div class="sp-block" data-label="sp-4 · 16" style="width:16px;height:16px;"></div>
+      <div class="sp-block" data-label="sp-5 · 24" style="width:24px;height:24px;"></div>
+      <div class="sp-block" data-label="sp-6 · 32" style="width:32px;height:32px;"></div>
+      <div class="sp-block" data-label="sp-7 · 48" style="width:48px;height:48px;"></div>
+      <div class="sp-block" data-label="sp-8 · 64" style="width:64px;height:64px;"></div>
+      <div class="sp-block" data-label="sp-9 · 96" style="width:96px;height:96px;"></div>
+      <div class="sp-block" data-label="sp-10 · 128" style="width:128px;height:128px;"></div>
+    </div>
+    <dl class="ds-kv" style="margin-top: var(--sp-6); max-width: 720px;">
+      <dt>Tight UI (admin)</dt><dd>Use sp-1 to sp-4. Nav items: sp-2 vertical. Card interior: sp-4.</dd>
+      <dt>Marketing sections</dt><dd>Section padding: sp-8 vertical. Card interior: sp-5. Hero padding: sp-9.</dd>
+      <dt>Photographer sites</dt><dd>Section padding per theme; Elegante = sp-8, Escuro = sp-9, Minimalista = sp-7.</dd>
+    </dl>
+  </section>
+
+  <!-- ============ RADIUS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.4 Radius</div>
+    <h2 class="ds-h2">Seven stops. Pills for humans, square for data.</h2>
+    <div class="radius-grid">
+      <div class="radius-tile" style="border-radius:4px;">xs · 4</div>
+      <div class="radius-tile" style="border-radius:6px;">sm · 6</div>
+      <div class="radius-tile" style="border-radius:8px;">md · 8</div>
+      <div class="radius-tile" style="border-radius:12px;">lg · 12</div>
+      <div class="radius-tile" style="border-radius:16px;">xl · 16</div>
+      <div class="radius-tile" style="border-radius:24px;">2xl · 24</div>
+      <div class="radius-tile" style="border-radius:9999px;">pill</div>
+    </div>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>sm (6)</dt><dd>Admin inputs, tags, small buttons. Matches GitHub's restraint.</dd>
+      <dt>md (8)</dt><dd>Marketing buttons, form fields. The default.</dd>
+      <dt>lg (12)</dt><dd>Cards (solution cards, plan cards, testimonials).</dd>
+      <dt>xl — 2xl</dt><dd>Hero containers, large feature cards, modals.</dd>
+      <dt>pill</dt><dd>Badges, "Beta" tags, newsletter submit. Never on data rows.</dd>
+    </dl>
+  </section>
+
+  <!-- ============ SHADOW ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.5 Shadow</div>
+    <h2 class="ds-h2">Three shadows, no more.</h2>
+    <p class="ds-p">Shadows indicate elevation only. A drop shadow on a card means <em>this can move</em>. If nothing can move, no shadow.</p>
+    <div class="shadow-grid">
+      <div class="shadow-tile" style="box-shadow: 0 1px 3px rgba(0,0,0,0.04);">shadow-sm<small>hairline lift · cards at rest</small></div>
+      <div class="shadow-tile" style="box-shadow: 0 4px 16px rgba(0,0,0,0.06);">shadow-md<small>hover, dropdown menus</small></div>
+      <div class="shadow-tile" style="box-shadow: 0 8px 30px rgba(0,0,0,0.08);">shadow-lg<small>modals, floating nav, pricing card hover</small></div>
+    </div>
+    <div class="ds-note"><strong>Admin exception:</strong> on dark (#0d1117), shadows invert to <code class="inline">0 24px 80px rgba(0,0,0,0.8)</code> — only the preview iframe and login card use this.</div>
+  </section>
+
+  <!-- ============ MOTION ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">2.6 Motion</div>
+    <h2 class="ds-h2">Fast. Out. Done.</h2>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>--dur-fast · 150ms</dt><dd>Hover states, button press feedback, small transitions.</dd>
+      <dt>--dur-base · 250ms</dt><dd>Card lift, dropdown open, tab switch.</dd>
+      <dt>--dur-slow · 400ms</dt><dd>Modal open, sidebar collapse, preview pane morph.</dd>
+      <dt>--ease-out</dt><dd>cubic-bezier(0.22, 1, 0.36, 1) — default for things arriving.</dd>
+      <dt>--ease-in-out</dt><dd>cubic-bezier(0.65, 0, 0.35, 1) — for things both appearing and leaving.</dd>
+    </dl>
+    <div class="ds-note"><strong>Reduced motion:</strong> always honor <code class="inline">prefers-reduced-motion</code>; disable all transforms and reduce durations to 10ms.</div>
+  </section>
+
+  <footer class="ds-foot" style="margin-top: var(--sp-9); padding-top: var(--sp-5); border-top: 1px solid #eee; display:flex; justify-content: space-between; font-size:13px;">
+    <a href="01-content.html" style="color:#888; text-decoration:none;">← 01 · Content</a>
+    <a href="03-iconography.html" style="color:#1a1a1a; font-weight:500; text-decoration:none;">03 · Iconography →</a>
+  </footer>
+
+</main>
+</body>
+</html>

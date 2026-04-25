@@ -15,7 +15,7 @@ export async function renderClientes(container) {
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Clientes</h2>
         <button id="btnNovoCliente" style="background:var(--green); color:white; padding:0.5rem 1.25rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
-          + Novo Cliente
+          + Adicionar Cliente
         </button>
       </div>
 
@@ -125,8 +125,8 @@ function renderLista(container) {
     lista.innerHTML = `
       <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
         ${clientesData.length === 0
-          ? 'Nenhum cliente cadastrado ainda. Clique em "+ Novo Cliente" para começar.'
-          : 'Nenhum cliente encontrado para a busca.'}
+          ? 'Você não tem clientes cadastrados ainda. Clique em "+ Adicionar Cliente" para começar.'
+          : 'Nenhum cliente encontrado para essa busca.'}
       </div>
     `;
     return;
@@ -313,7 +313,7 @@ async function verSessoesCliente(container, id) {
     const sessoes = data.sessions || [];
 
     if (sessoes.length === 0) {
-      lista.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1.5rem 0;">Nenhuma sessão vinculada a este cliente.</p>';
+      lista.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1.5rem 0;">Nenhuma sessão vinculada a este cliente ainda.</p>';
       return;
     }
 

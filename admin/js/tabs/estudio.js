@@ -228,7 +228,7 @@ export async function renderEstudio(container) {
     if (addWrap) addWrap.style.display = layers.length >= 4 ? 'none' : 'block';
 
     if (!layers.length) {
-      list.innerHTML = '<p style="padding:0.75rem; color:var(--text-muted); font-size:0.7rem; text-align:center;">Nenhuma foto adicionada</p>';
+      list.innerHTML = '<p style="padding:0.75rem; color:var(--text-muted); font-size:0.7rem; text-align:center;">Nenhuma foto adicionada ao estúdio.</p>';
       return;
     }
 

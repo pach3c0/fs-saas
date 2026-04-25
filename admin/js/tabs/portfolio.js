@@ -155,7 +155,7 @@ function renderPhotos(container) {
   const selected = container._selectedIndices || new Set();
 
   if (photos.length === 0) {
-    grid.innerHTML = '<div class="p-empty">Nenhuma foto adicionada. Clique acima para subir seus trabalhos!</div>';
+    grid.innerHTML = '<div class="p-empty">Nenhuma foto no portfólio. Envie a primeira para começar.</div>';
     clearBtn.style.display = 'none';
     bulkBar.style.display = 'none';
     return;

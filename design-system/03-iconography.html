@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>03 · Iconography &amp; logo — CliqueZoom DS</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .logo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--sp-4);
+    margin: var(--sp-5) 0;
+  }
+  .logo-tile {
+    border: 1px solid #eee;
+    border-radius: var(--radius-lg);
+    padding: var(--sp-5);
+    min-height: 180px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+  }
+  .logo-tile.dark { background: #0d1117; border-color: #30363d; }
+  .logo-tile.photo { background: url('https://images.unsplash.com/photo-1519741497674-611481863552?w=600') center/cover; }
+  .logo-tile .logo-content { flex: 1; display: flex; align-items: center; }
+  .logo-tile .logo-meta { display: flex; justify-content: space-between; margin-top: var(--sp-3); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+  .logo-tile.dark .logo-meta { color: #8b949e; }
+  .logo-tile.photo .logo-meta { color: #fff; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; }
+
+  /* the wordmark */
+  .cz-logo {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
+  }
+  .cz-logo .cz-mark {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #1a1a1a 0 60%, #555 60% 100%);
+    position: relative;
+    box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px #1a1a1a;
+  }
+  .cz-logo .cz-mark::after {
+    content: ""; position: absolute; inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.4) 0 25%, transparent 40%);
+  }
+  .cz-logo em { font-style: italic; color: #888; font-weight: 400; }
+  .dark .cz-logo { color: #e6edf3; }
+  .dark .cz-logo em { color: #8b949e; }
+  .dark .cz-logo .cz-mark { background: radial-gradient(circle at 30% 30%, #fff 0 60%, #8b949e 60% 100%); box-shadow: inset 0 0 0 3px #0d1117, inset 0 0 0 4px #fff; }
+  .photo .cz-logo { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .photo .cz-logo em { color: rgba(255,255,255,0.8); }
+  .photo .cz-logo .cz-mark { background: radial-gradient(circle at 30% 30%, #fff 0 60%, #ccc 60% 100%); box-shadow: inset 0 0 0 3px rgba(0,0,0,0.3), inset 0 0 0 4px #fff; }
+
+  .cz-logo.sm { font-size: 1rem; }
+  .cz-logo.sm .cz-mark { width: 20px; height: 20px; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px #1a1a1a; }
+  .cz-logo.xl { font-size: 2.5rem; }
+  .cz-logo.xl .cz-mark { width: 48px; height: 48px; box-shadow: inset 0 0 0 5px #fff, inset 0 0 0 7px #1a1a1a; }
+  .cz-logo.mono { font-family: 'JetBrains Mono', monospace; text-transform: lowercase; font-weight: 600; letter-spacing: -0.01em; }
+  .cz-logo.mono em { display: none; }
+
+  /* icons */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--sp-3);
+    margin: var(--sp-4) 0;
+  }
+  .icon-tile {
+    border: 1px solid #eee;
+    border-radius: var(--radius-md);
+    padding: var(--sp-4) var(--sp-3);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: #fff;
+    transition: border-color 150ms, transform 150ms;
+  }
+  .icon-tile:hover { border-color: #1a1a1a; transform: translateY(-1px); }
+  .icon-tile svg { width: 22px; height: 22px; stroke: #1a1a1a; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-tile .i-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #666; }
+
+  /* sizing */
+  .size-row {
+    display: flex; gap: var(--sp-5); align-items: flex-end;
+    padding: var(--sp-5);
+    border: 1px solid #eee;
+    border-radius: var(--radius-lg);
+    background: #fff;
+    margin: var(--sp-4) 0;
+  }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .size-item svg { stroke: #1a1a1a; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .size-item code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #888; }
+
+  /* placeholders */
+  .placeholder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--sp-4);
+    margin: var(--sp-4) 0;
+  }
+  .ph {
+    aspect-ratio: 4/3;
+    border-radius: var(--radius-md);
+    background-color: #f3f4f6;
+    background-image:
+      linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+      linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+      linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #6b7280;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    position: relative;
+  }
+  .ph .ph-ratio { font-size: 10px; color: #9ca3af; position: absolute; bottom: 8px; right: 10px; }
+  .ph.portrait { aspect-ratio: 3/4; }
+  .ph.square { aspect-ratio: 1/1; }
+  .ph.wide { aspect-ratio: 16/9; grid-column: span 2; }
+  .ph.avatar {
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    background: radial-gradient(circle at 50% 35%, #d1d5db 0 30%, #9ca3af 30% 100%);
+  }
+
+  /* misuse swatches */
+  .misuse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--sp-3);
+    margin: var(--sp-4) 0;
+  }
+  .misuse {
+    aspect-ratio: 3/2;
+    border-radius: var(--radius-md);
+    padding: var(--sp-4);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .misuse::before {
+    content: "✗";
+    position: absolute; top: 8px; left: 10px;
+    color: #dc2626; font-weight: 700; font-size: 20px;
+  }
+  .misuse .m-label {
+    position: absolute; bottom: 8px; left: 10px; right: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: #555; text-align: center;
+  }
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="ds-header">
+    <div class="ds-crumb"><a href="index.html">Design System</a> / <span>03 · Iconography</span></div>
+    <div class="ds-crumb"><a href="02-foundations.html">← Foundations</a> &nbsp; <a href="04-components-marketing.html">Marketing kit →</a></div>
+  </div>
+
+  <div class="ds-eyebrow">Fundamentals · 03</div>
+  <h1 class="ds-title">Iconography <em>&amp; logo</em></h1>
+  <p class="ds-lede">
+    Two drawing systems coexist. The logo is a single wordmark with a lens-mark dot.
+    Icons come from one library (Lucide), one weight, one size class. Imagery is
+    always a <em>placeholder</em> until the photographer uploads their own — we never ship stock.
+  </p>
+
+  <!-- ============ LOGO ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">3.1 Logo</div>
+    <h2 class="ds-h2">CliqueZoom wordmark · one lockup, three sizes.</h2>
+    <p class="ds-p">
+      Wordmark in Playfair 700 with a small circular "lens" mark replacing the dot.
+      The italic tagline <em style="font-family:'Playfair Display',serif;">"em 1 clique"</em> is optional and only appears in marketing contexts at XL.
+    </p>
+
+    <div class="logo-grid">
+      <div class="logo-tile">
+        <div class="logo-content"><span class="cz-logo xl">CliqueZoom</span></div>
+        <div class="logo-meta"><span>XL · Hero lockup</span><span>48px mark</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="logo-content"><span class="cz-logo">CliqueZoom <em>em 1 clique</em></span></div>
+        <div class="logo-meta"><span>MD · Default nav</span><span>28px mark</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="logo-content"><span class="cz-logo sm">CliqueZoom</span></div>
+        <div class="logo-meta"><span>SM · Admin topbar</span><span>20px mark</span></div>
+      </div>
+      <div class="logo-tile dark">
+        <div class="logo-content"><span class="cz-logo">CliqueZoom</span></div>
+        <div class="logo-meta"><span>On dark · Admin</span><span>#0d1117</span></div>
+      </div>
+      <div class="logo-tile photo">
+        <div class="logo-content"><span class="cz-logo">CliqueZoom</span></div>
+        <div class="logo-meta"><span>On photo</span><span>with text-shadow</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="logo-content"><span class="cz-logo mono sm">cliquezoom</span></div>
+        <div class="logo-meta"><span>Mono · footers, emails</span><span>JetBrains</span></div>
+      </div>
+    </div>
+
+    <h3 class="ds-h3">Clear space &amp; minimums</h3>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>Clear space</dt><dd>At least the height of the lens-mark on all sides. Never crop the mark with a container edge.</dd>
+      <dt>Minimum size</dt><dd>Wordmark 14px on screen / 12pt in print. Below that, use the mark alone.</dd>
+      <dt>On photography</dt><dd>Always white, with <code class="inline">text-shadow: 0 2px 8px rgba(0,0,0,0.4)</code>. If the photo is busy, place a 60%-opacity black pill behind it.</dd>
+    </dl>
+
+    <h3 class="ds-h3">Misuse</h3>
+    <div class="misuse-grid">
+      <div class="misuse" style="background: linear-gradient(135deg, #ff9500, #667eea);">
+        <span class="cz-logo" style="color:#fff;">CliqueZoom</span>
+        <span class="m-label">No gradient backgrounds</span>
+      </div>
+      <div class="misuse" style="background: #fff; border: 1px solid #eee;">
+        <span class="cz-logo" style="color: #ff9500;">CliqueZoom</span>
+        <span class="m-label">Never recolor wordmark</span>
+      </div>
+      <div class="misuse" style="background: #fff; border: 1px solid #eee;">
+        <span class="cz-logo" style="font-family: Inter, sans-serif; letter-spacing: 0.1em;">CliqueZoom</span>
+        <span class="m-label">No font substitution</span>
+      </div>
+      <div class="misuse" style="background: #fff; border: 1px solid #eee;">
+        <span class="cz-logo" style="transform: skewX(-10deg);">CliqueZoom</span>
+        <span class="m-label">No skew, no rotate, no stretch</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ICONS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">3.2 Icons</div>
+    <h2 class="ds-h2">Lucide. 1.5px stroke. Outline only.</h2>
+    <p class="ds-p">
+      One library, one weight. We use <a class="ds-link" href="https://lucide.dev">Lucide</a> outline at a 1.5px stroke. Filled icons are reserved for <em>selected</em> states (e.g. a star on a favorited gallery). Don't mix libraries; don't mix weights.
+    </p>
+
+    <h3 class="ds-h3">Size stops</h3>
+    <div class="size-row">
+      <div class="size-item">
+        <svg width="12" height="12" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-xs · 12</code><span style="font-size:10px;color:#aaa;">inline with caption</span>
+      </div>
+      <div class="size-item">
+        <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-sm · 14</code><span style="font-size:10px;color:#aaa;">body text</span>
+      </div>
+      <div class="size-item">
+        <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-md · 16</code><span style="font-size:10px;color:#aaa;">buttons, inputs</span>
+      </div>
+      <div class="size-item">
+        <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-lg · 20</code><span style="font-size:10px;color:#aaa;">sidebar, feature</span>
+      </div>
+      <div class="size-item">
+        <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-xl · 24</code><span style="font-size:10px;color:#aaa;">hero, dashboard</span>
+      </div>
+      <div class="size-item">
+        <svg width="32" height="32" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <code>icon-2xl · 32</code><span style="font-size:10px;color:#aaa;">empty states</span>
+      </div>
+    </div>
+
+    <h3 class="ds-h3">Core set · product surface</h3>
+    <p class="ds-p">These are the icons actually used across the product. If you need one not listed, <strong>check Lucide first</strong>, then add it here.</p>
+
+    <div class="icon-grid">
+      <!-- Navigation -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg><div class="i-name">home</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><div class="i-name">dashboard</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><div class="i-name">search</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.7l2.1-1.6-2-3.4-2.5 1a7 7 0 0 0-2.9-1.7L13 2h-4l-.5 2.6a7 7 0 0 0-2.9 1.7l-2.5-1-2 3.4 2.1 1.6A7 7 0 0 0 3 12c0 .6.1 1.1.2 1.7l-2.1 1.6 2 3.4 2.5-1a7 7 0 0 0 2.9 1.7L9 22h4l.5-2.6a7 7 0 0 0 2.9-1.7l2.5 1 2-3.4-2.1-1.6c.1-.6.2-1.1.2-1.7z"/></svg><div class="i-name">settings</div></div>
+
+      <!-- Photography domain -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><div class="i-name">camera</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div class="i-name">image</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/></svg><div class="i-name">gallery</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><div class="i-name">download</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><div class="i-name">upload</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div class="i-name">star · filled variant</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><div class="i-name">heart · like</div></div>
+
+      <!-- Commerce -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><div class="i-name">cart</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><div class="i-name">card</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><div class="i-name">pricing</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7" y2="7"/></svg><div class="i-name">tag</div></div>
+
+      <!-- State -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><div class="i-name">check</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><div class="i-name">close</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="i-name">alert</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div class="i-name">info</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div class="i-name">clock</div></div>
+
+      <!-- People & arrows -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div class="i-name">user</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="i-name">users</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg><div class="i-name">chevron-right</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg><div class="i-name">chevron-down</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg><div class="i-name">arrow-right</div></div>
+
+      <!-- Admin & system -->
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><div class="i-name">theme-toggle</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><div class="i-name">logout</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><div class="i-name">edit</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><div class="i-name">trash</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg><div class="i-name">eye · preview</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg><div class="i-name">mail</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M22 16.92V21a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 3h4.09a2 2 0 0 1 2 1.72c.13.96.37 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.91 11.1a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><div class="i-name">phone</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg><div class="i-name">plus</div></div>
+      <div class="icon-tile"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg><div class="i-name">refresh</div></div>
+    </div>
+
+    <div class="ds-note">
+      <strong>Exception — brand domain icons:</strong> on photographer sites, the icon library must match the theme. Elegante uses outline-only; Escuro can use filled icons at 1.5px strokes for contrast. When in doubt, outline wins.
+    </div>
+  </section>
+
+  <!-- ============ IMAGERY ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">3.3 Imagery &amp; placeholders</div>
+    <h2 class="ds-h2">Empty states use checkerboards, not stock photos.</h2>
+    <p class="ds-p">
+      CliqueZoom is a home for a photographer's own work. We refuse to ship stock.
+      In our admin and marketing UI, image slots show a neutral checkerboard with the
+      aspect ratio labelled — this signals "<em>your photo goes here</em>" without
+      putting a stranger's face on someone's portfolio.
+    </p>
+
+    <div class="placeholder-grid">
+      <div class="ph">Landscape<span class="ph-ratio">4:3</span></div>
+      <div class="ph portrait">Portrait<span class="ph-ratio">3:4</span></div>
+      <div class="ph square">Square<span class="ph-ratio">1:1</span></div>
+      <div class="ph avatar"></div>
+    </div>
+    <div class="placeholder-grid">
+      <div class="ph wide">Hero / banner<span class="ph-ratio">16:9</span></div>
+    </div>
+
+    <h3 class="ds-h3">Aspect ratios in play</h3>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>Hero banners</dt><dd><strong>16:9</strong> on marketing; <strong>21:9</strong> on photographer Escuro theme.</dd>
+      <dt>Gallery thumbs</dt><dd><strong>Masonry</strong> (variable heights) for Galeria; <strong>1:1</strong> grid for Moderno and Minimalista; <strong>3:2</strong> for Elegante.</dd>
+      <dt>Testimonial avatars</dt><dd><strong>1:1</strong> circular, 48px on marketing, 40px on admin.</dd>
+      <dt>Preview iframes</dt><dd>Builder previews use <strong>16:10</strong> at 1.0× zoom, scaled to fit.</dd>
+      <dt>Favicon / app icon</dt><dd>1024×1024 master → exports to 16/32/180/192/512. Mark only, no wordmark.</dd>
+    </dl>
+
+    <h3 class="ds-h3">When to use real photos (and when not to)</h3>
+    <table class="lex">
+      <thead><tr><th>Surface</th><th>Use real photos?</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td class="good">Marketing hero / demo</td><td>Yes</td><td class="note">Licensed brand photography only — never generic Unsplash faces</td></tr>
+        <tr><td class="warn">Marketing testimonials</td><td>Only if real customer</td><td class="note">Otherwise use initials in a circle</td></tr>
+        <tr><td class="bad">Admin empty states</td><td>No</td><td class="note">Checkerboard + copy ("Nenhuma foto ainda")</td></tr>
+        <tr><td class="bad">Theme preview tiles</td><td>No</td><td class="note">Abstract gradients or placeholder boxes — the site is about <em>their</em> photos</td></tr>
+        <tr><td class="good">Photographer's own site</td><td>Yes — only theirs</td><td class="note">Our system must not inject any stock whatsoever</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="ds-foot" style="margin-top: var(--sp-9); padding-top: var(--sp-5); border-top: 1px solid #eee; display:flex; justify-content: space-between; font-size:13px;">
+    <a href="02-foundations.html" style="color:#888; text-decoration:none;">← 02 · Foundations</a>
+    <a href="04-components-marketing.html" style="color:#1a1a1a; font-weight:500; text-decoration:none;">04 · Marketing kit →</a>
+  </footer>
+
+</main>
+</body>
+</html>

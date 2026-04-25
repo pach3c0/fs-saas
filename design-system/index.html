@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CliqueZoom — Design System</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .hero-dsys {
+    background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+    border: 1px solid #eee;
+    border-radius: var(--radius-2xl);
+    padding: var(--sp-9) var(--sp-7);
+    margin-bottom: var(--sp-7);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-dsys::after {
+    content: '';
+    position: absolute;
+    right: -120px; top: -120px;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(47,129,247,0.12), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-dsys .ds-title { font-size: 3.75rem; max-width: 720px; }
+  .hero-dsys .ds-lede { font-size: 1.25rem; }
+  .hero-tagline {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    font-size: 12px; color: #888;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: var(--sp-4);
+  }
+  .hero-tagline::before {
+    content: ''; width: 8px; height: 8px;
+    background: #3fb950; border-radius: 50%;
+  }
+  .surface-pills { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-5); }
+  .pill {
+    font-size: 12px; font-weight: 500;
+    padding: 5px 12px; border-radius: var(--radius-pill);
+    background: #fff; border: 1px solid #e5e5e5;
+    color: #555;
+  }
+  .pill strong { color: #1a1a1a; margin-right: 6px; }
+  .section-heading {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: var(--sp-4);
+  }
+  .section-heading h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    margin: 0;
+    font-weight: 600;
+  }
+  .section-heading .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: #999;
+  }
+  footer.ds-foot {
+    margin-top: var(--sp-9);
+    padding-top: var(--sp-5);
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #888;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+  footer.ds-foot strong { color: #1a1a1a; font-weight: 600; }
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="hero-dsys">
+    <span class="hero-tagline">CLIQUEZOOM DESIGN SYSTEM · V 1.0 · 2026</span>
+    <h1 class="ds-title">The language of <em>a platform for photographers</em>.</h1>
+    <p class="ds-lede">
+      Three surfaces. One product. Five themes. This system makes it possible for a single team
+      to ship editorial marketing, a dense admin panel, and five distinct photographer-site
+      flavors — without anything feeling like it came from a different studio.
+    </p>
+    <div class="surface-pills">
+      <span class="pill"><strong>A</strong>Marketing · cliquezoom.com.br</span>
+      <span class="pill"><strong>B</strong>Admin · /admin</span>
+      <span class="pill"><strong>C</strong>Photographer Sites · {slug}.cliquezoom.com.br</span>
+    </div>
+  </div>
+
+  <section class="ds-section" style="margin-top:0;">
+    <div class="section-heading">
+      <h2>Fundamentals</h2>
+      <span class="count">01 — 03</span>
+    </div>
+    <ul class="ds-nav">
+      <li><a href="01-content.html">
+        <span class="num">01</span>
+        <h4>Content fundamentals</h4>
+        <p>Voice, tone, Portuguese copywriting, feature naming, what we never say.</p>
+      </a></li>
+      <li><a href="02-foundations.html">
+        <span class="num">02</span>
+        <h4>Visual foundations</h4>
+        <p>Color palettes, type scales, spacing, radius, shadow — per surface.</p>
+      </a></li>
+      <li><a href="03-iconography.html">
+        <span class="num">03</span>
+        <h4>Iconography &amp; logo</h4>
+        <p>Logo grammar, icon stroke system, photography tropes we avoid.</p>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="ds-section">
+    <div class="section-heading">
+      <h2>UI kits</h2>
+      <span class="count">04 — 06</span>
+    </div>
+    <ul class="ds-nav">
+      <li><a href="04-ui-marketing.html">
+        <span class="num">04 · SURFACE A</span>
+        <h4>Marketing</h4>
+        <p>Navigation, hero, pricing cards, forms, FAQ, CTA footers.</p>
+      </a></li>
+      <li><a href="05-ui-admin.html">
+        <span class="num">05 · SURFACE B</span>
+        <h4>Admin panel</h4>
+        <p>Sidebar, topbar, tables, notifications, builder, empty states.</p>
+      </a></li>
+      <li><a href="06-ui-themes.html">
+        <span class="num">06 · SURFACE C</span>
+        <h4>Photographer themes</h4>
+        <p>Elegante, Moderno, Minimalista, Escuro, Galeria — compared.</p>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="ds-section">
+    <div class="section-heading">
+      <h2>Reference</h2>
+      <span class="count">R</span>
+    </div>
+    <ul class="ds-nav">
+      <li><a href="SKILL.md">
+        <span class="num">SKILL</span>
+        <h4>How to build with this system</h4>
+        <p>Rules for pairing surfaces, naming files, when to fork vs. extend.</p>
+      </a></li>
+      <li><a href="tokens.css">
+        <span class="num">TOKENS</span>
+        <h4>tokens.css</h4>
+        <p>The single source of truth. Import this before any component CSS.</p>
+      </a></li>
+    </ul>
+  </section>
+
+  <footer class="ds-foot">
+    <span><strong>CliqueZoom</strong> · Design System v1.0</span>
+    <span>Last updated April 2026</span>
+  </footer>
+
+</main>
+</body>
+</html>

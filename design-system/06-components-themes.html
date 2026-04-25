@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>06 · Themes kit — CliqueZoom DS</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@400;600;800&family=Montserrat:wght@400;700;900&family=Libre+Baskerville:wght@400;700&family=Roboto:wght@300;400;500&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+  /* ============ theme surface base ============ */
+  .t-surface {
+    font-family: var(--t-font-body);
+    color: var(--t-ink);
+    background: var(--t-bg);
+  }
+  .t-surface * { box-sizing: border-box; }
+  .t-surface .t-display { font-family: var(--t-font-display); }
+
+  /* ============ shared primitives (themed via --t-*) ============ */
+  .t-surface .t-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--t-border);
+  }
+  .t-surface .t-nav-brand { font-family: var(--t-font-display); font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .t-surface .t-nav-links { display: flex; gap: 24px; }
+  .t-surface .t-nav-link { font-size: 13px; color: var(--t-ink-muted); text-decoration: none; }
+  .t-surface .t-nav-link:hover { color: var(--t-ink); }
+
+  .t-surface .t-hero { padding: 56px 32px 48px; }
+  .t-surface .t-hero h1 { font-family: var(--t-font-display); margin: 0 0 12px; font-size: 44px; line-height: 1.1; letter-spacing: -0.01em; }
+  .t-surface .t-hero p { font-size: 15px; color: var(--t-ink-muted); margin: 0; max-width: 480px; line-height: 1.6; }
+
+  .t-surface .t-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--t-font-body); font-size: 14px; font-weight: 500;
+    padding: 12px 22px;
+    border-radius: 4px;
+    border: 1px solid var(--t-primary);
+    background: var(--t-primary);
+    color: var(--t-bg);
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 150ms;
+  }
+  .t-surface .t-btn:hover { opacity: 0.85; }
+  .t-surface .t-btn-outline { background: transparent; color: var(--t-primary); }
+
+  .t-surface .t-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 0 32px 32px;
+  }
+  .t-surface .t-tile {
+    aspect-ratio: 3/4;
+    background: var(--t-bg-alt);
+    background-image:
+      linear-gradient(45deg, var(--t-border) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--t-border) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--t-border) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--t-border) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    border: 1px solid var(--t-border);
+  }
+
+  .t-surface .t-footer {
+    padding: 32px; border-top: 1px solid var(--t-border);
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--t-ink-muted);
+  }
+
+  /* ============ per-theme overrides ============ */
+  /* Elegante */
+  [data-theme='elegante'].t-surface .t-nav-brand em { font-style: italic; color: var(--t-accent); font-weight: 400; }
+  [data-theme='elegante'].t-surface .t-hero h1 em { font-style: italic; font-weight: 400; color: var(--t-ink-muted); }
+  [data-theme='elegante'].t-surface .t-btn { border-radius: 2px; padding: 14px 28px; letter-spacing: 0.02em; }
+  [data-theme='elegante'].t-surface .gold-rule { height: 1px; width: 40px; background: var(--t-accent); margin: 0 0 16px; }
+  [data-theme='elegante'].t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  [data-theme='elegante'].t-surface .t-tile { aspect-ratio: 3/2; }
+
+  /* Moderno */
+  [data-theme='moderno'].t-surface .t-hero h1 { background: var(--t-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  [data-theme='moderno'].t-surface .t-btn { background: var(--t-gradient); border: 0; border-radius: 999px; color: #fff; padding: 14px 28px; box-shadow: 0 8px 30px rgba(102,126,234,0.3); }
+  [data-theme='moderno'].t-surface .t-btn-outline { background: transparent; color: var(--t-primary); border: 1px solid var(--t-border); box-shadow: none; }
+  [data-theme='moderno'].t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  [data-theme='moderno'].t-surface .t-tile { aspect-ratio: 1/1; border-radius: 12px; }
+
+  /* Minimalista */
+  [data-theme='minimalista'].t-surface { font-weight: 300; }
+  [data-theme='minimalista'].t-surface .t-nav { padding: 28px 40px; border: 0; }
+  [data-theme='minimalista'].t-surface .t-nav-brand { font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; font-size: 14px; font-family: var(--t-font-body); }
+  [data-theme='minimalista'].t-surface .t-hero { padding: 96px 40px; }
+  [data-theme='minimalista'].t-surface .t-hero h1 { font-weight: 300; font-size: 64px; letter-spacing: -0.03em; }
+  [data-theme='minimalista'].t-surface .t-btn { background: transparent; color: var(--t-ink); border: 1px solid var(--t-ink); border-radius: 0; letter-spacing: 0.15em; text-transform: uppercase; font-size: 11px; font-weight: 400; padding: 14px 28px; }
+  [data-theme='minimalista'].t-surface .t-btn:hover { background: var(--t-ink); color: var(--t-bg); }
+  [data-theme='minimalista'].t-surface .t-gallery { grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 0 40px 40px; }
+  [data-theme='minimalista'].t-surface .t-tile { aspect-ratio: 1/1; border: 0; }
+
+  /* Escuro */
+  [data-theme='escuro'].t-surface .t-nav-brand { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 900; }
+  [data-theme='escuro'].t-surface .t-hero h1 { text-transform: uppercase; font-weight: 900; font-size: 52px; letter-spacing: -0.01em; background: linear-gradient(135deg, var(--t-accent), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  [data-theme='escuro'].t-surface .t-btn { background: var(--t-accent); border-color: var(--t-accent); color: #000; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; font-size: 12px; padding: 14px 28px; }
+  [data-theme='escuro'].t-surface .t-gallery { grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  [data-theme='escuro'].t-surface .t-tile { aspect-ratio: 21/9; grid-column: span 3; background-image: none; background: linear-gradient(135deg, #1a1a1a, #2a2a2a); border: 0; }
+  [data-theme='escuro'].t-surface .t-tile:nth-child(1) { grid-column: span 3; }
+  [data-theme='escuro'].t-surface .t-tile:nth-child(n+2) { grid-column: span 1; aspect-ratio: 1/1; }
+
+  /* Galeria */
+  [data-theme='galeria'].t-surface .t-nav-brand { font-style: italic; }
+  [data-theme='galeria'].t-surface .t-hero h1 { font-style: italic; font-size: 40px; font-weight: 700; }
+  [data-theme='galeria'].t-surface .t-hero p { font-weight: 300; }
+  [data-theme='galeria'].t-surface .t-btn { border-radius: 0; border: 1px solid var(--t-accent); background: transparent; color: var(--t-accent); padding: 12px 24px; font-style: italic; }
+  [data-theme='galeria'].t-surface .t-gallery { display: block; column-count: 3; column-gap: 8px; padding: 0 32px 32px; }
+  [data-theme='galeria'].t-surface .t-tile { aspect-ratio: auto; margin-bottom: 8px; break-inside: avoid; border: 0; background: var(--t-bg-alt); }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(1) { height: 280px; }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(2) { height: 180px; }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(3) { height: 220px; }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(4) { height: 160px; }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(5) { height: 240px; }
+  [data-theme='galeria'].t-surface .t-tile:nth-child(6) { height: 200px; }
+
+  /* ============ theme preview frames (side-by-side) ============ */
+  .theme-preview {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid #eee;
+    margin: var(--sp-4) 0 var(--sp-6);
+  }
+  .preview-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #666;
+  }
+  .preview-meta .tag {
+    background: #f5f5f5; padding: 2px 8px; border-radius: 4px; font-size: 10px;
+  }
+</style>
+</head>
+<body class="ds-page">
+<main class="ds-shell">
+
+  <div class="ds-header">
+    <div class="ds-crumb"><a href="index.html">Design System</a> / <span>06 · Themes kit</span></div>
+    <div class="ds-crumb"><a href="05-components-admin.html">← Admin</a></div>
+  </div>
+
+  <div class="ds-eyebrow">Kits · Surface C</div>
+  <h1 class="ds-title">Themes <em>kit</em></h1>
+  <p class="ds-lede">
+    Five opinionated looks a photographer can apply to their public portfolio with
+    a single click. Themes share <em>primitives</em> (spacing, radii, tile logic),
+    but each owns its typography, color, and gallery logic. Swapping a theme is a
+    <code class="inline">data-theme</code> attribute on the site root — nothing else.
+  </p>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.1 How it works</div>
+    <h2 class="ds-h2">One attribute switches everything.</h2>
+    <p class="ds-p">
+      Every photographer site root has <code class="inline">data-theme="elegante|moderno|minimalista|escuro|galeria"</code>. All colors, fonts and accents resolve through <code class="inline">--t-*</code> tokens in <code class="inline">tokens.css</code>. Components check a few theme-name-specific selectors for layout variations (masonry vs. grid, different gallery aspect ratios). Nothing else is themed.
+    </p>
+    <div class="ds-note"><strong>Hard rule:</strong> no theme-specific JavaScript. Themes must work with a style-sheet swap alone. Animations and interactions are shared across all 5.</div>
+  </section>
+
+  <!-- ============ ELEGANTE ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.2 Theme · Elegante</div>
+    <h2 class="ds-h2">Serif + gold. For traditional wedding &amp; portrait work.</h2>
+    <p class="ds-p">Playfair headlines, Inter body, #c9a96e accent as a thin rule and link underline. Square corners on buttons (2px). Sparse 3-column grid at 3:2.</p>
+
+    <div class="theme-preview">
+      <div class="preview-meta"><span>Elegante</span><span><span class="tag">Playfair</span> <span class="tag">Inter</span> <span class="tag">gold #c9a96e</span></span></div>
+      <div class="t-surface" data-theme="elegante">
+        <nav class="t-nav">
+          <div class="t-nav-brand">Maria Silva <em>Fotografia</em></div>
+          <div class="t-nav-links">
+            <a class="t-nav-link" href="#">Portfólio</a>
+            <a class="t-nav-link" href="#">Sobre</a>
+            <a class="t-nav-link" href="#">Contato</a>
+          </div>
+        </nav>
+        <section class="t-hero">
+          <div class="gold-rule"></div>
+          <h1>Momentos que merecem <em>ser guardados</em></h1>
+          <p style="margin-top: 20px;">Fotografia de casamentos e ensaios em Curitiba e região. Trabalho feito com calma, olho para a luz e respeito pela emoção de quem está ali.</p>
+          <div style="margin-top: 28px; display: flex; gap: 12px;">
+            <a class="t-btn">Ver portfólio</a>
+            <a class="t-btn t-btn-outline">Agendar ensaio</a>
+          </div>
+        </section>
+        <div class="t-gallery">
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+        </div>
+        <div class="t-footer"><span>© 2026 Maria Silva</span><span>maria-silva.cliquezoom.com.br</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MODERNO ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.3 Theme · Moderno</div>
+    <h2 class="ds-h2">Poppins + gradient. For newborn, family &amp; lifestyle.</h2>
+    <p class="ds-p">Poppins 400/800. Purple→indigo gradient on the hero h1 and the primary button. Rounded 12px tiles, 4px gaps.</p>
+
+    <div class="theme-preview">
+      <div class="preview-meta"><span>Moderno</span><span><span class="tag">Poppins</span> <span class="tag">gradient</span> <span class="tag">rounded-12</span></span></div>
+      <div class="t-surface" data-theme="moderno">
+        <nav class="t-nav">
+          <div class="t-nav-brand">Rico &amp; Co.</div>
+          <div class="t-nav-links">
+            <a class="t-nav-link" href="#">Portfolio</a>
+            <a class="t-nav-link" href="#">Família</a>
+            <a class="t-nav-link" href="#">Newborn</a>
+            <a class="t-nav-link" href="#">Agendar</a>
+          </div>
+        </nav>
+        <section class="t-hero">
+          <h1>Família em<br>movimento.</h1>
+          <p style="margin-top: 20px;">Ensaios leves, coloridos, com crianças sendo crianças. Sem pose de revista, sem ficar quietinho. Zero.</p>
+          <div style="margin-top: 28px; display: flex; gap: 12px;">
+            <a class="t-btn">Reservar ensaio</a>
+            <a class="t-btn t-btn-outline">Ver galerias</a>
+          </div>
+        </section>
+        <div class="t-gallery">
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+        </div>
+        <div class="t-footer"><span>© 2026 Rico &amp; Co.</span><span>rico.cliquezoom.com.br</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MINIMALISTA ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.4 Theme · Minimalista</div>
+    <h2 class="ds-h2">Inter 300 + black on white. For commercial &amp; editorial.</h2>
+    <p class="ds-p">Everything is light-weight Inter. Uppercase wordmark, uppercase letter-spaced buttons, 4-column square grid with 2px gutters.</p>
+
+    <div class="theme-preview">
+      <div class="preview-meta"><span>Minimalista</span><span><span class="tag">Inter 300</span> <span class="tag">#000/#fff</span> <span class="tag">grid-4</span></span></div>
+      <div class="t-surface" data-theme="minimalista">
+        <nav class="t-nav">
+          <div class="t-nav-brand">GABRIELA LIMA</div>
+          <div class="t-nav-links">
+            <a class="t-nav-link" href="#" style="letter-spacing: 0.15em; text-transform: uppercase; font-size: 11px;">Work</a>
+            <a class="t-nav-link" href="#" style="letter-spacing: 0.15em; text-transform: uppercase; font-size: 11px;">Info</a>
+            <a class="t-nav-link" href="#" style="letter-spacing: 0.15em; text-transform: uppercase; font-size: 11px;">Contact</a>
+          </div>
+        </nav>
+        <section class="t-hero">
+          <h1>Still objects,<br>moving light.</h1>
+          <p style="margin-top: 24px; font-weight: 300;">Product &amp; editorial photography. Based in São Paulo. Available worldwide.</p>
+          <div style="margin-top: 32px;">
+            <a class="t-btn">View work</a>
+          </div>
+        </section>
+        <div class="t-gallery">
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+        </div>
+        <div class="t-footer" style="font-weight:300;"><span>© 2026 GABRIELA LIMA</span><span>gabi.cliquezoom.com.br</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ESCURO ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.5 Theme · Escuro</div>
+    <h2 class="ds-h2">Montserrat Black + orange on charcoal. For sports, music, nightlife.</h2>
+    <p class="ds-p">Heavy caps everywhere. Orange→white gradient clipped headlines. Wide 21:9 hero tile, then 1:1 tile strip. High-contrast CTAs.</p>
+
+    <div class="theme-preview">
+      <div class="preview-meta"><span>Escuro</span><span><span class="tag" style="background:#0a0a0a;color:#fff;">Montserrat 900</span> <span class="tag" style="background:#0a0a0a;color:#ff9500;">#ff9500</span> <span class="tag" style="background:#0a0a0a;color:#fff;">caps</span></span></div>
+      <div class="t-surface" data-theme="escuro">
+        <nav class="t-nav">
+          <div class="t-nav-brand">DANIEL R.</div>
+          <div class="t-nav-links">
+            <a class="t-nav-link" href="#">Live</a>
+            <a class="t-nav-link" href="#">Sports</a>
+            <a class="t-nav-link" href="#">Hire</a>
+          </div>
+        </nav>
+        <section class="t-hero">
+          <h1>Fast. Loud.<br>Late at night.</h1>
+          <p style="margin-top: 20px;">Concert and sports photography. 10+ anos cobrindo shows e quadras pelo Brasil.</p>
+          <div style="margin-top: 28px; display: flex; gap: 12px;">
+            <a class="t-btn">Book a shoot</a>
+          </div>
+        </section>
+        <div class="t-gallery">
+          <div class="t-tile"></div>
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+        </div>
+        <div class="t-footer" style="text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;"><span>© 2026 Daniel R.</span><span>daniel.cliquezoom.com.br</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GALERIA ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.6 Theme · Galeria</div>
+    <h2 class="ds-h2">Libre Baskerville + warm neutrals. Masonry.</h2>
+    <p class="ds-p">Columns: true masonry via CSS <code class="inline">column-count</code>. No captions. Italic italic italic. For fine-art and documentary work.</p>
+
+    <div class="theme-preview">
+      <div class="preview-meta"><span>Galeria</span><span><span class="tag">Libre Baskerville</span> <span class="tag">masonry</span> <span class="tag">italic</span></span></div>
+      <div class="t-surface" data-theme="galeria">
+        <nav class="t-nav">
+          <div class="t-nav-brand">Larissa &amp; Co.</div>
+          <div class="t-nav-links">
+            <a class="t-nav-link" href="#">Obras</a>
+            <a class="t-nav-link" href="#">Biografia</a>
+            <a class="t-nav-link" href="#">Contato</a>
+          </div>
+        </nav>
+        <section class="t-hero">
+          <h1>Arquivo <em>em construção</em>.</h1>
+          <p style="margin-top: 20px;">Ensaios documentais feitos em filme 35mm, entre 2021 e hoje. Novas imagens adicionadas quando é inevitável.</p>
+          <div style="margin-top: 28px;">
+            <a class="t-btn">Explorar arquivo</a>
+          </div>
+        </section>
+        <div class="t-gallery">
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+          <div class="t-tile"></div><div class="t-tile"></div><div class="t-tile"></div>
+        </div>
+        <div class="t-footer" style="font-style: italic;"><span>© 2026 Larissa &amp; Co.</span><span>larissa.cliquezoom.com.br</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARE ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.7 At a glance</div>
+    <h2 class="ds-h2">Choosing a theme by work type.</h2>
+    <table class="lex">
+      <thead><tr><th>Theme</th><th>Best for</th><th>Gallery</th><th>Signature</th></tr></thead>
+      <tbody>
+        <tr><td class="good">Elegante</td><td class="note">Casamentos, ensaios, gestante</td><td class="note">3-col · 3:2</td><td class="note">Gold rule above h1</td></tr>
+        <tr><td class="good">Moderno</td><td class="note">Família, newborn, lifestyle</td><td class="note">3-col · 1:1 rounded</td><td class="note">Gradient h1 &amp; CTA</td></tr>
+        <tr><td class="good">Minimalista</td><td class="note">Produto, editorial, corporativo</td><td class="note">4-col · 1:1 flush</td><td class="note">Uppercase tracking</td></tr>
+        <tr><td class="good">Escuro</td><td class="note">Shows, esportes, street</td><td class="note">21:9 hero + 1:1 row</td><td class="note">Orange→white clip</td></tr>
+        <tr><td class="good">Galeria</td><td class="note">Documental, autoral, filme</td><td class="note">Masonry · 3-col</td><td class="note">Italic everywhere</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ BUILDING A NEW THEME ============ -->
+  <section class="ds-section">
+    <div class="ds-eyebrow">6.8 Building a new theme</div>
+    <h2 class="ds-h2">What a new theme must define.</h2>
+    <p class="ds-p">We keep the five above as the product offer. To prototype a sixth for A/B testing, add a new <code class="inline">[data-theme='name']</code> block in <code class="inline">tokens.css</code> defining at minimum:</p>
+    <dl class="ds-kv" style="max-width: 720px;">
+      <dt>Required tokens</dt><dd><code class="inline">--t-bg</code>, <code class="inline">--t-bg-alt</code>, <code class="inline">--t-ink</code>, <code class="inline">--t-ink-muted</code>, <code class="inline">--t-primary</code>, <code class="inline">--t-accent</code>, <code class="inline">--t-border</code>, <code class="inline">--t-font-body</code>, <code class="inline">--t-font-display</code>.</dd>
+      <dt>Optional tokens</dt><dd><code class="inline">--t-gradient</code>, <code class="inline">--t-accent-rgb</code>.</dd>
+      <dt>Permitted overrides</dt><dd>Gallery grid (columns/aspect/gap), button radius + casing, nav/hero padding, headline weight/style.</dd>
+      <dt>Forbidden overrides</dt><dd>Component APIs, JS, icon library, admin/marketing surfaces.</dd>
+    </dl>
+  </section>
+
+  <footer class="ds-foot" style="margin-top: var(--sp-9); padding-top: var(--sp-5); border-top: 1px solid #eee; display:flex; justify-content: space-between; font-size:13px;">
+    <a href="05-components-admin.html" style="color:#888; text-decoration:none;">← 05 · Admin</a>
+    <a href="index.html" style="color:#1a1a1a; font-weight:500; text-decoration:none;">Back to index →</a>
+  </footer>
+
+</main>
+</body>
+</html>
