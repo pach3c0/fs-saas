@@ -245,7 +245,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const isDelivered = state.session.selectionStatus === 'delivered';
-        const downloadAllBtn = isDelivered
+        const isGalleryMode = state.session.mode === 'gallery';
+        const downloadAllBtn = (isDelivered || isGalleryMode)
             ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}"
                   style="background:#16a34a; color:white; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600; text-decoration:none; white-space:nowrap;"
                   download>

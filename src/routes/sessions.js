@@ -1146,7 +1146,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
-    if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+    if (session.mode !== 'gallery' && session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
 
     // Determinar quais fotos incluir no ZIP
     // No modo 'selection': só as fotos selecionadas; no modo 'gallery': todas
