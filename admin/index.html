@@ -208,14 +208,14 @@
 
         .brand { display: flex; align-items: center; gap: var(--sp-2); }
         .brand-logo {
-            width: 28px; height: 28px;
-            background: linear-gradient(135deg, #2f81f7, #6e40c9);
-            border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 700; color: white;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.01em;
+            line-height: 1;
         }
-        .brand-name { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); }
-        .brand-name span { color: var(--accent); }
+        .brand-name { display: none; } /* wordmark agora vive em .brand-logo */
 
         /* Notification bell */
         #notificationBell {
@@ -613,12 +613,14 @@
         }
 
         .login-logo {
-            width: 48px; height: 48px;
-            background: linear-gradient(135deg, #2f81f7, #6e40c9);
-            border-radius: var(--radius-lg);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px; font-weight: 700; color: white;
-            margin: var(--sp-0) auto 1.25rem;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            letter-spacing: 0.01em;
+            margin: var(--sp-0) auto 1rem;
+            line-height: 1;
         }
 
         .login-title { text-align: center; font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
@@ -947,9 +949,8 @@
 <!-- ═══ LOGIN ═══ -->
 <div id="loginForm" style="display:none;">
     <div class="login-card">
-        <div class="login-logo">C</div>
-        <h2 class="login-title">CliqueZoom Admin</h2>
-        <p class="login-subtitle">Entre para gerenciar sua conta</p>
+        <div class="login-logo">CliqueZoom</div>
+        <p class="login-subtitle" style="margin-bottom:1.5rem;">Entre para gerenciar sua conta</p>
 
         <!-- Tela: login -->
         <div id="loginView">
@@ -996,8 +997,7 @@
     <aside id="sidebar">
         <div id="sidebar-header" style="position:relative;">
             <div class="brand">
-                <div class="brand-logo">C</div>
-                <span class="brand-name">Clique<span>Zoom</span></span>
+                <div class="brand-logo">CliqueZoom</div>
             </div>
             <div id="notificationBell" onclick="toggleNotifications()" title="Notificações">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

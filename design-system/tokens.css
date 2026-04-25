@@ -117,9 +117,9 @@
   --ad-bg-base: #ffffff;
   --ad-bg-surface: #fafafa;
   --ad-bg-elevated: #f5f5f5;
-  --ad-bg-hover: #eeeeee;
-  --ad-border: #e5e5e5;
-  --ad-border-muted: #f0f0f0;
+  --ad-bg-hover: #ececec;
+  --ad-border: #d5d5d5;        /* mais escuro que o padrao light usual — admin tem muita estrutura tabular e precisa de divisores claros */
+  --ad-border-muted: #e8e8e8;
   --ad-text: #1a1a1a;
   --ad-text-muted: #555555;
   --ad-text-dim: #888888;
