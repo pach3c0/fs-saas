@@ -287,3 +287,10 @@ Esta tabela resume o comportamento para cada combinação que o fotógrafo pode 
 | **L4** | `post_edit` | 960px | Sobe fotos brutas | Thumbs (960px) | Edita após seleção | Re-upload editadas |
 | **L5** | `post_edit` | 1200px | Sobe fotos brutas | Thumbs (1200px) | Edita após seleção | Re-upload editadas |
 | **L6** | `post_edit` | 1600px | Sobe fotos brutas | Thumbs (1600px) | Edita após seleção | Re-upload editadas |
+# ajustes urgentes (Resolvidos)
+
+- [x] Remoção do botão "Subir Editadas" da Galeria Geral.
+- [x] Botão "Selecionar/Desmarcar Tudo" na galeria do cliente (/cliente).
+- [x] Botão "Entregar" bloqueado até que o upload de editadas atinja a quantidade selecionada.
+- [x] Persistência na aba de "Entrega Final" após upload no admin.
+- [x] Bloqueio automático do dropdown "Modo" após envio da seleção pelo cliente (liberado apenas via "Reabrir").
