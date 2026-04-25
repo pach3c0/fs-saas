@@ -798,6 +798,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.selectedPhotos = result.selectedPhotos || [];
             state.isSelectionMode = result.mode === 'selection';
 
+        // Atualiza texto do botão selecionar tudo
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        if (selectAllBtn) {
+            const allSelected = state.photos.length > 0 && state.photos.every(p => state.selectedPhotos.includes(p.id));
+            selectAllBtn.textContent = allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo';
+        }
+
             // Detectar novas respostas do fotógrafo nos comentários
             if (isPolling) {
                 const newReplies = [];
@@ -979,6 +986,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         } finally {
             hideLoading(submitSelectionBtn);
         }
+    }
+
+    async function toggleSelectAll() {
+        if (!state.isSelectionMode || !state.photos.length) return;
+
+        const allSelected = state.photos.every(p => state.selectedPhotos.includes(p.id));
+        
+        if (allSelected) {
+            // Desmarcar tudo
+            state.selectedPhotos = [];
+        } else {
+            // Selecionar tudo
+            state.selectedPhotos = state.photos.map(p => p.id);
+        }
+
+        renderPhotos();
+        
+        // Atualiza no servidor
+        try {
+            const url = `/api/client/selection/${state.sessionId}`;
+            const headers = { 'Content-Type': 'application/json' };
+            const body = JSON.stringify({ 
+                accessCode: state.accessCode, 
+                selectedPhotos: state.selectedPhotos 
+            });
+
+            if (!navigator.onLine) {
+                await queueSyncRequest(url, 'POST', headers, body);
+                return;
+            }
+
+            await fetch(url, {
+                method: 'POST',
+                headers,
+                body
+            });
+        } catch (e) {
+            console.error('Erro ao sincronizar seleção total:', e);
+        }
+    }
+
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', toggleSelectAll);
     }
 
     // --- Modal de Reabertura ---

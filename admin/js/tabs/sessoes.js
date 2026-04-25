@@ -493,9 +493,10 @@ export async function renderSessoes(container) {
         const mode = session.mode || 'gallery';
         const isMulti = mode === 'multi_selection';
         const selectedCount = (session.selectedPhotos || []).length;
-        const limit = session.packageLimit || 30;
         const extras = Math.max(0, selectedCount - limit);
         const extraPrice = session.extraPhotoPrice || 25;
+        const deliveredPhotosCount = (session.photos || []).filter(p => p.urlOriginal).length;
+        const isSubmitted = session.selectionStatus === 'submitted';
 
         return `
         <div style="border:1px solid var(--border); border-radius:0.75rem; padding:1rem; background:var(--bg-surface);">
@@ -536,13 +537,20 @@ export async function renderSessoes(container) {
               <button onclick="viewParticipants('${session._id}')" style="background:var(--purple); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Participantes
               </button>` : ''}
-              ${!isMulti && session.selectionStatus === 'submitted' ? `
+              ${!isMulti && isSubmitted ? `
               <button onclick="reopenSelection('${session._id}')" style="background:var(--yellow); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">
                 Reabrir
-              </button>
-              <button onclick="deliverSession('${session._id}')" style="background:${session.workflowType === 'post_edit' ? 'transparent' : 'var(--green)'}; color:${session.workflowType === 'post_edit' ? 'var(--green)' : 'white'}; padding:0.375rem 0.75rem; border-radius:0.375rem; border:${session.workflowType === 'post_edit' ? '1px solid var(--green)' : 'none'}; cursor:pointer; font-size:0.75rem; font-weight:500;" title="${session.workflowType === 'post_edit' ? 'Edite no Lightroom antes de entregar' : ''}">
-                Entregar
               </button>` : ''}
+              <button onclick="deliverSession('${session._id}')" 
+                style="background:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'var(--green)' : 'rgba(255,255,255,0.05)'}; 
+                       color:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)'}; 
+                       padding:0.375rem 0.75rem; border-radius:0.375rem; 
+                       border:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'none' : '1px solid var(--border)'}; 
+                       cursor:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'pointer' : 'not-allowed'}; font-size:0.75rem; font-weight:500;" 
+                ${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? '' : 'disabled'}
+                title="${!isSubmitted ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : 'Entregar sessão'))}">
+                Entregar
+              </button>
               ${session.extraRequest?.status === 'pending' ? `
               <button onclick="acceptExtraRequest('${session._id}')" style="background:var(--green); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;" title="Aceitar fotos extras">
                 ✅ Aceitar extras
@@ -855,7 +863,8 @@ export async function renderSessoes(container) {
     secondaryBtn.htmlFor = 'sessionEditedInput';
     secondaryBtn.style.background = 'var(--purple)';
     secondaryBtn.title = "Upload das fotos editadas — substitui por nome de arquivo";
-    secondaryBtn.style.display = session.workflowType === 'post_edit' ? 'flex' : 'none';
+    // Na visualização inicial, se for Galeria Geral, esconde o botão de editadas
+    secondaryBtn.style.display = 'none'; 
 
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
@@ -1170,6 +1179,7 @@ export async function renderSessoes(container) {
     } catch (e) { /* silencioso */ }
     container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
+    editModeSelect.disabled = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
     container.querySelector('#editLimit').value = session.packageLimit || 30;
     container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
     container.querySelector('#editHighResDelivery').checked = session.highResDelivery || false;
@@ -1470,6 +1480,8 @@ export async function renderSessoes(container) {
             await renderSessoes(container);
             if (currentSessionId) {
               viewSessionPhotos(currentSessionId);
+              // Forçar aba Entrega Final após subir editadas
+              window.switchPhotoTab('entrega');
             }
           }
         });
