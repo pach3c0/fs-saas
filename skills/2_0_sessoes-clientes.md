@@ -217,7 +217,7 @@ stateDiagram-v2
 - **Auto-Save**: No admin, mudanças em campos de configuração disparam `saveDados()` imediatamente.
 - **Preview Instantâneo**: Ações na galeria do cliente refletem no admin via notificações em tempo real.
 - **Fila de Sincronização (Offline)**: A galeria do cliente usa `IndexedDB` para salvar seleções feitas sem internet, sincronizando via `sw.js` ao detectar reconexão.
-- **Modal Unificado (Dual-Grid)**: As telas de "Fotos" e "Seleção" foram consolidadas em um único modal de alta eficiência, com scroll independente entre a galeria geral e o painel de entrega final.
+- **Modal Unificado com Abas (Tabs)**: As telas de "Fotos" e "Entrega Final" foram consolidadas em um único modal, estruturado em **duas Abas exclusivas** (em vez de split vertical). Isso garante 100% da altura da tela para a rolagem, solucionando o encavalamento de grid causado por *aspect-ratio* no Safari ao processar 500+ fotos.
 - **Split Button Inteligente**: O botão de upload alterna automaticamente entre "+ Upload" e "✏️ Subir Editadas" com base no status da sessão, mantendo ambas as funções acessíveis via dropdown.
 - **Validação Pré-Upload (Entrega)**: Antes de iniciar o re-upload de fotos editadas, o sistema realiza uma análise de nomes de arquivos, seleção do cliente e limites de pacote, solicitando confirmação do fotógrafo caso detecte inconsistências ou brindes extras.
 - **Branding Dinâmico**: A galeria pública NUNCA exibe marcas do CliqueZoom; apenas a logo e cores do fotógrafo (`state.session.organization`).
@@ -229,7 +229,8 @@ stateDiagram-v2
 - [x] Usar `window.showConfirm()` em vez de `confirm()` nativo.
 - [x] Usar variáveis CSS (`var(--accent)`) para garantir compatibilidade com Dark Mode.
 - [x] Queries de leitura devem usar `.lean()` para performance.
-- [x] Deletes físicos de fotos devem passar por `storage.deleteFile` para manter o storage limpo.
+- [x] Deletes físicos de fotos devem passar por `storage.deleteFile` (via `Promise.all`), lidando corretamente com caminhos absolutos do Multer. Isso inclui `url`, `urlOriginal`, `urlEditada` **e também** `coverPhoto` no delete da sessão.
+- [x] Em rotas de upload (`POST /sessions/:id/photos`), processos pesados como o `sharp` devem ter rastreamento em array (ex: `generatedThumbs`). No bloco `catch`, deve-se varrer `req.files` e `generatedThumbs` apagando do disco tudo que vazou durante o erro, evitando arquivos órfãos estruturais.
 
 ---
 
