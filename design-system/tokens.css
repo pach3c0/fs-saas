@@ -39,10 +39,18 @@
   --dur-base: 0.25s;
   --dur-slow: 0.4s;
 
-  /* Brand accents (shared across surfaces — photographer blue + approval green) */
-  --brand-blue: #2f81f7;
-  --brand-blue-dark: #1f6feb;
-  --brand-violet: #6e40c9;
+  /* ── Brand palette · CliqueZoom ──
+     Minimalist: black, grays, white. No blue, no purple.
+     Used as the cor primária across all surfaces.
+     Status colors below are FUNCTIONAL (feedback, never branding). */
+  --brand-ink: #1a1a1a;       /* primária — texto principal, CTAs, logo */
+  --brand-ink-2: #555555;     /* secundária — texto secundário */
+  --brand-ink-3: #888888;     /* terciária — texto muted, ícones inativos */
+  --brand-ink-4: #bbbbbb;     /* quaternária — divisores, bordas suaves */
+  --brand-paper: #ffffff;     /* superfícies claras */
+  --brand-paper-2: #fafafa;   /* fundo de página claro */
+
+  /* Status — functional only. Never use as brand accent. */
   --success: #16a34a;
   --success-dim: #3fb950;
   --danger: #f85149;
@@ -64,9 +72,9 @@
   --mk-border: #eeeeee;
   --mk-border-strong: #dddddd;
   --mk-accent: #1a1a1a;
-  --mk-accent-soft: #f0fdf4;
-  --mk-accent-soft-ink: #16a34a;
-  --mk-link: #2563eb;
+  --mk-accent-soft: #f5f5f5;
+  --mk-accent-soft-ink: #1a1a1a;
+  --mk-link: #1a1a1a;
 
   --mk-font-body: 'Inter', -apple-system, sans-serif;
   --mk-font-display: 'Playfair Display', Georgia, serif;
@@ -77,11 +85,57 @@
 }
 
 /* ── SURFACE B · ADMIN ──
-   Dark, dense, tooling. GitHub + Linear + Stripe.
-   Used in: admin/
+   Dense, tooling. Two themes: light (default) and dark.
+   Theme is selected via [data-theme='light' | 'dark'] on <html>.
+   Tokens stay named --ad-* — only their values flip per theme.
+   Used in: admin/, saas-admin/
+
+   Why light is default: a new photographer entering the platform
+   will look for a dark-mode toggle if they prefer dark; the inverse
+   is not true — defaulting to dark hides the option from them.
 */
+
+/* Shared (theme-independent) admin tokens */
 [data-surface='admin'],
 .surface-admin {
+  --ad-font-body: 'Inter', -apple-system, sans-serif;
+  --ad-font-display: 'Playfair Display', Georgia, serif;
+  --ad-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Status — functional, identical in both themes */
+  --ad-green: #3fb950;
+  --ad-red: #f85149;
+  --ad-yellow: #d29922;
+  --ad-orange: #ffa657;
+}
+
+/* Default theme = LIGHT (applies when no [data-theme] is set) */
+[data-surface='admin'],
+.surface-admin,
+[data-surface='admin'][data-theme='light'],
+.surface-admin[data-theme='light'] {
+  --ad-bg-base: #ffffff;
+  --ad-bg-surface: #fafafa;
+  --ad-bg-elevated: #f5f5f5;
+  --ad-bg-hover: #eeeeee;
+  --ad-border: #e5e5e5;
+  --ad-border-muted: #f0f0f0;
+  --ad-text: #1a1a1a;
+  --ad-text-muted: #555555;
+  --ad-text-dim: #888888;
+  --ad-accent: #1a1a1a;
+  --ad-accent-hover: #000000;
+  --ad-accent-soft: rgba(26,26,26,0.06);
+  --ad-accent-on: #ffffff;        /* tinta sobre fundo accent */
+
+  --ad-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --ad-shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --ad-shadow-lg: 0 24px 60px rgba(0,0,0,0.10);
+}
+
+/* Dark theme — opt-in via [data-theme='dark'] */
+[data-surface='admin'][data-theme='dark'],
+.surface-admin[data-theme='dark'] {
   --ad-bg-base: #0d1117;
   --ad-bg-surface: #161b22;
   --ad-bg-elevated: #1c2128;
@@ -91,18 +145,10 @@
   --ad-text: #e6edf3;
   --ad-text-muted: #8b949e;
   --ad-text-dim: #484f58;
-  --ad-accent: #2f81f7;
-  --ad-accent-hover: #1f6feb;
-  --ad-accent-soft: rgba(47,129,247,0.12);
-  --ad-green: #3fb950;
-  --ad-red: #f85149;
-  --ad-yellow: #d29922;
-  --ad-purple: #bc8cff;
-  --ad-orange: #ffa657;
-
-  --ad-font-body: 'Inter', -apple-system, sans-serif;
-  --ad-font-display: 'Playfair Display', Georgia, serif;
-  --ad-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ad-accent: #e6edf3;           /* tinta clara como accent no dark */
+  --ad-accent-hover: #ffffff;
+  --ad-accent-soft: rgba(230,237,243,0.08);
+  --ad-accent-on: #0d1117;
 
   --ad-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --ad-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
