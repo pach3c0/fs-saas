@@ -50,9 +50,17 @@ const PREVIEW_DEVICES = {
   mobile: { w: 390, h: 844, label: 'Mobile', frameClass: 'mobile' },
 };
 
-function getSiteUrl() {
+function getSiteUrl(isPublic = false) {
   const slug = appState.orgSlug;
-  return slug ? `/site?_tenant=${slug}` : '/site';
+  if (!slug) return '/site';
+
+  const isProd = window.location.hostname.includes('cliquezoom.com.br');
+  
+  if (isPublic && isProd) {
+    return `https://${slug}.cliquezoom.com.br`;
+  }
+  
+  return `/site?_tenant=${slug}`;
 }
 
 function applyDeviceFrame(device) {
@@ -119,17 +127,18 @@ function loadSitePreview() {
   const newTabA = document.getElementById('openSiteNewTab');
   if (!iframe) return;
 
-  const siteUrl = getSiteUrl();
+  const previewUrl = getSiteUrl(false);
+  const publicUrl = getSiteUrl(true);
 
-  if (urlBar) urlBar.value = window.location.origin + siteUrl;
-  if (newTabA) newTabA.href = siteUrl;
+  if (urlBar) urlBar.value = publicUrl.startsWith('http') ? publicUrl : window.location.origin + publicUrl;
+  if (newTabA) newTabA.href = publicUrl;
 
   // Show loading overlay
   if (loading) loading.classList.remove('hidden');
 
   iframe.src = '';
   requestAnimationFrame(() => {
-    iframe.src = siteUrl;
+    iframe.src = previewUrl;
     iframe.onload = () => {
       if (loading) loading.classList.add('hidden');
     };
@@ -140,19 +149,14 @@ function loadSitePreview() {
 }
 
 window.openMySite = function () {
-  const slug = appState.orgSlug;
-  if (!slug) {
+  const publicUrl = getSiteUrl(true);
+  
+  if (publicUrl === '/site') {
     showToast('Slug da organização não carregado. Tente novamente em instantes.', 'warning');
     return;
   }
 
-  // Se estivermos em produção e houver um slug, tentamos abrir o subdomínio
-  const isProd = window.location.hostname.includes('cliquezoom.com.br');
-  const url = isProd 
-    ? `https://${slug}.cliquezoom.com.br` 
-    : `${window.location.origin}/site?_tenant=${slug}`;
-
-  window.open(url, '_blank');
+  window.open(publicUrl, '_blank');
 };
 
 window.setPreviewDevice = function (device) {
