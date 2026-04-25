@@ -110,8 +110,8 @@ export async function renderPortfolio(container) {
         </div>
         
         <div style="display:flex; gap:0.25rem; background:var(--bg-surface); padding:0.25rem; border-radius:0.375rem; border:1px solid var(--border);">
-          <button id="styleStandardBtn" class="btn ${_gridStyle === \'standard\' ? \'btn-primary\' : \'btn-ghost\'}">Padrão</button>
-          <button id="styleMixedBtn" class="btn ${_gridStyle === \'mixed\' ? \'btn-primary\' : \'btn-ghost\'}">Misto (Dinâmico)</button>
+          <button id="styleStandardBtn" class="btn ${_gridStyle === 'standard' ? 'btn-primary' : 'btn-ghost'}">Padrão</button>
+          <button id="styleMixedBtn" class="btn ${_gridStyle === 'mixed' ? 'btn-primary' : 'btn-ghost'}">Misto (Dinâmico)</button>
         </div>
       </div>
 
