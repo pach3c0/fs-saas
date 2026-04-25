@@ -114,14 +114,14 @@
 .surface-admin,
 [data-surface='admin'][data-theme='light'],
 .surface-admin[data-theme='light'] {
-  /* Fundo da pagina = cinza claro. Surfaces (sidebar, cards, tabelas, inputs)
-     = branco. Isso cria separacao automatica sem precisar de bordas fortes. */
-  --ad-bg-base: #f4f4f5;       /* workspace / fundo geral */
-  --ad-bg-surface: #ffffff;    /* sidebar, cards, tabelas, inputs */
-  --ad-bg-elevated: #ffffff;   /* modais, dropdowns (usar com sombra) */
-  --ad-bg-hover: #e8e8eb;      /* hover sobre fundo cinza */
-  --ad-border: #d4d4d8;
-  --ad-border-muted: #e4e4e7;
+  /* Filosofia: minimalista em escala de cinza. Branco e reservado para
+     tinta/texto sobre fundos escuros. As surfaces variam por tom de cinza. */
+  --ad-bg-base: #e8e8eb;       /* workspace / fundo geral — cinza um pouco mais marcado */
+  --ad-bg-surface: #f1f1f3;    /* sidebar, cards, tabelas — cinza clarinho */
+  --ad-bg-elevated: #f7f7f8;   /* modais, dropdowns, inputs — quase branco mas nao branco */
+  --ad-bg-hover: #dcdce0;      /* hover */
+  --ad-border: #c8c8cd;
+  --ad-border-muted: #dcdce0;
   --ad-text: #1a1a1a;
   --ad-text-muted: #555555;
   --ad-text-dim: #888888;
@@ -129,7 +129,7 @@
   --ad-accent-hover: #000000;
   --ad-accent-soft: rgba(26,26,26,0.06);
   --ad-accent-on: #ffffff;        /* tinta sobre fundo accent */
-  --ad-input-bg: #ffffff;          /* inputs ficam brancos sobre o cinza da pagina */
+  --ad-input-bg: #f7f7f8;          /* inputs em cinza muito claro (nao branco) */
 
   --ad-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --ad-shadow-md: 0 4px 12px rgba(0,0,0,0.06);
