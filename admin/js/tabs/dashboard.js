@@ -39,7 +39,7 @@ export async function renderDashboard(container) {
                 <div style="display:flex; flex-direction:column; gap:1rem;">
                     <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Ações Rápidas</h3>
 
-                    <button onclick="switchTab('sessoes')" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">
+                    <button onclick="switchTab('sessoes').then(() => { const m = document.getElementById('newSessionModal'); if(m) m.style.display='flex'; })" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">
                         <div style="width:32px; height:32px; border-radius:8px; background:rgba(47,129,247,0.15); color:var(--accent); display:flex; align-items:center; justify-content:center;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                         </div>
@@ -111,7 +111,7 @@ async function loadDashboardData(container) {
             sessionsList.innerHTML = `<p style="padding:3rem; text-align:center; color:var(--text-muted);">Você ainda não tem sessões. Crie a primeira para começar.</p>`;
         } else {
             sessionsList.innerHTML = sessions.slice(0, 5).map(session => `
-                <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; transition:background 0.2s;" onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background='transparent'">
+                <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem;">
                     <div style="width:40px; height:40px; border-radius:8px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; overflow:hidden;">
                         ${session.coverPhoto ? `<img src="${session.coverPhoto}" style="width:100%; height:100%; object-fit:cover;">` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
                     </div>
