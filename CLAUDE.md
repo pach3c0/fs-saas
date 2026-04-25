@@ -1,510 +1,213 @@
 # CliqueZoom — Instrucoes para o Assistente
-
 ## PROJETO
-
-SaaS de gestao fotografica. Frontends: `home/` (cadastro), `admin/` (painel fotografo), `cliente/` (galeria), `album/` (prova), `saas-admin/` (super-admin), `site/templates/` (5 templates publicos). Backend: `src/` (Express + MongoDB local: mongodb://localhost:27017/cliquezoom).
-
-Deploy: VPS Contabo, dominio `cliquezoom.com.br`, path `/var/www/cz-saas`, processo PM2 `cliquezoom-saas` (ids 8/9, porta 3051, cluster).
-
+SaaS de gestao fotografica. Frontends: `home/` (cadastro), `admin/` (painel fotografo), `cliente/` (galeria PWA), `album/` (prova), `saas-admin/` (super-admin), `site/templates/` (5 templates publicos). Backend: `src/` (Express + MongoDB local `mongodb://localhost:27017/cliquezoom`).
+Deploy: VPS Contabo, dominio `cliquezoom.com.br`, path `/var/www/cz-saas`, PM2 `cliquezoom-saas` (ids 8/9, porta 3051, cluster `instances:2`).
+Cliente real unico em producao: **Fs Fotografias** (Flavia, ID `69c6a1b912ec3dec57684d42`, slug `fsfotografias`) — usa apenas o site publico. Cuidado redobrado para nao quebrar.
 ---
-
 ## REGRAS CRITICAS
-
-1. **Admin JS = ES Modules** (`import/export`). Nunca `require()` em `admin/`.
-2. **Backend JS = CommonJS** (`require/module.exports`) em `src/`. `package.json` tem `"type":"commonjs"`.
-3. **Tabs do admin: INLINE STYLES com CSS variables.** Nunca classes Tailwind (ficam invisiveis no tema dark).
-4. **Upload SO local** em `/uploads/`. Sem Cloudinary/S3/Atlas.
-5. **`npm run build:css` antes de deploy** se mudou HTML com classes Tailwind novas.
-6. **Admin:** `window.showToast(msg, type)` e `window.showConfirm(msg, opts)`. Nunca `alert/confirm`.
-10. **Logging:** usar `req.logger` (Winston) para logs estruturados com `orgId/userId/requestId`.
-11. **Storage:** usar `src/services/storage.js` para qualquer operação de arquivo (save/delete/url).
-12. **Fale em portugues** em tudo (mensagens, labels, comentarios).
-
+1. Admin JS = ES Modules (`import/export`). Nunca `require()` em `admin/`.
+2. Backend JS = CommonJS em `src/` (`package.json: "type":"commonjs"`).
+3. Tabs do admin: INLINE STYLES com CSS variables. Nunca classes Tailwind (invisiveis no dark).
+4. Upload SO local em `/uploads/`. Sem Cloudinary/S3/Atlas.
+5. `npm run build:css` antes de deploy se mudou HTML com classes Tailwind novas.
+6. Admin: `window.showToast(msg,type)` e `window.showConfirm(msg,opts)`. Nunca `alert/confirm`.
+7. Logging: `req.logger.info/error('msg',{meta})` (Winston, tenant-aware via `auth.js`).
+8. Storage: `src/services/storage.js` para qualquer save/delete/url de arquivo.
+9. Fale em portugues em tudo (mensagens, labels, comentarios).
+10. Banco e `cliquezoom`. NUNCA `fsfotografias` (sistema legado no mesmo servidor).
+11. Nao mexer em `crm-backend`, `vps-hub`. Nao alterar Nginx/porta sem autorizacao.
+12. Nao fazer commit/push sem pedido explicito do usuario.
 ---
-
 ## ARQUITETURA
-
 ```
-admin/          # Painel fotografo (ES Modules)
-  index.html    # Shell + login + sidebar + builder mode
-  js/
-    app.js      # Orquestrador, switchTab, builder mode
-    state.js    # appState, loadAppData, saveAppData
-    tabs/       # 1 arquivo por aba (dashboard, perfil, meu-site, sessoes, clientes, albuns-prova, albuns, portfolio, estudio, faq, hero, sobre, logo, footer, integracoes, marketing, dominio, plano)
-    utils/      # helpers, upload, api, photoEditor, notifications, toast
-saas-admin/     # Super-admin (orgs, lixeira, landing)
-home/           # Landing /cadastro
-cliente/        # Galeria privada (PWA)
-album/          # Album de prova
-site/templates/ # elegante, minimalista, moderno, escuro, galeria + shared-site.js
-  shared.css    # CSS ESTRUTURAL compartilhado (layout, aspect-ratio, breakpoints base)
-                # Cada modulo novo: estrutura em shared.css, visual em style.css individual
-assets/css/     # tailwind-input.css (source), tailwind.css (build), shared.css
-uploads/        # Imagens (Nginx static); /sessions/, /videos/
-src/
-  routes/       # auth, sessions, clients, albums, organization, site, siteData, upload, notifications, domains, billing, landing, saasAdmin
-  utils/        # multerConfig, notifications, deadlineChecker, logger
-  services/     # storage (abstração de arquivos)
-  logs/         # logs diários (winston)
-ecosystem.config.js  # PM2 cluster
+admin/   index.html (shell+login+sidebar+builder)  js/{app.js,state.js,tabs/*,utils/*}
+saas-admin/  home/  cliente/(PWA: sw.js+IDB)  album/
+site/templates/{elegante,minimalista,moderno,escuro,galeria}+shared-site.js+shared.css
+assets/css/{tailwind-input.css,tailwind.css,shared.css}
+uploads/{<orgId>/sessions,videos}
+src/  routes/(auth,sessions,clients,albums,organization,site,siteData,upload,
+       notifications,domains,billing,landing,saasAdmin)
+      utils/(multerConfig,notifications,deadlineChecker,logger,cleanupStorage)
+      services/storage.js  middleware/auth.js  models/  logs/
+ecosystem.config.js (PM2 cluster)
 ```
-
 ---
+## DESIGN SYSTEM
+Antes de qualquer trabalho visual: LER `design-system/SKILL.md` + arquivos em `design-system/`.
+3 superficies separadas: Marketing (`home/`), Admin (`admin/`+`saas-admin/`), Temas (`site/templates/*`). Nunca misturar.
 
-## DESIGN SYSTEM (admin) — CSS variables em `admin/index.html`
+**Paleta CliqueZoom (minimalista):** preto/cinza/branco. Sem azul, sem roxo. Status (success/danger/warning) sao funcionais — nunca usar como cor de marca.
 
-```css
---bg-base:#0d1117; --bg-surface:#161b22; --bg-elevated:#1c2128; --bg-hover:#21262d;
---border:#30363d; --text-primary:#e6edf3; --text-secondary:#8b949e; --text-muted:#484f58;
---accent:#2f81f7; --accent-hover:#1f6feb;
---green:#3fb950; --red:#f85149; --yellow:#d29922; --purple:#bc8cff; --orange:#ffa657;
+**Logo:** wordmark "CliqueZoom" em Playfair Display 700 (sem letra "C" estilizada, sem gradientes). Aplicada em landing, admin/login, admin/sidebar, saas-admin/login, saas-admin/topbar.
+
+**Tokens:** fonte unica em `assets/css/tokens.css` (servida pelo Nginx via `/assets/css/tokens.css`). Symlink em `design-system/tokens.css` para os docs locais. NUNCA inventar cores/fontes — sempre consumir tokens.
+
+**Tipografia:** Marketing usa Playfair (display) + Inter (body). Admin usa Inter only — exceto a wordmark do logo que e Playfair.
+
+**Voz PT-BR**, "voce", sem exclamacoes em CTAs. Icones: Lucide outline 1.5px (filled so em selected). Imagens: placeholder xadrez ou foto real (nunca stock).
+
+**Admin (admin/ + saas-admin/) — tema dual via `[data-theme]` em `<html>`:**
+- Default = **light** (decisao de UX: novo fotografo descobre que existe a opcao dark)
+- Persiste em `localStorage['cz-admin-theme']`. Script anti-FOUC no `<head>` aplica antes do render
+- Toggle sol/lua no topbar. Funcao global `window.toggleAdminTheme()`
+
+Tokens admin (em `assets/css/tokens.css`, namespace `--ad-*`):
+```
+LIGHT (cinza escala, branco so para tinta):
+--ad-bg-base:#e8e8eb --ad-bg-surface:#f1f1f3 --ad-bg-elevated:#f7f7f8 --ad-bg-hover:#dcdce0
+--ad-border:#c8c8cd --ad-text:#1a1a1a --ad-text-muted:#555 --ad-text-dim:#888
+--ad-accent:#1a1a1a (preto)  --ad-accent-on:#fff  --ad-input-bg:#f7f7f8
+
+DARK (cinzas neutros, sem azulado):
+--ad-bg-base:#2a2a2c --ad-bg-surface:#323234 --ad-bg-elevated:#3a3a3c --ad-bg-hover:#444446
+--ad-border:#4a4a4c --ad-text:#f2f2f2 --ad-text-muted:#b5b5b7 --ad-text-dim:#8a8a8c
+--ad-accent:#f2f2f2 (tinta clara)  --ad-accent-on:#2a2a2c  --ad-input-bg:#2a2a2c
+
+STATUS (compartilhado entre temas):
+--ad-green:#3fb950 --ad-red:#f85149 --ad-yellow:#d29922 --ad-orange:#ffa657
 ```
 
-Uso: `style="background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border);"`
+`admin/index.html` mantem aliases legados (`--bg-base`, `--accent`, etc) apontando para os `--ad-*` para nao quebrar centenas de refs em `admin/js/tabs/*.js`. `--purple` e shim apontando para cinza ate limpeza dessas refs.
 
-Layout: `#sidebar (220px)` + `#main-area (#topbar 56px + #workspace + #builder-props 360px + #builder-preview)`.
+Layout admin: `#sidebar(220px)` + `#main-area(#topbar 56px + #workspace + #builder-props 360px + #builder-preview)`.
 
+**Iframe do builder Meu Site (zona sensivel):** o iframe renderiza Surface C (tema do fotografo). NUNCA pode herdar `data-theme` do admin. Mexer com cuidado redobrado em qualquer coisa que toque `admin/js/tabs/*meusite*`, `site/templates/`, ou o preview do builder.
 ---
-
 ## MODELO Organization (campos chave)
-
-`name, slug, ownerId, plan, isActive, logo, phone, whatsapp, email, website, bio, address, city, state, primaryColor, watermarkType, watermarkText, watermarkOpacity, siteEnabled, siteTheme, siteConfig{hero*,overlayOpacity,topBarHeight,bottomBarHeight}, siteStyle{accentColor,bgColor,textColor,fontFamily}, siteSections[], siteContent{sobre,servicos,depoimentos,portfolio,contato,faq,customSections}, integrations{whatsappMessage,googleAnalytics,facebookPixel,metaPixel,seo,deadlineAutomation{enabled,daysWarning,sendEmail}}`
-
-`SiteData` (legado): hero, faq, portfolio.photos[]. Acessado via `GET/PUT /api/site-data`.
-
+`name, slug, ownerId, plan, isActive, logo, phone, whatsapp, email, website, bio, address, city, state, primaryColor, watermarkType, watermarkText, watermarkOpacity, siteEnabled, siteTheme, siteConfig{hero*,overlayOpacity,topBarHeight,bottomBarHeight}, siteStyle{accentColor,bgColor,textColor,fontFamily}, siteSections[], siteContent{sobre,servicos,depoimentos,portfolio,contato,faq}, integrations{whatsappMessage,googleAnalytics,facebookPixel,metaPixel,seo,deadlineAutomation{enabled,daysWarning,sendEmail}}, onboarding`
+`SiteData` (legado): hero, faq, portfolio.photos[]. Acesso `GET/PUT /api/site-data`.
 ---
-
 ## DEPLOY
-
-**Pre-deploy local:** `git status` limpo → `git log origin/main..HEAD` vazio (se nao, `git push` ANTES de instruir VPS).
-
-**Comandos VPS:**
-```bash
-cd /var/www/cz-saas
-git pull
-npm install                # so se mudou package.json
-pm2 reload ecosystem.config.js --env production
-```
-
-| O que mudou | Acao |
+Pre-deploy local: `git status` limpo → `git log origin/main..HEAD` vazio (se nao, `git push` ANTES da VPS).
+VPS: `cd /var/www/cz-saas && git pull && [npm install se package.json mudou] && pm2 reload ecosystem.config.js --env production`.
+| Mudou | Acao |
 |---|---|
-| Backend (`src/`) | `git pull` + `npm install` + `pm2 reload` |
-| Frontend (sem Tailwind novo) | `git pull` (Nginx serve static) |
-| Tailwind classes novas | `npm run build:css` local + commit + `git pull` na VPS |
-
-Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. **Nunca** `pm2 restart all`.
-**AVISO CRÍTICO DE BANCO:** O banco deste projeto é `cliquezoom`. **Nunca** use o banco `fsfotografias` (pertence a outro sistema legado no mesmo servidor).
-**Nunca** mexer em `crm-backend`, `vps-hub`. **Nunca** alterar Nginx/porta sem autorizacao.
-
+| Backend (`src/`) | git pull + npm install + pm2 reload |
+| Frontend sem Tailwind novo | git pull (Nginx static) |
+| Tailwind novo | `npm run build:css` local + commit + git pull VPS |
+Logs: `pm2 logs cliquezoom-saas --lines 30 --nostream`. Nunca `pm2 restart all`.
+Backup automatico: cron 3h via `/root/scripts/backup.sh` → Google Drive (`CliqueZoom-Backups/{mongodb,uploads}`); dumps locais 7 dias; log `/var/log/cz-backup.log`; reconectar token: `rclone config reconnect gdrive:`.
+Monitor: UptimeRobot em `https://cliquezoom.com.br/health` a cada 5min.
 ---
-
 ## PADROES DE CODIGO
-
 | Tarefa | Como |
 |---|---|
-| Novo tab admin | `admin/js/tabs/X.js` exportando `renderX(container)` + botao `.nav-item[data-tab="x"]` em `admin/index.html` + entrada em `TAB_TITLES` em `app.js` |
-| Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` em `server.js` |
-| Novo modelo | Incluir `organizationId: { type: ObjectId, ref: 'Organization', required: true }` + `{ timestamps: true }` |
-| Logging | Usar `req.logger.info/error('msg', { metadata })`. Contexto de tenant/user já injetado via `auth.js`. |
-| Storage | `import storage from '../services/storage.js'`. Usar `storage.deleteFile(url)`, `storage.getUrl(path)`, `storage.getDirSize(path)`. |
-| Super-Admin | Rotas em `src/routes/saasAdmin.js`. Métricas em `/api/admin/saas/metrics`. |
-| Upload imagem | `import { uploadImage, showUploadProgress, UploadQueue } from '../utils/upload.js'` → `UploadQueue` para massa, `uploadImage` para solo. |
-| PWA Offline | `cliente/sw.js` (Sync + IDB) + `gallery.js` (Queue IDB) | Suporte a seleções e comentários offline. |
-| Onboarding | `Organization.onboarding` + `dashboard.js` checklist | Guia de boas-vindas para novos fotógrafos. |
-| Dados que aparecem no site publico | Salvar com `apiPut('/api/site/admin/config', { siteContent: { chave: valor } })`. Carregar com `apiGet('/api/site/admin/config')` → `.siteContent.chave`. NUNCA usar `saveAppData` para dados do site publico — ela salva em SiteData (legado) que o site nao le. |
-| Dados internos do admin (hero, faq, etc) | Usar `saveAppData(section, data)` → `/api/site-data` (SiteData). So para dados que o site publico le via SiteData (hero canvas, faq). Verificar qual modelo o `shared-site.js` consome antes de escolher qual rota usar. |
-| Alterar layout de secao nos templates | Editar `site/templates/shared.css` (estrutura: grid, aspect-ratio, breakpoints). Regras visuais (cores, bordas, sombras, animacoes) em cada `style.css` individual |
-| Editor visual de imagem | Agora integrado diretamente no preview real do site via `shared-site.js` e sliders na barra lateral. |
-
+| Novo tab admin | `admin/js/tabs/X.js` exporta `renderX(container)` + `.nav-item[data-tab="x"]` em `index.html` + `TAB_TITLES` em `app.js` |
+| Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` |
+| Novo modelo | `organizationId:{type:ObjectId,ref:'Organization',required:true}` + `{timestamps:true}` |
+| Storage | `import storage from '../services/storage.js'` → `deleteFile(url)`, `getUrl(path)`, `getDirSize(path)` |
+| Upload | `import {uploadImage,showUploadProgress,UploadQueue} from '../utils/upload.js'` |
+| Dados site publico | `apiPut('/api/site/admin/config',{siteContent:{chave:valor}})`. Carregar com `apiGet('/api/site/admin/config').siteContent.chave`. NUNCA `saveAppData` para isso |
+| Hero | salva em `siteConfig` (nao `siteContent`); backend faz merge por sub-chave |
+| Layout secao templates | estrutura em `site/templates/shared.css`, visual em `style.css` de cada template |
 Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
-
 ---
-
 ## ERROS COMUNS — NAO REINTRODUZIR
-
-| Sintoma | Causa | Evitar |
-|---|---|---|
-| Conteudo invisivel no admin | Classes Tailwind no tema dark | Sempre CSS variables |
-| `@apply` nao funciona em runtime | So funciona no build | Nao usar fora de `tailwind-input.css` |
-| Portfolio sumido no site | Classe arbitraria nao compilada | Use `style="aspect-ratio:3/4;"`, nao `aspect-[3/4]` |
-| Secao salva no admin mas nao aparece no site publico | `saveAppData` salva em `SiteData` (legado); site publico le de `Organization.siteContent` | Usar `apiPut('/api/site/admin/config', { siteContent: { ... } })` para qualquer dado que o site precisa exibir |
-| Erro 500 "Cannot create field X in element" no MongoDB | Dot notation aninhada no `$set` (`siteContent.portfolio.photos`) conflita com campo pai ja existente como `Mixed` | Sempre fazer `$set` no objeto pai inteiro: `updateData['siteContent.portfolio'] = value` em vez de `updateData['siteContent.portfolio.photos'] = value.photos` |
-| Formulário de depoimento "enviado" mas nunca aparece no admin | Testes feitos no preview do builder (`?_preview=1`) — fluxo real (visitante em `slug.cliquezoom.com.br`) ainda não validado | Testar sempre numa aba separada sem `_preview`; considerar ocultar o formulário no modo preview |
-| Upload 413 | Payload grande | Verificar `client_max_body_size` Nginx |
-| `slug.cliquezoom.com.br` vai para landing page | Nginx sem SSL wildcard ou `server.js` sem redirect de subdomínio | Ver `skills/6_0_dominio.md` — bloco `cliquezoom-slugs` + cert `cliquezoom.com.br-0001` |
-| Preview branco no Meu Site | Race condition slug | `await loadOrgSlug()` antes de `builderLoadPreview` |
-| Preview "Site em construcao" | `siteEnabled=false` | Sempre `_preview=1` no iframe builder |
-| Secoes fora de ordem | `appendChild` em vez de antes do footer | `insertBefore(el, siteFooter)` |
-| Rota admin 404 producao | Falta `authenticateToken` | Toda rota admin com middleware |
-| Erro 500 cadastro | `ownerId` required | Nao tornar `ownerId` obrigatorio no schema |
-| App nao inicia | MongoDB off | `sudo systemctl start mongod` |
-| 502 Bad Gateway | Node caiu | `pm2 reload ecosystem.config.js --env production` + logs |
-| Admin demora para carregar no login | Chamadas de API sequenciais em `postLoginSetup` | Usar `Promise.all([loadOrgSlug(), loadSidebarStorage()])` — nunca `await` em serie para chamadas independentes |
-| Site publico lento (TTFB alto) | Multiplas queries MongoDB na rota `GET /site` | Usar uma unica `Organization.find({ slug: { $in: candidates } })` e reordenar por prioridade em JS |
-| I/O sincrono trava todo o servidor | `fs.readdirSync`/`fs.statSync`/`fs.existsSync` no event loop | Sempre `fs.promises.readdir`/`fs.promises.stat`/`fs.promises.access` em rotas async |
-| `require()` dentro de handler | Lookup desnecessaria a cada requisicao | Mover todos os `require()` para o topo do arquivo |
-| Branding de outra marca aparece na galeria do cliente | Fallback hardcoded `'FS FOTOGRAFIAS'` em `gallery.js` ou `index.html` | Fallback sempre `''` ou omitir — nunca string de marca; ver `skills/2_1_clientes_selecao.md` |
-| Fotógrafo com conta suspensa consegue usar o sistema | `isActive=false` não era verificado no middleware | `authenticateToken` em `src/middleware/auth.js` já verifica — retorna 403 com mensagem clara |
-| API lenta para todos os fotógrafos (Neighbor Noise) | Um tenant em loop abusava da API sem limite | `express-rate-limit` em `src/server.js`: 300 req/min por `organizationId`; superadmins e `/site` são isentos |
-| Arquivos órfãos em `/uploads/` após delete de sessão/foto | (1) `storage.deleteFile()` sem `await` em `forEach` no delete; (2) Erro durante upload não limpava arquivos do multer; (3) `urlEditada` não era deletado | Usar `await Promise.all(deletions)` ao remover arquivos; em catch de upload, sempre limpar `req.files` |
-| Limite de plano não respeita valor `-1` (infinito) após editar no saas-admin | `planLimits.json` é atualizado mas `Subscription.limits` no banco não — o middleware `checkPhotoLimit` lê do banco | Ao salvar limites de planos, fazer `Subscription.updateMany({ plan }, { $set: { limits: limits[plan] } })` para sincronizar |
-
-
+| Sintoma | Evitar |
+|---|---|
+| Conteudo invisivel admin | Sempre CSS variables, nunca Tailwind em tabs |
+| `@apply` runtime nao funciona | So em `tailwind-input.css` |
+| Portfolio sumido | `style="aspect-ratio:3/4"`, nao `aspect-[3/4]` |
+| Secao salva mas nao aparece no site | Usar `siteContent` (Organization), nao `SiteData` |
+| Erro 500 "Cannot create field X" | `$set` no objeto pai inteiro, nao em dot notation aninhada de Mixed |
+| Upload 413 | `client_max_body_size` Nginx |
+| `slug.cliquezoom.com.br` → landing | Ver `skills/6_0_dominio.md` (cert wildcard + redirect subdominio) |
+| Preview branco Meu Site | `await loadOrgSlug()` antes de `builderLoadPreview` |
+| Preview "Site em construcao" | iframe builder com `?_preview=1` |
+| Secoes fora de ordem | `insertBefore(el,siteFooter)`, nao `appendChild` |
+| Rota admin 404 prod | Faltou `authenticateToken` |
+| Erro 500 cadastro | `ownerId` nao deve ser required no schema |
+| 502 Bad Gateway | Node caiu → `pm2 reload` + logs |
+| Login admin lento | `Promise.all([loadOrgSlug(),loadSidebarStorage()])` paralelo |
+| Site publico TTFB alto | Uma `Organization.find({slug:{$in:candidates}})` + reordenar JS |
+| I/O sync trava server | Sempre `fs.promises.*` (readdir/stat/access) |
+| `require()` em handler | Mover para topo do arquivo |
+| Branding errado galeria cliente | Fallback `''`, nunca string de marca hardcoded |
+| Conta suspensa funcionando | `isActive=false` ja bloqueado em `auth.js` (403) |
+| Neighbor Noise | `express-rate-limit` 300req/min por orgId; superadmin+`/site` isentos |
+| Arquivos orfaos uploads | `await Promise.all(deletions)` no delete; em catch upload limpar `req.files`+`generatedThumbs` |
+| Limite plano `-1` ignorado | `Subscription.updateMany({plan},{$set:{limits:limits[plan]}})` ao salvar planLimits |
+| Caminho duplicado em delete | `resolvePath` retorna absoluto se ja comeca com `baseDir` (corrigido 2026-04-24) |
 ---
-
-## SKILLS (ler sob demanda)
-
-### Core — Arquitetura e Infraestrutura
-`skills/1_1_backend.md` — rotas Express, middlewares, auth JWT, variáveis de ambiente, planLimits
-`skills/1_2_frontend.md` — admin UI, CSS variables, utilitários, tabs, padrões ES Modules
-`skills/1_3_banco-de-dados.md` — modelos Mongoose, Mixed, fontes de verdade (SiteData vs Organization)
-`skills/1_4_builder-componentes.md` — biblioteca de componentes reutilizáveis do admin, showcase, padrões de canvas/layer
-`skills/6_0_dominio.md` — DNS, Nginx, SSL wildcard, subdomínios de fotógrafos, domínio customizado
-
-### CRM e Sessões
-`skills/2_0_sessoes-clientes.md` — módulo Sessões + Clientes: arquitetura, fluxo de seleção, multi-seleção, busca dinâmica de clientes, 3 campos de data, envio manual de e-mail, filtros, link email→galeria com slug+código, rota `/send-code`, rota `/clients/search`
-`skills/2_1_clientes_selecao.md` — galeria PWA do cliente (`cliente/`): tenant resolution por subdomínio, login automático via `?code=`, branding dinâmico (somente logo do fotógrafo), watermark, PWA manifest, rotas `/api/client/*`
-
-### Site Builder — Índice e Geral
-`skills/5_0_meu-site.md` — índice do builder, estrutura geral, navegação entre módulos
-`skills/5_1_builder-geral-site.md` — builder, postMessage, dirty state, iframe preview
-`skills/5_15_default-meusite.md` — configurações padrão e reset do builder
-
-### Site Builder — Módulos de Seção
-`skills/5_2_builder-sessoes.md` — seção Sessões no site público
-`skills/5_3_builder-hero.md` — hero, siteConfig (não siteContent), canvas, sliders de transformação
-`skills/5_4_builder-sobre.md` — sobre, layers, drag-and-drop de camadas, preview integrado
-`skills/5_5_builder-portfolio.md` — portfolio, upload, compressão, grid
-`skills/5_6_builder-servicos.md` — serviços, cards
-`skills/5_7_builder-depoiments.md` — depoimentos, aprovação, formulário público
-`skills/5_8_builder-albuns.md` — álbuns de prova, editor avançado, drag-and-drop, dual-mode grid
-`skills/5_9_builder-estudio.md` — estúdio, informações da empresa
-`skills/5_10_builder-contato.md` — contato, formulário, mapa
-`skills/5_11_builder-faq.md` — FAQ, accordion
-`skills/5_12_builder_personalizar.md` — personalização: cores, fontes, tema
-`skills/5_13_builder-rodape.md` — rodapé: redes sociais, copyright, quickLinks
-
-**Regra:** ao alterar área coberta por skill, atualizar a skill correspondente. Após features que adicionam pasta/rota/modelo/padrão novo, atualizar este `CLAUDE.md` e a skill relevante.
-
+## PERFORMANCE — PADROES (nao reverter)
+Frontend: `Promise.all` em login; `setTimeout(startNotificationPolling,5000)`; `<script src="shared-site.js" defer>`; Material Symbols `opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap`.
+Backend: `fs.promises.*`; uma query em `GET /site`; `express.json({limit:'5mb'})`; `.lean()` em reads; `require()` no topo.
 ---
-
 ## FUNCIONALIDADES REMOVIDAS — NAO RECRIAR
-
-| Funcionalidade | Removida de | Motivo |
-|---|---|---|
-| Newsletter | `footer.js`, `shared-site.js` (labels, allSections, bloco de codigo) | Nao existe mais no app |
-| Tab Logo (`logo.js`) | `admin/js/tabs/logo.js` deletado | Codigo morto; logo gerenciado via Perfil → `Organization.logo` |
-| Secoes Extras (customSections) | `meu-site.js`, `shared-site.js`, `Organization.js`, `site.js` | Funcionalidade descontinuada em 2026-04-18 |
-| `Session.workflowType` (`ready` vs `post_edit`) | `Session.js`, `sessions.js` (backend), `sessoes.js` (admin) | Fluxo unificado em 2026-04-25 — só existe `post_edit`. Quem quer "entregar pronto" sobe a editada como se fosse RAW |
-| `Session.highResDelivery` | `Session.js`, modal de editar sessão | Removido junto com workflowType — `urlOriginal` (editada re-subida) sempre é servido quando existe |
-
+| Item | Motivo |
+|---|---|
+| Newsletter | Nao existe mais |
+| Tab Logo (`logo.js`) | Codigo morto; logo via `Organization.logo` (Perfil) |
+| Secoes Extras (customSections) | Descontinuada 2026-04-18 |
+| `Session.workflowType`, `Session.highResDelivery` | Fluxo unificado 2026-04-25 (so `post_edit`); `urlOriginal` (editada re-subida) sempre servido se existe |
 ---
-
-## PERFORMANCE — PADROES ESTABELECIDOS (2026-04-19)
-
-> Otimizacoes aplicadas apos diagnostico de lentidao. Nao reverter.
-
-### Frontend (admin)
-- **Login paralelo:** `postLoginSetup()` usa `await Promise.all([loadOrgSlug(), loadSidebarStorage()])` — nunca serializar chamadas independentes.
-- **Polling com delay:** `setTimeout(startNotificationPolling, 5000)` — nao iniciar imediatamente no login.
-- **Scripts do site publico:** todos os templates usam `<script src="shared-site.js" defer>` — obrigatorio em novos templates.
-- **Fonte Material Symbols:** parametros fixos `opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap` — nao usar ranges amplos.
-
-### Backend
-- **I/O de disco:** sempre `fs.promises.*` (async) — nunca `fs.readdirSync`, `fs.statSync`, `fs.existsSync` em rotas.
-- **Queries MongoDB na rota `GET /site`:** uma unica `Organization.find({ slug: { $in: candidates } })` cobrindo tenant/subdominio/ownerSlug; prioridade resolvida em JS por reordenacao de array.
-- **Limit do express.json:** `5mb` global — uploads usam multer (multipart), nao sao afetados por esse limit.
-- **`.lean()`:** usar em todas as queries de leitura que nao precisam de metodos Mongoose (`save`, `markModified`).
-- **`require()` no topo:** nunca usar `require()` dentro de handlers de rota — mover para o topo do arquivo.
-
+## ROADMAP
+1. ✅ Fluxo Pro Lightroom (`Session.photoResolution` 960-1600px; thumb-only + `POST /sessions/:id/photos/upload-edited`).
+2. ✅ Automacao Prazos (`integrations.deadlineAutomation`, scheduler 6h, emails warning/expired).
+3. ✅ Sprint 2: Bulk Upload+Fila, Onboarding Checklist, PWA Offline Sync.
+4. Vendedor Automatico (upselling email pos-selecao).
+5. Monetizacao Direta (gateway pagamento → libera download).
+6. Backup Democratico (export sessoes p/ Drive/Dropbox do fotografo).
+7. Slideshow viral (`fluent-ffmpeg` + Bull queue).
+Strangler Fig (Cloud R2): aplicar quando Storage VPS > 70%, usando `StorageService`.
+NAO aplicar agora: BFF, Fault Tolerance multi-VPS, Blue-Green, Microsservicos.
 ---
-
-## DELETAR CODIGO ANTIGO
-
-Antes de implementar feature, verificar se existe codigo legado a remover.
-
+## SKILLS (ler sob demanda)
+Core: `1_1_backend.md` `1_2_frontend.md` `1_3_banco-de-dados.md` `1_4_builder-componentes.md` `1_6_testes.md` `6_0_dominio.md` `estudoarquitetura.md`
+CRM: `2_0_sessoes-clientes.md` `2_1_clientes_selecao.md`
+Builder: `5_0_meu-site.md` `5_1_builder-geral-site.md` `5_15_default-meusite.md` `5_2_builder-sessoes.md` `5_3_builder-hero.md` `5_4_builder-sobre.md` `5_5_builder-portfolio.md` `5_6_builder-servicos.md` `5_7_builder-depoiments.md` `5_8_builder-albuns.md` `5_9_builder-estudio.md` `5_10_builder-contato.md` `5_11_builder-faq.md` `5_12_builder_personalizar.md` `5_13_builder-rodape.md`
+Fluxos: `skills/fluxo.md`.
+Regra: ao alterar area coberta por skill, atualizar a skill. Apos pasta/rota/modelo/padrao novo, atualizar este CLAUDE.md.
 ---
-
-## REGRA DE EXPERIENCIA
-
-Antes de alterar codigo, leia o modulo correspondente e valide a alteracao contra o Roadmap e a UX. Se a alteracao afetar o fluxo de dados entre componentes, explicar o impacto antes de gerar codigo. Tres passos antes de subir/rodar:
-
-1. **Analise:** o que este botao/funcao faz hoje?
-2. **Impacto:** o que muda no estado global?
-3. **Rastreabilidade:** para onde esse comando vai e quem consome?
-
-
----
-
-## AJUSTES PENDENTES — Consistencia entre modulos admin
-
-> Auditoria realizada em 2026-04-17. Corrigir modulo por modulo antes de novas features.
-
-### 3 padroes canonicos (referencia: `portfolio.js`)
-
-| Padrao | Correto | Errado |
-|---|---|---|
-| Estado isolado | `let _modulo = null` (carrega na primeira render) | `appState.appData.X` |
-| Save de dados do site | `apiPut('/api/site/admin/config', { siteContent: {...} })` | `saveAppData('X', data)` |
-| CSS | `var(--bg-surface)`, `var(--text-primary)` | `#hexcodes` hardcoded |
-| Preview sync | `window._meuSitePostPreview?.()` apos cada save | ausente |
-
-### Status por modulo
-
-| Arquivo | Estado isolado | Save correto | CSS variables | Preview sync |
+## AUDITORIA 360 POR MODULO — METODOLOGIA
+Ciclo de qualidade por modulo (ordem):
+1. Ler skill correspondente; corrigir/atualizar se desatualizada.
+2. Ler frontend `admin/js/tabs/X.js` completo. Identificar: `confirm/alert` nativos, hexcodes, codigo morto, `escapeHtml` duplicado.
+3. Aplicar correcoes (CSS variables, `window.showConfirm`, importar de `helpers.js`).
+4. Ler backend `src/routes/`. Verificar: `require()` em handlers, I/O sync, queries sem `.lean()`.
+5. Verificar BD: colunas/modelos legados; migrar dados de Fs Fotografias com seguranca para o padrao novo.
+6. Criar Playwright `tests/N_0_modulo.spec.js`. Rodar `npx playwright test ... --workers=1 --headed`.
+7. Atualizar skill do modulo + `skills/fluxo.md`. Marcar ✅ na tabela.
+3 padroes canonicos (ref: `portfolio.js`): estado isolado `let _modulo=null`; save via `apiPut('/api/site/admin/config',{siteContent:{...}})`; CSS variables; `window._meuSitePostPreview?.()` apos save.
+### Status camadas
+| Camada | Status |
+|---|---|
+| Backend (`src/routes/`) | ✅ |
+| Banco (`src/models/`) | ✅ |
+| Frontend (`admin/js/tabs/`) | 🔄 |
+### Frontend concluidos
+`portfolio.js` `sobre.js` `perfil.js` `faq.js` `albuns.js` `integracoes.js` `estudio.js` `footer.js` `hero.js` `app.js`(Login/Landing) — todos ✅.
+`logo.js` deletado (codigo morto).
+Fase 5 Design System (Inputs/Selects/Buttons/Badges/Checkboxes) — ✅ todas as abas (2026-04-25).
+### Pendentes auditoria 360
+| Modulo | Frontend | Backend | Playwright | Skill |
 |---|---|---|---|---|
-| `portfolio.js` | ✅ | ✅ | ✅ | ✅ |
-| `sobre.js` | ✅ | ✅ | ✅ | ✅ |
-| `perfil.js` | ✅ | ✅ | ✅ | — (nao precisa) |
-| `faq.js` | ✅ | ✅ | ✅ | ✅ |
-| `albuns.js` | ✅ | ✅ | ✅ | ✅ |
-| `integracoes.js` | ✅ | ✅ (usa /api/organization/profile — correto) | ✅ | — (nao precisa; nao e visual no site) |
-| `estudio.js` | ✅ | ✅ | ✅ | ✅ |
-| `logo.js` | ✅ deletado — código morto. Logo via `Organization.logo` (Perfil) → `shared-site.js` exibe na navbar/footer | | | |
-| `footer.js` | ✅ | ✅ | ✅ | ✅ |
-| `hero.js` | ✅ | ✅ siteConfig (nao siteContent) | ✅ | ✅ |
-
-*hero.js salva em `siteConfig` (nao `siteContent`) pois `shared-site.js` le de `data.siteConfig`. Backend `PUT /api/site/admin/config` atualizado para fazer merge de siteConfig por sub-chave (igual ao siteContent), evitando sobrescrever campos como `title` e `description`.*
-
-### Escopo da refatoracao
-
-Esta mesma auditoria de consistencia (3 padroes canonicos) sera feita para **todos os modulos** nas 3 camadas:
-
-| Camada | Skill de referencia | Status |
-|---|---|---|
-| Frontend (`admin/js/tabs/`) | `skills/1_2_frontend.md` | 🔄 Em andamento |
-| Backend (`src/routes/`) | `skills/1_1_backend.md` | ✅ Concluido |
-| Banco de dados (`src/models/`) | `skills/1_3_banco-de-dados.md` | ✅ Concluido |
-
-### Ordem de correcao — Frontend (atual)
-
-1. `estudio.js` — ✅ concluido
-2. `logo.js` — ✅ deletado (codigo morto); logo via `Organization.logo` → `shared-site.js`
-3. `albuns.js` — ✅ concluido
-4. `footer.js` — ✅ concluido (migrado para siteContent.footer; shared-site.js atualizado para redes sociais, copyright e quickLinks; newsletter removida completamente do app)
-5. `hero.js` — ✅ concluido (migrado para siteConfig; backend atualizado com merge por sub-chave; 35 cores → CSS variables; preview sync adicionado)
-6. `faq.js`, `integracoes.js` — ✅ concluido (CSS variables + preview sync no faq; integracoes sem preview sync pois nao e secao visual)
-7. `app.js` (Login/Landing) — ✅ concluido em 2026-04-24 (hexcodes → CSS variables; fetch manual → apiGet; import apiGet adicionado; landing.js console.error → req.logger; testes Playwright melhorados: email dinamico, +2 casos de erro no login)
-
-### Modulos pendentes de auditoria 360 (proxima sequencia)
-
-| Modulo | Frontend | Backend | Testes Playwright | Skill atualizada |
-|---|---|---|---|---|
-| `sessoes.js` | ✅ hexcodes → CSS variables (2026-04-24) | — | `tests/2_0_login.spec.js` ✅ | `skills/2_0_sessoes-clientes.md` ✅ |
-| `clientes.js` | 🔄 pendente (`escapeHtml` duplicado, importar de helpers.js) | — | pendente | pendente |
-| `dashboard.js` | 🔄 pendente (auditoria nao feita) | — | pendente | pendente |
-| `perfil.js` | ✅ (ja auditado) | — | pendente | pendente |
-| `plano.js` | 🔄 pendente | — | pendente | pendente |
-| `dominio.js` | 🔄 pendente | — | pendente | pendente |
-| `marketing.js` | 🔄 pendente | — | pendente | pendente |
-
+| `sessoes.js` | ✅ | — | `tests/2_0_login.spec.js` ✅ | `2_0_sessoes-clientes.md` ✅ |
+| `clientes.js` | ✅ | ✅ | `tests/4_0_clientes.spec.js` ✅ | `2_0_sessoes-clientes.md` ✅ |
+| `dashboard.js` | ✅ | ✅ | `tests/2_0_login.spec.js` ✅ | `1_2_frontend.md` ✅ |
+| `perfil.js` | ✅ | — | pendente | pendente |
+| `plano.js` | 🔄 | — | pendente | pendente |
+| `dominio.js` | 🔄 | — | pendente | pendente |
+| `marketing.js` | 🔄 | — | pendente | pendente |
 ---
-
-## PROTOCOLO DE INÍCIO DE CONVERSA
-
-> Toda IA que iniciar uma sessão neste projeto deve seguir este protocolo antes de qualquer outra ação.
-
-### 1. Leia o estado atual
-
-Antes de responder qualquer pergunta sobre "o que fazer", leia:
-- A tabela **"Módulos pendentes de auditoria 360"** na seção `AJUSTES PENDENTES` deste arquivo
-- O primeiro módulo marcado com 🔄 é o próximo a ser auditado
-- Pergunte ao usuário se deseja continuar por esse módulo ou tem outra prioridade
-
-### 2. Sequência canônica de auditoria por módulo
-
-Para cada módulo na tabela de pendências, siga esta ordem:
-
-| Passo | Ação |
-|---|---|
-| 1 | Ler a skill correspondente (`skills/X.md`) e verificar se está atualizada |
-| 2 | Ler o arquivo frontend (`admin/js/tabs/X.js`) completo |
-| 3 | Identificar: `confirm()`/`alert()` nativos, hexcodes hardcoded, código morto, `escapeHtml` duplicado |
-| 4 | Aplicar correções (CSS variables, `window.showConfirm`, importar de helpers.js) |
-| 5 | Ler o arquivo backend correspondente em `src/routes/` |
-| 6 | Verificar: `require()` dentro de handlers, I/O síncrono, queries sem `.lean()` |
-| 7 | Criar teste Playwright em `tests/N_0_modulo.spec.js` cobrindo o caminho crítico |
-| 8 | Rodar: `npx playwright test tests/N_0_modulo.spec.js --workers=1 --headed` |
-| 9 | Atualizar a skill do módulo com o que foi alterado |
-| 10 | Marcar o módulo como ✅ na tabela de pendências |
-
-### 3. Credenciais de teste (produção)
-
+## PROTOCOLO DE INICIO DE CONVERSA
+1. Ler tabela "Pendentes auditoria 360"; o primeiro 🔄 e o proximo. Perguntar ao usuario se segue ou tem outra prioridade.
+2. Seguir os 7 passos da metodologia acima.
+### Credenciais teste (producao)
 ```
-Email:  ricardopacheco.nunes59@gmail.com
-Senha:  qUzsov-zetkek-wokwo3
-URL admin: https://www.cliquezoom.com.br/admin
-Galeria cliente: https://fsfotografias.cliquezoom.com.br/cliente/
+Email: ricardopacheco.nunes59@gmail.com
+Senha: qUzsov-zetkek-wokwo3
+Admin: https://www.cliquezoom.com.br/admin
+Galeria: https://fsfotografias.cliquezoom.com.br/cliente/
 ```
-
-### 4. Regras operacionais de teste (aprendidas na prática)
-
-- **`--workers=1` obrigatório** em testes admin — testes paralelos causam race condition no `switchTab`
-- **Dados de teste com prefixo `test-auto-`** — permite limpeza fácil no banco
-- **`switchTab` é async** — após login, aguardar `.dashboard-stats` + `waitForTimeout(1500)` antes de navegar para outra tab
-- **Login correto:** `POST /api/login` (não `/api/auth/login`)
-- **Modal de confirmação customizado:** botão `#confirmOk` (nunca `window.confirm` nativo)
-- **Subdomínio ativo com SSL:** apenas `fsfotografias.cliquezoom.com.br` — usar este para testes de UI de galeria
-- **Não fazer commit/push sem pedido explícito do usuário**
-
+### Regras testes
+`--workers=1` obrigatorio (race em `switchTab`); prefixo `test-auto-` em dados; apos login aguardar `.dashboard-stats` + `waitForTimeout(1500)`; login `POST /api/login`; modal confirm botao `#confirmOk`; subdominio com SSL ativo apenas `fsfotografias.cliquezoom.com.br`.
 ---
-
-# Regra Geral sobre Commit e push
-
-sempre que alterar algum feature que precise de build (css novo, arquivo na pasta assets, etc), ou que o usuário peça para subir uma alteração para o site publico, você deve:
-1. fazer o build do css
-2. fazer o commit com a mensagem "feat: add feature name"
-3. fazer o push para o repositório
-4. avisar o usuário que o site foi atualizado
-
-
+## REGRA EXPERIENCIA
+Antes de alterar codigo: 1) Analise (o que faz hoje?); 2) Impacto (estado global?); 3) Rastreabilidade (quem consome?). Se afetar fluxo de dados entre componentes, explicar antes de gerar codigo.
 ---
-
-## ARQUITETURA DE SOFTWARE — O QUE APLICAMOS E O QUE VEM DEPOIS
-
-> Baseado no estudo de arquitetura realizado em 2026-04-22. Referência completa em `skills/estudoarquitetura.md`.
-
-### JÁ APLICADO (não alterar sem consciência)
-
-| Padrão | Onde está no código | Por que importa |
-|---|---|---|
-| **Arquitetura 3-Tier** | `cliente/` + `admin/` → `src/` → MongoDB | Separação de responsabilidades correta desde o início |
-| **Stateless (JWT)** | `src/middleware/auth.js` — token em cada requisição | Permite PM2 cluster sem Sticky Sessions; qualquer instância responde |
-| **PWA Offline & Sync** | `cliente/sw.js` + `IndexedDB` | Resiliência de rede para o cliente final; ações enfileiradas |
-| **Escalabilidade horizontal (base)** | `ecosystem.config.js` — `instances: 2, exec_mode: 'cluster'` | Para dobrar capacidade: mudar para `instances: 4`, sem alterar código |
-| **Feature Flag (primitiva)** | `Organization.siteEnabled`, `?_preview=1` na URL | Liga/desliga funcionalidade sem deploy |
-| **Rolling deploy sem downtime** | `pm2 reload` reinicia uma instância por vez | Usuários não percebem o deploy; já funciona hoje |
-
-### A APLICAR — RESILIÊNCIA (baixo esforço, alto impacto)
-
-| Padrão | O que fazer | Quando |
-|---|---|---|
-| **SLI/SLO — monitoramento** | ✅ UptimeRobot configurado — monitor `https://cliquezoom.com.br/health` a cada 5 min | Concluído 2026-04-22 |
-| **RPO/RTO — backup automático** | ✅ rclone + Google Drive (2 TB). Cron diário às 3h faz `mongodump` + sync de `/uploads/`. Script em `scripts/backup.sh`. | Concluído 2026-04-22 |
-
-**Detalhes do backup (configurado no VPS em 2026-04-22):**
-- Script: `/root/scripts/backup.sh`
-- Cron: `0 3 * * * /root/scripts/backup.sh >> /var/log/cz-backup.log 2>&1`
-- Destino: Google Drive → pasta `CliqueZoom-Backups/mongodb/` e `CliqueZoom-Backups/uploads/`
-- MongoDB: backup diário comprimido (RPO = 24h)
-- Uploads (fotos): sync incremental diário (primeira sync: 493 arquivos)
-- Dumps locais: apagados após 7 dias automaticamente
-- Verificar log: `tail -f /var/log/cz-backup.log`
-- Se o token do rclone expirar: `rclone config reconnect gdrive:` no VPS
-
-| **Observabilidade (Winston)** | ✅ Logs estruturados com rotação diária e tenant-aware (via `req.logger`). | Concluído 2026-04-23 |
-| **Abstração de Storage** | ✅ `src/services/storage.js` implementado e integrado em sessions/upload/saas-admin. | Concluído 2026-04-23 |
-| **Métricas Super-Admin** | ✅ Dashboard `saas-admin` exibe uso de disco e estatísticas globais em tempo real. | Concluído 2026-04-23 |
-| **Strangler Fig (Cloud Migration)** | Migrar uploads para Cloudflare R2 ($0,015/GB/mês, egress gratuito) usando a abstração `StorageService`. Script batch migra arquivos antigos sem downtime. | Quando Storage VPS > 70% |
-
-### NÃO APLICAR AGORA (excesso de engenharia para o estágio atual)
-
-| Padrão | Motivo para adiar |
-|---|---|
-| **BFF (Back-end For Front-end)** | O mesmo Express serve todos os frontends e está correto assim. BFF só faz sentido com equipes grandes e payloads muito divergentes. |
-| **Fault Tolerance total** | Requer 2 VPS + load balancer externo. O PM2 com `instances: 2` já oferece Alta Disponibilidade suficiente para esta fase. |
-| **Blue-Green completo** | Requer infraestrutura duplicada. O `pm2 reload` (Rolling) já resolve deploy sem downtime. |
-| **Microsserviços** | O monolito atual é saudável e produtivo. Separar serviços antes da hora gera complexidade sem retorno. |
-
+## REGRA COMMIT/PUSH
+Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar feature que precisa build (CSS novo, assets): 1) `npm run build:css`; 2) commit `feat: <nome>`; 3) push; 4) avisar usuario.
 ---
-
-## ROADMAP ESTRATÉGICO (Visão 2026)
-
-O CliqueZoom está evoluindo de uma ferramenta de entrega para um **Gerente de Vendas Automático**.
-
-### Pilares de Evolução:
-1.  **✅ Fluxo Pro (Lightroom):** `Session.photoResolution` (960–1600px). Todo upload descarta o original e mantém só a thumb; o re-upload das editadas via `POST /sessions/:id/photos/upload-edited` (casa por filename) preenche `urlOriginal` e regenera a thumb. Implementado 2026-04-21, unificado em 2026-04-25 (removido `workflowType` e `highResDelivery`).
-2.  **✅ Automação de Prazos (Escassez):** `Organization.integrations.deadlineAutomation`. Scheduler `setInterval` 6h no `server.js`; e-mails `sendDeadlineWarningEmail`/`sendDeadlineExpiredEmail`. Implementado 2026-04-21.
-3.  **✅ Melhoria na Experiência Principal (Sprint 2):** Bulk Upload com Fila Concorrente, Onboarding Checklist e PWA Offline Sync. Implementado 2026-04-23.
-4.  **Vendedor Automático (Upselling):** E-mail automático após submissão da seleção oferecendo fotos extras com desconto. Próximo passo da automação de marketing.
-4.  **Monetização Direta:** Integração com gateways de pagamento para liberação automática de downloads após quitação de extras.
-5.  **Backup Democrático:** Portabilidade de dados permitindo que o fotógrafo mova sessões antigas para seu próprio Google Drive/Dropbox.
-6.  **Viralização (Slideshow):** Geração automática de vídeos com trilha sonora. Requer `fluent-ffmpeg` + fila de jobs (Bull/BeeQueue).
-
-> Detalhes técnicos e fluxos documentados em `skills/2_1_clientes_selecao.md`.
-
----
-
-## VAZAMENTO DE STORAGE — RESOLVIDO (2026-04-24)
-
-> **Status:** Resolvido! A causa raiz estava na função `resolvePath` do `src/services/storage.js`.
-
-### Sintoma reportado
-
-- Org `Estudio Star` (slug: soraia, ID: `69927bbb80b8c2d033f9ffa5`) com **0 sessões no banco** mas mostra **51.67 MB** em "Espaço Usado" no dashboard do admin.
-- Após deletar todas as fotos pelo painel admin (clicando no X), arquivos físicos ficavam em `/var/www/cz-saas/uploads/<orgId>/sessions/`.
-- Usuário deletou várias vezes via mongosh e ainda há vazamento.
-- Org `Fs Fotografias` (ID: `69c6a1b912ec3dec57684d42`) — **NÃO MEXER**, é a esposa, único cliente real.
-
-### A Causa Raiz Descoberta
-
-O problema real era na manipulação de **caminhos absolutos** vindos do multer (`file.path`):
-1. Quando uma foto original subia no fluxo `post_edit`, o sistema tentava deletar o original (pesado) após gerar a miniatura usando `storage.deleteFile(originalPath)`.
-2. Como `originalPath` era absoluto (`/var/www/cz-saas/uploads/orgId/...`), o `resolvePath` no `storage.js` tentava verificar se começava com `/uploads`.
-3. Sendo falso, ele juntava o diretório base (ex: `/var/www/cz-saas/uploads`) com o caminho absoluto, resultando num caminho duplicado: `/var/www/cz-saas/uploads/var/www/cz-saas/uploads/...`
-4. Isso gerava um erro `ENOENT` no `fs.unlink()`, que era **silenciosamente ignorado** no bloco `catch` do `deleteFile`. 
-Resultado: os originais pesados (e arquivos de erro do multer) **nunca** eram deletados do disco! Quando a sessão era deletada, os originais já não constavam no banco, virando 46MB de arquivos órfãos.
-
-### Correções aplicadas (commits no branch main)
-
-| Commit | O que faz |
-|---|---|
-| `c5eecd3` | Sync `Subscription.limits` no banco quando saas-admin edita limites de plano (problema do `-1` infinito) |
-| `b823b12` | Adiciona `req.logger.error` com stack trace nos catches de delete sessão/foto |
-| `68be0af` | Substitui `forEach(p => storage.deleteFile(...))` por `await Promise.all(deletions)` em `DELETE /sessions/:id` |
-| `fe88190` | Em catch de `POST /sessions/:id/photos`, limpa `req.files` para evitar órfãos |
-| **(Hoje)** | Correção do `resolvePath` no `src/services/storage.js` para retornar caminhos já absolutos se começarem com `this.baseDir` |
-| **(Hoje)** | Correção de `POST /sessions/:id/photos` para também apagar `generatedThumbs` em caso de erro no processo do multer/sharp |
-
-### Script de limpeza disponível (USAR COM CUIDADO)
-
-`src/utils/cleanupStorage.js` — script standalone que lê todas as referências do banco (Organization, Session, SiteData) e deleta do disco qualquer arquivo de `/uploads/<orgId>/` não referenciado.
-
-```bash
-node src/utils/cleanupStorage.js <orgId>
-```
-
-**NÃO RODAR PARA `69c6a1b912ec3dec57684d42` (Fs Fotografias).**
-
-### Estado atual do disco na VPS
-
-A limpeza dos arquivos órfãos já deve funcionar corretamente com o script de limpeza, e os novos uploads não vão mais vazar.
-
-
-
-# Ajustes, limnpezas, organizacao e refatoracao
-
-- inicialmente estou organizando por modulos, por exemplo 
-
-primeiro vamos revisar o modulo, suas skills de documentacao, e dentro do modulo vamos revisar os arquivos de front e back e banco de dados para ver se esta tudo ok com o codigo, se precisa de refatoracao, se tem muito codigo comentado, codigo morto, colunas que nao sao usadas, no banco de dados e que estao sendo legadas, como ainda estamos em preocesso de desenvolvimento entao temos que ter um cuidado especial para nao quebrar nada, hoje tenho somente o cliente fsfotografias Flavia Cristina Pacheco da Silva que é minha esposa defato funcionando, no momento ela esta usando somente o site do app, entao se alguma informacao da fsfottografia estiver em dados legado, precisamos verificar a melhor forma de deixar no padrao do app, se tem arquivo desnecessario, etc, depois da tudo verificado preciso criar teste Playwright /skills/1_6_testes.md sem documentar na skills do modulo todas as alteracoes e como o modulo funciona e criar tambem na skills do modulo os fluxo /skills/fluxo.md Edited 1_6_testes.md
-
-
-Aqui está o resumo da sua metodologia de trabalho descrita no **`CLAUDE.md`**:
-
-### 🎯 Objetivo: Ciclo de Qualidade por Módulo
-A estratégia consiste em uma revisão 360º de cada parte do sistema, seguindo esta ordem:
-
-1.  **Análise de Documentação:** Revisar as `skills` do módulo para garantir que explicam bem o funcionamento, atencao se a skill esta errada com o que o modulo de fato é, se esta desatualizada, atualize a skiil
-2.  **Auditoria de Código (Tríade):**
-    *   **Frontend/Backend:** Limpar códigos comentados, mortos e aplicar refatoração onde necessário.
-    *   **Banco de Dados:** Identificar e remover colunas/tabelas legadas ou inúteis.
-3.  **Segurança da Produção (Caso FS Fotografia):** Cuidado redobrado para não quebrar o site da única cliente real ativa (sua esposa). Se houver dados legados dela, eles devem ser migrados com segurança para o novo padrão do App.
-4.  **Validação Final:**
-    *   Criar testes automatizados com **Playwright** (`skills/1_6_testes.md`).
-    *   Documentar todos os novos fluxos e alterações em diagramas (`skills/fluxo.md`).
-
-
-
-## DESIGN SYSTEM
-
-Antes de qualquer trabalho visual (HTML, CSS, componentes, copy de UI),
-LEIA `design-system/SKILL.md` e os arquivos relevantes em `design-system/`.
-
-Regras invioláveis:
-- 3 superfícies separadas: Marketing (home/), Admin (admin/, saas-admin/),
-  Temas do fotógrafo (site/templates/*). Nunca misturar.
-- Tokens vivem em `design-system/tokens.css` — nunca inventar cores/fontes novas.
-- Marketing usa Playfair + Inter. Admin é Inter only, dark, denso.
-- Voz sempre PT-BR, sempre "você", nunca exclamações em CTAs.
-- Iconografia: Lucide outline 1.5px stroke. Nunca filled (exceto estado selected).
-- Imagens: nunca stock genérico — placeholder em xadrez ou foto real do cliente.
+## ARQUITETURA APLICADA (nao alterar sem consciencia)
+3-Tier (frontends → `src/` → MongoDB); Stateless JWT (`auth.js`); PWA Offline+Sync (`cliente/sw.js`+IDB); Escala horizontal base (PM2 `instances:2,cluster`); Feature Flag primitiva (`siteEnabled`,`?_preview=1`); Rolling deploy (`pm2 reload`); Observabilidade Winston tenant-aware; Storage abstraction (`services/storage.js`); Metricas Super-Admin em `/api/admin/saas/metrics`.

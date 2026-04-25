@@ -9,10 +9,23 @@ CliqueZoom is **not one app** — it's three. Every screen, every component, bel
 | Surface | URL pattern | Aesthetic |
 |---|---|---|
 | **A · Marketing** | `cliquezoom.com.br`, `/home`, `/login`, `/cadastro` | Editorial. Playfair + Inter. Black on warm white. Generous whitespace. |
-| **B · Admin** | `/admin/*`, `/saas-admin/*` | Dense, dark, GitHub-adjacent. Inter only. 14px base. |
+| **B · Admin** | `/admin/*`, `/saas-admin/*` | Dense tooling. Inter only. 14px base. **Two themes**: light (default) and dark — toggleable per user. |
 | **C · Photographer themes** | `{slug}.cliquezoom.com.br` | One of 5 opinionated themes. Branded as the photographer, not as us. |
 
-**Never blend them.** A serif headline in admin is a bug. A 14px monospace label on the marketing page is a bug. A "CliqueZoom" branding mark on a photographer's site is a bug.
+**Never blend them.** A serif headline in admin body copy is a bug (the Playfair wordmark logo is the only allowed exception). A 14px monospace label on the marketing page is a bug. A "CliqueZoom" branding mark on a photographer's site is a bug.
+
+## Brand palette (shared across surfaces)
+
+CliqueZoom is **minimalist**: black, grays, white. **No blue. No purple.** Status colors (success / danger / warning) are *functional* — used for feedback, never as brand accent.
+
+- Ink: `#1a1a1a` (primary), `#555` (secondary), `#888` (tertiary), `#bbb` (divider)
+- Paper: `#fff` (surface), `#fafafa` (page bg)
+
+Defined as `--brand-ink*` / `--brand-paper*` tokens in `tokens.css`.
+
+## Logo
+
+Wordmark "CliqueZoom" in **Playfair Display 700**. No symbol mark, no monogram, no gradient. Used in: landing header, admin login, admin sidebar, saas-admin login, saas-admin topbar. The photographer's own logo (`Organization.logo`) appears only on Surface C (their public site) — never in our chrome.
 
 ## Decision rules
 
@@ -78,10 +91,20 @@ Before opening a PR, confirm:
 - [ ] Iconography respects the rules above.
 - [ ] No stock photography.
 
+## Admin theming (Surface B)
+
+Surface B has **two themes**: light (default) and dark. Selected via `[data-theme='light' | 'dark']` on `<html>`. A script in the `<head>` of `admin/index.html` and `saas-admin/index.html` reads `localStorage['cz-admin-theme']` and applies the attribute *before* render (no FOUC). A toggle button (sun/moon icon) in the topbar flips between them.
+
+**Why light is default:** a new photographer entering the platform looks for a dark-mode toggle if they prefer dark. The inverse is not true — defaulting to dark hides the option from them.
+
+**Light theme** is built in **shades of gray, not white.** White is reserved for ink/text on dark surfaces, not for surfaces themselves. Page bg = `#e8e8eb`, cards/sidebar = `#f1f1f3`, inputs/modals = `#f7f7f8`.
+
+**Dark theme** uses **neutral grays** (`#2a2a2c` / `#323234` / `#3a3a3c`) — not GitHub-dark. Avoid any blue undertone.
+
 ## Files in this system
 
 - `index.html` — Browsable table of contents
-- `tokens.css` — Single source of truth for all CSS variables
+- `tokens.css` — Symlink to `/assets/css/tokens.css` (the real file, served by Nginx). Single source of truth for all CSS variables. Never duplicate.
 - `01-content.html` — Voice, tone, naming, lexicon
 - `02-foundations.html` — Color, type, spacing, radii, shadow per surface
 - `03-iconography.html` — Logo, icon grammar, placeholders
