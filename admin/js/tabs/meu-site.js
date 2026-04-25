@@ -1140,27 +1140,27 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const renderList = () => {
       const list = servicos.map((srv, idx) => `
-        <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
-          <div style="display:grid; gap:0.75rem;">
-            <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Título</label>
-                <input type="text" id="srv-title-${idx}" value="${srv.title || ''}" data-srv-title="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+        <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Título</label>
+                <input type="text" id="srv-title-${idx}" class="input" value="${srv.title || ''}" data-srv-title="${idx}">
               </div>
-              <button onclick="deleteServico(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem;" title="Remover">🗑️</button>
+              <button onclick="deleteServico(${idx})" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
             </div>
-            <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Descrição</label>
-              <textarea rows="2" id="srv-desc-${idx}" data-srv-desc="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${srv.description || ''}</textarea>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Descrição</label>
+              <textarea rows="2" id="srv-desc-${idx}" class="input" data-srv-desc="${idx}">${srv.description || ''}</textarea>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Ícone (emoji)</label>
-                <input type="text" id="srv-icon-${idx}" value="${srv.icon || '📸'}" data-srv-icon="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="📸">
+            <div style="display:flex; gap:0.75rem;">
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Ícone (emoji)</label>
+                <input type="text" id="srv-icon-${idx}" class="input" value="${srv.icon || '📸'}" data-srv-icon="${idx}" placeholder="📸">
               </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Preço (opcional)</label>
-                <input type="text" id="srv-price-${idx}" value="${srv.price || ''}" data-srv-price="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;" placeholder="R$ 500">
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Preço (opcional)</label>
+                <input type="text" id="srv-price-${idx}" class="input" value="${srv.price || ''}" data-srv-price="${idx}" placeholder="R$ 500">
               </div>
             </div>
           </div>
@@ -1288,49 +1288,48 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const renderList = () => {
       const list = depoimentos.map((dep, idx) => `
-        <div style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151;">
-          <div style="display:grid; gap:0.75rem;">
+        <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
 
             <!-- Nome + deletar -->
-            <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem; align-items:start;">
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nome do Cliente</label>
-                <input type="text" value="${dep.name || ''}" data-dep-name="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Nome do Cliente</label>
+                <input type="text" class="input" value="${dep.name || ''}" data-dep-name="${idx}">
               </div>
-              <button onclick="deleteDepoimento(${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.25rem; padding:0.25rem; margin-top:1.25rem;" title="Remover">🗑️</button>
+              <button onclick="deleteDepoimento(${idx})" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
             </div>
 
             <!-- Texto -->
-            <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Depoimento</label>
-              <textarea rows="3" data-dep-text="${idx}" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">${dep.text || ''}</textarea>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Depoimento</label>
+              <textarea rows="3" class="input" data-dep-text="${idx}">${dep.text || ''}</textarea>
             </div>
 
             <!-- Foto + nota -->
-            <div style="display:grid; grid-template-columns:auto 1fr auto; gap:0.75rem; align-items:end;">
+            <div style="display:flex; gap:0.75rem; align-items:flex-end;">
               <!-- Preview da foto -->
-              <div style="width:56px; height:56px; border-radius:50%; background:#374151; overflow:hidden; flex-shrink:0;">
-                ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:1.5rem;">👤</div>'}
+              <div style="width:56px; height:56px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0;">
+                ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.5rem;">👤</div>'}
               </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Foto do Cliente</label>
-                <label style="display:inline-flex; align-items:center; gap:0.5rem; background:#2563eb; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer;">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Foto do Cliente</label>
+                <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
                   Upload
                   <input type="file" accept="image/*" data-dep-photo-upload="${idx}" style="display:none;">
                 </label>
                 <input type="hidden" data-dep-photo="${idx}" value="${dep.photo || ''}">
               </div>
-              <div>
-                <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Nota (1-5)</label>
-                <input type="number" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:70px; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem;">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Nota (1-5)</label>
+                <input type="number" class="input" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:70px;">
               </div>
             </div>
 
             <!-- Link social -->
-            <div>
-              <label style="display:block; color:#9ca3af; font-size:0.75rem; margin-bottom:0.25rem;">Link Instagram ou Facebook (opcional)</label>
-              <input type="text" value="${dep.socialLink || ''}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente"
-                style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; font-size:0.875rem;">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Link Instagram ou Facebook (opcional)</label>
+              <input type="text" class="input" value="${dep.socialLink || ''}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente">
             </div>
 
           </div>
@@ -1459,7 +1458,7 @@ async function renderSiteContent(container, builderTabsEl) {
             </div>
             <div>
               <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Fonte do Site</label>
-              <select id="styleFontFamily" style="width:100%; padding:0.5rem; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem; font-size:0.875rem;">
+              <select id="styleFontFamily" class="select">
                 ${FONTS.map(f => `<option value="${f.value}" ${style.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
               </select>
             </div>
@@ -1554,19 +1553,19 @@ async function renderSiteContent(container, builderTabsEl) {
         <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:1.5rem;">Seção de Contato</h3>
 
         <div style="display:flex; flex-direction:column; gap:1rem;">
-          <div>
-            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Título</label>
-            <input type="text" id="contatoTitle" value="${contato.title || 'Entre em Contato'}" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Título</label>
+            <input type="text" id="contatoTitle" class="input" value="${contato.title || 'Entre em Contato'}">
           </div>
 
-          <div>
-            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Texto</label>
-            <textarea id="contatoText" rows="3" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Texto</label>
+            <textarea id="contatoText" class="input" rows="3">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
           </div>
 
-          <div>
-            <label style="display:block; color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.25rem;">Endereço (opcional)</label>
-            <input type="text" id="contatoAddress" value="${contato.address || ''}" style="width:100%; padding:0.5rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem;" placeholder="Rua Exemplo, 123 - São Paulo/SP">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Endereço (opcional)</label>
+            <input type="text" id="contatoAddress" class="input" value="${contato.address || ''}" placeholder="Rua Exemplo, 123 - São Paulo/SP">
           </div>
 
           <button id="saveContatoBtn" style="background:var(--green); color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:0.5rem;">Salvar Contato</button>
@@ -1620,11 +1619,9 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const buildLinksHtml = (quickLinks) => quickLinks.map((link, idx) => `
       <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input type="text" data-link-label="${idx}" style="flex:1; min-width:0; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
-          value="${link.label || ''}" placeholder="Texto do link">
-        <input type="text" data-link-url="${idx}" style="flex:1; min-width:0; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
-          value="${link.url || ''}" placeholder="URL (ex: #portfolio)">
-        <button data-remove-link="${idx}" style="color:var(--red); background:none; border:none; cursor:pointer; font-size:1rem; padding:0.25rem; flex-shrink:0;">🗑️</button>
+        <input type="text" class="input" data-link-label="${idx}" value="${link.label || ''}" placeholder="Texto do link">
+        <input type="text" class="input" data-link-url="${idx}" value="${link.url || ''}" placeholder="URL (ex: #portfolio)">
+        <button data-remove-link="${idx}" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
       </div>
     `).join('');
 
@@ -1632,42 +1629,37 @@ async function renderSiteContent(container, builderTabsEl) {
       <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:640px;">
         <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
           <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Copyright</h3>
-          <input type="text" id="rodapeCopyright" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);"
-            value="${_rodape.copyright}" placeholder="Ex: © 2026 Studio. Todos os direitos reservados.">
+          <div class="input-group" style="margin-bottom:0;">
+            <input type="text" id="rodapeCopyright" class="input" value="${_rodape.copyright}" placeholder="Ex: © 2026 Studio. Todos os direitos reservados.">
+          </div>
         </div>
 
         <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
           <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Redes Sociais</h3>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Instagram</label>
-              <input type="text" id="socialInstagram" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.instagram || ''}" placeholder="https://instagram.com/...">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Instagram</label>
+              <input type="text" id="socialInstagram" class="input" value="${_rodape.socialMedia.instagram || ''}" placeholder="https://instagram.com/...">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Facebook</label>
-              <input type="text" id="socialFacebook" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.facebook || ''}" placeholder="https://facebook.com/...">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Facebook</label>
+              <input type="text" id="socialFacebook" class="input" value="${_rodape.socialMedia.facebook || ''}" placeholder="https://facebook.com/...">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">LinkedIn</label>
-              <input type="text" id="socialLinkedin" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.linkedin || ''}" placeholder="https://linkedin.com/...">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>LinkedIn</label>
+              <input type="text" id="socialLinkedin" class="input" value="${_rodape.socialMedia.linkedin || ''}" placeholder="https://linkedin.com/...">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">TikTok</label>
-              <input type="text" id="socialTiktok" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.tiktok || ''}" placeholder="https://tiktok.com/...">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>TikTok</label>
+              <input type="text" id="socialTiktok" class="input" value="${_rodape.socialMedia.tiktok || ''}" placeholder="https://tiktok.com/...">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">YouTube</label>
-              <input type="text" id="socialYoutube" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.youtube || ''}" placeholder="https://youtube.com/...">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>YouTube</label>
+              <input type="text" id="socialYoutube" class="input" value="${_rodape.socialMedia.youtube || ''}" placeholder="https://youtube.com/...">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">Email</label>
-              <input type="email" id="socialEmail" style="width:100%; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;"
-                value="${_rodape.socialMedia.email || ''}" placeholder="contato@exemplo.com">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Email</label>
+              <input type="email" id="socialEmail" class="input" value="${_rodape.socialMedia.email || ''}" placeholder="contato@exemplo.com">
             </div>
           </div>
         </div>

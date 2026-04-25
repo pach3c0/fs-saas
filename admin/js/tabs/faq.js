@@ -47,16 +47,19 @@ export async function renderFaq(container) {
       <div id="faqList" style="display:flex; flex-direction:column; gap:0.5rem;">
   `;
 
-  faqData.faqs.forEach((faq, index) => {
+  faqData.faqs.forEach((item, idx) => {
     html += `
       <div style="border:1px solid var(--border); border-radius:0.375rem; padding:1rem; background:var(--bg-surface);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
-          <input type="text" style="flex:1; min-width:0; font-weight:bold; border:1px solid var(--border); border-radius:0.25rem; padding:0.25rem 0.5rem; background:var(--bg-elevated); color:var(--text-primary);"
-            value="${faq.question}" data-faq-question="${index}">
-          <button style="color:var(--red); margin-left:0.5rem; background:none; border:none; cursor:pointer;" onclick="deleteFaq(${index})">🗑️</button>
+        <div class="input-group" style="flex:1; margin-bottom:0; display:flex; flex-direction:row; gap:0.5rem; align-items:center;">
+          <label style="cursor:move; color:var(--text-muted);" title="Arraste para reordenar">☰</label>
+          <input type="text" class="input" style="flex:1; min-width:0;"
+            value="${item.question || ''}" data-faq-question="${idx}" placeholder="Pergunta">
+          <button class="btn btn-ghost" style="color:var(--red);" onclick="deleteFaq(${idx})" title="Remover">🗑️</button>
         </div>
-        <textarea style="width:100%; border:1px solid var(--border); border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.875rem; background:var(--bg-elevated); color:var(--text-primary); resize:vertical;" rows="3"
-          data-faq-answer="${index}">${faq.answer}</textarea>
+        <div class="input-group" style="margin-bottom:0; margin-top:0.5rem;">
+          <textarea class="input" rows="3"
+            data-faq-answer="${idx}" placeholder="Resposta">${item.answer || ''}</textarea>
+        </div>
       </div>
     `;
   });

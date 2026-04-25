@@ -20,10 +20,8 @@ export async function renderClientes(container) {
       </div>
 
       <!-- Busca -->
-      <div>
-        <input type="text" id="searchClientes" placeholder="Buscar por nome, e-mail ou telefone..."
-          style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-surface); color:var(--text-primary); box-sizing:border-box;"
-          value="${searchTerm}">
+      <div class="input-group" style="margin-bottom:0;">
+        <input type="text" id="searchClientes" class="input" placeholder="Buscar por nome, e-mail ou telefone..." value="${searchTerm}">
       </div>
 
       <!-- Lista -->
@@ -35,36 +33,31 @@ export async function renderClientes(container) {
       <div style="background:var(--bg-surface); border-radius:0.5rem; padding:1.5rem; width:100%; max-width:520px; margin:1rem; max-height:90vh; overflow-y:auto;">
         <h3 id="modalClienteTitulo" style="font-size:1.25rem; font-weight:bold; color:var(--text-primary); margin:0 0 1.25rem;">Novo Cliente</h3>
 
-        <div style="display:flex; flex-direction:column; gap:1rem;">
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">Nome *</label>
-            <input type="text" id="clienteNome" placeholder="Nome completo"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); box-sizing:border-box;">
+        <div style="display:flex; flex-direction:column;">
+          <div class="input-group">
+            <label>Nome *</label>
+            <input type="text" id="clienteNome" class="input" placeholder="Nome completo">
           </div>
 
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">E-mail</label>
-            <input type="email" id="clienteEmail" placeholder="email@exemplo.com"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); box-sizing:border-box;">
+          <div class="input-group">
+            <label>E-mail</label>
+            <input type="email" id="clienteEmail" class="input" placeholder="email@exemplo.com">
           </div>
 
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">Telefone / WhatsApp</label>
-            <input type="text" id="clienteTelefone" placeholder="(11) 99999-9999"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); box-sizing:border-box;">
+          <div class="input-group">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" id="clienteTelefone" class="input" placeholder="(11) 99999-9999">
           </div>
 
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">Tags</label>
-            <input type="text" id="clienteTags" placeholder="casamento, aniversario, familia (separadas por vírgula)"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); box-sizing:border-box;">
-            <p style="font-size:0.75rem; color:var(--text-muted); margin:0.25rem 0 0;">Separe as tags por vírgula</p>
+          <div class="input-group">
+            <label>Tags</label>
+            <input type="text" id="clienteTags" class="input" placeholder="casamento, aniversario, familia (separadas por vírgula)">
+            <span class="input-hint">Separe as tags por vírgula</span>
           </div>
 
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.375rem; color:var(--text-secondary);">Notas</label>
-            <textarea id="clienteNotas" rows="3" placeholder="Observações sobre o cliente..."
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); box-sizing:border-box; resize:vertical;"></textarea>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Notas</label>
+            <textarea id="clienteNotas" class="input" rows="3" placeholder="Observações sobre o cliente..." style="resize:vertical;"></textarea>
           </div>
         </div>
 
@@ -142,7 +135,7 @@ function renderLista(container) {
         <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
           <span style="font-weight:600; color:var(--text-primary); font-size:1rem;">${escapeHtml(c.name)}</span>
           ${c.tags && c.tags.length > 0 ? c.tags.map(t =>
-            `<span style="background:var(--bg-hover); color:var(--text-muted); font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:9999px;">${escapeHtml(t)}</span>`
+            `<span class="badge badge-neutral">${escapeHtml(t)}</span>`
           ).join('') : ''}
         </div>
         <div style="display:flex; gap:1.5rem; margin-top:0.375rem; flex-wrap:wrap;">
@@ -324,12 +317,12 @@ async function verSessoesCliente(container, id) {
       delivered: 'Entregue',
       expired: 'Expirada'
     };
-    const statusColor = {
-      pending: 'var(--text-muted)',
-      in_progress: 'var(--accent)',
-      submitted: 'var(--yellow)',
-      delivered: 'var(--green)',
-      expired: 'var(--red)'
+    const statusBadge = {
+      pending: 'badge-neutral',
+      in_progress: 'badge-blue',
+      submitted: 'badge-warning',
+      delivered: 'badge-success',
+      expired: 'badge-danger'
     };
 
     lista.innerHTML = sessoes.map(s => {
@@ -344,7 +337,7 @@ async function verSessoesCliente(container, id) {
               ${s.mode === 'gallery' ? ' • Galeria' : ' • Seleção'}
             </div>
           </div>
-          <span style="font-size:0.8rem; font-weight:600; color:${statusColor[status] || '#9ca3af'};">
+          <span class="badge ${statusBadge[status] || 'badge-neutral'}">
             ${statusLabel[status] || status}
           </span>
         </div>

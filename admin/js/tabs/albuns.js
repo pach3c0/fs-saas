@@ -75,16 +75,13 @@ export async function renderAlbuns(container) {
       <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
         <div style="display:flex; gap:1rem; align-items:flex-start;">
           <div style="flex:1; display:flex; flex-direction:column; gap:0.75rem;">
-            <div>
-              <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Título do Álbum</label>
-              <input type="text" value="${album.title || ''}" data-album-title="${idx}"
-                style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Título do Álbum</label>
+              <input type="text" class="input" value="${album.title || ''}" data-album-title="${idx}">
             </div>
-            <div>
-              <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Subtítulo</label>
-              <input type="text" value="${album.subtitle || ''}" data-album-subtitle="${idx}"
-                style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary); font-size:0.875rem;"
-                placeholder="Ex: Ensaio completo">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Subtítulo</label>
+              <input type="text" class="input" value="${album.subtitle || ''}" data-album-subtitle="${idx}" placeholder="Ex: Ensaio completo">
             </div>
           </div>
           <div style="width:8rem; height:8rem; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; flex-shrink:0;">
@@ -351,7 +348,7 @@ export async function renderAlbuns(container) {
             
             <div style="margin-top:auto;">
               <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Legenda (SEO)</label>
-              <input type="text" id="aInputCaption" value="${photo.caption || ''}" placeholder="Descreva a foto..." style="width:100%; padding:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:white; font-size:0.875rem; box-sizing:border-box;">
+              <input type="text" id="aInputCaption" class="input" value="${photo.caption || ''}" placeholder="Descreva a foto...">
             </div>
             
           </div>

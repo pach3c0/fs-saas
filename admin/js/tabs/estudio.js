@@ -55,7 +55,7 @@ export async function renderEstudio(container) {
         ${idx + 1}
       </div>
       <div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">
-        <textarea style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem; resize:none;" rows="2"
+        <textarea class="input" rows="2"
           data-whatsapp-text="${idx}" placeholder="Digite a mensagem...">${msg.text}</textarea>
         <div style="display:flex; align-items:center; gap:0.5rem;">
           <label style="font-size:0.75rem; color:var(--text-secondary);">Delay (seg):</label>

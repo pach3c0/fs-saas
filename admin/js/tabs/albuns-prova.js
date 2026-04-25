@@ -205,7 +205,7 @@ async function openNovoAlbumModal(container) {
   labelSessao.style.cssText = `font-size:0.875rem;color:${pal.text2};display:block;margin-bottom:4px;`;
 
   const select = document.createElement('select');
-  select.style.cssText = `width:100%;background:${pal.input};color:${pal.text2};border:1px solid ${pal.border};padding:8px;border-radius:6px;`;
+  select.className = 'select';
   const opt0 = document.createElement('option');
   opt0.value = '';
   opt0.textContent = 'Sem sessão vinculada';
@@ -290,7 +290,7 @@ async function openPagesEditor(album, container) {
   const linkInput = document.createElement('input');
   linkInput.readOnly = true;
   linkInput.value = `${window.location.origin}/album/?code=${fullAlbum.accessCode}`;
-  linkInput.style.cssText = `flex:1;background:${pal.input};color:${pal.text3};border:1px solid ${pal.border};padding:6px 10px;border-radius:6px;font-size:0.8rem;`;
+  linkInput.className = 'input';
   const btnCopyLink = makeBtn('Copiar Link', pal.input, pal.primary, pal.primary);
   btnCopyLink.style.fontSize = '0.8rem';
   btnCopyLink.onclick = () => {
@@ -501,7 +501,7 @@ function addInput(box, placeholder, type = 'text') {
   const input = document.createElement('input');
   input.type = type;
   input.placeholder = placeholder;
-  input.style.cssText = `width:100%;background:${pal.input};color:${pal.text};border:1px solid ${pal.border};padding:8px;border-radius:6px;box-sizing:border-box;`;
+  input.className = 'input';
   box.appendChild(input);
   return input;
 }
@@ -510,7 +510,7 @@ function addTextarea(box, placeholder) {
   const ta = document.createElement('textarea');
   ta.placeholder = placeholder;
   ta.rows = 3;
-  ta.style.cssText = `width:100%;background:${pal.input};color:${pal.text};border:1px solid ${pal.border};padding:8px;border-radius:6px;font-family:inherit;resize:vertical;box-sizing:border-box;`;
+  ta.className = 'input';
   box.appendChild(ta);
   return ta;
 }

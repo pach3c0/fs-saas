@@ -87,6 +87,94 @@
         .btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.75; fill: none; stroke-linecap: round; stroke-linejoin: round; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
+        /* ── Inputs & Forms (Phase 5) ── */
+        .input {
+            font-family: inherit; font-size: 13px;
+            padding: 6px 10px; min-height: 30px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            transition: border-color 120ms, box-shadow 120ms;
+            width: 100%;
+        }
+        .input::placeholder { color: var(--text-muted); }
+        .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,129,247,0.3); }
+        .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--sp-3); }
+        .input-group label { font-size: 12px; font-weight: 500; color: var(--text-primary); margin: 0; }
+        .input-hint { font-size: 11px; color: var(--text-muted); margin: 0; }
+
+        .select-wrap { position: relative; }
+        .select-wrap::after {
+            content: ""; position: absolute; right: 10px; top: 50%;
+            width: 8px; height: 8px;
+            border-right: 1.5px solid var(--text-secondary);
+            border-bottom: 1.5px solid var(--text-secondary);
+            transform: translateY(-70%) rotate(45deg);
+            pointer-events: none;
+        }
+        .select { appearance: none; padding-right: 28px; }
+
+        /* ── Checkboxes ── */
+        .check {
+            appearance: none;
+            width: 14px; height: 14px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            margin: 0;
+        }
+        .check:checked { background: var(--accent); border-color: var(--accent); }
+        .check:checked::after {
+            content: ""; position: absolute; left: 3px; top: 0;
+            width: 4px; height: 8px;
+            border-right: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            transform: rotate(45deg);
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+            padding: 2px 8px; border-radius: var(--radius-pill);
+            font-size: 11px; font-weight: 600; line-height: 1.4;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .badge-success { background: rgba(63,185,80,0.1); color: var(--green); border-color: rgba(63,185,80,0.2); }
+        .badge-warning { background: rgba(210,153,34,0.1); color: var(--yellow); border-color: rgba(210,153,34,0.2); }
+        .badge-danger { background: rgba(248,81,73,0.1); color: var(--red); border-color: rgba(248,81,73,0.2); }
+        .badge-neutral { background: var(--bg-hover); color: var(--text-secondary); border-color: var(--border); }
+        .badge-blue { background: rgba(47,129,247,0.1); color: var(--accent); border-color: rgba(47,129,247,0.2); }
+
+        /* ── Tables ── */
+        .table {
+            width: 100%; border-collapse: collapse;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .table thead th {
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 12px; text-align: left;
+            font-size: 12px; font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .table tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-muted);
+            font-size: 13px;
+        }
+        .table tbody tr:last-child td { border-bottom: 0; }
+        .table tbody tr:hover { background: var(--bg-elevated); }
+        .table .row-check { width: 32px; }
+        .table .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 12px; }
+
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -534,20 +622,7 @@
         .login-title { text-align: center; font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
         .login-subtitle { text-align: center; font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1.5rem; }
 
-        .login-input {
-            width: 100%;
-            padding: 0.5625rem 0.875rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.15s;
-            margin-bottom: 0.75rem;
-        }
-        .login-input:focus { border-color: var(--accent); }
+
 
         .login-btn {
             width: 100%;
@@ -876,8 +951,12 @@
 
         <!-- Tela: login -->
         <div id="loginView">
-            <input type="email" id="adminEmail" class="login-input" placeholder="E-mail">
-            <input type="password" id="adminPassword" class="login-input" placeholder="Senha">
+            <div class="input-group">
+                <input type="email" id="adminEmail" class="input" placeholder="E-mail" style="padding:0.6rem 0.8rem; font-size:14px; min-height:38px;">
+            </div>
+            <div class="input-group">
+                <input type="password" id="adminPassword" class="input" placeholder="Senha" style="padding:0.6rem 0.8rem; font-size:14px; min-height:38px;">
+            </div>
             <div style="text-align:right; margin:-0.25rem var(--sp-0) var(--sp-4);">
                 <button id="forgotPasswordLink" style="background:none;border:none;color:var(--accent);font-size:0.8125rem;cursor:pointer;padding:var(--sp-0);">Esqueci minha senha</button>
             </div>
@@ -887,7 +966,9 @@
         <!-- Tela: recuperar senha -->
         <div id="forgotView" style="display:none;">
             <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
-            <input type="email" id="forgotEmail" class="login-input" placeholder="E-mail">
+            <div class="input-group">
+                <input type="email" id="forgotEmail" class="input" placeholder="E-mail" style="padding:0.6rem 0.8rem; font-size:14px; min-height:38px;">
+            </div>
             <button class="btn btn-primary" style="width:100%; height:48px; font-size:0.9375rem;" id="forgotSubmitBtn">Enviar link</button>
             <button id="backToLoginLink" style="background:none;border:none;color:var(--text-secondary);font-size:0.8125rem;cursor:pointer;width:100%;margin-top:0.75rem;">Voltar ao login</button>
         </div>
@@ -895,8 +976,12 @@
         <!-- Tela: redefinir senha -->
         <div id="resetView" style="display:none;">
             <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1rem;">Digite sua nova senha.</p>
-            <input type="password" id="resetPassword" class="login-input" placeholder="Nova senha (mín. 6 caracteres)">
-            <input type="password" id="resetPasswordConfirm" class="login-input" placeholder="Confirmar nova senha">
+            <div class="input-group">
+                <input type="password" id="resetPassword" class="input" placeholder="Nova senha (mín. 6 caracteres)" style="padding:0.6rem 0.8rem; font-size:14px; min-height:38px;">
+            </div>
+            <div class="input-group">
+                <input type="password" id="resetPasswordConfirm" class="input" placeholder="Confirmar nova senha" style="padding:0.6rem 0.8rem; font-size:14px; min-height:38px;">
+            </div>
             <button class="btn btn-primary" style="width:100%; height:48px; font-size:0.9375rem;" id="resetSubmitBtn">Salvar nova senha</button>
         </div>
     </div>

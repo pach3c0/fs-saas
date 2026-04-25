@@ -17,7 +17,7 @@ export async function renderMensagens(container) {
       <!-- Contatos recebidos -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
         <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary);">📩 Contatos recebidos</h3>
-        <span id="msgUnreadBadge" style="display:none; background:var(--accent); color:#fff; font-size:0.75rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:999px;"></span>
+        <span id="msgUnreadBadge" class="badge badge-blue" style="display:none;"></span>
       </div>
       <div id="msgLista"></div>
     </div>
@@ -120,7 +120,7 @@ async function loadMensagens() {
 
     const unread = _mensagens.filter(n => !n.read).length;
     if (badge) {
-      if (unread > 0) { badge.textContent = `${unread} não lida${unread > 1 ? 's' : ''}`; badge.style.display = 'inline'; }
+      if (unread > 0) { badge.textContent = `${unread} não lida${unread > 1 ? 's' : ''}`; badge.style.display = 'inline-flex'; }
       else { badge.style.display = 'none'; }
     }
 

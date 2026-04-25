@@ -9,11 +9,11 @@ import { UploadPanel } from '../components/upload-panel.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 
 const STATUS_LABELS = {
-  pending: { text: 'Pendente', color: 'var(--text-secondary)', bg: 'var(--bg-elevated)' },
-  in_progress: { text: 'Em seleção', color: 'var(--yellow)', bg: 'rgba(210, 153, 34, 0.1)' },
-  submitted: { text: 'Seleção enviada', color: 'var(--green)', bg: 'rgba(63, 185, 80, 0.1)' },
-  delivered: { text: 'Entregue', color: 'var(--accent)', bg: 'rgba(47, 129, 247, 0.1)' },
-  expired: { text: 'Expirado', color: 'var(--red)', bg: 'rgba(248, 81, 73, 0.1)' }
+  pending: { text: 'Pendente', class: 'badge-neutral' },
+  in_progress: { text: 'Em seleção', class: 'badge-warning' },
+  submitted: { text: 'Seleção enviada', class: 'badge-success' },
+  delivered: { text: 'Entregue', class: 'badge-blue' },
+  expired: { text: 'Expirado', class: 'badge-danger' }
 };
 
 export async function renderSessoes(container) {
@@ -27,43 +27,50 @@ export async function renderSessoes(container) {
       </div>
 
       <!-- Filtros -->
+      <!-- Filtros -->
       <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:1rem;">
         <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-            <input type="text" id="filterSearch" placeholder="Buscar cliente..." style="flex:1; min-width:200px; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary);">
-            <select id="filterSort" style="padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary);">
-                <option value="newest">Mais recentes</option>
-                <option value="oldest">Mais antigos</option>
-                <option value="az">Nome A-Z</option>
-                <option value="za">Nome Z-A</option>
-            </select>
+            <input type="text" id="filterSearch" class="input" placeholder="Buscar cliente..." style="flex:1; min-width:200px;">
+            <div class="select-wrap">
+              <select id="filterSort" class="select input">
+                  <option value="newest">Mais recentes</option>
+                  <option value="oldest">Mais antigos</option>
+                  <option value="az">Nome A-Z</option>
+                  <option value="za">Nome Z-A</option>
+              </select>
+            </div>
         </div>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
             <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;" id="statusFilters">
                 <span style="color:var(--text-secondary); font-size:0.875rem;">Status:</span>
-                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="pending" checked> Pendente</label>
-                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="in_progress" checked> Em seleção</label>
-                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="submitted" checked> Enviada</label>
-                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="delivered" checked> Entregue</label>
-                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; cursor:pointer;"><input type="checkbox" value="expired" checked> Expirado</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="pending" checked> Pendente</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="in_progress" checked> Em seleção</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="submitted" checked> Enviada</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="delivered" checked> Entregue</label>
+                <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="expired" checked> Expirado</label>
             </div>
-            <select id="filterMode" style="padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); margin-left:auto;">
-                <option value="all">Todos os modos</option>
-                <option value="selection">Seleção</option>
-                <option value="multi_selection">Multi-Seleção</option>
-                <option value="gallery">Galeria</option>
-            </select>
+            <div class="select-wrap" style="margin-left:auto;">
+              <select id="filterMode" class="select input">
+                  <option value="all">Todos os modos</option>
+                  <option value="selection">Seleção</option>
+                  <option value="multi_selection">Multi-Seleção</option>
+                  <option value="gallery">Galeria</option>
+              </select>
+            </div>
         </div>
         <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
             <span style="color:var(--text-secondary); font-size:0.875rem;">Período por:</span>
-            <select id="filterDateField" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
-                <option value="createdAt">Criado em</option>
-                <option value="date">Data do Evento</option>
-                <option value="selectionDeadline">Prazo de Seleção</option>
-            </select>
-            <input type="date" id="filterDateFrom" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
+            <div class="select-wrap">
+              <select id="filterDateField" class="select input">
+                  <option value="createdAt">Criado em</option>
+                  <option value="date">Data do Evento</option>
+                  <option value="selectionDeadline">Prazo de Seleção</option>
+              </select>
+            </div>
+            <input type="date" id="filterDateFrom" class="input" style="width:auto;">
             <span style="color:var(--text-muted); font-size:0.875rem;">até</span>
-            <input type="date" id="filterDateTo" style="padding:0.375rem 0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
-            <button id="clearDateFilter" style="padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border); background:none; color:var(--text-secondary); cursor:pointer; font-size:0.75rem;">Limpar</button>
+            <input type="date" id="filterDateTo" class="input" style="width:auto;">
+            <button id="clearDateFilter" class="btn btn-ghost btn-sm">Limpar</button>
         </div>
       </div>
 
@@ -78,69 +85,65 @@ export async function renderSessoes(container) {
         <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Nova Sessão</h3>
 
         <!-- BLOCO CLIENTE: busca dinâmica -->
-        <div style="position:relative;">
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Cliente <span style="color:var(--text-muted);">(opcional)</span></label>
-          <input type="text" id="clientSearchInput" autocomplete="off"
-            placeholder="Digite o nome para buscar ou criar..."
-            style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+        <!-- BLOCO CLIENTE: busca dinâmica -->
+        <div class="input-group" style="position:relative; margin-bottom:0;">
+          <label>Cliente <span style="color:var(--text-muted);">(opcional)</span></label>
+          <input type="text" id="clientSearchInput" class="input" autocomplete="off" placeholder="Digite o nome para buscar ou criar...">
           <input type="hidden" id="sessionClientId" value="">
           <!-- Dropdown de resultados -->
           <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
-          <p id="clientSearchHint" style="font-size:0.625rem; color:var(--text-muted); margin-top:0.25rem;"></p>
+          <p id="clientSearchHint" class="input-hint" style="margin-top:0.25rem;"></p>
         </div>
 
         <!-- Nome da Sessão -->
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Nome da Sessão <span style="color:var(--red);">*</span></label>
-          <input type="text" id="sessionName"
-            placeholder="Ex: Ensaio Família Silva"
-            style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Nome da Sessão <span style="color:var(--red);">*</span></label>
+          <input type="text" id="sessionName" class="input" placeholder="Ex: Ensaio Família Silva">
         </div>
 
         <!-- Tipo -->
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Tipo</label>
-          <select id="sessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-            <option value="Familia">Família</option>
-            <option value="Casamento">Casamento</option>
-            <option value="Evento">Evento</option>
-            <option value="Ensaio">Ensaio</option>
-            <option value="Corporativo">Corporativo</option>
-          </select>
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Tipo</label>
+          <div class="select-wrap">
+            <select id="sessionType" class="select input">
+              <option value="Familia">Família</option>
+              <option value="Casamento">Casamento</option>
+              <option value="Evento">Evento</option>
+              <option value="Ensaio">Ensaio</option>
+              <option value="Corporativo">Corporativo</option>
+            </select>
+          </div>
         </div>
 
         <!-- DATAS -->
         <div style="border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">📅 Datas</h4>
-          <div>
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Criado em</label>
-            <input type="date" id="sessionCreatedAtDate"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
-            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Data de abertura da sessão (hoje por padrão).</p>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Criado em</label>
+            <input type="date" id="sessionCreatedAtDate" class="input">
+            <p class="input-hint">Data de abertura da sessão (hoje por padrão).</p>
           </div>
-          <div>
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Data do Evento</label>
-            <input type="date" id="sessionDate"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
-            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Quando o ensaio/evento aconteceu.</p>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Data do Evento</label>
+            <input type="date" id="sessionDate" class="input">
+            <p class="input-hint">Quando o ensaio/evento aconteceu.</p>
           </div>
-          <div>
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
-            <input type="datetime-local" id="sessionDeadline"
-              style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary); box-sizing:border-box;">
-            <p style="font-size:0.6rem; color:var(--text-muted); margin-top:0.2rem;">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
+            <input type="datetime-local" id="sessionDeadline" class="input">
+            <p class="input-hint">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
           </div>
           <p id="dateValidationMsg" style="display:none; font-size:0.75rem; color:var(--red); font-weight:500;"></p>
         </div>
 
         <!-- Foto de Capa -->
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Foto de Capa</label>
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Foto de Capa</label>
           <div style="display:flex; align-items:center; gap:0.75rem;">
             <div id="coverPreview" style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
               <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
             </div>
-            <label style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.75rem;">
+            <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
               Upload
               <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
             </label>
@@ -150,34 +153,38 @@ export async function renderSessoes(container) {
         </div>
 
         <!-- Config Galeria -->
-        <div style="border-top:1px solid var(--border); padding-top:1rem;">
-          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.75rem;">Configuração da Galeria</h4>
-          <div>
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Modo</label>
-            <select id="sessionMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-              <option value="selection">Seleção (cliente escolhe favoritas)</option>
-              <option value="gallery">Galeria (cliente só visualiza/baixa)</option>
-              <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
-            </select>
-          </div>
-          <div style="margin-top:0.75rem;">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Resolução das fotos de seleção</label>
-            <select id="sessionResolution" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-              <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
-              <option value="1200" selected>1200px — padrão (equilíbrio)</option>
-              <option value="1400">1400px — alta qualidade</option>
-              <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
-            </select>
-            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">Não pode ser alterado após a criação da sessão.</p>
-          </div>
-          <div id="selectionFields" style="display:flex; gap:0.75rem; margin-top:0.75rem;">
-            <div style="flex:1;">
-              <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fotos do pacote</label>
-              <input type="number" id="sessionLimit" value="30" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+        <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Modo</label>
+            <div class="select-wrap">
+              <select id="sessionMode" class="select input">
+                <option value="selection">Seleção (cliente escolhe favoritas)</option>
+                <option value="gallery">Galeria (cliente só visualiza/baixa)</option>
+                <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
+              </select>
             </div>
-            <div style="flex:1;">
-              <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Preço foto extra (R$)</label>
-              <input type="number" id="sessionExtraPrice" value="25" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+          </div>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Resolução das fotos de seleção</label>
+            <div class="select-wrap">
+              <select id="sessionResolution" class="select input">
+                <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
+                <option value="1200" selected>1200px — padrão (equilíbrio)</option>
+                <option value="1400">1400px — alta qualidade</option>
+                <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
+              </select>
+            </div>
+            <p class="input-hint">Não pode ser alterado após a criação da sessão.</p>
+          </div>
+          <div id="selectionFields" style="display:flex; gap:0.75rem;">
+            <div class="input-group" style="flex:1; margin-bottom:0;">
+              <label>Fotos do pacote</label>
+              <input type="number" id="sessionLimit" class="input" value="30" min="1">
+            </div>
+            <div class="input-group" style="flex:1; margin-bottom:0;">
+              <label>Preço foto extra (R$)</label>
+              <input type="number" id="sessionExtraPrice" class="input" value="25" min="0" step="0.01">
             </div>
           </div>
           <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
@@ -263,58 +270,64 @@ export async function renderSessoes(container) {
     <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
       <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Editar Sessao</h3>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Nome da Sessão</label>
-          <input type="text" id="editSessionName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Nome da Sessão</label>
+          <input type="text" id="editSessionName" class="input">
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Tipo</label>
-          <select id="editSessionType" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-            <option value="Familia">Familia</option>
-            <option value="Casamento">Casamento</option>
-            <option value="Evento">Evento</option>
-            <option value="Ensaio">Ensaio</option>
-            <option value="Corporativo">Corporativo</option>
-          </select>
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Tipo</label>
+          <div class="select-wrap">
+            <select id="editSessionType" class="select input">
+              <option value="Familia">Familia</option>
+              <option value="Casamento">Casamento</option>
+              <option value="Evento">Evento</option>
+              <option value="Ensaio">Ensaio</option>
+              <option value="Corporativo">Corporativo</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Cliente Vinculado</label>
-          <select id="editClientId" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-            <option value="">-- Nenhum cliente vinculado --</option>
-          </select>
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Cliente Vinculado</label>
+          <div class="select-wrap">
+            <select id="editClientId" class="select input">
+              <option value="">-- Nenhum cliente vinculado --</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">E-mail do Cliente <span style="color:var(--text-muted);">(opcional — para notificacoes)</span></label>
-          <input type="email" id="editClientEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);" placeholder="email@cliente.com">
+        <div class="input-group" style="margin-bottom:0;">
+          <label>E-mail do Cliente <span style="color:var(--text-muted);">(opcional — para notificacoes)</span></label>
+          <input type="email" id="editClientEmail" class="input" placeholder="email@cliente.com">
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Prazo Seleção</label>
-          <input type="datetime-local" id="editSessionDeadline" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Prazo Seleção</label>
+          <input type="datetime-local" id="editSessionDeadline" class="input">
         </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Modo</label>
-          <select id="editMode" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
-            <option value="selection">Selecao (cliente escolhe favoritas)</option>
-            <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
-          </select>
+        <div class="input-group" style="margin-bottom:0;">
+          <label>Modo</label>
+          <div class="select-wrap">
+            <select id="editMode" class="select input">
+              <option value="selection">Selecao (cliente escolhe favoritas)</option>
+              <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
+            </select>
+          </div>
         </div>
         <div id="editSelectionFields" style="display:flex; gap:0.75rem;">
-          <div style="flex:1;">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fotos do pacote</label>
-            <input type="number" id="editLimit" min="1" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+          <div class="input-group" style="flex:1; margin-bottom:0;">
+            <label>Fotos do pacote</label>
+            <input type="number" id="editLimit" min="1" class="input">
           </div>
-          <div style="flex:1;">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Preco foto extra (R$)</label>
-            <input type="number" id="editExtraPrice" min="0" step="0.01" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-base); color:var(--text-primary);">
+          <div class="input-group" style="flex:1; margin-bottom:0;">
+            <label>Preco foto extra (R$)</label>
+            <input type="number" id="editExtraPrice" min="0" step="0.01" class="input">
           </div>
         </div>
-        <p style="font-size:0.6875rem; color:var(--text-muted);">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
+        <p class="input-hint">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
         <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editCommentsEnabled" style="width:1rem; height:1rem; accent-color:var(--accent); cursor:pointer;">
+            <input type="checkbox" id="editCommentsEnabled" class="check">
             <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
           </label>
-          <p style="font-size:0.6875rem; color:var(--text-muted); margin-top:-0.5rem; margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
+          <p class="input-hint" style="margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button id="cancelEditSession" class="btn">Cancelar</button>
@@ -359,13 +372,13 @@ export async function renderSessoes(container) {
             <h4 style="color:var(--text-primary); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
             <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
                 <div style="flex:2; min-width:200px;">
-                    <input type="text" id="newPartName" placeholder="Nome completo" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
+                    <input type="text" id="newPartName" class="input" placeholder="Nome completo">
                 </div>
                 <div style="flex:1; min-width:150px;">
-                    <input type="email" id="newPartEmail" placeholder="Email (opcional)" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
+                    <input type="email" id="newPartEmail" class="input" placeholder="Email (opcional)">
                 </div>
                 <div style="flex:1; min-width:100px;">
-                    <input type="number" id="newPartLimit" placeholder="Limite" value="30" style="width:100%; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-surface); color:white;">
+                    <input type="number" id="newPartLimit" class="input" placeholder="Limite" value="30">
                 </div>
                 <button id="addParticipantBtn" class="btn btn-primary">Adicionar</button>
             </div>
@@ -388,7 +401,7 @@ export async function renderSessoes(container) {
             <!-- Comentarios aqui -->
         </div>
         <div style="display:flex; gap:0.5rem;">
-            <input type="text" id="adminCommentInput" placeholder="Escreva uma resposta..." style="flex:1; padding:0.5rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-base); color:white;">
+            <input type="text" id="adminCommentInput" class="input" placeholder="Escreva uma resposta..." style="flex:1;">
             <button id="sendAdminCommentBtn" class="btn btn-primary">Enviar</button>
         </div>
       </div>
@@ -501,12 +514,12 @@ export async function renderSessoes(container) {
                 <strong style="color:var(--text-primary); font-size:1.125rem;">${session.name}</strong>
                 <span style="color:var(--text-secondary); font-size:0.875rem;">${session.type}</span>
                 ${session.clientId ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:${status.color}; background:${status.bg}; border:1px solid ${status.color}44; font-weight:600;">
+                <span class="badge ${status.class}">
                   ${status.text}
                 </span>
-                ${session.extraRequest?.status === 'pending' ? `<span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--orange); background:rgba(255,166,87,0.15); border:1px solid rgba(255,166,87,0.4); font-weight:600;">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
-                <span style="font-size:0.625rem; padding:0.125rem 0.5rem; border-radius:9999px; color:var(--purple); background:rgba(188, 140, 255, 0.1); border:1px solid rgba(188, 140, 255, 0.3); font-weight:500;">
-                  ${mode === 'selection' ? 'Selecao' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
+                ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
+                <span class="badge" style="background:rgba(188, 140, 255, 0.1); color:var(--purple); border-color:rgba(188, 140, 255, 0.3);">
+                  ${mode === 'selection' ? 'Seleção' : (isMulti ? 'Multi-Seleção' : 'Galeria')}
                 </span>
               </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">

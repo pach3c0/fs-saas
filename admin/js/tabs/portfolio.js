@@ -437,7 +437,7 @@ function openPhotoEditor(idx, container) {
           
           <div style="margin-top:auto;">
             <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Legenda (SEO)</label>
-            <input type="text" id="pInputCaption" value="${photo.caption || ''}" placeholder="Descreva a foto..." style="width:100%; padding:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:white; font-size:0.875rem; box-sizing:border-box;">
+            <input type="text" id="pInputCaption" class="input" value="${photo.caption || ''}" placeholder="Descreva a foto...">
           </div>
           
         </div>

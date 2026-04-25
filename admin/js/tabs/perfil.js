@@ -115,21 +115,21 @@ export async function renderPerfil(container) {
       <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
         <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Dados do Estúdio</h3>
         <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem;">
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Nome do Estúdio</label>
-            <input type="text" id="orgName" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.name || '')}">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Nome do Estúdio</label>
+            <input type="text" id="orgName" class="input" value="${escapeHtml(data.name || '')}">
           </div>
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Email de Contato</label>
-            <input type="email" id="orgEmail" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.email || '')}">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Email de Contato</label>
+            <input type="email" id="orgEmail" class="input" value="${escapeHtml(data.email || '')}">
           </div>
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Telefone / WhatsApp</label>
-            <input type="text" id="orgWhatsapp" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.whatsapp || '')}">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" id="orgWhatsapp" class="input" value="${escapeHtml(data.whatsapp || '')}">
           </div>
-          <div>
-            <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Website</label>
-            <input type="text" id="orgWebsite" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.website || '')}">
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Website</label>
+            <input type="text" id="orgWebsite" class="input" value="${escapeHtml(data.website || '')}">
           </div>
         </div>
       </div>
@@ -162,9 +162,9 @@ export async function renderPerfil(container) {
                         <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="logo" ${data.watermarkType === 'logo' ? 'checked' : ''}> Logo</label>
                     </div>
                 </div>
-                <div>
-                    <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Texto da Marca D'água</label>
-                    <input type="text" id="watermarkText" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${escapeHtml(data.watermarkText || '')}" placeholder="Padrão: Nome do Estúdio">
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Texto da Marca D'água</label>
+                    <input type="text" id="watermarkText" class="input" value="${escapeHtml(data.watermarkText || '')}" placeholder="Padrão: Nome do Estúdio">
                 </div>
                 <div>
                     <label style="display:block; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; color:var(--text-secondary);">Opacidade (${data.watermarkOpacity || 15}%)</label>

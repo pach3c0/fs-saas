@@ -73,13 +73,13 @@ export async function renderHero(container) {
               <span style="font-size:0.75rem;">▼</span>
             </summary>
             <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-              <div>
-                <label class="range-label">Titulo Principal</label>
-                <input type="text" id="heroTitle" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${_hero.heroTitle}">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Título Principal</label>
+                <input type="text" id="heroTitle" class="input" value="${_hero.heroTitle}">
               </div>
-              <div>
-                <label class="range-label">Subtitulo</label>
-                <input type="text" id="heroSubtitle" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);" value="${_hero.heroSubtitle}">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Subtítulo</label>
+                <input type="text" id="heroSubtitle" class="input" value="${_hero.heroSubtitle}">
               </div>
             </div>
           </details>
@@ -115,9 +115,9 @@ export async function renderHero(container) {
             <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
               <input type="hidden" id="titlePosX" value="${_hero.titlePosX}">
               <input type="hidden" id="titlePosY" value="${_hero.titlePosY}">
-              <div>
-                <label class="range-label">Tamanho (px)</label>
-                <input type="number" id="titleFontSize" min="10" max="200" step="1" value="${_hero.titleFontSize}" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Tamanho do Título (px)</label>
+                <input type="number" id="titleFontSize" class="input" min="10" max="200" step="1" value="${_hero.titleFontSize}">
               </div>
             </div>
           </details>
@@ -131,9 +131,9 @@ export async function renderHero(container) {
             <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
               <input type="hidden" id="subtitlePosX" value="${_hero.subtitlePosX}">
               <input type="hidden" id="subtitlePosY" value="${_hero.subtitlePosY}">
-              <div>
-                <label class="range-label">Tamanho (px)</label>
-                <input type="number" id="subtitleFontSize" min="10" max="100" step="1" value="${_hero.subtitleFontSize}" style="width:100%; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-elevated); color:var(--text-primary);">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Tamanho do Subtítulo (px)</label>
+                <input type="number" id="subtitleFontSize" class="input" min="10" max="100" step="1" value="${_hero.subtitleFontSize}">
               </div>
             </div>
           </details>
