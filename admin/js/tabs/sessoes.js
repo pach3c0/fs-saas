@@ -493,6 +493,7 @@ export async function renderSessoes(container) {
         const mode = session.mode || 'gallery';
         const isMulti = mode === 'multi_selection';
         const selectedCount = (session.selectedPhotos || []).length;
+        const limit = session.packageLimit || 30;
         const extras = Math.max(0, selectedCount - limit);
         const extraPrice = session.extraPhotoPrice || 25;
         const deliveredPhotosCount = (session.photos || []).filter(p => p.urlOriginal).length;
