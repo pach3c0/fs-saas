@@ -129,10 +129,16 @@ function renderList(container, items) {
             <button onclick="viewSessionPhotos('${session._id}')" class="btn btn-sm btn-primary">
               Fotos
             </button>
-            ${isMulti ? `
-            <button onclick="viewParticipants('${session._id}')" class="btn btn-sm" style="background:var(--purple); border-color:var(--purple); color:white;">
+            <button onclick="${isMulti ? `viewParticipants('${session._id}')` : ''}" 
+              class="btn btn-sm" 
+              style="background:${isMulti ? 'var(--purple)' : 'rgba(255,255,255,0.05)'}; 
+                     border-color:${isMulti ? 'var(--purple)' : 'var(--border)'}; 
+                     color:${isMulti ? 'white' : 'var(--text-muted)'};
+                     cursor:${isMulti ? 'pointer' : 'not-allowed'};"
+              ${isMulti ? '' : 'disabled'}
+              title="${isMulti ? 'Gerenciar participantes' : 'Disponível apenas no modo Multi-Seleção'}">
               Participantes
-            </button>` : ''}
+            </button>
             <button onclick="editSession('${session._id}')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
               Config
             </button>
@@ -145,10 +151,16 @@ function renderList(container, items) {
               title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
               📧 Enviar
             </button>
-            ${!isMulti && isSubmitted ? `
-            <button onclick="reopenSelection('${session._id}')" class="btn btn-sm" style="background:var(--yellow); border-color:var(--yellow); color:white;">
+            <button onclick="${!isMulti && isSubmitted ? `reopenSelection('${session._id}')` : ''}" 
+              class="btn btn-sm" 
+              style="background:${!isMulti && isSubmitted ? 'var(--yellow)' : 'rgba(255,255,255,0.05)'}; 
+                     border-color:${!isMulti && isSubmitted ? 'var(--yellow)' : 'var(--border)'}; 
+                     color:${!isMulti && isSubmitted ? 'white' : 'var(--text-muted)'};
+                     cursor:${!isMulti && isSubmitted ? 'pointer' : 'not-allowed'};"
+              ${!isMulti && isSubmitted ? '' : 'disabled'}
+              title="${isMulti ? 'Não disponível em multi-seleção' : (!isSubmitted ? 'Aguardando cliente enviar seleção' : 'Reabrir seleção')}">
               Reabrir
-            </button>` : ''}
+            </button>
             <button onclick="deliverSession('${session._id}')"
               style="background:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'var(--green)' : 'rgba(255,255,255,0.05)'};
                      color:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)'};
@@ -159,7 +171,7 @@ function renderList(container, items) {
               title="${!isSubmitted ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : 'Entregar sessão'))}">
               Entregar
             </button>
-            <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);">
+            <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);" title="Ver linha do tempo e atividades da sessão">
               Historico
             </button>
             ${session.extraRequest?.status === 'pending' ? `
