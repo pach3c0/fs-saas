@@ -214,44 +214,37 @@ Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar fea
 
 
 
-## ajuste
+---
+## BACKLOG DE AJUSTES — PENDENTES DE IMPLEMENTACAO
+Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar implementacao, mover para a secao correta (ERROS COMUNS, FUNCIONALIDADES REMOVIDAS, etc.) e marcar ✅.
 
-# Sessoes
- - o botao id="secondaryUploadBtn" da aba id="tabGeralBtn" tem que ser removido 
- - no id="sessionPhotosModal" tem que aparecer um titulo informando o tipo de modo da sessao
-temos tres (Selecao, Galeria e multiselecao )
-  - o botao id="previewToggleBtn" do top bar pode deletar
-  - o id="sidebar-storage" deve ter atualizacao dinamicas, deletou algo ele ja deve ser atualizado, e preciso que mostre o armazamneto por divisao, sistema(aonde comeca a conttar quando ele insere sua informacoes logos e outros, depois sessoes albuns, depois site, por favor verifique se tem outro lugar do cliente que consome armazenamoent que precise colocar no widgewt )
+### Modulo: Sessoes (`admin/js/tabs/sessoes.js`)
+| # | Item | Status | Regra de negocio |
+|---|---|---|---|
+| S1 | Remover botao `id="secondaryUploadBtn"` da aba `id="tabGeralBtn"` | ✅ | Botao começa `display:none` no HTML; aparece apenas na aba Entrega Final via `switchPhotoTab` |
+| S2 | Exibir titulo no `id="sessionPhotosModal"` indicando o modo da sessao | ✅ | Implementado em `viewSessionPhotos` — `title.textContent = Fotos - Nome (Modo)` |
+| S3 | Remover botao `id="previewToggleBtn"` do topbar | ✅ | Botao nao existe no HTML do admin — existe so em `app.js` como referencia opcional |
+| S4 | Remover campo `input-group` de tipo do modal criar sessao E do modal config | ✅ | Campo `editSessionType` era referencia invalida — removida da funcao `editSession` |
+| S5 | `coverPreview`: definir regra de validacao de imagem de capa | ✅ | Aceita apenas `.jpg/.jpeg/.png`; botao Upload ja tem `color: white !important` |
+| S6 | Campo cliente obrigatorio em nova sessao | ✅ | Bloqueia submit sem `clientId` com toast de aviso (linha ~803) |
+| S7 | Autocomplete cliente no modal: ao nao encontrar, exibir `+ Cadastrar "X" como novo cliente` | ✅ | Implementado via `abrirModalClienteNovo` com foco automatico no campo nome |
+| S8 | Botao `hidden` ao lado de `openComments` em cada foto da galeria geral | ✅ | Botao existe; **REGRA CRITICA implementada:** se `qtd fotos visiveis <= pacote` em modo Selecao, bloqueia com toast explicativo |
+| S9 | Galeria geral: checkbox selecionar todas + acao deletar selecionadas | ✅ | Implementado via `bulkActionsBar` + `selectAllPhotos` + `bulkDeleteBtn` |
 
-  - no modal de criar sessao quando digitar o nome do cliente e nao tiver vai aparecer <div style="padding: 0.5rem 0.75rem; cursor: pointer; color: var(--accent); font-size: 0.875rem; border-top: 1px solid var(--border); font-weight: 500;">+ Cadastrar "ricardo" como novo cliente</div>
+### Modulo: Storage Widget (`id="sidebar-storage"`)
+| # | Item | Status | Detalhes |
+|---|---|---|---|
+| W1 | Atualizacao dinamica do widget ao deletar arquivo | ✅ | Chamadas a `window.loadSidebarStorage?.()` apos delete de foto, sessao e bulk delete |
+| W2 | Exibir armazenamento por divisao | ✅ | Breakdown em `loadSidebarStorage`: Sistema, Sessoes/Albums, Site Publico |
 
-  quando clicar, o modal id="modalCliente" deve abrir e ja com o foco no campo nome para que o usuario possa cadastrar o cliente, e depois criar uma sessao com o nome desse cliente.
-  
+### Modulo: Clientes (`admin/js/tabs/clientes.js`)
+| # | Item | Status | Regra de negocio |
+|---|---|---|---|
+| C1 | Campos email, telefone e CPF obrigatorios no cadastro de cliente | ✅ | Frontend: `client-modal.js` linha 65. Backend: `POST/PUT /api/clients` agora valida e rejeita sem os tres campos |
 
-  - remover o input-group do modal sessao, nao vamos trabalhar com tipo por enquanto, e tambem do modal config
-  - existe alguma regra para id="coverPreview" tamanho de imagem, tipo de arquivo?
-              
-<label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
-              Upload
-              <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
-            </label> esta o texto da mesma cor do botao, nao esta ficando visivel
-
-
-- em nova sessao apartir de agora é obrigatorio ter cliente, dixa de ser opcional
-- ao lado do botao openComments que tem em cada imagem da galeria geral, precisa criar um botao de hidden, esse botao vai servir para ocultar as imagens na sessao do cliente, mais cuidado com a regra de quantidade de fotos criada na configuracao do projeto, ex se foi criado um pacote com 4 fotos no modo selecao, e foi enviado somente as 4 e o fotografo decide ocultar uma foto, ele nao pode fazer isso, no momento, ele tem que ir em configuracoes e alterar o pacote para 3 para poder ocultar essa foto, atencao somente quando a quantidade de fotos na galeria geral for igual a quantidade de fotos do pacote
-
-- na aba galeria geral criar checkbox com funcao de selecionar todas as fotos, deletar todas as fotos selecionar
-
-  # Clintes
-  
-   é obrigatorio email, telefone, cpf 
-
-
-  # pagina de selecao do cliente 
-
-  - pode remover o "Ola " +Nome do cliente, nao vamos usar 
-  - tem que ter no config uma opcao de habilitar a vendas de fotos extras depois de enviada, por padrao tem que estar habilitado
-  - tem que ter no config 
-se quer da essa opcao de 
-reabertura de sessao, por 
-padrao vem habilitada
+### Modulo: Pagina de Selecao do Cliente (`cliente/`)
+| # | Item | Status | Regra de negocio |
+|---|---|---|---|
+| P1 | Remover saudacao `"Ola " + Nome do cliente` | ✅ | `h1#clientName` e `p#galleryMeta` removidos do HTML; `renderHeader()` em gallery.js ja nao exibia saudacao |
+| P2 | Config: opcao para habilitar venda de fotos extras pos-entrega | ✅ | Campo `allowExtraPurchasePostSubmit` existe no modal criar/editar sessao e no backend |
+| P3 | Config: opcao para permitir reabertura de sessao pelo cliente | ✅ | Campo `allowReopen` existe no modal criar/editar sessao e validado no backend |

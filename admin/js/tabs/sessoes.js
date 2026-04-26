@@ -202,10 +202,11 @@ export async function renderSessoes(container) {
         <div style="display:flex; gap:0.75rem; align-items:center;">
           <div id="sessionUploadProgress" style="min-width:150px;"></div>
           
-          <!-- Independent Upload Buttons -->
+          <!-- Upload Buttons -->
           <div id="uploadButtonGroup" style="display:flex; gap:0.5rem; align-items:center;">
             <label id="mainUploadBtn" style="padding:0.5rem 1rem; background:var(--accent); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
-            <label id="secondaryUploadBtn" style="padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; display:flex; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
+            <!-- secondaryUploadBtn: só aparece na aba Entrega Final (injetado via switchPhotoTab) -->
+            <label id="secondaryUploadBtn" style="display:none; padding:0.5rem 1rem; background:var(--purple); color:white; border-radius:0.375rem; cursor:pointer; font-weight:600; font-size:0.875rem; border:none; align-items:center; gap:0.5rem; transition: background 0.2s;"></label>
           </div>
 
           <!-- Hidden Inputs -->
@@ -1230,7 +1231,6 @@ export async function renderSessoes(container) {
     editingSessionId = sessionId;
 
     container.querySelector('#editSessionName').value = session.name || '';
-    container.querySelector('#editSessionType').value = session.type || 'Familia';
     container.querySelector('#editClientEmail').value = session.clientEmail || '';
 
     const clientSelect = container.querySelector('#editClientId');
@@ -1599,6 +1599,26 @@ export async function renderSessoes(container) {
 
   // Ocultar/Mostrar foto
   window.togglePhotoHidden = async (sessionId, photoId) => {
+    const session = sessionsData.find(s => s._id === sessionId);
+    if (!session) return;
+
+    // Regra de negócio: no modo Seleção, se qtd fotos == pacote, não pode ocultar
+    const photo = (session.photos || []).find(p => p.id === photoId);
+    const isCurrentlyVisible = !photo?.hidden;
+    if (isCurrentlyVisible && session.mode === 'selection') {
+      const totalVisible = (session.photos || []).filter(p => !p.hidden).length;
+      const pacote = session.packageLimit || 30;
+      if (totalVisible <= pacote) {
+        window.showToast?.(
+          `Não é possível ocultar: você tem ${totalVisible} foto(s) visíveis e o pacote exige ${pacote}. ` +
+          `Reduza o pacote em Configurações antes de ocultar.`,
+          'warning',
+          6000
+        );
+        return;
+      }
+    }
+
     try {
       await apiPut(`/api/sessions/${sessionId}/photos/${photoId}/toggle-hidden`);
       await renderSessoes(container);

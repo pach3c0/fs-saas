@@ -55,17 +55,27 @@ router.get('/clients', authenticateToken, async (req, res) => {
 router.post('/clients', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, notes, tags } = req.body;
+    const { name, email, phone, cpf, notes, tags } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, error: 'E-mail é obrigatório' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, error: 'Telefone é obrigatório' });
+    }
+    if (!cpf || !cpf.trim()) {
+      return res.status(400).json({ success: false, error: 'CPF é obrigatório' });
     }
 
     const client = new Client({
       organizationId: orgId,
       name: name.trim(),
-      email: email ? email.trim() : '',
-      phone: phone ? phone.trim() : '',
+      email: email.trim(),
+      phone: phone.trim(),
+      cpf: cpf.trim(),
       notes: notes ? notes.trim() : '',
       tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : []
     });
@@ -85,18 +95,28 @@ router.post('/clients', authenticateToken, async (req, res) => {
 router.put('/clients/:id', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, notes, tags } = req.body;
+    const { name, email, phone, cpf, notes, tags } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, error: 'E-mail é obrigatório' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, error: 'Telefone é obrigatório' });
+    }
+    if (!cpf || !cpf.trim()) {
+      return res.status(400).json({ success: false, error: 'CPF é obrigatório' });
     }
 
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, organizationId: orgId },
       {
         name: name.trim(),
-        email: email ? email.trim() : '',
-        phone: phone ? phone.trim() : '',
+        email: email.trim(),
+        phone: phone.trim(),
+        cpf: cpf.trim(),
         notes: notes ? notes.trim() : '',
         tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : []
       },
