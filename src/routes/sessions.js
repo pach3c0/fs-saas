@@ -859,6 +859,59 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
   }
 });
 
+// ADMIN: Deletar fotos em massa — deve vir ANTES de /:photoId para evitar que 'bulk' seja capturado como parâmetro
+router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) => {
+  try {
+    const { photoIds } = req.body;
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ error: 'Lista de IDs inválida' });
+    }
+
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId }).lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const photosToDelete = (session.photos || []).filter(p => photoIds.includes(p.id));
+    const deletedCount = photosToDelete.length;
+
+    // Deletar arquivos físicos
+    for (const photo of photosToDelete) {
+        try {
+            const deletions = [];
+            if (photo.url && photo.url.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.url));
+            if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlOriginal));
+            if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
+            await Promise.all(deletions);
+        } catch (e) {
+            console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
+        }
+    }
+
+    // Remover do MongoDB de forma atômica (evita problemas de Mongoose não detectar mudanca em array)
+    await Session.updateOne(
+        { _id: req.params.id, organizationId: req.user.organizationId },
+        {
+            $pull: {
+                photos: { id: { $in: photoIds } },
+                selectedPhotos: { $in: photoIds }
+            }
+        }
+    );
+
+    // Decrementar contador de fotos
+    if (deletedCount > 0) {
+        await Subscription.findOneAndUpdate(
+            { organizationId: req.user.organizationId },
+            { $inc: { 'usage.photos': -deletedCount } }
+        );
+    }
+
+    res.json({ success: true, deletedCount });
+  } catch (error) {
+    console.error('Erro bulk delete:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (req, res) => {
   try {
     const session = await Session.findOne({
@@ -924,59 +977,6 @@ router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, asy
 
     res.json({ success: true, photoId: photo.id, hidden: photo.hidden });
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ADMIN: Deletar fotos em massa
-router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) => {
-  try {
-    const { photoIds } = req.body;
-    if (!Array.isArray(photoIds) || photoIds.length === 0) {
-        return res.status(400).json({ error: 'Lista de IDs inválida' });
-    }
-
-    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId }).lean();
-    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-
-    const photosToDelete = (session.photos || []).filter(p => photoIds.includes(p.id));
-    const deletedCount = photosToDelete.length;
-
-    // Deletar arquivos físicos
-    for (const photo of photosToDelete) {
-        try {
-            const deletions = [];
-            if (photo.url && photo.url.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.url));
-            if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlOriginal));
-            if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
-            await Promise.all(deletions);
-        } catch (e) {
-            console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
-        }
-    }
-
-    // Remover do MongoDB de forma atômica (evita problemas de Mongoose não detectar mudanca em array)
-    await Session.updateOne(
-        { _id: req.params.id, organizationId: req.user.organizationId },
-        {
-            $pull: {
-                photos: { id: { $in: photoIds } },
-                selectedPhotos: { $in: photoIds }
-            }
-        }
-    );
-
-    // Decrementar contador de fotos
-    if (deletedCount > 0) {
-        await Subscription.findOneAndUpdate(
-            { organizationId: req.user.organizationId },
-            { $inc: { 'usage.photos': -deletedCount } }
-        );
-    }
-
-    res.json({ success: true, deletedCount });
-  } catch (error) {
-    console.error('Erro bulk delete:', error);
     res.status(500).json({ error: error.message });
   }
 });

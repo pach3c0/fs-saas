@@ -105,6 +105,7 @@ Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
 ## ERROS COMUNS — NAO REINTRODUZIR
 | Sintoma | Evitar |
 |---|---|
+| Rota `/bulk` interceptada por `/:photoId` | Registrar rotas com segmento literal ANTES de rotas com parametro dinamico no mesmo prefixo |
 | Conteudo invisivel admin | Sempre CSS variables, nunca Tailwind em tabs |
 | `@apply` runtime nao funciona | So em `tailwind-input.css` |
 | Portfolio sumido | `style="aspect-ratio:3/4"`, nao `aspect-[3/4]` |
@@ -248,40 +249,10 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 
 ---
 
-## BUG ATIVO — Bulk Delete de Fotos em Sessoes (2026-04-26)
+## BUG RESOLVIDO — Bulk Delete de Fotos em Sessoes (2026-04-26)
 
-### Sintoma
-Fotografo seleciona fotos via checkbox no modal de galeria, clica em "Deletar selecionadas", recebe toast de sucesso e fotos somem visualmente. Porem ao navegar para outra aba e voltar, as fotos reaparecem — a delecao nao persiste no MongoDB.
+### Causa raiz
+Conflito de ordem de rotas no Express em `src/routes/sessions.js`. A rota `DELETE /sessions/:sessionId/photos/:photoId` estava registrada ANTES de `DELETE /sessions/:id/photos/bulk`. O Express capturava `"bulk"` como valor de `:photoId`, executava o handler errado (que nao encontrava foto com id="bulk") e retornava 200 silenciosamente sem persistir nada no MongoDB.
 
-### Stack envolvida
-- Frontend: `admin/js/tabs/sessoes.js` — funcao `viewSessionPhotos`, handler `bulkDeleteBtn.onclick`
-- Backend: `src/routes/sessions.js` — rota `DELETE /sessions/:id/photos/bulk`
-- Modelo: `src/models/Session.js` — campo `photos: [{ id, url, urlOriginal, hidden, comments }]`
-- API helper: `admin/js/utils/api.js` — `apiDelete(url, body)`
-
-### Historico de tentativas
-1. Bug 1 (resolvido): `apiDelete` nao aceitava body — backend recebia `photoIds = undefined` e retornava 400 silenciosamente. Fix: assinatura `apiDelete = (url, body) => apiRequest('DELETE', url, body)`.
-2. Bug 2 (resolvido visual): `checkbox.onchange` nao disparava por conflito com overlay de hover. Fix: `onclick + stopPropagation + z-index:20`.
-3. Bug 3 (resolvido visual): Apos delete, `renderSessoes()` re-buscava dados com cache HTTP (0 KB retornado). Fix: remover cards do DOM via `.remove()` direto.
-4. Bug 4 (nao resolvido): `session.photos = session.photos.filter(...)` + `session.markModified('photos')` + `session.save()` — nao persiste no MongoDB.
-5. Tentativa atual: Substituido por `Session.updateOne` com `$pull: { photos: { id: { $in: photoIds } } }` — aguardando teste na VPS.
-
-### Estado atual do backend (sessions.js rota DELETE /sessions/:id/photos/bulk)
-```js
-// 1. Busca sessao com .lean() para nao usar Mongoose Document
-const session = await Session.findOne({ _id, organizationId }).lean();
-// 2. Filtra fotos para deletar arquivos fisicos
-const photosToDelete = session.photos.filter(p => photoIds.includes(p.id));
-// 3. Deleta arquivos fisicos em paralelo
-// 4. Operacao atomica no MongoDB — nao depende de Mongoose rastrear mudancas
-await Session.updateOne(
-  { _id, organizationId },
-  { $pull: { photos: { id: { $in: photoIds } }, selectedPhotos: { $in: photoIds } } }
-);
-```
-
-### Proximos passos sugeridos
-1. Verificar se existe middleware `pre('save')` ou `pre('updateOne')` em Session.js que restaure `photos`.
-2. Verificar via shell MongoDB: `db.sessions.findOne({_id: ObjectId('...')}, {photos:1})` antes e depois da chamada para confirmar se o documento muda.
-3. Adicionar `console.log` no backend apos o `updateOne` para imprimir o resultado (`{ modifiedCount: N }`).
-4. Confirmar que `organizationId` no JWT bate com o `organizationId` do documento no banco.
+### Fix aplicado
+Movida a rota `/bulk` para antes de `/:photoId` no arquivo `src/routes/sessions.js` (linhas ~863 e ~915). Zero mudanca de logica, apenas reordenacao.
