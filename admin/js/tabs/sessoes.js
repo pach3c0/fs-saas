@@ -673,19 +673,6 @@ export async function renderSessoes(container) {
 
   function renderClientDropdown(clients, query) {
     clientSearchDropdown.innerHTML = '';
-    // Opção de nenhum cliente
-    const nenhum = document.createElement('div');
-    nenhum.textContent = '— Sem vínculo';
-    nenhum.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--text-muted); font-size:0.875rem;';
-    nenhum.onmouseenter = () => nenhum.style.background = 'var(--bg-hover)';
-    nenhum.onmouseleave = () => nenhum.style.background = '';
-    nenhum.onclick = () => {
-      clientSearchInput.value = '';
-      container.querySelector('#sessionClientId').value = '';
-      clientSearchHint.textContent = '';
-      clientSearchDropdown.style.display = 'none';
-    };
-    clientSearchDropdown.appendChild(nenhum);
 
     // Resultados encontrados
     clients.forEach(c => {
@@ -795,30 +782,56 @@ export async function renderSessoes(container) {
   };
 
   container.querySelector('#confirmNewSession').onclick = async () => {
+    // Ler todos os campos PRIMEIRO
+    const name     = container.querySelector('#sessionName').value.trim();
+    const clientId = container.querySelector('#sessionClientId').value || null;
+    const date     = container.querySelector('#sessionDate').value;
+    const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
+    const mode         = container.querySelector('#sessionMode').value;
+    const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
+    const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
+    const coverPhoto   = container.querySelector('#sessionCoverPhoto').value;
+    const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase')?.checked || false;
+    const allowReopen        = container.querySelector('#sessionAllowReopen')?.checked || false;
+
+    // Validações obrigatórias com feedback visual
+    let hasError = false;
+
+    const nameInput = container.querySelector('#sessionName');
+    if (!name) {
+      nameInput.style.borderColor = 'var(--red)';
+      window.showToast?.('Nome da sessão é obrigatório', 'warning');
+      hasError = true;
+    } else {
+      nameInput.style.borderColor = '';
+    }
+
+    const clientInput = container.querySelector('#clientSearchInput');
+    if (!clientId) {
+      clientInput.style.borderColor = 'var(--red)';
+      if (!hasError) window.showToast?.('Selecione ou cadastre um cliente para continuar', 'warning');
+      hasError = true;
+    } else {
+      clientInput.style.borderColor = '';
+    }
+
+    if (hasError) return;
     if (!validateDates()) return;
 
-    const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase').checked;
-    const allowReopen = container.querySelector('#sessionAllowReopen').checked;
-
-    if (!name) { window.showToast?.('Nome da sessão é obrigatório', 'warning'); return; }
-    if (!clientId) { window.showToast?.('Selecione ou cadastre um cliente para continuar', 'warning'); return; }
-
-    // Buscar email do cliente vinculado (se houver)
+    // Buscar email do cliente vinculado
     let clientEmail = '';
-    if (clientId) {
-      try {
-        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(container.querySelector('#clientSearchInput').value)}`);
-        const linked = (data.clients || []).find(c => c._id === clientId);
-        if (linked) clientEmail = linked.email || '';
-      } catch (e) { /* silencioso */ }
-    }
+    try {
+      const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(clientInput.value)}`);
+      const linked = (data.clients || []).find(c => c._id === clientId);
+      if (linked) clientEmail = linked.email || '';
+    } catch (e) { /* silencioso */ }
 
     try {
       const result = await apiPost('/api/sessions', {
         name, clientEmail, date, selectionDeadline,
-        mode, packageLimit, extraPhotoPrice, photoResolution, coverPhoto, clientId,
+        mode, packageLimit, extraPhotoPrice, coverPhoto, clientId,
         allowExtraPurchasePostSubmit: allowExtraPurchase,
-        allowReopen: allowReopen
+        allowReopen
       });
 
       newSessionModal.style.display = 'none';
