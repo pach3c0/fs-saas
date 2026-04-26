@@ -11,6 +11,7 @@ const ClientSchema = new mongoose.Schema({
   email: { type: String, default: '' },
   phone: { type: String, default: '' },
   notes: { type: String, default: '' },
+  cpf: { type: String, default: '' },
   tags: [String]
 }, { timestamps: true });
 

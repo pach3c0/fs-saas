@@ -17,7 +17,8 @@ const sessionSchema = new mongoose.Schema({
                 text: String,
                 createdAt: { type: Date, default: Date.now },
                 author: { type: String, enum: ['client', 'admin'], default: 'client' }
-            }]
+            }],
+            hidden: { type: Boolean, default: false }
         }],
         // Teto defensivo: evita estourar o limite de 16MB por doc do MongoDB.
         // 10k fotos por sessão cobre qualquer evento real.
@@ -42,6 +43,8 @@ const sessionSchema = new mongoose.Schema({
     watermark: { type: Boolean, default: true },
     commentsEnabled: { type: Boolean, default: true }, // Exibir botao de comentario na galeria do cliente
     canShare: { type: Boolean, default: false },
+    allowExtraPurchasePostSubmit: { type: Boolean, default: true },
+    allowReopen: { type: Boolean, default: true },
     // Solicitacao de fotos extras (apos submit da selecao)
     extraRequest: {
         status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },

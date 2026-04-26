@@ -216,7 +216,7 @@ Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar fea
 
 ## ajuste
 
-Sessoes
+# Sessoes
  - o botao id="secondaryUploadBtn" da aba id="tabGeralBtn" tem que ser removido 
  - no id="sessionPhotosModal" tem que aparecer um titulo informando o tipo de modo da sessao
 temos tres (Selecao, Galeria e multiselecao )
@@ -227,3 +227,31 @@ temos tres (Selecao, Galeria e multiselecao )
 
   quando clicar, o modal id="modalCliente" deve abrir e ja com o foco no campo nome para que o usuario possa cadastrar o cliente, e depois criar uma sessao com o nome desse cliente.
   
+
+  - remover o input-group do modal sessao, nao vamos trabalhar com tipo por enquanto, e tambem do modal config
+  - existe alguma regra para id="coverPreview" tamanho de imagem, tipo de arquivo?
+              
+<label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
+              Upload
+              <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
+            </label> esta o texto da mesma cor do botao, nao esta ficando visivel
+
+
+- em nova sessao apartir de agora é obrigatorio ter cliente, dixa de ser opcional
+- ao lado do botao openComments que tem em cada imagem da galeria geral, precisa criar um botao de hidden, esse botao vai servir para ocultar as imagens na sessao do cliente, mais cuidado com a regra de quantidade de fotos criada na configuracao do projeto, ex se foi criado um pacote com 4 fotos no modo selecao, e foi enviado somente as 4 e o fotografo decide ocultar uma foto, ele nao pode fazer isso, no momento, ele tem que ir em configuracoes e alterar o pacote para 3 para poder ocultar essa foto, atencao somente quando a quantidade de fotos na galeria geral for igual a quantidade de fotos do pacote
+
+- na aba galeria geral criar checkbox com funcao de selecionar todas as fotos, deletar todas as fotos selecionar
+
+  # Clintes
+  
+   é obrigatorio email, telefone, cpf 
+
+
+  # pagina de selecao do cliente 
+
+  - pode remover o "Ola " +Nome do cliente, nao vamos usar 
+  - tem que ter no config uma opcao de habilitar a vendas de fotos extras depois de enviada, por padrao tem que estar habilitado
+  - tem que ter no config 
+se quer da essa opcao de 
+reabertura de sessao, por 
+padrao vem habilitada

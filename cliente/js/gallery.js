@@ -227,11 +227,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             logoHtml = `<h1 class="text-2xl font-bold">${escapeHtml(orgName)}</h1>`;
         }
 
-        // Nome do cliente (CRM ou preenchido pelo próprio cliente)
-        const clientName = state.session.clientData ? state.session.clientData.name : '';
-        const clientBadge = clientName
-            ? `<span style="font-size:0.8rem; color:#666; margin-left:0.5rem;">Olá, ${escapeHtml(clientName)}!</span>`
-            : '';
+        // Ocultar saudação personalizada
+        const clientBadge = '';
 
         let deadlineHtml = '';
         if (state.session.selectionDeadline && state.session.selectionStatus !== 'submitted' && state.session.selectionStatus !== 'delivered') {
@@ -448,7 +445,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Grid de fotos não selecionadas (para solicitar extras)
-        const canRequestExtras = extraRequest.status !== 'pending' && unselectedPhotos.length > 0;
+        const canUpsell = state.session.allowExtraPurchasePostSubmit !== false;
+        const canRequestExtras = canUpsell && extraRequest.status !== 'pending' && unselectedPhotos.length > 0;
         let extrasGridHtml = '';
         if (canRequestExtras) {
             extrasGridHtml = `
@@ -472,7 +470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 ${extraStatusBanner}
                 ${extrasGridHtml}
-                ${extraRequest.status !== 'pending' ? `
+                ${(extraRequest.status !== 'pending' && state.session.allowReopen !== false) ? `
                 <div style="text-align:center; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e5e5e5;">
                     <button id="reopenRequestBtn" style="background:none; border:1px solid #d1d5db; color:#aaa; padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.75rem; cursor:pointer;">
                         Preciso alterar minha seleção

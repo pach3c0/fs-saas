@@ -88,8 +88,8 @@ export async function renderSessoes(container) {
         <!-- BLOCO CLIENTE: busca dinâmica -->
         <!-- BLOCO CLIENTE: busca dinâmica -->
         <div class="input-group" style="position:relative; margin-bottom:0;">
-          <label>Cliente <span style="color:var(--text-muted);">(opcional)</span></label>
-          <input type="text" id="clientSearchInput" class="input" autocomplete="off" placeholder="Digite o nome para buscar ou criar...">
+          <label>Cliente <span style="color:var(--red);">*</span></label>
+          <input type="text" id="clientSearchInput" class="input" autocomplete="off" placeholder="Busque ou cadastre o cliente...">
           <input type="hidden" id="sessionClientId" value="">
           <!-- Dropdown de resultados -->
           <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
@@ -102,19 +102,6 @@ export async function renderSessoes(container) {
           <input type="text" id="sessionName" class="input" placeholder="Ex: Ensaio Família Silva">
         </div>
 
-        <!-- Tipo -->
-        <div class="input-group" style="margin-bottom:0;">
-          <label>Tipo</label>
-          <div class="select-wrap">
-            <select id="sessionType" class="select input">
-              <option value="Familia">Família</option>
-              <option value="Casamento">Casamento</option>
-              <option value="Evento">Evento</option>
-              <option value="Ensaio">Ensaio</option>
-              <option value="Corporativo">Corporativo</option>
-            </select>
-          </div>
-        </div>
 
         <!-- DATAS -->
         <div style="border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
@@ -144,7 +131,7 @@ export async function renderSessoes(container) {
             <div id="coverPreview" style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
               <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
             </div>
-            <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
+            <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer; color: white !important;">
               Upload
               <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
             </label>
@@ -187,6 +174,16 @@ export async function renderSessoes(container) {
               <label>Preço foto extra (R$)</label>
               <input type="number" id="sessionExtraPrice" class="input" value="25" min="0" step="0.01">
             </div>
+          </div>
+          <div id="extraConfigFields" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="sessionAllowExtraPurchase" checked class="check">
+              <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar venda de fotos extras</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="sessionAllowReopen" checked class="check">
+              <span style="color:var(--text-primary); font-size:0.875rem;">Permitir pedido de reabertura</span>
+            </label>
           </div>
           <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
         </div>
@@ -232,6 +229,17 @@ export async function renderSessoes(container) {
       <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:1.5rem; overflow:hidden; background:var(--bg-base);">
           <!-- Seção 1: Todas as Fotos -->
           <div id="tabGeral" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+              <!-- Barra de Ações em Massa -->
+              <div id="bulkActionsBar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; background:var(--bg-elevated); padding:0.5rem 1rem; border-radius:0.5rem; border:1px solid var(--border); display:none;">
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--text-primary);">
+                      <input type="checkbox" id="selectAllPhotos" class="check">
+                      <span>Selecionar Tudo</span>
+                  </label>
+                  <div style="display:flex; gap:0.75rem; align-items:center;">
+                      <span id="selectedPhotosCount" style="font-size:0.875rem; color:var(--text-secondary);">0 selecionadas</span>
+                      <button id="bulkDeleteBtn" class="btn btn-danger btn-sm" style="background:var(--red); color:white; border:none;">Deletar</button>
+                  </div>
+              </div>
               <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); grid-auto-rows: max-content; gap:1rem; align-content:start;"></div>
           </div>
           
@@ -276,18 +284,6 @@ export async function renderSessoes(container) {
           <input type="text" id="editSessionName" class="input">
         </div>
         <div class="input-group" style="margin-bottom:0;">
-          <label>Tipo</label>
-          <div class="select-wrap">
-            <select id="editSessionType" class="select input">
-              <option value="Familia">Familia</option>
-              <option value="Casamento">Casamento</option>
-              <option value="Evento">Evento</option>
-              <option value="Ensaio">Ensaio</option>
-              <option value="Corporativo">Corporativo</option>
-            </select>
-          </div>
-        </div>
-        <div class="input-group" style="margin-bottom:0;">
           <label>Cliente Vinculado</label>
           <div class="select-wrap">
             <select id="editClientId" class="select input">
@@ -326,9 +322,16 @@ export async function renderSessoes(container) {
         <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editCommentsEnabled" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentarios por foto habilitados</span>
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentários por foto habilitados</span>
           </label>
-          <p class="input-hint" style="margin-left:1.5rem;">Quando marcado, o cliente pode comentar em fotos individuais da galeria.</p>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="editAllowExtraPurchase" class="check">
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Venda de fotos extras habilitada</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="editAllowReopen" class="check">
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Reabertura de sessão permitida</span>
+          </label>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button id="cancelEditSession" class="btn">Cancelar</button>
@@ -528,7 +531,6 @@ export async function renderSessoes(container) {
               <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                 <strong style="color:var(--text-primary); font-size:1.125rem;">${session.name}</strong>
-                <span style="color:var(--text-secondary); font-size:0.875rem;">${session.type}</span>
                 ${session.clientId ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
                 <span class="badge ${status.class}">
                   ${status.text}
@@ -794,18 +796,11 @@ export async function renderSessoes(container) {
   container.querySelector('#confirmNewSession').onclick = async () => {
     if (!validateDates()) return;
 
-    const name = container.querySelector('#sessionName').value.trim();
-    const type = container.querySelector('#sessionType').value;
-    const date = container.querySelector('#sessionDate').value;           // data do evento
-    const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
-    const mode = container.querySelector('#sessionMode').value;
-    const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
-    const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
-    const photoResolution = parseInt(container.querySelector('#sessionResolution').value) || 1200;
-    const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
-    const clientId = container.querySelector('#sessionClientId').value || null;
+    const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase').checked;
+    const allowReopen = container.querySelector('#sessionAllowReopen').checked;
 
     if (!name) { window.showToast?.('Nome da sessão é obrigatório', 'warning'); return; }
+    if (!clientId) { window.showToast?.('Selecione ou cadastre um cliente para continuar', 'warning'); return; }
 
     // Buscar email do cliente vinculado (se houver)
     let clientEmail = '';
@@ -819,8 +814,10 @@ export async function renderSessoes(container) {
 
     try {
       const result = await apiPost('/api/sessions', {
-        name, clientEmail, type, date, selectionDeadline,
-        mode, packageLimit, extraPhotoPrice, photoResolution, coverPhoto, clientId
+        name, clientEmail, date, selectionDeadline,
+        mode, packageLimit, extraPhotoPrice, photoResolution, coverPhoto, clientId,
+        allowExtraPurchasePostSubmit: allowExtraPurchase,
+        allowReopen: allowReopen
       });
 
       newSessionModal.style.display = 'none';
@@ -876,23 +873,47 @@ export async function renderSessoes(container) {
     secondaryBtn.htmlFor = 'sessionEditedInput';
     secondaryBtn.style.background = 'var(--purple)';
     secondaryBtn.title = "Upload das fotos editadas — substitui por nome de arquivo";
-    // Na visualização inicial, se for Galeria Geral, esconde o botão de editadas
     secondaryBtn.style.display = 'none';
 
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
 
+    // Reset barra de ações em massa
+    const bulkBar = container.querySelector('#bulkActionsBar');
+    const selectAllCheck = container.querySelector('#selectAllPhotos');
+    const bulkDeleteBtn = container.querySelector('#bulkDeleteBtn');
+    const countLabel = container.querySelector('#selectedPhotosCount');
+    
+    if (bulkBar) {
+      bulkBar.style.display = photos.length > 0 ? 'flex' : 'none';
+      selectAllCheck.checked = false;
+      countLabel.textContent = '0 selecionadas';
+      bulkDeleteBtn.style.display = 'none';
+    }
+
     if (photos.length > 0) {
       grid.innerHTML = photos.map((photo, idx) => {
         const isSelected = selectedIds.includes(photo.id);
         const hasComments = photo.comments && photo.comments.length > 0;
+        const isHidden = photo.hidden === true;
         return `
-        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''}">
-          <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">Selecionada</div>' : ''}
-          ${hasComments ? '<div style="position:absolute; top:0.25rem; left:0.25rem; background:var(--accent); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;" title="Tem comentários">💬</div>' : ''}
-          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center;"
+        <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''} ${isHidden ? 'opacity:0.6;' : ''}">
+          <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; ${isHidden ? 'filter:grayscale(1);' : ''}">
+          
+          <!-- Checkbox para seleção em massa -->
+          <input type="checkbox" class="photo-bulk-check" data-id="${photo.id}" style="position:absolute; top:0.5rem; left:0.5rem; width:1.25rem; height:1.25rem; cursor:pointer; z-index:10;">
+
+          ${isHidden ? '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); color:white; font-weight:600; font-size:0.75rem; pointer-events:none; z-index:2;">OCULTA</div>' : ''}
+          ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">Selecionada</div>' : ''}
+          ${hasComments ? '<div style="position:absolute; top:2rem; right:0.25rem; background:var(--accent); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;" title="Tem comentários">💬</div>' : ''}
+          
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; z-index:5;"
             onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
+            
+            <button onclick="window.togglePhotoHidden('${sessionId}', '${photo.id}')" style="background:${isHidden ? 'var(--red)' : 'var(--accent)'}; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="${isHidden ? 'Mostrar' : 'Ocultar'}">
+              ${isHidden ? '👁️‍🗨️' : '👁️'}
+            </button>
+
             <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:var(--accent); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="Comentários">
               💬
             </button>
@@ -900,9 +921,49 @@ export async function renderSessoes(container) {
               &times;
             </button>
           </div>
-          <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem;">${idx + 1}</div>
+          <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">${idx + 1}</div>
         </div>
       `}).join('');
+
+      // Lógica de seleção em massa
+      const checkboxes = grid.querySelectorAll('.photo-bulk-check');
+      const updateBulkUI = () => {
+        const checked = Array.from(checkboxes).filter(cb => cb.checked);
+        countLabel.textContent = `${checked.length} selecionadas`;
+        bulkDeleteBtn.style.display = checked.length > 0 ? 'block' : 'none';
+        selectAllCheck.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+      };
+
+      checkboxes.forEach(cb => cb.onchange = updateBulkUI);
+      
+      selectAllCheck.onchange = (e) => {
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateBulkUI();
+      };
+
+      bulkDeleteBtn.onclick = async () => {
+        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.id);
+        if (!ids.length) return;
+
+        const ok = await window.showConfirm?.(`Deletar permanentemente as ${ids.length} fotos selecionadas?`);
+        if (!ok) return;
+
+        try {
+          bulkDeleteBtn.disabled = true;
+          bulkDeleteBtn.textContent = 'Deletando...';
+          await apiDelete(`/api/sessions/${sessionId}/photos/bulk`, { photoIds: ids });
+          window.showToast?.('Fotos deletadas!', 'success');
+          await renderSessoes(container);
+          viewSessionPhotos(sessionId);
+          window.loadSidebarStorage?.();
+        } catch (error) {
+          window.showToast?.('Erro: ' + error.message, 'error');
+        } finally {
+          bulkDeleteBtn.disabled = false;
+          bulkDeleteBtn.textContent = 'Deletar';
+        }
+      };
+
     } else {
       grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto na sessão. Use o Upload acima.</p>';
     }
@@ -1205,7 +1266,6 @@ export async function renderSessoes(container) {
   container.querySelector('#confirmEditSession').onclick = async () => {
     if (!editingSessionId) return;
     const name = container.querySelector('#editSessionName').value.trim();
-    const type = container.querySelector('#editSessionType').value;
     const mode = editModeSelect.value;
     const clientEmail = container.querySelector('#editClientEmail').value.trim();
     const clientId = container.querySelector('#editClientId').value || null;
@@ -1213,9 +1273,14 @@ export async function renderSessoes(container) {
     const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
     const commentsEnabled = container.querySelector('#editCommentsEnabled').checked;
+    const allowExtraPurchasePostSubmit = container.querySelector('#editAllowExtraPurchase').checked;
+    const allowReopen = container.querySelector('#editAllowReopen').checked;
 
     try {
-      await apiPut(`/api/sessions/${editingSessionId}`, { name, type, mode, clientEmail, clientId, selectionDeadline, packageLimit, extraPhotoPrice, commentsEnabled });
+      await apiPut(`/api/sessions/${editingSessionId}`, { 
+        name, mode, clientEmail, clientId, selectionDeadline, packageLimit, 
+        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen 
+      });
 
       editModal.style.display = 'none';
       editingSessionId = null;
@@ -1529,6 +1594,17 @@ export async function renderSessoes(container) {
       window.loadSidebarStorage?.(); // Atualizar armazenamento na sidebar
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
+  // Ocultar/Mostrar foto
+  window.togglePhotoHidden = async (sessionId, photoId) => {
+    try {
+      await apiPut(`/api/sessions/${sessionId}/photos/${photoId}/toggle-hidden`);
+      await renderSessoes(container);
+      viewSessionPhotos(sessionId);
+    } catch (error) {
+      window.showToast?.(error.message, 'error');
     }
   };
 }

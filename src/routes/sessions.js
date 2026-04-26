@@ -77,7 +77,7 @@ router.post('/client/verify-code', async (req, res) => {
       clientName: participant ? participant.name : session.name,
       sessionType: session.type || '',
       galleryDate: session.date ? new Date(session.date).toLocaleDateString('pt-BR') : '',
-      totalPhotos: (session.photos || []).length,
+      totalPhotos: (session.photos || []).filter(p => !p.hidden).length,
       mode: session.mode || 'gallery',
       selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
       packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
@@ -185,7 +185,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       success: true,
       name: session.name,
       type: session.type,
-      photos: session.photos,
+      photos: (session.photos || []).filter(p => !p.hidden),
       selectedPhotos: selectedPhotos,
       mode: session.mode,
       selectionStatus: selectionStatus,
@@ -332,9 +332,11 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
         sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => {});
       }
 
-      // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado
+      // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado E permitido no config
       const clientEmail = participant ? participant.email : session.clientEmail;
-      if (clientEmail && session.extraPhotoPrice > 0 && !session.extraRequest?.upsellingSent) {
+      const canUpsell = session.allowExtraPurchasePostSubmit !== false; // por padrão habilitado
+      
+      if (clientEmail && session.extraPhotoPrice > 0 && canUpsell && !session.extraRequest?.upsellingSent) {
         sendUpsellEmail(
           clientEmail,
           clientName,
@@ -374,6 +376,12 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
     });
     if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+    
+    // Validar se reabertura está permitida no config
+    if (session.allowReopen === false) {
+      return res.status(403).json({ error: 'A reabertura desta sessão não está permitida pelo fotógrafo.' });
+    }
+
     if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
 
     try { 
@@ -890,6 +898,81 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
     res.json({ success: true });
   } catch (error) {
     req.logger?.error('Delete Photo Error', { error: error.message, stack: error.stack, sessionId: req.params.sessionId, photoId: req.params.photoId });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Ocultar/Mostrar foto
+router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const photo = session.photos.find(p => p.id === req.params.photoId);
+    if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
+
+    // Regra: se ocultar drops photos.length abaixo de packageLimit
+    if (!photo.hidden) {
+        const visiblePhotos = session.photos.filter(p => !p.hidden).length;
+        if (session.mode === 'selection' && visiblePhotos <= session.packageLimit) {
+            return res.status(400).json({ error: `Não é possível ocultar mais fotos. O pacote exige no mínimo ${session.packageLimit} fotos visíveis.` });
+        }
+    }
+
+    photo.hidden = !photo.hidden;
+    await session.save();
+
+    res.json({ success: true, photoId: photo.id, hidden: photo.hidden });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Deletar fotos em massa
+router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) => {
+  try {
+    const { photoIds } = req.body;
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ error: 'Lista de IDs inválida' });
+    }
+
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const photosToDelete = session.photos.filter(p => photoIds.includes(p.id));
+    
+    // Deletar arquivos físicos
+    for (const photo of photosToDelete) {
+        try {
+            const deletions = [];
+            if (photo.url && photo.url.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.url));
+            if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlOriginal));
+            if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
+            await Promise.all(deletions);
+        } catch (e) {
+            console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
+        }
+    }
+
+    // Remover da array
+    const deletedCount = photosToDelete.length;
+    session.photos = session.photos.filter(p => !photoIds.includes(p.id));
+    
+    // Remover da seleção se estiver lá
+    if (session.selectedPhotos) {
+        session.selectedPhotos = session.selectedPhotos.filter(id => !photoIds.includes(id));
+    }
+
+    await session.save();
+
+    // Decrementar contador de fotos
+    await Subscription.findOneAndUpdate(
+        { organizationId: req.user.organizationId },
+        { $inc: { 'usage.photos': -deletedCount } }
+    );
+
+    res.json({ success: true, deletedCount });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

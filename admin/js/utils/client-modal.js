@@ -20,6 +20,7 @@ export function abrirModalClienteNovo(initialName = '', callback = null) {
   document.getElementById('clienteNome').value = initialName;
   document.getElementById('clienteEmail').value = '';
   document.getElementById('clienteTelefone').value = '';
+  document.getElementById('clienteCpf').value = '';
   document.getElementById('clienteTags').value = '';
   document.getElementById('clienteNotas').value = '';
   document.getElementById('modalClienteErro').style.display = 'none';
@@ -36,6 +37,7 @@ export function abrirModalClienteEditar(cliente, callback = null) {
   document.getElementById('clienteNome').value = cliente.name || '';
   document.getElementById('clienteEmail').value = cliente.email || '';
   document.getElementById('clienteTelefone').value = cliente.phone || '';
+  document.getElementById('clienteCpf').value = cliente.cpf || '';
   document.getElementById('clienteTags').value = (cliente.tags || []).join(', ');
   document.getElementById('clienteNotas').value = cliente.notes || '';
   document.getElementById('modalClienteErro').style.display = 'none';
@@ -53,20 +55,21 @@ async function salvarCliente() {
   const nome = document.getElementById('clienteNome').value.trim();
   const email = document.getElementById('clienteEmail').value.trim();
   const telefone = document.getElementById('clienteTelefone').value.trim();
+  const cpf = document.getElementById('clienteCpf').value.trim();
   const tagsRaw = document.getElementById('clienteTags').value;
   const notas = document.getElementById('clienteNotas').value.trim();
   const btnSalvar = document.getElementById('btnSalvarCliente');
   const editandoId = btnSalvar.dataset.editandoId;
   const erroEl = document.getElementById('modalClienteErro');
 
-  if (!nome) {
-    erroEl.textContent = 'O nome é obrigatório.';
+  if (!nome || !email || !telefone || !cpf) {
+    erroEl.textContent = 'Nome, E-mail, Telefone e CPF são obrigatórios.';
     erroEl.style.display = 'block';
     return;
   }
 
   const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t);
-  const payload = { name: nome, email, phone: telefone, notes: notas, tags };
+  const payload = { name: nome, email, phone: telefone, cpf, notes: notas, tags };
 
   btnSalvar.disabled = true;
   const originalText = btnSalvar.textContent;
