@@ -41,7 +41,7 @@ export function showUploadValidationModal(container, report, onConfirm) {
         <p style="font-size:0.75rem; color:var(--text-secondary);">O limite do pacote/seleção é de <b>${report.limit}</b> fotos. Você está entregando <b>${report.extraCount}</b> fotos a mais (Brinde).</p>
       </div>
     `;
-  } else if (report.total > 0) {
+  } else if (report.total > 0 && report.unmatched.length === 0 && report.notSelected.length === 0) {
     html += `
       <div style="background:rgba(63,185,80,0.1); border:1px solid rgba(63,185,80,0.2); padding:0.75rem; border-radius:0.5rem;">
         <strong style="color:var(--green); font-size:0.875rem; display:block; margin-bottom:0.25rem;">✅ Tudo Certo!</strong>
@@ -51,7 +51,7 @@ export function showUploadValidationModal(container, report, onConfirm) {
   }
 
   content.innerHTML = html;
-  confirmBtn.textContent = (report.unmatched.length > 0 || report.notSelected.length > 0) ? 'Subir Tudo (Brinde)' : 'Iniciar Upload';
+  confirmBtn.textContent = 'Upload';
   modal.style.display = 'flex';
 
   confirmBtn.onclick = () => { modal.style.display = 'none'; onConfirm(true); };
