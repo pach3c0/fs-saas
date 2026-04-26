@@ -216,13 +216,52 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
   };
 
+  // Upload de capa no modal de edição
+  const editCoverInput = container.querySelector('#editCoverInput');
+  const editCoverPreview = container.querySelector('#editCoverPreview');
+  const editCoverPhotoInput = container.querySelector('#editCoverPhoto');
+  const editCoverRemoveBtn = container.querySelector('#editCoverRemoveBtn');
+  const editCoverProgress = container.querySelector('#editCoverProgress');
+
+  function _renderEditCoverPreview(url) {
+    if (url) {
+      editCoverPreview.innerHTML = `<img src="${resolveImagePath(url)}" style="width:100%; height:100%; object-fit:cover;">`;
+      editCoverRemoveBtn.style.display = 'block';
+    } else {
+      editCoverPreview.innerHTML = '<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>';
+      editCoverRemoveBtn.style.display = 'none';
+    }
+  }
+
+  editCoverInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    editCoverProgress.style.display = 'block';
+    try {
+      const result = await uploadImage(file, appState.authToken, (percent) => {
+        editCoverProgress.textContent = `Enviando... ${percent}%`;
+      });
+      editCoverPhotoInput.value = result.url;
+      _renderEditCoverPreview(result.url);
+      e.target.value = '';
+    } catch (error) {
+      window.showToast?.('Erro no upload: ' + error.message, 'error');
+    } finally {
+      editCoverProgress.style.display = 'none';
+    }
+  };
+
+  editCoverRemoveBtn.onclick = () => {
+    editCoverPhotoInput.value = '';
+    _renderEditCoverPreview('');
+  };
+
   window.editSession = async (sessionId) => {
     const session = state.sessionsData.find(s => s._id === sessionId);
     if (!session) return;
     state.editingSessionId = sessionId;
 
     container.querySelector('#editSessionName').value = session.name || '';
-
     container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
     editModeSelect.value = session.mode || 'selection';
     editModeSelect.disabled = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
@@ -232,6 +271,10 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     container.querySelector('#editAllowExtraPurchase').checked = session.allowExtraPurchasePostSubmit !== false;
     container.querySelector('#editAllowReopen').checked = session.allowReopen !== false;
     editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
+
+    editCoverPhotoInput.value = session.coverPhoto || '';
+    _renderEditCoverPreview(session.coverPhoto || '');
+
     editModal.style.display = 'flex';
   };
 
@@ -250,11 +293,12 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     const commentsEnabled = container.querySelector('#editCommentsEnabled').checked;
     const allowExtraPurchasePostSubmit = container.querySelector('#editAllowExtraPurchase').checked;
     const allowReopen = container.querySelector('#editAllowReopen').checked;
+    const coverPhoto = container.querySelector('#editCoverPhoto').value;
 
     try {
       await apiPut(`/api/sessions/${state.editingSessionId}`, {
         name, mode, selectionDeadline, packageLimit,
-        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen
+        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen, coverPhoto
       });
       editModal.style.display = 'none';
       state.editingSessionId = null;

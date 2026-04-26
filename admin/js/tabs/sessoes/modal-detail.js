@@ -41,29 +41,36 @@ export function setupModalDetail(container, state) {
       bulkDeleteBtn.style.display = 'none';
     }
 
+    const isCover = (url) => url === session.coverPhoto;
+
     if (photos.length > 0) {
       grid.innerHTML = photos.map((photo, idx) => {
         const isSelected = selectedIds.includes(photo.id);
         const hasComments = photo.comments && photo.comments.length > 0;
         const isHidden = photo.hidden === true;
+        const isCoverPhoto = isCover(photo.url);
         return `
-          <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''} ${isHidden ? 'opacity:0.6;' : ''}">
+          <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''} ${isCoverPhoto ? 'outline:3px solid var(--yellow); outline-offset:-3px;' : ''} ${isHidden ? 'opacity:0.6;' : ''}">
             <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; ${isHidden ? 'filter:grayscale(1);' : ''}">
 
             <input type="checkbox" class="photo-bulk-check" data-id="${photo.id}" onclick="event.stopPropagation()" style="position:absolute; top:0.5rem; left:0.5rem; width:1.25rem; height:1.25rem; cursor:pointer; z-index:20; accent-color:var(--accent);">
 
             ${isHidden ? '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); color:white; font-weight:600; font-size:0.75rem; pointer-events:none; z-index:2;">OCULTA</div>' : ''}
-            ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">Selecionada</div>' : ''}
+            ${isCoverPhoto ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--yellow); color:black; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:3; font-weight:600;">CAPA</div>' : ''}
+            ${isSelected && !isCoverPhoto ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">Selecionada</div>' : ''}
             ${hasComments ? '<div style="position:absolute; top:2rem; right:0.25rem; background:var(--accent); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;" title="Tem comentários">💬</div>' : ''}
 
-            <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; z-index:5;"
+            <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; display:flex; align-items:center; justify-content:center; gap:0.5rem; z-index:5;"
               onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
 
-              <button onclick="window.togglePhotoHidden('${sessionId}', '${photo.id}')" style="background:${isHidden ? 'var(--red)' : 'var(--accent)'}; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="${isHidden ? 'Mostrar' : 'Ocultar'}">
+              <button onclick="window.togglePhotoHidden('${sessionId}', '${photo.id}')" style="background:${isHidden ? 'var(--red)' : 'var(--accent)'}; color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="${isHidden ? 'Mostrar' : 'Ocultar'}">
                 ${isHidden ? '👁️‍🗨️' : '👁️'}
               </button>
               <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:var(--accent); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Comentários">
                 💬
+              </button>
+              <button onclick="window.setSessionCover('${sessionId}', '${photo.url.replace(/'/g, "\\'")}')" style="background:${isCoverPhoto ? 'var(--yellow)' : 'rgba(255,255,255,0.2)'}; color:${isCoverPhoto ? 'black' : 'white'}; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; font-size:0.875rem;" title="${isCoverPhoto ? 'Capa atual' : 'Definir como capa'}">
+                🖼️
               </button>
             </div>
             <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">${idx + 1}</div>

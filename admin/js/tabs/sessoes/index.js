@@ -276,6 +276,23 @@ export async function renderSessoes(container) {
           </div>
         </div>
         <p class="input-hint">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
+        <div style="border-top:1px solid var(--border); padding-top:0.75rem;">
+          <label style="font-size:0.875rem; font-weight:500; color:var(--text-primary); display:block; margin-bottom:0.5rem;">Foto de Capa</label>
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div id="editCoverPreview" style="width:4rem; height:4rem; border-radius:0.375rem; background:var(--bg-elevated); border:1px solid var(--border); overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:0.375rem;">
+              <label for="editCoverInput" class="btn btn-sm" style="cursor:pointer; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.375rem; width:fit-content;">
+                🖼️ Alterar capa
+              </label>
+              <input type="file" id="editCoverInput" accept="image/*" style="display:none;">
+              <input type="hidden" id="editCoverPhoto">
+              <button id="editCoverRemoveBtn" type="button" style="display:none; background:none; border:none; color:var(--red); font-size:0.75rem; cursor:pointer; text-align:left; padding:0; width:fit-content;">✕ Remover capa</button>
+              <div id="editCoverProgress" style="display:none; font-size:0.75rem; color:var(--text-muted);">Enviando...</div>
+            </div>
+          </div>
+        </div>
         <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editCommentsEnabled" class="check">

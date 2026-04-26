@@ -1,5 +1,6 @@
 import { copyToClipboard } from '../../utils/helpers.js';
 import { apiPost, apiPut, apiDelete } from '../../utils/api.js';
+import { uploadImage } from '../../utils/upload.js';
 
 export function setupActions(container, state, renderSessoes) {
   window.copySessionCode = (code, btn) => {
@@ -93,6 +94,21 @@ export function setupActions(container, state, renderSessoes) {
       window.loadSidebarStorage?.();
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
+  window.setSessionCover = async (sessionId, photoUrl) => {
+    const ok = await window.showConfirm?.('Definir esta foto como capa da sessão?');
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${sessionId}`, { coverPhoto: photoUrl });
+      const session = state.sessionsData.find(s => s._id === sessionId);
+      if (session) session.coverPhoto = photoUrl;
+      window.showToast?.('Capa da sessão atualizada!', 'success');
+      await renderSessoes(container);
+      window.viewSessionPhotos(sessionId);
+    } catch (error) {
+      window.showToast?.(error.message, 'error');
     }
   };
 
