@@ -913,7 +913,7 @@ export async function renderSessoes(container) {
         <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''} ${isHidden ? 'opacity:0.6;' : ''}">
           <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; ${isHidden ? 'filter:grayscale(1);' : ''}">
           
-          <input type="checkbox" class="photo-bulk-check" data-id="${photo.id}" style="position:absolute; top:0.5rem; left:0.5rem; width:1.25rem; height:1.25rem; cursor:pointer; z-index:10; accent-color:var(--accent);">
+          <input type="checkbox" class="photo-bulk-check" data-id="${photo.id}" onclick="event.stopPropagation()" style="position:absolute; top:0.5rem; left:0.5rem; width:1.25rem; height:1.25rem; cursor:pointer; z-index:20; accent-color:var(--accent);">
 
           ${isHidden ? '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); color:white; font-weight:600; font-size:0.75rem; pointer-events:none; z-index:2;">OCULTA</div>' : ''}
           ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">Selecionada</div>' : ''}
@@ -944,7 +944,7 @@ export async function renderSessoes(container) {
         selectAllCheck.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
       };
 
-      checkboxes.forEach(cb => cb.onchange = updateBulkUI);
+      checkboxes.forEach(cb => cb.onclick = (e) => { e.stopPropagation(); updateBulkUI(); });
 
       selectAllCheck.onchange = (e) => {
         checkboxes.forEach(cb => cb.checked = e.target.checked);

@@ -57,4 +57,4 @@ export async function apiWithRetry(fn, { label = 'Operação' } = {}) {
 export const apiGet = (url) => apiRequest('GET', url);
 export const apiPost = (url, body) => apiRequest('POST', url, body);
 export const apiPut = (url, body) => apiRequest('PUT', url, body);
-export const apiDelete = (url) => apiRequest('DELETE', url);
+export const apiDelete = (url, body) => apiRequest('DELETE', url, body || null);
