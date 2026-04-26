@@ -129,16 +129,10 @@ function renderList(container, items) {
             <button onclick="viewSessionPhotos('${session._id}')" class="btn btn-sm btn-primary">
               Fotos
             </button>
-            <button onclick="${isMulti ? `viewParticipants('${session._id}')` : ''}" 
-              class="btn btn-sm" 
-              style="background:${isMulti ? 'var(--purple)' : 'rgba(255,255,255,0.05)'}; 
-                     border-color:${isMulti ? 'var(--purple)' : 'var(--border)'}; 
-                     color:${isMulti ? 'white' : 'var(--text-muted)'};
-                     cursor:${isMulti ? 'pointer' : 'not-allowed'};"
-              ${isMulti ? '' : 'disabled'}
-              title="${isMulti ? 'Gerenciar participantes' : 'Disponível apenas no modo Multi-Seleção'}">
+            ${isMulti ? `
+            <button onclick="viewParticipants('${session._id}')" class="btn btn-sm" style="background:var(--purple); border-color:var(--purple); color:white;">
               Participantes
-            </button>
+            </button>` : ''}
             <button onclick="editSession('${session._id}')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
               Config
             </button>
