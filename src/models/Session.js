@@ -12,6 +12,7 @@ const sessionSchema = new mongoose.Schema({
             filename: String,
             url: String,         // thumb (comprimida para galeria)
             urlOriginal: String, // original sem compressao (para entrega em alta)
+            urlEditada: String,  // foto editada subida pelo fotografo (substitui url na entrega)
             uploadedAt: Date,
             comments: [{
                 text: String,

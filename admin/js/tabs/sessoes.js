@@ -341,24 +341,6 @@ export async function renderSessoes(container) {
       </div>
     </div>
 
-    <!-- Modal Ver Selecao -->
-    <div id="selectionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
-      <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h3 id="selectionModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Selecao do Cliente</h3>
-          <p id="selectionModalInfo" style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.25rem;"></p>
-        </div>
-        <div style="display:flex; gap:0.75rem;">
-          <button id="exportSelectionBtn" class="btn btn-success">Exportar Lightroom</button>
-          <button id="closeSelectionModal" class="btn">Fechar</button>
-        </div>
-      </div>
-      <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem;">
-        <div id="selectionPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem;">
-        </div>
-      </div>
-    </div>
-
     <!-- Modal Participantes (Multi-Seleção) -->
     <div id="participantsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
       <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
@@ -1107,11 +1089,6 @@ export async function renderSessoes(container) {
     }
   };
 
-  // Ver selecao do cliente - Agora aponta para a visão unificada
-  window.viewSelection = async (sessionId) => {
-    window.viewSessionPhotos(sessionId);
-  };
-
   // Modal de Validação de Upload
   const showUploadValidationModal = (report, onConfirm) => {
     const modal = container.querySelector('#uploadValidationModal');
@@ -1601,20 +1578,6 @@ export async function renderSessoes(container) {
 
       e.target.value = '';
     });
-  };
-
-  // Deletar foto individual
-  window.deleteSessionPhoto = async (sessionId, photoId) => {
-    const ok = await window.showConfirm?.('Remover esta foto?');
-    if (!ok) return;
-    try {
-      await apiDelete(`/api/sessions/${sessionId}/photos/${photoId}`);
-      await renderSessoes(container);
-      viewSessionPhotos(sessionId);
-      window.loadSidebarStorage?.(); // Atualizar armazenamento na sidebar
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
-    }
   };
 
   // Deletar sessao
