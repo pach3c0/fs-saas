@@ -957,10 +957,12 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
     // Remover da array
     const deletedCount = photosToDelete.length;
     session.photos = session.photos.filter(p => !photoIds.includes(p.id));
+    session.markModified('photos');
     
     // Remover da seleção se estiver lá
     if (session.selectedPhotos) {
         session.selectedPhotos = session.selectedPhotos.filter(id => !photoIds.includes(id));
+        session.markModified('selectedPhotos');
     }
 
     await session.save();
