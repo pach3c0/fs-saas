@@ -952,18 +952,44 @@ export async function renderSessoes(container) {
       };
 
       bulkDeleteBtn.onclick = async () => {
-        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.id);
+        const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+        const ids = checkedBoxes.map(cb => cb.dataset.id);
         if (!ids.length) return;
+
         const ok = await window.showConfirm?.(`Deletar permanentemente as ${ids.length} foto(s) selecionada(s)?`);
         if (!ok) return;
+
         try {
           bulkDeleteBtn.disabled = true;
           bulkDeleteBtn.textContent = 'Deletando...';
+
           await apiDelete(`/api/sessions/${sessionId}/photos/bulk`, { photoIds: ids });
-          window.showToast?.('Fotos deletadas!', 'success');
-          await renderSessoes(container);
-          window.viewSessionPhotos(sessionId);
+
+          // Remover diretamente do DOM — sem depender de re-fetch (evita cache)
+          checkedBoxes.forEach(cb => {
+            const card = cb.closest('[style*="aspect-ratio"]');
+            if (card) card.remove();
+          });
+
+          // Atualizar sessionsData local para manter consistência
+          const sessionLocal = sessionsData.find(s => s._id === sessionId);
+          if (sessionLocal) sessionLocal.photos = (sessionLocal.photos || []).filter(p => !ids.includes(p.id));
+
+          // Resetar barra
+          selectAllCheck.checked = false;
+          selectAllCheck.indeterminate = false;
+          countLabel.textContent = '0 selecionadas';
+          bulkDeleteBtn.style.display = 'none';
+
+          // Se não sobrou nenhuma foto, mostrar mensagem vazia
+          if (grid.querySelectorAll('[style*="aspect-ratio"]').length === 0) {
+            grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto na sessão. Use o Upload acima.</p>';
+            bulkBar.style.display = 'none';
+          }
+
+          window.showToast?.(`${ids.length} foto(s) deletada(s)!`, 'success');
           window.loadSidebarStorage?.();
+
         } catch (error) {
           window.showToast?.('Erro: ' + error.message, 'error');
         } finally {
