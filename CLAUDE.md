@@ -20,7 +20,7 @@ Cliente real unico em producao: **Fs Fotografias** (Flavia, ID `69c6a1b912ec3dec
 ---
 ## ARQUITETURA
 ```
-admin/   index.html (shell+login+sidebar+builder)  js/{app.js,state.js,tabs/*,utils/*}
+admin/   index.html (shell+login+sidebar+builder)  js/{app.js,state.js,tabs/{*.js ou X/index.js},utils/*}
 saas-admin/  home/  cliente/(PWA: sw.js+IDB)  album/
 site/templates/{elegante,minimalista,moderno,escuro,galeria}+shared-site.js+shared.css
 assets/css/{tailwind-input.css,tailwind.css,shared.css}
@@ -93,6 +93,7 @@ Monitor: UptimeRobot em `https://cliquezoom.com.br/health` a cada 5min.
 | Tarefa | Como |
 |---|---|
 | Novo tab admin | `admin/js/tabs/X.js` exporta `renderX(container)` + `.nav-item[data-tab="x"]` em `index.html` + `TAB_TITLES` em `app.js` |
+| Tab grande (>600 linhas) | Dividir em `admin/js/tabs/X/index.js` + sub-modulos por responsabilidade (ver secao PADRAO DE MODULARIZACAO DE TABS) |
 | Nova rota backend | `src/routes/X.js` (CommonJS) + filtrar `organizationId` + `app.use('/api', require('./routes/X'))` |
 | Novo modelo | `organizationId:{type:ObjectId,ref:'Organization',required:true}` + `{timestamps:true}` |
 | Storage | `import storage from '../services/storage.js'` → `deleteFile(url)`, `getUrl(path)`, `getDirSize(path)` |
@@ -101,6 +102,29 @@ Monitor: UptimeRobot em `https://cliquezoom.com.br/health` a cada 5min.
 | Hero | salva em `siteConfig` (nao `siteContent`); backend faz merge por sub-chave |
 | Layout secao templates | estrutura em `site/templates/shared.css`, visual em `style.css` de cada template |
 Comandos: `npm run dev` (nodemon), `npm run build:css`, `npm start`.
+---
+## PADRAO DE MODULARIZACAO DE TABS (admin/js/tabs/)
+
+Tabs com mais de ~600 linhas devem ser divididas em pasta `admin/js/tabs/X/`:
+
+```
+admin/js/tabs/X/
+├── index.js               # entry point — exporta renderX(container), monta HTML, conecta modulos
+├── state.js               # variaveis compartilhadas (xData, currentId, timers)
+├── list.js                # renderizar lista + filtros + busca
+├── modal-form.js          # criar/editar registro
+├── modal-detail.js        # modal principal de detalhe/visualizacao
+└── actions.js             # funcoes window.* de acao (delete, deliver, reopen, etc.)
+```
+
+Adicionar sub-modulos conforme necessidade (ex: `modal-participantes.js`, `comments.js`, `upload.js`).
+
+**Regras:**
+- `index.js` e o unico arquivo importado por `app.js` — nao muda a interface publica
+- `state.js` exporta objeto mutavel compartilhado por todos os sub-modulos
+- Cada sub-modulo recebe `(container, state)` como parametros — sem globals alem de `window.*`
+- Nenhum arquivo deve passar de ~400 linhas
+- Tabs pequenas (<600 linhas) permanecem como arquivo unico
 ---
 ## ERROS COMUNS — NAO REINTRODUZIR
 | Sintoma | Evitar |
@@ -212,9 +236,6 @@ Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar fea
 ---
 ## ARQUITETURA APLICADA (nao alterar sem consciencia)
 3-Tier (frontends → `src/` → MongoDB); Stateless JWT (`auth.js`); PWA Offline+Sync (`cliente/sw.js`+IDB); Escala horizontal base (PM2 `instances:2,cluster`); Feature Flag primitiva (`siteEnabled`,`?_preview=1`); Rolling deploy (`pm2 reload`); Observabilidade Winston tenant-aware; Storage abstraction (`services/storage.js`); Metricas Super-Admin em `/api/admin/saas/metrics`.
-
-
-
 ---
 ## BACKLOG DE AJUSTES — PENDENTES DE IMPLEMENTACAO
 Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar implementacao, mover para a secao correta (ERROS COMUNS, FUNCIONALIDADES REMOVIDAS, etc.) e marcar ✅.
@@ -222,8 +243,6 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 ### Modulo: Sessoes (`admin/js/tabs/sessoes.js`)
 | # | Item | Status | Regra de negocio |
 |---|---|---|---|
-
-
 | S6 | Campo cliente obrigatorio em nova sessao | ✅ | Bloqueia submit sem `clientId` com toast de aviso (linha ~803) |
 | S7 | Autocomplete cliente no modal: ao nao encontrar, exibir `+ Cadastrar "X" como novo cliente` | ✅ | Implementado via `abrirModalClienteNovo` com foco automatico no campo nome |
 | S8 | Botao `hidden` ao lado de `openComments` em cada foto da galeria geral | ✅ | Botao existe; **REGRA CRITICA implementada:** se `qtd fotos visiveis <= pacote` em modo Selecao, bloqueia com toast explicativo |
@@ -247,12 +266,3 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 | P2 | Config: opcao para habilitar venda de fotos extras pos-entrega | ✅ | Campo `allowExtraPurchasePostSubmit` existe no modal criar/editar sessao e no backend |
 | P3 | Config: opcao para permitir reabertura de sessao pelo cliente | ✅ | Campo `allowReopen` existe no modal criar/editar sessao e validado no backend |
 
----
-
-## BUG RESOLVIDO — Bulk Delete de Fotos em Sessoes (2026-04-26)
-
-### Causa raiz
-Conflito de ordem de rotas no Express em `src/routes/sessions.js`. A rota `DELETE /sessions/:sessionId/photos/:photoId` estava registrada ANTES de `DELETE /sessions/:id/photos/bulk`. O Express capturava `"bulk"` como valor de `:photoId`, executava o handler errado (que nao encontrava foto com id="bulk") e retornava 200 silenciosamente sem persistir nada no MongoDB.
-
-### Fix aplicado
-Movida a rota `/bulk` para antes de `/:photoId` no arquivo `src/routes/sessions.js` (linhas ~863 e ~915). Zero mudanca de logica, apenas reordenacao.
