@@ -936,11 +936,12 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
         return res.status(400).json({ error: 'Lista de IDs inválida' });
     }
 
-    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId }).lean();
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
-    const photosToDelete = session.photos.filter(p => photoIds.includes(p.id));
-    
+    const photosToDelete = (session.photos || []).filter(p => photoIds.includes(p.id));
+    const deletedCount = photosToDelete.length;
+
     // Deletar arquivos físicos
     for (const photo of photosToDelete) {
         try {
@@ -954,27 +955,28 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
         }
     }
 
-    // Remover da array
-    const deletedCount = photosToDelete.length;
-    session.photos = session.photos.filter(p => !photoIds.includes(p.id));
-    session.markModified('photos');
-    
-    // Remover da seleção se estiver lá
-    if (session.selectedPhotos) {
-        session.selectedPhotos = session.selectedPhotos.filter(id => !photoIds.includes(id));
-        session.markModified('selectedPhotos');
-    }
-
-    await session.save();
+    // Remover do MongoDB de forma atômica (evita problemas de Mongoose não detectar mudanca em array)
+    await Session.updateOne(
+        { _id: req.params.id, organizationId: req.user.organizationId },
+        {
+            $pull: {
+                photos: { id: { $in: photoIds } },
+                selectedPhotos: { $in: photoIds }
+            }
+        }
+    );
 
     // Decrementar contador de fotos
-    await Subscription.findOneAndUpdate(
-        { organizationId: req.user.organizationId },
-        { $inc: { 'usage.photos': -deletedCount } }
-    );
+    if (deletedCount > 0) {
+        await Subscription.findOneAndUpdate(
+            { organizationId: req.user.organizationId },
+            { $inc: { 'usage.photos': -deletedCount } }
+        );
+    }
 
     res.json({ success: true, deletedCount });
   } catch (error) {
+    console.error('Erro bulk delete:', error);
     res.status(500).json({ error: error.message });
   }
 });

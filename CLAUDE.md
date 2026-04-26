@@ -221,11 +221,8 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 ### Modulo: Sessoes (`admin/js/tabs/sessoes.js`)
 | # | Item | Status | Regra de negocio |
 |---|---|---|---|
-| S1 | Remover botao `id="secondaryUploadBtn"` da aba `id="tabGeralBtn"` | ✅ | Botao começa `display:none` no HTML; aparece apenas na aba Entrega Final via `switchPhotoTab` |
-| S2 | Exibir titulo no `id="sessionPhotosModal"` indicando o modo da sessao | ✅ | Implementado em `viewSessionPhotos` — `title.textContent = Fotos - Nome (Modo)` |
-| S3 | Remover botao `id="previewToggleBtn"` do topbar | ✅ | Botao nao existe no HTML do admin — existe so em `app.js` como referencia opcional |
-| S4 | Remover campo `input-group` de tipo do modal criar sessao E do modal config | ✅ | Campo `editSessionType` era referencia invalida — removida da funcao `editSession` |
-| S5 | `coverPreview`: definir regra de validacao de imagem de capa | ✅ | Aceita apenas `.jpg/.jpeg/.png`; botao Upload ja tem `color: white !important` |
+
+
 | S6 | Campo cliente obrigatorio em nova sessao | ✅ | Bloqueia submit sem `clientId` com toast de aviso (linha ~803) |
 | S7 | Autocomplete cliente no modal: ao nao encontrar, exibir `+ Cadastrar "X" como novo cliente` | ✅ | Implementado via `abrirModalClienteNovo` com foco automatico no campo nome |
 | S8 | Botao `hidden` ao lado de `openComments` em cada foto da galeria geral | ✅ | Botao existe; **REGRA CRITICA implementada:** se `qtd fotos visiveis <= pacote` em modo Selecao, bloqueia com toast explicativo |
@@ -248,3 +245,43 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 | P1 | Remover saudacao `"Ola " + Nome do cliente` | ✅ | `h1#clientName` e `p#galleryMeta` removidos do HTML; `renderHeader()` em gallery.js ja nao exibia saudacao |
 | P2 | Config: opcao para habilitar venda de fotos extras pos-entrega | ✅ | Campo `allowExtraPurchasePostSubmit` existe no modal criar/editar sessao e no backend |
 | P3 | Config: opcao para permitir reabertura de sessao pelo cliente | ✅ | Campo `allowReopen` existe no modal criar/editar sessao e validado no backend |
+
+---
+
+## BUG ATIVO — Bulk Delete de Fotos em Sessoes (2026-04-26)
+
+### Sintoma
+Fotografo seleciona fotos via checkbox no modal de galeria, clica em "Deletar selecionadas", recebe toast de sucesso e fotos somem visualmente. Porem ao navegar para outra aba e voltar, as fotos reaparecem — a delecao nao persiste no MongoDB.
+
+### Stack envolvida
+- Frontend: `admin/js/tabs/sessoes.js` — funcao `viewSessionPhotos`, handler `bulkDeleteBtn.onclick`
+- Backend: `src/routes/sessions.js` — rota `DELETE /sessions/:id/photos/bulk`
+- Modelo: `src/models/Session.js` — campo `photos: [{ id, url, urlOriginal, hidden, comments }]`
+- API helper: `admin/js/utils/api.js` — `apiDelete(url, body)`
+
+### Historico de tentativas
+1. Bug 1 (resolvido): `apiDelete` nao aceitava body — backend recebia `photoIds = undefined` e retornava 400 silenciosamente. Fix: assinatura `apiDelete = (url, body) => apiRequest('DELETE', url, body)`.
+2. Bug 2 (resolvido visual): `checkbox.onchange` nao disparava por conflito com overlay de hover. Fix: `onclick + stopPropagation + z-index:20`.
+3. Bug 3 (resolvido visual): Apos delete, `renderSessoes()` re-buscava dados com cache HTTP (0 KB retornado). Fix: remover cards do DOM via `.remove()` direto.
+4. Bug 4 (nao resolvido): `session.photos = session.photos.filter(...)` + `session.markModified('photos')` + `session.save()` — nao persiste no MongoDB.
+5. Tentativa atual: Substituido por `Session.updateOne` com `$pull: { photos: { id: { $in: photoIds } } }` — aguardando teste na VPS.
+
+### Estado atual do backend (sessions.js rota DELETE /sessions/:id/photos/bulk)
+```js
+// 1. Busca sessao com .lean() para nao usar Mongoose Document
+const session = await Session.findOne({ _id, organizationId }).lean();
+// 2. Filtra fotos para deletar arquivos fisicos
+const photosToDelete = session.photos.filter(p => photoIds.includes(p.id));
+// 3. Deleta arquivos fisicos em paralelo
+// 4. Operacao atomica no MongoDB — nao depende de Mongoose rastrear mudancas
+await Session.updateOne(
+  { _id, organizationId },
+  { $pull: { photos: { id: { $in: photoIds } }, selectedPhotos: { $in: photoIds } } }
+);
+```
+
+### Proximos passos sugeridos
+1. Verificar se existe middleware `pre('save')` ou `pre('updateOne')` em Session.js que restaure `photos`.
+2. Verificar via shell MongoDB: `db.sessions.findOne({_id: ObjectId('...')}, {photos:1})` antes e depois da chamada para confirmar se o documento muda.
+3. Adicionar `console.log` no backend apos o `updateOne` para imprimir o resultado (`{ modifiedCount: N }`).
+4. Confirmar que `organizationId` no JWT bate com o `organizationId` do documento no banco.
