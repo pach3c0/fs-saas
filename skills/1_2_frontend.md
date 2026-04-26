@@ -21,7 +21,8 @@ admin/
   js/
     app.js          # switchTab(), TAB_TITLES, carregamento dinâmico de tabs
     state.js        # appState, loadAppData(), saveAppData() — dados SiteData (legado)
-    tabs/           # 1 arquivo por aba — exporta renderX(container)
+    tabs/           # arquivo único por aba (renderX) OU pasta X/ com index.js + sub-módulos
+                  # Tabs grandes (>600 linhas) usam pasta: sessoes/ já modularizada
     utils/
       api.js        # apiGet, apiPut, apiPost, apiDelete (Bearer token automático)
       helpers.js    # resolveImagePath, generateId, formatDate, copyToClipboard, escapeHtml
@@ -159,9 +160,11 @@ window._meuSitePostPreview?.();
 switchTab(tabName) em app.js:
   1. Atualiza topbar title (TAB_TITLES[tabName])
   2. Mostra skeleton loading
-  3. import(`/admin/js/tabs/${tabName}.js`)
+  3. import(`/admin/js/tabs/${tabName}.js`)  ← sempre carrega o .js raiz
   4. Chama render${PascalCase}(container)
 ```
+
+Tabs com pasta modular: `sessoes` → `tabs/sessoes.js` é proxy de 1 linha que re-exporta de `tabs/sessoes/index.js`.
 
 Tabs ativos: `dashboard, perfil, meu-site, sessoes, clientes, albuns-prova, albuns, portfolio, estudio, faq, hero, sobre, logo, footer, integracoes, marketing, dominio, plano`
 

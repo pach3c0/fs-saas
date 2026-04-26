@@ -91,6 +91,8 @@ router.post('/client/verify-code', async (req, res) => {
       isParticipant: !!participant,
       participantId: participant ? participant._id : null,
       clientData,
+      allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
+      allowReopen: session.allowReopen !== false,
       // Enviar dados da organização para o frontend
       organization: session.organizationId ? {
         id: session.organizationId._id,
@@ -195,6 +197,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       selectionDeadline: session.selectionDeadline,
       packageLimit: packageLimit,
       extraPhotoPrice: session.extraPhotoPrice,
+      allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
+      allowReopen: session.allowReopen !== false,
       // Garantir que organization venha também no refresh
       organization: session.organizationId ? {
         id: session.organizationId._id,

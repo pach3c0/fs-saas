@@ -1,8 +1,10 @@
 # Grupo 2: Sessões de Clientes e CRM
 
-> Documentação consolidada em 2026-04-24.
+> Documentação consolidada em 2026-04-24. Atualizada em 2026-04-26 (modularização).
 > Unifica `Sessões (Admin)`, `Galeria do Cliente (Público)` e `Clientes (CRM)`.
-> Referências: `admin/js/tabs/sessoes.js`, `admin/js/tabs/clientes.js`, `cliente/js/gallery.js`, `src/routes/sessions.js`, `src/routes/clients.js`.
+> Referências frontend: `admin/js/tabs/sessoes.js` (proxy) → `admin/js/tabs/sessoes/` (módulos).
+> Referências backend: `src/routes/sessions.js`, `src/routes/clients.js`.
+> Referências público: `admin/js/tabs/clientes.js`, `cliente/js/gallery.js`.
 
 ---
 
@@ -186,6 +188,38 @@ stateDiagram-v2
 - `POST /api/sessions/:id/photos`: Upload via Multer + Processamento Sharp.
 - `POST /api/sessions/:id/photos/upload-edited`: Re-upload de fotos editadas com regeneração automática de thumbnails.
 - `PUT /api/sessions/:id/deliver`: Dispara e-mail de entrega e remove marca d'água.
+
+---
+
+## 4.3. Rota crítica — ordem no router
+
+`DELETE /sessions/:id/photos/bulk` **deve** estar registrada ANTES de `DELETE /sessions/:sessionId/photos/:photoId` no mesmo arquivo. Se invertida, Express captura `"bulk"` como `:photoId` e retorna 200 sem alterar o banco.
+
+---
+
+## 4.4. Estrutura do Frontend (Tab Sessões)
+
+A tab foi modularizada em 2026-04-26. `admin/js/tabs/sessoes.js` é um proxy de 1 linha:
+
+```js
+export { renderSessoes } from './sessoes/index.js';
+```
+
+Estrutura real em `admin/js/tabs/sessoes/`:
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `index.js` | HTML completo + orquestra todos os módulos |
+| `state.js` | Objeto mutável compartilhado (`sessionsData`, `currentSessionId`, etc.) |
+| `list.js` | `filterAndRender`, `renderList`, `setupListFilters` |
+| `modal-form.js` | Modal Nova Sessão + Modal Editar Sessão |
+| `modal-detail.js` | `viewSessionPhotos`, `switchPhotoTab`, bulk delete UI |
+| `modal-participantes.js` | `viewParticipants`, add/delete/deliver participante |
+| `comments.js` | `openComments`, `renderCommentsList`, envio de comentário |
+| `upload.js` | Upload normal, upload de editadas, modal de validação pré-upload |
+| `actions.js` | Todas as `window.*` de ação (delete, deliver, reopen, extra, toggleHidden) |
+
+`app.js` não precisou mudar — o `import('./tabs/sessoes.js')` dinâmico continua funcionando via proxy.
 
 ---
 
