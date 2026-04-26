@@ -28,51 +28,7 @@ export async function renderClientes(container) {
       <div id="clientesLista"></div>
     </div>
 
-    <!-- Modal Criar/Editar Cliente -->
-    <div id="modalCliente" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
-      <div style="background:var(--bg-surface); border-radius:0.5rem; padding:1.5rem; width:100%; max-width:520px; margin:1rem; max-height:90vh; overflow-y:auto;">
-        <h3 id="modalClienteTitulo" style="font-size:1.25rem; font-weight:bold; color:var(--text-primary); margin:0 0 1.25rem;">Novo Cliente</h3>
-
-        <div style="display:flex; flex-direction:column;">
-          <div class="input-group">
-            <label>Nome *</label>
-            <input type="text" id="clienteNome" class="input" placeholder="Nome completo">
-          </div>
-
-          <div class="input-group">
-            <label>E-mail</label>
-            <input type="email" id="clienteEmail" class="input" placeholder="email@exemplo.com">
-          </div>
-
-          <div class="input-group">
-            <label>Telefone / WhatsApp</label>
-            <input type="text" id="clienteTelefone" class="input" placeholder="(11) 99999-9999">
-          </div>
-
-          <div class="input-group">
-            <label>Tags</label>
-            <input type="text" id="clienteTags" class="input" placeholder="casamento, aniversario, familia (separadas por vírgula)">
-            <span class="input-hint">Separe as tags por vírgula</span>
-          </div>
-
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Notas</label>
-            <textarea id="clienteNotas" class="input" rows="3" placeholder="Observações sobre o cliente..." style="resize:vertical;"></textarea>
-          </div>
-        </div>
-
-        <div id="modalClienteErro" style="display:none; color:var(--red); font-size:0.875rem; margin-top:0.75rem;"></div>
-
-        <div style="display:flex; gap:0.75rem; margin-top:1.25rem; justify-content:flex-end;">
-          <button id="btnCancelarCliente" class="btn">
-            Cancelar
-          </button>
-          <button id="btnSalvarCliente" class="btn btn-primary">
-            Salvar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Modal Sessoes do Cliente -->
 
     <!-- Modal Sessoes do Cliente -->
     <div id="modalSessoesCliente" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
@@ -173,6 +129,8 @@ function renderLista(container) {
   });
 }
 
+import { setupClientModal, abrirModalClienteNovo, abrirModalClienteEditar } from '../utils/client-modal.js';
+
 function setupEventos(container) {
   // Busca
   container.querySelector('#searchClientes').oninput = (e) => {
@@ -181,13 +139,15 @@ function setupEventos(container) {
   };
 
   // Botao novo cliente
-  container.querySelector('#btnNovoCliente').onclick = () => abrirModalNovo(container);
+  container.querySelector('#btnNovoCliente').onclick = () => {
+    abrirModalClienteNovo('', (novoCliente) => {
+      clientesData.unshift({ ...novoCliente, sessionCount: 0 });
+      renderLista(container);
+    });
+  };
 
-  // Cancelar modal
-  container.querySelector('#btnCancelarCliente').onclick = () => fecharModal(container);
-
-  // Salvar cliente
-  container.querySelector('#btnSalvarCliente').onclick = () => salvarCliente(container);
+  // Inicializar o modal global (eventos de salvar/cancelar)
+  setupClientModal();
 
   // Fechar modal sessoes
   container.querySelector('#btnFecharSessoes').onclick = () => {
@@ -195,80 +155,17 @@ function setupEventos(container) {
   };
 }
 
-function abrirModalNovo(container) {
-  container.querySelector('#modalClienteTitulo').textContent = 'Novo Cliente';
-  container.querySelector('#clienteNome').value = '';
-  container.querySelector('#clienteEmail').value = '';
-  container.querySelector('#clienteTelefone').value = '';
-  container.querySelector('#clienteTags').value = '';
-  container.querySelector('#clienteNotas').value = '';
-  container.querySelector('#modalClienteErro').style.display = 'none';
-  container.querySelector('#btnSalvarCliente').dataset.editandoId = '';
-  const modal = container.querySelector('#modalCliente');
-  modal.style.display = 'flex';
-  setTimeout(() => container.querySelector('#clienteNome').focus(), 50);
-}
-
 function abrirModalEditar(container, id) {
   const cliente = clientesData.find(c => c._id === id);
   if (!cliente) return;
 
-  container.querySelector('#modalClienteTitulo').textContent = 'Editar Cliente';
-  container.querySelector('#clienteNome').value = cliente.name || '';
-  container.querySelector('#clienteEmail').value = cliente.email || '';
-  container.querySelector('#clienteTelefone').value = cliente.phone || '';
-  container.querySelector('#clienteTags').value = (cliente.tags || []).join(', ');
-  container.querySelector('#clienteNotas').value = cliente.notes || '';
-  container.querySelector('#modalClienteErro').style.display = 'none';
-  container.querySelector('#btnSalvarCliente').dataset.editandoId = id;
-  container.querySelector('#modalCliente').style.display = 'flex';
-}
-
-function fecharModal(container) {
-  container.querySelector('#modalCliente').style.display = 'none';
-}
-
-async function salvarCliente(container) {
-  const nome = container.querySelector('#clienteNome').value.trim();
-  const email = container.querySelector('#clienteEmail').value.trim();
-  const telefone = container.querySelector('#clienteTelefone').value.trim();
-  const tagsRaw = container.querySelector('#clienteTags').value;
-  const notas = container.querySelector('#clienteNotas').value.trim();
-  const editandoId = container.querySelector('#btnSalvarCliente').dataset.editandoId;
-  const erroEl = container.querySelector('#modalClienteErro');
-
-  if (!nome) {
-    erroEl.textContent = 'O nome é obrigatório.';
-    erroEl.style.display = 'block';
-    return;
-  }
-
-  const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t);
-  const payload = { name: nome, email, phone: telefone, notes: notas, tags };
-
-  const btnSalvar = container.querySelector('#btnSalvarCliente');
-  btnSalvar.disabled = true;
-  btnSalvar.textContent = 'Salvando...';
-  erroEl.style.display = 'none';
-
-  try {
-    if (editandoId) {
-      const data = await apiPut(`/api/clients/${editandoId}`, payload);
-      const idx = clientesData.findIndex(c => c._id === editandoId);
-      if (idx >= 0) clientesData[idx] = { ...clientesData[idx], ...data.client };
-    } else {
-      const data = await apiPost('/api/clients', payload);
-      clientesData.unshift({ ...data.client, sessionCount: 0 });
+  abrirModalClienteEditar(cliente, (updated) => {
+    const idx = clientesData.findIndex(c => c._id === id);
+    if (idx >= 0) {
+      clientesData[idx] = { ...clientesData[idx], ...updated };
+      renderLista(container);
     }
-    fecharModal(container);
-    renderLista(container);
-  } catch (error) {
-    erroEl.textContent = error.message || 'Erro ao salvar cliente.';
-    erroEl.style.display = 'block';
-  } finally {
-    btnSalvar.disabled = false;
-    btnSalvar.textContent = 'Salvar';
-  }
+  });
 }
 
 async function deletarCliente(container, id) {

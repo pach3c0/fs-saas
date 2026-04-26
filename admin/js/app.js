@@ -508,21 +508,46 @@ async function loadSidebarStorage() {
     ]);
     if (!storageRes.ok) return;
     const storage = await storageRes.json();
-    const maxMB = billingRes.ok ? ((await billingRes.json()).subscription?.limits?.maxStorage || 500) : 500;
+    const billingData = billingRes.ok ? await billingRes.json() : null;
+    const maxMB = billingData?.subscription?.limits?.maxStorage || 500;
+    
     const pct = Math.min(storage.storageMB / maxMB * 100, 100).toFixed(1);
     const widget = document.getElementById('sidebar-storage');
     const bar = document.getElementById('sidebar-storage-bar');
     const label = document.getElementById('sidebar-storage-label');
     const pctEl = document.getElementById('sidebar-storage-pct');
+    const breakdownEl = document.getElementById('sidebar-storage-breakdown');
+    
     if (!widget) return;
+    
     bar.style.width = pct + '%';
-    bar.style.background = pct > 80 ? 'var(--red)' : 'var(--accent)';
+    bar.style.background = pct > 90 ? 'var(--red)' : (pct > 70 ? 'var(--yellow)' : 'var(--accent)');
     label.textContent = storage.storageMB + ' MB';
+    
     const maxLabel = maxMB >= 1024 ? (maxMB / 1024).toFixed(0) + ' GB' : maxMB + ' MB';
     pctEl.textContent = pct + '% de ' + maxLabel;
+    
+    if (breakdownEl && storage.breakdown) {
+      const b = storage.breakdown;
+      breakdownEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:0.625rem; color:var(--text-muted);">
+          <span>⚙️ Sistema</span><span>${b.system} MB</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.625rem; color:var(--text-muted);">
+          <span>📁 Sessões/Álbuns</span><span>${b.sessions} MB</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.625rem; color:var(--text-muted);">
+          <span>🌐 Site Público</span><span>${b.site} MB</span>
+        </div>
+      `;
+    }
+    
     widget.style.display = 'block';
   } catch (e) { /* silencioso */ }
 }
+
+// Tornar global para que as abas possam atualizar após deletar algo
+window.loadSidebarStorage = loadSidebarStorage;
 
 async function loadOrgSlug() {
   try {

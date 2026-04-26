@@ -155,22 +155,20 @@ router.delete('/site/admin/portfolio/:idx', authenticateToken, async (req, res) 
   }
 });
 
-// Admin: Uso de armazenamento
+// Admin: Uso de armazenamento com divisão por categorias
 router.get('/site/admin/storage', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId.toString();
     const orgUploadDir = path.join(__dirname, '../../uploads', orgId);
 
-    // Função async — não bloqueia o event loop enquanto lê o disco
     async function calcSize(dir) {
       let total = 0;
       try {
-        await fs.promises.access(dir); // substitui existsSync — não bloqueia
+        await fs.promises.access(dir);
       } catch {
-        return 0; // diretório não existe
+        return 0;
       }
       const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-      // Processar todas as entradas em paralelo (Promise.all)
       const sizes = await Promise.all(entries.map(async (entry) => {
         const fp = path.join(dir, entry.name);
         if (entry.isDirectory()) {
@@ -187,9 +185,31 @@ router.get('/site/admin/storage', authenticateToken, async (req, res) => {
       return sizes.reduce((acc, s) => acc + s, 0);
     }
 
-    const storageBytes = await calcSize(orgUploadDir);
-    const storageMB = Math.round(storageBytes / 1024 / 1024 * 100) / 100;
-    res.json({ storageMB, storageBytes });
+    // Calcular por categoria
+    const [sessionsSize, siteSize, rootSize, videosSize] = await Promise.all([
+      calcSize(path.join(orgUploadDir, 'sessions')),
+      calcSize(path.join(orgUploadDir, 'site')),
+      calcSize(orgUploadDir), // Total root
+      calcSize(path.join(orgUploadDir, 'videos'))
+    ]);
+
+    // O rootSize inclui os subdiretórios. Para pegar o "Sistema" (logos na raiz + outros):
+    // Sistema = Root - Sessions - Site - Videos (se videos for considerado separado, mas aqui somaremos)
+    const sessionsTotal = sessionsSize; 
+    const siteTotal = siteSize;
+    const systemTotal = Math.max(0, rootSize - sessionsTotal - siteTotal);
+
+    const totalMB = Math.round(rootSize / 1024 / 1024 * 100) / 100;
+    
+    res.json({ 
+      storageMB: totalMB, 
+      storageBytes: rootSize,
+      breakdown: {
+        sessions: Math.round(sessionsTotal / 1024 / 1024 * 100) / 100,
+        site: Math.round(siteTotal / 1024 / 1024 * 100) / 100,
+        system: Math.round(systemTotal / 1024 / 1024 * 100) / 100
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

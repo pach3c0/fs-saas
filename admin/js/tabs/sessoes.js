@@ -7,6 +7,7 @@ import { formatDate, copyToClipboard, resolveImagePath, escapeHtml } from '../ut
 import { uploadImage, showUploadProgress, UploadQueue } from '../utils/upload.js';
 import { UploadPanel } from '../components/upload-panel.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
+import { setupClientModal, abrirModalClienteNovo } from '../utils/client-modal.js';
 
 const STATUS_LABELS = {
   pending: { text: 'Pendente', class: 'badge-neutral' },
@@ -703,6 +704,7 @@ export async function renderSessoes(container) {
       clientSearchDropdown.appendChild(item);
     });
 
+
     // Opção de criar novo
     if (query.trim()) {
       const criar = document.createElement('div');
@@ -710,13 +712,13 @@ export async function renderSessoes(container) {
       criar.textContent = `+ Cadastrar "${query.trim()}" como novo cliente`;
       criar.onmouseenter = () => criar.style.background = 'var(--bg-hover)';
       criar.onmouseleave = () => criar.style.background = '';
-      criar.onclick = async () => {
+      criar.onclick = () => {
         clientSearchDropdown.style.display = 'none';
-        clientSearchHint.textContent = 'Cadastrando...';
-        clientSearchHint.style.color = 'var(--text-muted)';
-        try {
-          const result = await apiPost('/api/clients', { name: query.trim() });
-          const newClient = result.client;
+        
+        // Inicializar eventos do modal (salvar/cancelar)
+        setupClientModal();
+
+        abrirModalClienteNovo(query.trim(), (newClient) => {
           clientSearchInput.value = newClient.name;
           container.querySelector('#sessionClientId').value = newClient._id;
           if (!container.querySelector('#sessionName').value) {
@@ -724,10 +726,7 @@ export async function renderSessoes(container) {
           }
           clientSearchHint.textContent = `✓ Novo cliente cadastrado!`;
           clientSearchHint.style.color = 'var(--green)';
-        } catch (e) {
-          clientSearchHint.textContent = 'Erro ao cadastrar: ' + e.message;
-          clientSearchHint.style.color = 'var(--red)';
-        }
+        });
       };
       clientSearchDropdown.appendChild(criar);
     }
@@ -860,7 +859,9 @@ export async function renderSessoes(container) {
     const title = container.querySelector('#photosModalTitle');
     const grid = container.querySelector('#sessionPhotosGrid');
 
-    title.textContent = `Fotos - ${session.name}`;
+    const modeLabels = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-Seleção' };
+    const modeName = modeLabels[session.mode] || 'Galeria';
+    title.textContent = `Fotos - ${session.name} (${modeName})`;
 
     // Lógica dos Botões de Upload (Independentes)
     const mainBtn = container.querySelector('#mainUploadBtn');
@@ -964,7 +965,7 @@ export async function renderSessoes(container) {
       btnEntrega.style.color = 'var(--text-secondary)';
 
       mainBtn.style.display = 'flex';
-      secondaryBtn.style.display = 'flex';
+      secondaryBtn.style.display = 'none'; // Escondido na Galeria Geral conforme pedido
     } else {
       tabGeral.style.display = 'none';
       tabEntrega.style.display = 'flex';
@@ -1417,6 +1418,7 @@ export async function renderSessoes(container) {
           if (currentSessionId) {
             viewSessionPhotos(currentSessionId);
           }
+          window.loadSidebarStorage?.();
         }
       });
       panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
@@ -1511,6 +1513,7 @@ export async function renderSessoes(container) {
       await apiDelete(`/api/sessions/${sessionId}/photos/${photoId}`);
       await renderSessoes(container);
       viewSessionPhotos(sessionId);
+      window.loadSidebarStorage?.(); // Atualizar armazenamento na sidebar
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }
@@ -1523,6 +1526,7 @@ export async function renderSessoes(container) {
     try {
       await apiDelete(`/api/sessions/${sessionId}`);
       await renderSessoes(container);
+      window.loadSidebarStorage?.(); // Atualizar armazenamento na sidebar
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }

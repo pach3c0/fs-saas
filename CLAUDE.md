@@ -216,14 +216,14 @@ Nao commitar/empurrar sem pedido explicito. Quando pedido, ou quando alterar fea
 
 ## ajuste
 
-Dashboard
-  - [Error] Fetch API cannot load https://cliquezoom.com.br/api/notifications/unread-count due to access control checks.
-	loadNotifications (notifications.js:37)
-	startNotificationPolling (notifications.js:22)
+Sessoes
+ - o botao id="secondaryUploadBtn" da aba id="tabGeralBtn" tem que ser removido 
+ - no id="sessionPhotosModal" tem que aparecer um titulo informando o tipo de modo da sessao
+temos tres (Selecao, Galeria e multiselecao )
+  - o botao id="previewToggleBtn" do top bar pode deletar
+  - o id="sidebar-storage" deve ter atualizacao dinamicas, deletou algo ele ja deve ser atualizado, e preciso que mostre o armazamneto por divisao, sistema(aonde comeca a conttar quando ele insere sua informacoes logos e outros, depois sessoes albuns, depois site, por favor verifique se tem outro lugar do cliente que consome armazenamoent que precise colocar no widgewt )
 
-  - [Error] Fetch API cannot load https://cliquezoom.com.br/api/notifications/unread-count due to access control checks.
-	loadNotifications (notifications.js:37)
-	startNotificationPolling (notifications.js:22)
+  - no modal de criar sessao quando digitar o nome do cliente e nao tiver vai aparecer <div style="padding: 0.5rem 0.75rem; cursor: pointer; color: var(--accent); font-size: 0.875rem; border-top: 1px solid var(--border); font-weight: 500;">+ Cadastrar "ricardo" como novo cliente</div>
 
-  - o botao toggleSitePreview() nao esta direceionando para o site do fotografo
+  quando clicar, o modal id="modalCliente" deve abrir e ja com o foco no campo nome para que o usuario possa cadastrar o cliente, e depois criar uma sessao com o nome desse cliente.
   
