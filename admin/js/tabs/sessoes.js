@@ -962,7 +962,7 @@ export async function renderSessoes(container) {
           await apiDelete(`/api/sessions/${sessionId}/photos/bulk`, { photoIds: ids });
           window.showToast?.('Fotos deletadas!', 'success');
           await renderSessoes(container);
-          viewSessionPhotos(sessionId);
+          window.viewSessionPhotos(sessionId);
           window.loadSidebarStorage?.();
         } catch (error) {
           window.showToast?.('Erro: ' + error.message, 'error');
