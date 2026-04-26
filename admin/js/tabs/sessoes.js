@@ -230,6 +230,17 @@ export async function renderSessoes(container) {
       <div style="flex:1; display:flex; flex-direction:column; min-height:0; padding:1.5rem; overflow:hidden; background:var(--bg-base);">
           <!-- Seção 1: Todas as Fotos -->
           <div id="tabGeral" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+              <!-- Barra de Ações em Massa -->
+              <div id="bulkActionsBar" style="display:none; justify-content:space-between; align-items:center; margin-bottom:1rem; background:var(--bg-elevated); padding:0.5rem 1rem; border-radius:0.5rem; border:1px solid var(--border);">
+                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--text-primary);">
+                      <input type="checkbox" id="selectAllPhotos" class="check">
+                      <span>Selecionar Tudo</span>
+                  </label>
+                  <div style="display:flex; gap:0.75rem; align-items:center;">
+                      <span id="selectedPhotosCount" style="font-size:0.875rem; color:var(--text-secondary);">0 selecionadas</span>
+                      <button id="bulkDeleteBtn" class="btn btn-danger btn-sm" style="background:var(--red); color:white; border:none; display:none;">Deletar selecionadas</button>
+                  </div>
+              </div>
               <div id="sessionPhotosGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); grid-auto-rows: max-content; gap:1rem; align-content:start;"></div>
           </div>
           
@@ -881,7 +892,17 @@ export async function renderSessoes(container) {
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
 
-
+    // Reset barra de ações em massa
+    const bulkBar = container.querySelector('#bulkActionsBar');
+    const selectAllCheck = container.querySelector('#selectAllPhotos');
+    const bulkDeleteBtn = container.querySelector('#bulkDeleteBtn');
+    const countLabel = container.querySelector('#selectedPhotosCount');
+    if (bulkBar) {
+      bulkBar.style.display = photos.length > 0 ? 'flex' : 'none';
+      selectAllCheck.checked = false;
+      countLabel.textContent = '0 selecionadas';
+      bulkDeleteBtn.style.display = 'none';
+    }
 
     if (photos.length > 0) {
       grid.innerHTML = photos.map((photo, idx) => {
@@ -892,7 +913,7 @@ export async function renderSessoes(container) {
         <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; ${isSelected ? 'border:3px solid var(--green);' : ''} ${isHidden ? 'opacity:0.6;' : ''}">
           <img src="${resolveImagePath(photo.url)}" alt="Foto ${idx + 1}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; ${isHidden ? 'filter:grayscale(1);' : ''}">
           
-
+          <input type="checkbox" class="photo-bulk-check" data-id="${photo.id}" style="position:absolute; top:0.5rem; left:0.5rem; width:1.25rem; height:1.25rem; cursor:pointer; z-index:10; accent-color:var(--accent);">
 
           ${isHidden ? '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); color:white; font-weight:600; font-size:0.75rem; pointer-events:none; z-index:2;">OCULTA</div>' : ''}
           ${isSelected ? '<div style="position:absolute; top:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">Selecionada</div>' : ''}
@@ -905,18 +926,51 @@ export async function renderSessoes(container) {
               ${isHidden ? '👁️‍🗨️' : '👁️'}
             </button>
 
-            <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:var(--accent); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer; margin-right:0.5rem;" title="Comentários">
+            <button onclick="openComments('${sessionId}', '${photo.id}')" style="background:var(--accent); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Comentários">
               💬
-            </button>
-            <button onclick="deleteSessionPhoto('${sessionId}', '${photo.id}')" style="background:var(--red); color:white; padding:0.5rem; border-radius:9999px; border:none; cursor:pointer;" title="Remover">
-              &times;
             </button>
           </div>
           <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">${idx + 1}</div>
         </div>
       `}).join('');
 
+      // Lógica de seleção em massa
+      const checkboxes = grid.querySelectorAll('.photo-bulk-check');
+      const updateBulkUI = () => {
+        const checked = Array.from(checkboxes).filter(cb => cb.checked);
+        countLabel.textContent = `${checked.length} selecionada${checked.length !== 1 ? 's' : ''}`;
+        bulkDeleteBtn.style.display = checked.length > 0 ? 'inline-block' : 'none';
+        selectAllCheck.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+        selectAllCheck.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+      };
 
+      checkboxes.forEach(cb => cb.onchange = updateBulkUI);
+
+      selectAllCheck.onchange = (e) => {
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateBulkUI();
+      };
+
+      bulkDeleteBtn.onclick = async () => {
+        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.id);
+        if (!ids.length) return;
+        const ok = await window.showConfirm?.(`Deletar permanentemente as ${ids.length} foto(s) selecionada(s)?`);
+        if (!ok) return;
+        try {
+          bulkDeleteBtn.disabled = true;
+          bulkDeleteBtn.textContent = 'Deletando...';
+          await apiDelete(`/api/sessions/${sessionId}/photos/bulk`, { photoIds: ids });
+          window.showToast?.('Fotos deletadas!', 'success');
+          await renderSessoes(container);
+          viewSessionPhotos(sessionId);
+          window.loadSidebarStorage?.();
+        } catch (error) {
+          window.showToast?.('Erro: ' + error.message, 'error');
+        } finally {
+          bulkDeleteBtn.disabled = false;
+          bulkDeleteBtn.textContent = 'Deletar selecionadas';
+        }
+      };
 
     } else {
       grid.innerHTML = '<p style="color:var(--text-secondary); text-align:center; grid-column:1/-1; padding:3rem;">Nenhuma foto na sessão. Use o Upload acima.</p>';
