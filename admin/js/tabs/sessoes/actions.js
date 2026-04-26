@@ -140,4 +140,8 @@ export function setupActions(container, state, renderSessoes) {
       window.showToast?.(error.message, 'error');
     }
   };
+
+  window.viewSessionHistory = (sessionId) => {
+    window.showToast?.('Em breve: Histórico da sessão e Timeline de atividades', 'info');
+  };
 }

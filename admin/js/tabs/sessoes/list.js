@@ -133,6 +133,18 @@ function renderList(container, items) {
             <button onclick="viewParticipants('${session._id}')" class="btn btn-sm" style="background:var(--purple); border-color:var(--purple); color:white;">
               Participantes
             </button>` : ''}
+            <button onclick="editSession('${session._id}')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
+              Config
+            </button>
+            <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
+              style="background:${(session.photos?.length || 0) >= limit ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
+                     color:${(session.photos?.length || 0) >= limit ? 'var(--text-secondary)' : 'var(--text-muted)'};
+                     padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border);
+                     cursor:${(session.photos?.length || 0) >= limit ? 'pointer' : 'not-allowed'}; font-size:0.75rem;"
+              ${(session.photos?.length || 0) >= limit ? '' : 'disabled'}
+              title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
+              📧 Enviar
+            </button>
             ${!isMulti && isSubmitted ? `
             <button onclick="reopenSelection('${session._id}')" class="btn btn-sm" style="background:var(--yellow); border-color:var(--yellow); color:white;">
               Reabrir
@@ -147,6 +159,9 @@ function renderList(container, items) {
               title="${!isSubmitted ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : 'Entregar sessão'))}">
               Entregar
             </button>
+            <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);">
+              Historico
+            </button>
             ${session.extraRequest?.status === 'pending' ? `
             <button onclick="acceptExtraRequest('${session._id}')" class="btn btn-sm btn-success" title="Aceitar fotos extras">
               ✅ Aceitar extras
@@ -154,18 +169,6 @@ function renderList(container, items) {
             <button onclick="rejectExtraRequest('${session._id}')" class="btn btn-sm btn-danger" title="Recusar fotos extras">
               ✗ Recusar
             </button>` : ''}
-            <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
-              style="background:${(session.photos?.length || 0) >= limit ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
-                     color:${(session.photos?.length || 0) >= limit ? 'var(--text-secondary)' : 'var(--text-muted)'};
-                     padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border);
-                     cursor:${(session.photos?.length || 0) >= limit ? 'pointer' : 'not-allowed'}; font-size:0.75rem;"
-              ${(session.photos?.length || 0) >= limit ? '' : 'disabled'}
-              title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
-              📧 Enviar
-            </button>
-            <button onclick="editSession('${session._id}')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
-              Config
-            </button>
             <button onclick="deleteSession('${session._id}')" class="btn btn-sm btn-danger" title="Deletar">
               &times;
             </button>
