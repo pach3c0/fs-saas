@@ -33,6 +33,9 @@ const sessionSchema = new mongoose.Schema({
     selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered', 'expired'], default: 'pending' },
     selectedPhotos: [String],
     selectionSubmittedAt: Date,
+    codeSentAt: Date,        // quando admin enviou o código/link por e-mail ao cliente
+    firstAccessAt: Date,     // quando o cliente acessou a galeria pela primeira vez
+    lastEditedUploadAt: Date, // quando admin fez o último upload de fotos editadas
     selectionDeadline: Date,
     deadlineWarningSent: { type: Boolean, default: false }, // Aviso de 3 dias enviado?
     deadlineExpiredSent: { type: Boolean, default: false }, // Aviso de expirado enviado?

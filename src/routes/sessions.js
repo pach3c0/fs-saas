@@ -51,6 +51,12 @@ router.post('/client/verify-code', async (req, res) => {
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
+    // Registrar primeiro acesso do cliente
+    if (!session.firstAccessAt) {
+      session.firstAccessAt = new Date();
+      await session.save();
+    }
+
     // Notificar admin
     try {
       await Notification.create({
@@ -603,6 +609,9 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     const org = await Organization.findById(req.user.organizationId).select('name slug');
     await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug);
 
+    session.codeSentAt = new Date();
+    await session.save();
+
     // Update onboarding step
     await Organization.findByIdAndUpdate(req.user.organizationId, {
       'onboarding.steps.linkSent': true
@@ -872,6 +881,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     }
 
     session.markModified('photos');
+    session.lastEditedUploadAt = new Date();
     await session.save();
 
     res.json({ success: true, matched, unmatched, newCount: newPhotos.length });

@@ -257,12 +257,23 @@ export function setupActions(container, state, renderSessoes) {
         events.push({ icon:'🖼️', label:'Fotos carregadas', date: firstUpload || null, detail: `${photoCount} foto(s) disponível(is) para seleção` });
       }
 
-      if (['in_progress', 'submitted', 'delivered'].includes(s.selectionStatus)) {
-        events.push({ icon:'👁️', label:'Cliente acessou a galeria', date: null, detail: 'Seleção iniciada' });
+      if (s.codeSentAt) {
+        events.push({ icon:'✉️', label:'Código enviado ao cliente', date: s.codeSentAt, detail: 'Link de acesso à galeria enviado por e-mail' });
+      }
+
+      if (s.firstAccessAt) {
+        events.push({ icon:'👁️', label:'Cliente acessou a galeria', date: s.firstAccessAt, detail: 'Primeiro acesso registrado' });
+      } else if (['in_progress', 'submitted', 'delivered'].includes(s.selectionStatus)) {
+        events.push({ icon:'👁️', label:'Cliente acessou a galeria', date: null, detail: 'Acesso registrado (data não disponível)' });
       }
 
       if (s.selectionSubmittedAt || ['submitted', 'delivered'].includes(s.selectionStatus)) {
         events.push({ icon:'✅', label:'Seleção enviada pelo cliente', date: s.selectionSubmittedAt || null, detail: `${s.selectedPhotos?.length ?? 0} foto(s) selecionada(s) · Limite: ${s.packageLimit ?? '—'}` });
+      }
+
+      if (s.lastEditedUploadAt) {
+        const editedCount = s.photos?.filter(p => p.urlOriginal).length ?? 0;
+        events.push({ icon:'✏️', label:'Fotos editadas enviadas', date: s.lastEditedUploadAt, detail: `${editedCount} foto(s) com alta resolução pronta(s)` });
       }
 
       if (s.extraRequest?.status && s.extraRequest.status !== 'none') {
