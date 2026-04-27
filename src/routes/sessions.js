@@ -199,6 +199,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       extraPhotoPrice: session.extraPhotoPrice,
       allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
       allowReopen: session.allowReopen !== false,
+      deliveredAt: session.deliveredAt || null,
       // Garantir que organization venha também no refresh
       organization: session.organizationId ? {
         id: session.organizationId._id,
@@ -464,7 +465,7 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
-    if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
+    if (session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
     if (session.extraRequest && session.extraRequest.status === 'pending') {
       return res.status(400).json({ error: 'Já existe uma solicitação de extras pendente' });
     }

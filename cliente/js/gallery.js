@@ -385,11 +385,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         let title, message, buttonHtml = '';
 
         switch (state.session.selectionStatus) {
-            case 'delivered':
+            case 'delivered': {
+                const dAt = state.session.deliveredAt ? new Date(state.session.deliveredAt) : null;
+                const dStr = dAt ? dAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : null;
                 title = 'Fotos Entregues!';
-                message = 'Suas fotos estão prontas! Você já pode visualizá-las sem marca d\'água e fazer o download.';
-                buttonHtml = `<button id="viewDeliveredBtn" style="margin-top:1.25rem; background:#2563eb; color:white; border:none; padding:0.625rem 1.25rem; border-radius:0.5rem; font-size:0.8125rem; cursor:pointer;">Ver minhas fotos</button>`;
+                message = `Suas fotos estão prontas${dStr ? ` desde <strong>${dStr}</strong>` : ''}! Clique abaixo para visualizar e baixar suas fotos.`;
+                buttonHtml = `<button id="viewDeliveredBtn" style="margin-top:1.25rem; background:#16a34a; color:white; border:none; padding:0.625rem 1.5rem; border-radius:0.5rem; font-size:0.875rem; font-weight:600; cursor:pointer;">⬇ Ver e baixar minhas fotos</button>`;
                 break;
+            }
             case 'expired':
                 title = 'Prazo Encerrado';
                 message = 'O prazo para seleção de fotos desta sessão expirou. Entre em contato com o fotógrafo para solicitar a reabertura.';
@@ -775,6 +778,161 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function renderDeliveredScreen() {
+        renderHeader();
+
+        const selectedSet = new Set(state.selectedPhotos);
+        const selectedPhotos = state.photos.filter(p => selectedSet.has(p.id));
+        const unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id));
+
+        const deliveredAt = state.session.deliveredAt ? new Date(state.session.deliveredAt) : null;
+        const deliveredDateStr = deliveredAt
+            ? deliveredAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+            : null;
+
+        const canUpsell = state.session.allowExtraPurchasePostSubmit !== false;
+        const extraRequest = state.session.extraRequest || { status: 'none', photos: [] };
+        const extraPrice = state.session.extraPhotoPrice || 25;
+        const hasExtras = canUpsell && unselectedPhotos.length > 0 && extraRequest.status !== 'pending';
+
+        const buildPhotoItem = (photo) => `
+            <div class="photo-item" data-photo-id="${photo.id}">
+                <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
+                <a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}"
+                   class="photo-download-overlay"
+                   style="position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.5rem; opacity:0; transition:opacity 0.2s; text-decoration:none;"
+                   download title="Baixar esta foto">
+                    <span style="background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.25rem 0.625rem; border-radius:0.25rem;">⬇ Baixar</span>
+                </a>
+            </div>
+        `;
+
+        const infoBanner = `
+            <div style="grid-column:1/-1; background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin-bottom:0.75rem; font-size:0.875rem; color:#166534; text-align:center;">
+                ✅ <strong>${selectedPhotos.length} foto(s)</strong> prontas para download${deliveredDateStr ? ` · disponíveis desde <strong>${deliveredDateStr}</strong>` : ''}.
+                Use o botão <strong>⬇ Baixar Todas</strong> no topo ou passe o mouse sobre cada foto para baixar individualmente.
+            </div>
+        `;
+
+        let extraStatusBanner = '';
+        if (extraRequest.paid) {
+            extraStatusBanner = `<div style="grid-column:1/-1; background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin:0.75rem 0; color:#166534; font-size:0.875rem;">
+                🎉 Pagamento recebido! Suas fotos extras foram adicionadas com sucesso.
+            </div>`;
+        } else if (extraRequest.status === 'pending') {
+            extraStatusBanner = `<div style="grid-column:1/-1; background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:0.75rem 0; color:#92400e; font-size:0.875rem;">
+                ⏳ Aguardando confirmação do pagamento de <strong>${extraRequest.photos.length} foto(s)</strong> extras.
+            </div>`;
+        }
+
+        let extrasSection = '';
+        if (hasExtras) {
+            const extrasGrid = unselectedPhotos.map(photo => `
+                <div class="photo-item extra-item" data-extra-id="${photo.id}" style="cursor:pointer; opacity:0.75;">
+                    <img src="${photo.url}" alt="Foto extra" class="object-cover w-full h-full rounded-md" loading="lazy">
+                    <div class="extra-overlay" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25); transition:background 0.2s;">
+                        <span class="extra-icon" style="background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.5); border-radius:9999px; width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; font-size:1rem; color:white;">+</span>
+                    </div>
+                </div>
+            `).join('');
+            extrasSection = `
+                <div style="grid-column:1/-1; margin-top:2rem; padding-top:1.25rem; border-top:1px solid #e5e7eb;">
+                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">Quer mais fotos?</p>
+                    <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.',',')}</strong>.</p>
+                </div>
+                ${extrasGrid}
+                <div id="extrasRequestBar" style="grid-column:1/-1; display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:1rem; margin-top:0.5rem;">
+                    <span id="extrasRequestCount" style="font-size:0.875rem;"></span>
+                    <button id="extrasPayBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Pagar Extras</button>
+                </div>
+            `;
+        }
+
+        photoGrid.innerHTML = infoBanner + extraStatusBanner + selectedPhotos.map(buildPhotoItem).join('') + extrasSection;
+
+        // Hover para mostrar botão de download individual
+        photoGrid.querySelectorAll('.photo-download-overlay').forEach(overlay => {
+            const parent = overlay.parentElement;
+            parent.addEventListener('mouseenter', () => { overlay.style.opacity = '1'; });
+            parent.addEventListener('mouseleave', () => { overlay.style.opacity = '0'; });
+        });
+
+        // Interação com fotos extras
+        if (hasExtras) {
+            extraSelectedPhotos = [];
+            const bar = document.getElementById('extrasRequestBar');
+            const countEl = document.getElementById('extrasRequestCount');
+            const payBtn = document.getElementById('extrasPayBtn');
+
+            const updateExtrasBar = () => {
+                if (!bar) return;
+                if (extraSelectedPhotos.length > 0) {
+                    const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
+                    if (countEl) countEl.textContent = `${extraSelectedPhotos.length} foto(s) · R$ ${total}`;
+                    bar.style.display = 'flex';
+                } else {
+                    bar.style.display = 'none';
+                }
+            };
+
+            photoGrid.querySelectorAll('.extra-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const id = item.dataset.extraId;
+                    const idx = extraSelectedPhotos.indexOf(id);
+                    const icon = item.querySelector('.extra-icon');
+                    const overlay = item.querySelector('.extra-overlay');
+                    if (idx >= 0) {
+                        extraSelectedPhotos.splice(idx, 1);
+                        item.style.opacity = '0.75';
+                        if (icon) { icon.textContent = '+'; icon.style.background = 'rgba(255,255,255,0.15)'; icon.style.borderColor = 'rgba(255,255,255,0.5)'; }
+                        if (overlay) overlay.style.background = 'rgba(0,0,0,0.25)';
+                    } else {
+                        extraSelectedPhotos.push(id);
+                        item.style.opacity = '1';
+                        if (icon) { icon.textContent = '✓'; icon.style.background = 'rgba(22,163,74,0.8)'; icon.style.borderColor = '#16a34a'; }
+                        if (overlay) overlay.style.background = 'rgba(22,163,74,0.2)';
+                    }
+                    updateExtrasBar();
+                });
+            });
+
+            if (payBtn) {
+                payBtn.addEventListener('click', async () => {
+                    if (!extraSelectedPhotos.length) return;
+                    payBtn.disabled = true;
+                    payBtn.textContent = 'Aguarde...';
+                    try {
+                        const resp = await fetch(`/api/client/request-extra-photos/${state.sessionId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos })
+                        });
+                        const data = await resp.json();
+                        if (data.paymentUrl) {
+                            window.location.href = data.paymentUrl;
+                        } else if (data.success) {
+                            await loadSessionData();
+                        } else {
+                            alert(data.error || 'Erro ao processar solicitação.');
+                            payBtn.disabled = false;
+                            payBtn.textContent = 'Pagar Extras';
+                        }
+                    } catch(e) {
+                        alert('Erro de conexão. Tente novamente.');
+                        payBtn.disabled = false;
+                        payBtn.textContent = 'Pagar Extras';
+                    }
+                });
+            }
+        }
+
+        gallerySection.style.display = 'block';
+        selectionBar.style.display = 'none';
+        const bottomBar = document.getElementById('bottomBar');
+        if (bottomBar) bottomBar.style.display = 'none';
+        statusScreen.style.display = 'none';
+    }
+
     async function loadSessionData(isPolling = false) {
         try {
             let url = `/api/client/photos/${state.sessionId}?code=${state.accessCode}`;
@@ -795,7 +953,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
-            state.isSelectionMode = result.mode === 'selection';
+            state.isSelectionMode = result.mode === 'selection' && result.selectionStatus !== 'delivered';
 
         // Atualiza texto do botão selecionar tudo
         const selectAllBtn = document.getElementById('selectAllBtn');
@@ -866,26 +1024,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Tenta renderizar primeiro antes de trocar a tela
-            if (state.session.selectionStatus === 'submitted' || (state.session.selectionStatus === 'delivered' && state.session.mode === 'selection')) {
-                if (state.session.selectionStatus === 'delivered') {
-                    // Se entregue, vai direto para as fotos sem marca d'água
-                    renderHeader();
-                    renderPhotos();
-                    gallerySection.style.display = 'block';
-                    selectionBar.style.display = 'none';
-                    statusScreen.style.display = 'none';
-                } else {
-                    renderStatusScreen();
-                    gallerySection.style.display = 'none';
-                }
+            if (state.session.selectionStatus === 'delivered') {
+                // Tela de download: exibe apenas fotos selecionadas + seção de extras
+                renderDeliveredScreen();
+            } else if (state.session.selectionStatus === 'submitted') {
+                renderStatusScreen();
+                gallerySection.style.display = 'none';
             } else {
                 renderHeader();
                 renderPhotos();
                 gallerySection.style.display = 'block';
                 statusScreen.style.display = 'none';
             }
-            // Só esconde o login se tudo acima funcionou
             loginSection.style.display = 'none';
             setupPWA();
 
@@ -900,6 +1050,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function togglePhotoSelection(photoId) {
+        if (state.session.selectionStatus === 'delivered') return;
         const isSelected = state.selectedPhotos.includes(photoId);
         const photoCard = photoGrid.querySelector(`[data-photo-id="${photoId}"]`);
         const selectBtn = photoCard.querySelector('.photo-heart');
