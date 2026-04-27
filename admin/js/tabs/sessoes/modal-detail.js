@@ -17,14 +17,20 @@ export function setupModalDetail(container, state) {
 
     const mainBtn = container.querySelector('#mainUploadBtn');
     const secondaryBtn = container.querySelector('#secondaryUploadBtn');
+    const isGalleryMode = session.mode === 'gallery';
     mainBtn.innerHTML = `<span>+</span> Upload`;
     mainBtn.htmlFor = 'sessionUploadInput';
     mainBtn.style.background = 'var(--accent)';
     mainBtn.title = 'Adicionar novas fotos à galeria';
-    secondaryBtn.innerHTML = `<span>✏️</span> Subir Editadas`;
+    if (isGalleryMode) {
+      secondaryBtn.innerHTML = `<span>⬆</span> Upload`;
+      secondaryBtn.title = 'Adicionar fotos — o cliente verá com marca d\'água até a entrega';
+    } else {
+      secondaryBtn.innerHTML = `<span>✏️</span> Subir Editadas`;
+      secondaryBtn.title = 'Upload das fotos editadas — substitui por nome de arquivo';
+    }
     secondaryBtn.htmlFor = 'sessionEditedInput';
     secondaryBtn.style.background = 'var(--purple)';
-    secondaryBtn.title = 'Upload das fotos editadas — substitui por nome de arquivo';
     secondaryBtn.style.display = 'none';
 
     // Banner de modo re-entrega
@@ -149,24 +155,29 @@ export function setupModalDetail(container, state) {
     }
 
     // Aba Entrega Final
-    const deliveredPhotos = photos.filter(p => p.urlOriginal);
+    const isGallery = session.mode === 'gallery';
+    const deliveredPhotos = isGallery ? photos : photos.filter(p => p.urlOriginal);
     const selectedGrid = container.querySelector('#selectedPhotosGrid');
     const badge = container.querySelector('#deliveryCountBadge');
     const selectedCount = (session.selectedPhotos || []).length;
-    badge.textContent = `${deliveredPhotos.length}/${selectedCount || photos.length}`;
+    if (isGallery) {
+      badge.textContent = `${photos.length} foto(s)`;
+    } else {
+      badge.textContent = `${deliveredPhotos.length}/${selectedCount || photos.length}`;
+    }
 
     if (deliveredPhotos.length > 0) {
       selectedGrid.innerHTML = deliveredPhotos.map((photo) => `
         <div style="position:relative; aspect-ratio:3/2; background:var(--bg-elevated); border-radius:0.4rem; overflow:hidden; border:2px solid var(--green);">
           <img src="${resolveImagePath(photo.url)}" alt="Final" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-          <div style="position:absolute; bottom:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.5rem; padding:0.1rem 0.3rem; border-radius:4px; font-weight:bold;">ALTA RES</div>
+          ${!isGallery ? '<div style="position:absolute; bottom:0.25rem; right:0.25rem; background:var(--green); color:white; font-size:0.5rem; padding:0.1rem 0.3rem; border-radius:4px; font-weight:bold;">ALTA RES</div>' : ''}
         </div>
       `).join('');
     } else {
       selectedGrid.innerHTML = `
         <div style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:2rem; font-size:0.875rem;">
-          <p>Nenhuma foto editada enviada.</p>
-          <p style="font-size:0.75rem; margin-top:0.5rem;">Use o botão <b>Subir Editadas</b> para enviar as fotos de entrega.</p>
+          <p>${isGallery ? 'Nenhuma foto enviada.' : 'Nenhuma foto editada enviada.'}</p>
+          <p style="font-size:0.75rem; margin-top:0.5rem;">${isGallery ? 'Faça upload das fotos. O cliente verá com marca d\'água até você clicar em Entregar.' : 'Use o botão <b>Subir Editadas</b> para enviar as fotos de entrega.'}</p>
         </div>`;
     }
 

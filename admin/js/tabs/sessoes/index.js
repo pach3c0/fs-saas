@@ -100,7 +100,7 @@ export async function renderSessoes(container) {
             <p class="input-hint">Quando o ensaio/evento aconteceu.</p>
           </div>
           <div class="input-group" style="margin-bottom:0;">
-            <label>Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
+            <label id="deadlineLabel">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
             <input type="datetime-local" id="sessionDeadline" class="input">
             <p class="input-hint">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
           </div>
@@ -253,7 +253,7 @@ export async function renderSessoes(container) {
           <input type="text" id="editSessionName" class="input">
         </div>
         <div class="input-group" style="margin-bottom:0;">
-          <label>Prazo Seleção</label>
+          <label id="editDeadlineLabel">Prazo de Seleção</label>
           <input type="datetime-local" id="editSessionDeadline" class="input">
         </div>
         <div class="input-group" style="margin-bottom:0;">

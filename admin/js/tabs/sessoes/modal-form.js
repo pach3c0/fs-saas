@@ -17,11 +17,14 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   const selectionFields = container.querySelector('#selectionFields');
   const extraConfigFields = container.querySelector('#extraConfigFields');
   const multiHint = container.querySelector('#multiSelectionHint');
+  const deadlineLabel = container.querySelector('#deadlineLabel');
   modeSelect.onchange = () => {
     const isSelection = modeSelect.value === 'selection';
+    const isGallery = modeSelect.value === 'gallery';
     selectionFields.style.display = isSelection ? 'flex' : 'none';
     extraConfigFields.style.display = isSelection ? 'flex' : 'none';
     multiHint.style.display = modeSelect.value === 'multi_selection' ? 'block' : 'none';
+    if (deadlineLabel) deadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
   };
 
   // Upload de foto de capa
@@ -142,8 +145,10 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     if (eventVal && deadlineVal) {
       const eventDate = new Date(eventVal + 'T00:00:00');
       const deadline = new Date(deadlineVal);
+      const isGalleryMode = container.querySelector('#sessionMode')?.value === 'gallery';
+      const prazoLabel = isGalleryMode ? 'Prazo de Acesso' : 'Prazo de Seleção';
       if (deadline < eventDate) {
-        msg.textContent = '⚠ O Prazo de Seleção não pode ser anterior à Data do Evento.';
+        msg.textContent = `⚠ O ${prazoLabel} não pode ser anterior à Data do Evento.`;
         msg.style.display = 'block';
         return false;
       }
@@ -217,11 +222,14 @@ function _setupEditSessionModal(container, state, renderSessoes) {
   const editExtraLabel = container.querySelector('#editAllowExtraPurchase')?.closest('label');
   const editReopenLabel = container.querySelector('#editAllowReopen')?.closest('label');
 
+  const editDeadlineLabel = container.querySelector('#editDeadlineLabel');
   function _toggleEditSelectionFields() {
     const isSelection = editModeSelect.value === 'selection';
+    const isGallery = editModeSelect.value === 'gallery';
     editSelFields.style.display = isSelection ? 'flex' : 'none';
     if (editExtraLabel) editExtraLabel.style.display = isSelection ? 'flex' : 'none';
     if (editReopenLabel) editReopenLabel.style.display = isSelection ? 'flex' : 'none';
+    if (editDeadlineLabel) editDeadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
   }
 
   editModeSelect.onchange = _toggleEditSelectionFields;

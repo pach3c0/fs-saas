@@ -10,6 +10,15 @@ const STATUS_LABELS = {
   expired: { text: 'Expirado', class: 'badge-danger' }
 };
 
+const GALLERY_STATUS_LABELS = {
+  pending: { text: 'Aguardando upload', class: 'badge-neutral' },
+  in_progress: { text: 'Em visualização', class: 'badge-warning' },
+  submitted: { text: 'Em visualização', class: 'badge-warning' },
+  delivered: { text: 'Entregue', class: 'badge-blue' },
+  redelivering: { text: 'Re-entregando', class: 'badge-warning' },
+  expired: { text: 'Expirado', class: 'badge-danger' }
+};
+
 export async function loadSessions(container, state) {
   try {
     const result = await apiGet('/api/sessions');
@@ -74,12 +83,12 @@ function renderList(container, items) {
   list.innerHTML = items.map(session => {
     const now = new Date();
     const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+    const mode = session.mode || 'gallery';
     const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
     const isRedelivering = session.selectionStatus === 'delivered' && session.redeliveryMode === true;
     const statusKey = isExpired ? 'expired' : (isRedelivering ? 'redelivering' : session.selectionStatus);
-    const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
-
-    const mode = session.mode || 'gallery';
+    const statusMap = mode === 'gallery' ? GALLERY_STATUS_LABELS : STATUS_LABELS;
+    const status = statusMap[statusKey] || statusMap.pending;
     const isMulti = mode === 'multi_selection';
     const selectedCount = (session.selectedPhotos || []).length;
     const limit = session.packageLimit || 30;
@@ -123,7 +132,7 @@ function renderList(container, items) {
             <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
               ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
               ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : (isMulti ? ` • ${(session.participants || []).length} participantes` : '')}
-              ${deadline ? ` • Prazo: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
+              ${deadline ? ` • ${mode === 'gallery' ? 'Acesso até' : 'Prazo'}: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
               ${!isMulti && extras > 0 ? ` • <span style="color:var(--yellow);">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
             </div>
             </div>
