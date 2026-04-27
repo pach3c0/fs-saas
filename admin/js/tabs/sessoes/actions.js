@@ -1,5 +1,5 @@
 import { copyToClipboard } from '../../utils/helpers.js';
-import { apiPost, apiPut, apiDelete } from '../../utils/api.js';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api.js';
 import { uploadImage } from '../../utils/upload.js';
 
 export function setupActions(container, state, renderSessoes) {
@@ -208,7 +208,98 @@ export function setupActions(container, state, renderSessoes) {
     }
   };
 
-  window.viewSessionHistory = (sessionId) => {
-    window.showToast?.('Em breve: Histórico da sessão e Timeline de atividades', 'info');
+  window.viewSessionHistory = async (sessionId) => {
+    const existing = document.getElementById('session-history-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'session-history-modal';
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.55);padding:16px;
+    `;
+    modal.innerHTML = `
+      <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+                  width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-weight:600;font-size:1rem;color:var(--text);">Histórico da sessão</span>
+          <button id="hist-close" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--text-muted);line-height:1;">&times;</button>
+        </div>
+        <div id="hist-body" style="overflow-y:auto;padding:20px;">
+          <p style="color:var(--text-muted);font-size:0.875rem;">Carregando...</p>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('#hist-close').onclick = () => modal.remove();
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    const fmt = (d) => {
+      if (!d) return '—';
+      return new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    };
+
+    const statusLabel = { pending:'Aguardando', in_progress:'Em seleção', submitted:'Seleção enviada', delivered:'Entregue', expired:'Expirado' };
+    const statusColor = { pending:'var(--text-muted)', in_progress:'var(--yellow)', submitted:'var(--accent)', delivered:'var(--green)', expired:'var(--red)' };
+
+    try {
+      const data = await apiGet(`/api/sessions/${sessionId}`);
+      const s = data.session;
+
+      const events = [];
+
+      events.push({ icon:'📁', label:'Sessão criada', date: s.createdAt, detail: `Modo: ${s.mode} · Resolução: ${s.photoResolution || '—'}px` });
+
+      if (s.selectionStatus !== 'pending') {
+        const submittedEntry = s.deliveryHistory?.[0];
+        events.push({ icon:'✅', label:'Seleção enviada pelo cliente', date: submittedEntry?.deliveredAt ? null : null, detail: `${s.selectedPhotos?.length ?? 0} foto(s) selecionada(s)` });
+      }
+
+      (s.deliveryHistory || []).forEach((entry, i) => {
+        events.push({
+          icon: '🚀',
+          label: `Entrega #${i + 1}`,
+          date: entry.deliveredAt,
+          detail: `${entry.selectedCount ?? 0} foto(s) entregue(s)${entry.extrasDelivered?.length ? ` · ${entry.extrasDelivered.length} extra(s)` : ''}`
+        });
+        if (entry.reopenedAt) {
+          events.push({
+            icon: '🔄',
+            label: `Re-entrega solicitada`,
+            date: entry.reopenedAt,
+            detail: entry.reopenReason ? `Motivo: ${entry.reopenReason}` : 'Sem motivo informado'
+          });
+        }
+      });
+
+      const timelineHtml = events.map((ev, i) => `
+        <div style="display:flex;gap:14px;${i < events.length - 1 ? '' : ''}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--bg-elevated);border:1px solid var(--border);
+                        display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${ev.icon}</div>
+            ${i < events.length - 1 ? `<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin:4px 0;"></div>` : ''}
+          </div>
+          <div style="padding-bottom:${i < events.length - 1 ? '4px' : '0'};min-width:0;">
+            <div style="font-weight:500;font-size:0.875rem;color:var(--text);">${ev.label}</div>
+            ${ev.date ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:1px;">${fmt(ev.date)}</div>` : ''}
+            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">${ev.detail}</div>
+          </div>
+        </div>
+      `).join('');
+
+      const currentStatus = s.redeliveryMode
+        ? '<span style="color:var(--yellow);">Re-entregando</span>'
+        : `<span style="color:${statusColor[s.selectionStatus] || 'var(--text-muted)'};">${statusLabel[s.selectionStatus] || s.selectionStatus}</span>`;
+
+      modal.querySelector('#hist-body').innerHTML = `
+        <div style="margin-bottom:16px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;border:1px solid var(--border);">
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">Status atual</div>
+          <div style="font-size:0.9rem;font-weight:600;">${currentStatus}</div>
+        </div>
+        ${events.length ? timelineHtml : '<p style="color:var(--text-muted);font-size:0.875rem;">Nenhum evento registrado.</p>'}
+      `;
+    } catch {
+      modal.querySelector('#hist-body').innerHTML = '<p style="color:var(--red);font-size:0.875rem;">Erro ao carregar histórico.</p>';
+    }
   };
 }
