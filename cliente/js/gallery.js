@@ -946,6 +946,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const previousStatus = state.session ? state.session.selectionStatus : null;
+            const previousExtraStatus = (state.session && state.session.extraRequest) ? state.session.extraRequest.status : null;
             // Preservar clientData do login (verify-code) pois photos não retorna esse campo
             const savedClientData = (state.session && state.session.clientData) || state._clientDataFromLogin || null;
             state.session = result;
@@ -993,8 +994,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!isPolling) {
                 initializeGallery();
             } else {
-                // Se o status mudou, recarrega a galeria
-                if (previousStatus !== state.session.selectionStatus) {
+                // Se o status ou o pedido de extras mudou, recarrega a galeria
+                const currentExtraStatus = (state.session && state.session.extraRequest) ? state.session.extraRequest.status : null;
+                if (previousStatus !== state.session.selectionStatus || previousExtraStatus !== currentExtraStatus) {
                     initializeGallery();
                 }
             }

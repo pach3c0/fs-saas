@@ -646,6 +646,21 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
     session.extraRequest.respondedAt = new Date();
     session.extraRequest.rejectReason = req.body.reason || '';
     await session.save();
+
+    // Enviar e-mail de notificação para o cliente
+    try {
+      const clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
+      if (clientEmail) {
+        const org = await Organization.findById(req.user.organizationId).select('name slug');
+        const { sendExtraPhotosRejectedEmail } = require('../utils/email');
+        if (sendExtraPhotosRejectedEmail) {
+          sendExtraPhotosRejectedEmail(clientEmail, session.name, org?.name || 'O fotógrafo', session.extraRequest.rejectReason, org?.slug).catch(() => { });
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao enviar email de recusa:', e);
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
