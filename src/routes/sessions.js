@@ -644,6 +644,7 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
     }
     session.extraRequest.status = 'rejected';
     session.extraRequest.respondedAt = new Date();
+    session.extraRequest.rejectReason = req.body.reason || '';
     await session.save();
     res.json({ success: true });
   } catch (error) {

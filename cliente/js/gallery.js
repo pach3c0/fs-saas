@@ -442,8 +442,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ⏳ Aguardando aprovação de <strong>${extraRequest.photos.length} foto(s)</strong> extra(s).
             </div>`;
         } else if (extraRequest.status === 'rejected') {
+            const reasonHtml = extraRequest.rejectReason ? `<br><br><strong>Motivo:</strong> ${escapeHtml(extraRequest.rejectReason)}` : '';
             extraStatusBanner = `<div style="background:#fee2e2; border:1px solid #dc2626; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#991b1b; font-size:0.875rem;">
-                ❌ Ocorreu um problema com sua solicitação. Tente novamente ou contate o fotógrafo.
+                ❌ Sua solicitação de fotos extras foi recusada pelo fotógrafo.${reasonHtml}
             </div>`;
         }
 

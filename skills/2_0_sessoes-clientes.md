@@ -1,6 +1,6 @@
 # Grupo 2: Sessões de Clientes e CRM
 
-> Documentação consolidada em 2026-04-24. Atualizada em 2026-04-26 (modularização).
+> Documentação consolidada em 2026-04-24. Atualizada em 2026-04-26 (modularização). Atualizada em 2026-04-27 (re-entrega segura + galeria pós-entrega).
 > Unifica `Sessões (Admin)`, `Galeria do Cliente (Público)` e `Clientes (CRM)`.
 > Referências frontend: `admin/js/tabs/sessoes.js` (proxy) → `admin/js/tabs/sessoes/` (módulos).
 > Referências backend: `src/routes/sessions.js`, `src/routes/clients.js`.
@@ -94,6 +94,8 @@ erDiagram
         ObjectId clientId FK
         Array selectedPhotos
         Date selectionDeadline
+        Boolean redeliveryMode
+        Array deliveryHistory
     }
 
     Client {
@@ -157,7 +159,9 @@ stateDiagram-v2
     pending --> expired: Prazo vencido
     in_progress --> expired: Prazo vencido
     
-    delivered --> [*]: Trabalho Concluído
+    delivered --> redelivering: Admin clicou "Re-entregar" (redeliveryMode=true)
+    redelivering --> delivered: Admin confirmou re-entrega (redeliveryMode=false)
+    note right of redelivering: Cliente mantém download\ndurante re-entrega
 ```
 
 ---
@@ -169,6 +173,8 @@ stateDiagram-v2
 - **`accessCode`**: Gerado via HEX de 4 bytes. Único por sessão (ou por participante no modo multi).
 - **`photoResolution`**: Definido no upload (960 | 1200 | 1400 | 1600). Não pode ser alterado após criação.
 - **Fluxo único** (a partir de 2026-04-25): Todo upload gera thumb e deleta o original. A entrega final usa `urlOriginal`, que só é preenchido depois que o fotógrafo re-sobe a foto editada via `POST /sessions/:id/photos/upload-edited`. Quem só quer "entregar pronto" sobe a editada como se fosse o RAW e o ciclo segue igual.
+- **`redeliveryMode`** (Boolean, default `false`): Ativado via `PUT /sessions/:id/reopen-delivery`. Permite que o fotógrafo suba fotos editadas e re-entregue mesmo com `selectionStatus === 'delivered'`. O cliente **mantém** acesso ao download durante esse período (status não muda). Limpo para `false` ao confirmar a re-entrega.
+- **`deliveryHistory`** (Array): Audit trail de cada ciclo de entrega. Cada entrada contém `{ deliveredAt, selectedCount, extrasDelivered: [String], reopenedAt, reopenReason }`. `extrasDelivered` lista IDs de fotos entregues que não estavam em `selectedPhotos`.
 
 ### 3.2. Client (`src/models/Client.js`)
 - **Multi-tenancy**: Obrigatório `{ organizationId: 1, email: 1 }` como índice único sparse.
@@ -186,8 +192,15 @@ stateDiagram-v2
 ### 4.2. Admin (Auth Context)
 - `POST /api/sessions`: Criação com verificação de limites (`checkLimit`).
 - `POST /api/sessions/:id/photos`: Upload via Multer + Processamento Sharp.
-- `POST /api/sessions/:id/photos/upload-edited`: Re-upload de fotos editadas com regeneração automática de thumbnails.
-- `PUT /api/sessions/:id/deliver`: Dispara e-mail de entrega e remove marca d'água.
+- `POST /api/sessions/:id/photos/upload-edited`: Re-upload de fotos editadas com regeneração automática de thumbnails. Aceita quando `selectionStatus === 'submitted'` **ou** `redeliveryMode === true`.
+- `PUT /api/sessions/:id/deliver`: Valida pré-entrega no backend — bloqueia se qualquer `selectedPhoto` estiver sem `urlOriginal`; identifica extras (fotos com `urlOriginal` mas fora de `selectedPhotos`); registra em `deliveryHistory`; limpa `redeliveryMode`. Dispara e-mail e remove marca d'água.
+- `PUT /api/sessions/:id/reopen-delivery`: Exige `selectionStatus === 'delivered'`. Ativa `redeliveryMode = true` sem alterar o status (cliente mantém download). Registra `reopenedAt` no último item de `deliveryHistory`.
+
+#### Validação pré-entrega (frontend `actions.js`)
+Antes de chamar `PUT /deliver`, o frontend calcula:
+- **`missing`**: fotos em `selectedPhotos` sem `urlOriginal` → bloqueia com toast de erro
+- **`extras`**: fotos com `urlOriginal` fora de `selectedPhotos` → pede `showConfirm` explícito listando os nomes
+- Mensagem de confirmação diferente para primeira entrega vs re-entrega (`isRedelivery`)
 
 ---
 

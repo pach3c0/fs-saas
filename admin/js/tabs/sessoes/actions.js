@@ -118,15 +118,45 @@ export function setupActions(container, state, renderSessoes) {
   };
 
   window.rejectExtraRequest = async (sessionId) => {
-    const ok = await window.showConfirm?.('Recusar a solicitação de fotos extras?');
-    if (!ok) return;
-    try {
-      await apiPut(`/api/sessions/${sessionId}/extra-request/reject`);
-      window.showToast?.('Solicitação recusada.', 'success');
-      await renderSessoes(container);
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
-    }
+    // Criação de Modal Customizado seguindo o Design System e usando inline styles
+    const modalHtml = `
+        <div id="rejectExtraModal" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75);">
+            <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; width:100%; max-width:400px; border:1px solid #374151; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);">
+                <h3 style="color:#f3f4f6; font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
+                <p style="color:#d1d5db; font-size:0.875rem; margin-bottom:0.5rem;">Informe ao cliente o motivo da recusa (obrigatório):</p>
+                <textarea id="rejectReasonInput" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                    <button onclick="document.getElementById('rejectExtraModal').remove()" style="padding:0.5rem 1rem; background:transparent; border:1px solid #4b5563; color:#d1d5db; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
+                    <button id="confirmRejectBtn" style="padding:0.5rem 1rem; background:#ef4444; border:none; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600;">Recusar Pedido</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('confirmRejectBtn').onclick = async () => {
+      const reason = document.getElementById('rejectReasonInput').value.trim();
+
+      if (!reason) {
+        window.showToast?.('Por favor, informe um motivo para o cliente.', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('confirmRejectBtn');
+      btn.textContent = 'Aguarde...';
+      btn.disabled = true;
+
+      try {
+        await apiPut(`/api/sessions/${sessionId}/extra-request/reject`, { reason });
+        document.getElementById('rejectExtraModal').remove();
+        window.showToast?.('Solicitação recusada e cliente notificado.', 'success');
+        await renderSessoes(container);
+      } catch (error) {
+        btn.textContent = 'Recusar Pedido';
+        btn.disabled = false;
+        window.showToast?.('Erro ao recusar: ' + error.message, 'error');
+      }
+    };
   };
 
   window.deleteSession = async (sessionId) => {
