@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).length;
         }
 
-        const downloadAllBtn = (isDelivered || isGalleryMode)
+        const downloadAllBtn = isDelivered
             ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}"
                   ${pendingCount > 0 ? `onclick="alert('Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição. Elas não estarão em alta qualidade neste arquivo ZIP. Aguarde o aviso de liberação final para baixar o pacote completo.');"` : ''}
                   style="background:#16a34a; color:white; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600; text-decoration:none; white-space:nowrap;"
