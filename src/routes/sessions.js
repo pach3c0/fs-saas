@@ -28,10 +28,10 @@ const uploadSession = createUploader('sessions');
 router.post('/client/verify-code', async (req, res) => {
   try {
     const { accessCode } = req.body;
-    let session = await Session.findOne({ 
-      accessCode, 
+    let session = await Session.findOne({
+      accessCode,
       isActive: true,
-      organizationId: req.organizationId 
+      organizationId: req.organizationId
     }).populate('organizationId'); // Popular dados da organização
 
     let participant = null;
@@ -52,15 +52,15 @@ router.post('/client/verify-code', async (req, res) => {
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
     // Notificar admin
-    try { 
-      await Notification.create({ 
-        type: 'session_accessed', 
-        sessionId: session._id, 
-        sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+    try {
+      await Notification.create({
+        type: 'session_accessed',
+        sessionId: session._id,
+        sessionName: participant ? `${participant.name} (${session.name})` : session.name,
         message: `${participant ? participant.name : session.name} acessou a galeria`,
         organizationId: session.organizationId
-      }); 
-    } catch(e){}
+      });
+    } catch (e) { }
 
     // Buscar dados do cliente CRM se vinculado
     let clientData = null;
@@ -68,7 +68,7 @@ router.post('/client/verify-code', async (req, res) => {
       try {
         const client = await Client.findById(session.clientId).select('name email phone').lean();
         if (client) clientData = { name: client.name, email: client.email, phone: client.phone };
-      } catch(e){}
+      } catch (e) { }
     }
 
     res.json({
@@ -99,11 +99,11 @@ router.post('/client/verify-code', async (req, res) => {
         name: session.organizationId.name,
         logo: session.organizationId.logo,
         watermark: session.organizationId.watermarkType ? {
-            watermarkType: session.organizationId.watermarkType,
-            watermarkText: session.organizationId.watermarkText,
-            watermarkOpacity: session.organizationId.watermarkOpacity,
-            watermarkPosition: session.organizationId.watermarkPosition,
-            watermarkSize: session.organizationId.watermarkSize
+          watermarkType: session.organizationId.watermarkType,
+          watermarkText: session.organizationId.watermarkText,
+          watermarkOpacity: session.organizationId.watermarkOpacity,
+          watermarkPosition: session.organizationId.watermarkPosition,
+          watermarkSize: session.organizationId.watermarkSize
         } : null
       } : null
     });
@@ -129,16 +129,16 @@ router.get('/client/manifest/:sessionId', async (req, res) => {
 
     // Ícones padrão (o usuário deve garantir que estes arquivos existam em /cliente/icons/)
     const icons = [
-        {
-            "src": "/cliente/icons/icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "/cliente/icons/icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
+      {
+        "src": "/cliente/icons/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/cliente/icons/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
     ];
 
     const manifest = {
@@ -162,7 +162,7 @@ router.get('/client/manifest/:sessionId', async (req, res) => {
 // CLIENTE: Listar fotos
 router.get('/client/photos/:sessionId', async (req, res) => {
   try {
-    const session = await Session.findOne({ 
+    const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     }).populate('organizationId');
@@ -206,11 +206,11 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         name: session.organizationId.name,
         logo: session.organizationId.logo,
         watermark: session.organizationId.watermarkType ? {
-            watermarkType: session.organizationId.watermarkType,
-            watermarkText: session.organizationId.watermarkText,
-            watermarkOpacity: session.organizationId.watermarkOpacity,
-            watermarkPosition: session.organizationId.watermarkPosition,
-            watermarkSize: session.organizationId.watermarkSize
+          watermarkType: session.organizationId.watermarkType,
+          watermarkText: session.organizationId.watermarkText,
+          watermarkOpacity: session.organizationId.watermarkOpacity,
+          watermarkPosition: session.organizationId.watermarkPosition,
+          watermarkSize: session.organizationId.watermarkSize
         } : null
       } : null
     });
@@ -232,6 +232,13 @@ router.put('/client/select/:sessionId', async (req, res) => {
     // Validar prazo
     if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
       return res.status(403).json({ error: 'O prazo de seleção expirou' });
+    }
+
+    if (session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered') {
+      return res.status(403).json({
+        success: false,
+        error: 'A seleção já foi enviada ou entregue e não pode ser modificada diretamente. Solicite fotos extras pelo menu específico.'
+      });
     }
 
     let currentSelection = [];
@@ -271,15 +278,15 @@ router.put('/client/select/:sessionId', async (req, res) => {
     await session.save();
 
     if (shouldNotify) {
-      try { 
-        await Notification.create({ 
-          type: 'selection_started', 
-          sessionId: session._id, 
-          sessionName: participant ? `${participant.name} (${session.name})` : session.name, 
+      try {
+        await Notification.create({
+          type: 'selection_started',
+          sessionId: session._id,
+          sessionName: participant ? `${participant.name} (${session.name})` : session.name,
           message: `${participant ? participant.name : session.name} iniciou a seleção`,
           organizationId: session.organizationId
-        }); 
-      } catch(e){}
+        });
+      } catch (e) { }
     }
 
     res.json({ success: true, selectedCount: currentSelection.length });
@@ -292,7 +299,7 @@ router.put('/client/select/:sessionId', async (req, res) => {
 router.post('/client/submit-selection/:sessionId', async (req, res) => {
   try {
     const { participantId } = req.body;
-    const session = await Session.findOne({ 
+    const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
@@ -326,7 +333,7 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
         message: `${participant ? participant.name : session.name} finalizou a seleção (${selectedCount} fotos)`,
         organizationId: session.organizationId
       });
-    } catch(e){}
+    } catch (e) { }
 
     // Notificar fotografo por e-mail + upsell para o cliente
     try {
@@ -334,13 +341,13 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       const clientName = participant ? participant.name : session.name;
 
       if (org?.email) {
-        sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => {});
+        sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => { });
       }
 
       // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado E permitido no config
       const clientEmail = participant ? participant.email : session.clientEmail;
       const canUpsell = session.allowExtraPurchasePostSubmit !== false; // por padrão habilitado
-      
+
       if (clientEmail && session.extraPhotoPrice > 0 && canUpsell && !session.extraRequest?.upsellingSent) {
         sendUpsellEmail(
           clientEmail,
@@ -351,18 +358,18 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
           session._id,
           session.accessCode,
           org?.slug || ''
-        ).catch(() => {});
-        
+        ).catch(() => { });
+
         // Marcar como enviado
         await Session.findByIdAndUpdate(session._id, { 'extraRequest.upsellingSent': true });
       }
-    } catch(e){}
+    } catch (e) { }
 
     const totalPhotos = session.photos?.length || 0;
     const extraUpsellAvailable = totalPhotos > selectedCount;
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       extraUpsellAvailable,
       extraPhotoPrice: session.extraPhotoPrice || 25
     });
@@ -375,13 +382,13 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 router.post('/client/request-reopen/:sessionId', async (req, res) => {
   try {
     const { accessCode } = req.body;
-    const session = await Session.findOne({ 
+    const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
     if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
-    
+
     // Validar se reabertura está permitida no config
     if (session.allowReopen === false) {
       return res.status(403).json({ error: 'A reabertura desta sessão não está permitida pelo fotógrafo.' });
@@ -389,15 +396,15 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
 
     if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
 
-    try { 
-      await Notification.create({ 
-        type: 'reopen_requested', 
-        sessionId: session._id, 
-        sessionName: session.name, 
+    try {
+      await Notification.create({
+        type: 'reopen_requested',
+        sessionId: session._id,
+        sessionName: session.name,
         message: `${session.name} pediu reabertura da seleção`,
         organizationId: session.organizationId
-      }); 
-    } catch(e){}
+      });
+    } catch (e) { }
 
     res.json({ success: true });
   } catch (error) {
@@ -409,7 +416,7 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
 router.post('/client/comments/:sessionId', async (req, res) => {
   try {
     const { accessCode, photoId, text } = req.body;
-    const session = await Session.findOne({ 
+    const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
@@ -445,7 +452,7 @@ router.post('/client/comments/:sessionId', async (req, res) => {
         message: `${session.name} comentou em uma foto`,
         organizationId: session.organizationId
       });
-    } catch(e){}
+    } catch (e) { }
 
     res.json({ success: true, comment: newComment });
   } catch (error) {
@@ -485,14 +492,14 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
         message: `${session.name} solicitou ${photos.length} foto(s) extra(s)`,
         organizationId: session.organizationId
       });
-    } catch(e){}
+    } catch (e) { }
 
     try {
       const org = await Organization.findById(session.organizationId).select('email name');
       if (org?.email) {
-        sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => {});
+        sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => { });
       }
-    } catch(e){}
+    } catch (e) { }
 
     res.json({ success: true });
   } catch (error) {
@@ -713,7 +720,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85 })
         .toFile(thumbPath);
-        
+
       generatedThumbs.push(thumbPath);
 
       // Original do upload nao tem valor (sera substituida pela editada via upload-edited).
@@ -748,10 +755,10 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     req.logger?.error('Upload Photos Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
     // Limpar arquivos físicos que o multer salvou para evitar órfãos
     if (req.files) {
-      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => { })));
     }
     if (generatedThumbs && generatedThumbs.length > 0) {
-      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => {})));
+      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => { })));
     }
     res.status(500).json({ error: error.message });
   }
@@ -814,7 +821,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         const oldPath = path.join(__dirname, '../..', photo.urlOriginal);
         await storage.deleteFile(oldPath);
       }
-      
+
       // Deletar thumb antiga para substituir pela nova (com a edição final)
       if (photo.url) {
         const oldThumbPath = path.join(__dirname, '../..', photo.url);
@@ -855,10 +862,10 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
   } catch (error) {
     req.logger?.error('Upload Edited Photos Error', { error: error.message, stack: error.stack, sessionId: req.params.id });
     if (req.files) {
-      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+      await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => { })));
     }
     if (generatedThumbs && generatedThumbs.length > 0) {
-      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => {})));
+      await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => { })));
     }
     res.status(500).json({ error: error.message });
   }
@@ -869,7 +876,7 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
   try {
     const { photoIds } = req.body;
     if (!Array.isArray(photoIds) || photoIds.length === 0) {
-        return res.status(400).json({ error: 'Lista de IDs inválida' });
+      return res.status(400).json({ error: 'Lista de IDs inválida' });
     }
 
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId }).lean();
@@ -880,34 +887,34 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
 
     // Deletar arquivos físicos
     for (const photo of photosToDelete) {
-        try {
-            const deletions = [];
-            if (photo.url && photo.url.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.url));
-            if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlOriginal));
-            if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
-            await Promise.all(deletions);
-        } catch (e) {
-            console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
-        }
+      try {
+        const deletions = [];
+        if (photo.url && photo.url.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.url));
+        if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlOriginal));
+        if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
+        await Promise.all(deletions);
+      } catch (e) {
+        console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
+      }
     }
 
     // Remover do MongoDB de forma atômica (evita problemas de Mongoose não detectar mudanca em array)
     await Session.updateOne(
-        { _id: req.params.id, organizationId: req.user.organizationId },
-        {
-            $pull: {
-                photos: { id: { $in: photoIds } },
-                selectedPhotos: { $in: photoIds }
-            }
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      {
+        $pull: {
+          photos: { id: { $in: photoIds } },
+          selectedPhotos: { $in: photoIds }
         }
+      }
     );
 
     // Decrementar contador de fotos
     if (deletedCount > 0) {
-        await Subscription.findOneAndUpdate(
-            { organizationId: req.user.organizationId },
-            { $inc: { 'usage.photos': -deletedCount } }
-        );
+      await Subscription.findOneAndUpdate(
+        { organizationId: req.user.organizationId },
+        { $inc: { 'usage.photos': -deletedCount } }
+      );
     }
 
     res.json({ success: true, deletedCount });
@@ -971,10 +978,10 @@ router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, asy
 
     // Regra: se ocultar drops photos.length abaixo de packageLimit
     if (!photo.hidden) {
-        const visiblePhotos = session.photos.filter(p => !p.hidden).length;
-        if (session.mode === 'selection' && visiblePhotos <= session.packageLimit) {
-            return res.status(400).json({ error: `Não é possível ocultar mais fotos. O pacote exige no mínimo ${session.packageLimit} fotos visíveis.` });
-        }
+      const visiblePhotos = session.photos.filter(p => !p.hidden).length;
+      if (session.mode === 'selection' && visiblePhotos <= session.packageLimit) {
+        return res.status(400).json({ error: `Não é possível ocultar mais fotos. O pacote exige no mínimo ${session.packageLimit} fotos visíveis.` });
+      }
     }
 
     photo.hidden = !photo.hidden;
@@ -1041,7 +1048,7 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     // Notificar cliente por e-mail
     if (session.clientEmail) {
       const org = await Organization.findById(session.organizationId).select('name slug');
-      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug).catch(() => {});
+      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug).catch(() => { });
     }
 
     res.json({ success: true, extrasCount: extrasDelivered.length });
@@ -1078,11 +1085,11 @@ router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) 
 router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, async (req, res) => {
   try {
     const { text } = req.body;
-    const session = await Session.findOne({ 
-      _id: req.params.sessionId, 
-      organizationId: req.user.organizationId 
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.user.organizationId
     });
-    
+
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     const photo = session.photos.find(p => p.id === req.params.photoId);
@@ -1111,10 +1118,10 @@ router.get('/sessions/:sessionId/export', (req, res) => {
 
   const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
   let user;
-  try { 
-    user = jwt.verify(token, secret); 
-  } catch { 
-    return res.status(403).json({ error: 'Token inválido' }); 
+  try {
+    user = jwt.verify(token, secret);
+  } catch {
+    return res.status(403).json({ error: 'Token inválido' });
   }
 
   Session.findOne({ _id: req.params.sessionId, organizationId: user.organizationId })
@@ -1223,7 +1230,7 @@ router.get('/sessions/:id/participants/export', authenticateToken, async (req, r
       output += `PARTICIPANTE: ${p.name} (Código: ${p.accessCode})\n`;
       output += `STATUS: ${p.selectionStatus}\n`;
       output += `FOTOS SELECIONADAS (${p.selectedPhotos.length}):\n`;
-      
+
       const filenames = session.photos.filter(ph => p.selectedPhotos.includes(ph.id)).map(ph => ph.filename);
       output += filenames.length > 0 ? filenames.join('\n') : '(nenhuma)';
       output += `\n\n`;
