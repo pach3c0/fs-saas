@@ -628,6 +628,35 @@ async function sendOffboardingDeletedEmail(ownerEmail, orgName) {
   return sendEmail(ownerEmail, subject, html);
 }
 
+/**
+ * E-mail para o cliente: fotos extras recusadas
+ */
+async function sendExtraPhotosRejectedEmail(clientEmail, clientName, orgName, reason, orgSlug) {
+  const domain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
+  const loginUrl = `https://${orgSlug ? orgSlug + '.' : ''}${domain}/cliente/`;
+
+  const subject = `Atualização sobre suas fotos extras - ${orgName}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+      <h2 style="color: #dc2626; text-align: center;">Solicitação de Fotos Extras</h2>
+      <p>Olá, <strong>${clientName}</strong>,</p>
+      <p>O fotógrafo <strong>${orgName}</strong> analisou sua solicitação de fotos extras, mas infelizmente ela não pôde ser aprovada neste momento.</p>
+      
+      ${reason ? `
+      <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #991b1b;"><strong>Mensagem do fotógrafo:</strong><br><br>${reason}</p>
+      </div>` : ''}
+      
+      <p>Você pode acessar sua galeria a qualquer momento para verificar os detalhes ou tentar selecionar outras fotos.</p>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${loginUrl}" style="background-color: #1f2937; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Acessar Minha Galeria</a>
+      </div>
+    </div>
+  `;
+  return sendEmail(clientEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -645,5 +674,6 @@ module.exports = {
   sendDeadlineExpiredEmail,
   sendOffboardingWarningEmail,
   sendOffboardingDeletedEmail,
-  sendUpsellEmail
+  sendUpsellEmail,
+  sendExtraPhotosRejectedEmail
 };

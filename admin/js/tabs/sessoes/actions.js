@@ -125,6 +125,13 @@ export function setupActions(container, state, renderSessoes) {
                 <h3 style="color:#f3f4f6; font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
                 <p style="color:#d1d5db; font-size:0.875rem; margin-bottom:0.5rem;">Informe ao cliente o motivo da recusa (obrigatório):</p>
                 <textarea id="rejectReasonInput" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
+                
+                <div style="background:rgba(255,166,87,0.1); border:1px solid rgba(255,166,87,0.2); padding:0.75rem; border-radius:0.375rem; margin-bottom:1rem;">
+                    <p style="color:var(--orange); font-size:0.75rem; margin:0; line-height:1.4;">
+                        💡 <strong>Dica:</strong> Se não deseja mais receber pedidos de extras nesta sessão, vá em <strong>Config (Editar Sessão)</strong> e desmarque a opção <em>"Venda de fotos extras habilitada"</em>.
+                    </p>
+                </div>
+
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
                     <button onclick="document.getElementById('rejectExtraModal').remove()" style="padding:0.5rem 1rem; background:transparent; border:1px solid #4b5563; color:#d1d5db; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
                     <button id="confirmRejectBtn" style="padding:0.5rem 1rem; background:#ef4444; border:none; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600;">Recusar Pedido</button>

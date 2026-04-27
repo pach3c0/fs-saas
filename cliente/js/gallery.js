@@ -445,6 +445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const reasonHtml = extraRequest.rejectReason ? `<br><br><strong>Motivo:</strong> ${escapeHtml(extraRequest.rejectReason)}` : '';
             extraStatusBanner = `<div style="background:#fee2e2; border:1px solid #dc2626; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#991b1b; font-size:0.875rem;">
                 ❌ Sua solicitação de fotos extras foi recusada pelo fotógrafo.${reasonHtml}
+                <br><br>Você pode refazer sua seleção de extras abaixo, se desejar.
             </div>`;
         }
 
