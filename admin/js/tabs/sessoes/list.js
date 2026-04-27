@@ -148,6 +148,31 @@ function renderList(container, items) {
             <button onclick="editSession('${session._id}')" class="btn btn-sm" style="background:var(--orange); border-color:var(--orange); color:white;">
               Config
             </button>
+            ${mode === 'gallery' ? (() => {
+              const hasPhotos = (session.photos?.length || 0) > 0;
+              const canDeliver = hasPhotos && !isDelivered;
+              const canSend = hasPhotos;
+              return `
+              <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
+                style="background:${canSend ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
+                       color:${canSend ? 'var(--text-secondary)' : 'var(--text-muted)'};
+                       padding:0.375rem 0.75rem; border-radius:0.375rem; border:1px solid var(--border);
+                       cursor:${canSend ? 'pointer' : 'not-allowed'}; font-size:0.75rem;"
+                ${canSend ? '' : 'disabled'}
+                title="${canSend ? 'Enviar código por e-mail ao cliente' : 'Faça upload de fotos para habilitar o envio'}">
+                📧 Enviar
+              </button>
+              <button onclick="deliverSession('${session._id}')"
+                style="background:${isDelivered ? 'var(--orange)' : (canDeliver ? 'var(--green)' : 'rgba(255,255,255,0.05)')};
+                       color:${(canDeliver || isDelivered) ? 'white' : 'var(--text-muted)'};
+                       padding:0.375rem 0.75rem; border-radius:0.375rem;
+                       border:${(canDeliver || isDelivered) ? 'none' : '1px solid var(--border)'};
+                       cursor:${(canDeliver || isDelivered) ? 'pointer' : 'not-allowed'}; font-size:0.75rem; font-weight:500;"
+                ${(canDeliver || isDelivered) ? '' : 'disabled'}
+                title="${!hasPhotos ? 'Faça upload de fotos antes de entregar' : (isDelivered ? 'Galeria já entregue — clique para re-entregar' : 'Entregar galeria e liberar download')}">
+                ${isDelivered ? 'Re-entregar' : 'Entregar'}
+              </button>`;
+            })() : `
             <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
               style="background:${(session.photos?.length || 0) >= limit ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
                      color:${(session.photos?.length || 0) >= limit ? 'var(--text-secondary)' : 'var(--text-muted)'};
@@ -176,7 +201,7 @@ function renderList(container, items) {
               ${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? '' : 'disabled'}
               title="${!(isSubmitted || isDelivered) ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : (isDelivered ? 'Notificar re-entrega de fotos extras' : 'Entregar sessão')))}">
               ${isDelivered ? 'Re-entregar' : 'Entregar'}
-            </button>
+            </button>`}
             <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);" title="Ver linha do tempo e atividades da sessão">
               Historico
             </button>
