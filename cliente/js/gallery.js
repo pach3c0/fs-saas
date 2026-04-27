@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function showLoading(button, text = 'Carregando...') {
-        if(button) {
+        if (button) {
             button.dataset.originalText = button.textContent;
             button.textContent = text;
             button.disabled = true;
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function hideLoading(button) {
-        if(button && button.dataset.originalText) {
+        if (button && button.dataset.originalText) {
             button.textContent = button.dataset.originalText;
             button.disabled = false;
         }
@@ -351,18 +351,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const barCount = document.getElementById('barCount');
         const barLimit = document.getElementById('barLimit');
         const barExtra = document.getElementById('barExtra');
-        if(barCount) barCount.textContent = count;
-        if(barLimit) barLimit.textContent = limit;
+        if (barCount) barCount.textContent = count;
+        if (barLimit) barLimit.textContent = limit;
 
         if (count > limit) {
             const extraCount = count - limit;
             const extraCost = extraCount * extraPrice;
-            const extraText = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2).replace('.',',')})`;
+            const extraText = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2).replace('.', ',')})`;
             if (extraInfo) {
                 extraInfo.textContent = extraText;
                 extraInfo.style.display = 'block';
             }
-             if (barExtra) {
+            if (barExtra) {
                 barExtra.textContent = extraText;
                 barExtra.style.display = 'block';
             }
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>`;
         } else if (extraRequest.status === 'pending') {
             extraStatusBanner = `<div style="background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#92400e; font-size:0.875rem;">
-                ⏳ Aguardando confirmação do pagamento de <strong>${extraRequest.photos.length} foto(s)</strong>.
+                ⏳ Aguardando aprovação de <strong>${extraRequest.photos.length} foto(s)</strong> extra(s).
             </div>`;
         } else if (extraRequest.status === 'rejected') {
             extraStatusBanner = `<div style="background:#fee2e2; border:1px solid #dc2626; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#991b1b; font-size:0.875rem;">
@@ -455,11 +455,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             extrasGridHtml = `
                 <div style="margin-top:1.5rem; text-align:left;">
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">Quer mais fotos?</p>
-                    <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.',',')}</strong>.</p>
+                    <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.</p>
                     <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;"></div>
                     <div id="extraRequestBar" style="display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
                         <span id="extraRequestCount" style="font-size:0.875rem;"></span>
-                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Pagar Extras</button>
+                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
                     </div>
                 </div>
             `;
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const countEl = document.getElementById('extraRequestCount');
                     if (bar && countEl) {
                         if (extraSelectedPhotos.length > 0) {
-                            const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.',',');
+                            const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
                             countEl.textContent = `${extraSelectedPhotos.length} foto(s) — R$ ${total}`;
                             bar.style.display = 'flex';
                         } else {
@@ -550,26 +550,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function requestExtraPhotos() {
         if (!extraSelectedPhotos.length) return;
         const btn = document.getElementById('sendExtraRequestBtn');
-        if (btn) { btn.disabled = true; btn.textContent = 'Gerando link...'; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando solicitação...'; }
         try {
-            const res = await fetch(`/api/client/payments/extra-photos`, {
+            const res = await fetch(`/api/client/request-extra-photos/${state.sessionId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    sessionId: state.sessionId,
-                    accessCode: state.accessCode, 
-                    photos: extraSelectedPhotos 
+                body: JSON.stringify({
+                    accessCode: state.accessCode,
+                    photos: extraSelectedPhotos
                 })
             });
             const result = await res.json();
             if (!result.success) throw new Error(result.error);
-            
-            // Redirecionar para o Mercado Pago
-            window.location.href = result.paymentUrl;
-            
+
+            alert('Solicitação de fotos extras enviada com sucesso!');
+            await loadSessionData();
+
         } catch (err) {
-            alert('Erro ao processar pagamento: ' + err.message);
-            if (btn) { btn.disabled = false; btn.textContent = 'Pagar Extras'; }
+            alert('Erro ao enviar solicitação: ' + err.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Solicitar Extras'; }
         }
     }
 
@@ -595,9 +594,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         commentModal = document.getElementById('commentModal');
-        
+
         document.getElementById('closeCommentBtn').addEventListener('click', closeCommentModal);
         document.getElementById('saveCommentBtn').addEventListener('click', submitComment);
     }
@@ -608,7 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const photo = state.photos.find(p => p.id === photoId);
         const commentsList = document.getElementById('commentsList');
         const textarea = document.getElementById('newCommentText');
-        
+
         textarea.value = '';
         commentsList.innerHTML = '';
 
@@ -645,22 +644,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const url = `/api/client/comments/${state.sessionId}`;
             const headers = { 'Content-Type': 'application/json' };
-            const body = JSON.stringify({ 
-                accessCode: state.accessCode, 
+            const body = JSON.stringify({
+                accessCode: state.accessCode,
                 photoId: currentCommentPhotoId,
-                text: text 
+                text: text
             });
 
             if (!navigator.onLine) {
                 await queueSyncRequest(url, 'POST', headers, body);
-                
+
                 // Atualiza localmente otimista
                 const photo = state.photos.find(p => p.id === currentCommentPhotoId);
                 if (photo) {
                     if (!photo.comments) photo.comments = [];
                     photo.comments.push({ author: 'client', text, createdAt: new Date() });
                 }
-                
+
                 openCommentModal(currentCommentPhotoId);
                 renderPhotos();
                 hideLoading(btn);
@@ -681,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!photo.comments) photo.comments = [];
                 photo.comments.push(result.comment);
             }
-            
+
             // Re-renderiza modal e grid (para mostrar indicador)
             openCommentModal(currentCommentPhotoId);
             renderPhotos();
@@ -707,11 +706,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 isParticipant: state.isParticipant,
                 participantId: state.participantId,
             }));
-        } catch (e) {}
+        } catch (e) { }
     }
 
     function clearSessionFromStorage() {
-        try { localStorage.removeItem(LS_KEY); } catch (e) {}
+        try { localStorage.removeItem(LS_KEY); } catch (e) { }
     }
 
     async function tryAutoLogin() {
@@ -821,7 +820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>`;
         } else if (extraRequest.status === 'pending') {
             extraStatusBanner = `<div style="grid-column:1/-1; background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:0.75rem 0; color:#92400e; font-size:0.875rem;">
-                ⏳ Aguardando confirmação do pagamento de <strong>${extraRequest.photos.length} foto(s)</strong> extras.
+                ⏳ Aguardando aprovação de <strong>${extraRequest.photos.length} foto(s)</strong> extra(s).
             </div>`;
         }
 
@@ -838,12 +837,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             extrasSection = `
                 <div style="grid-column:1/-1; margin-top:2rem; padding-top:1.25rem; border-top:1px solid #e5e7eb;">
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">Quer mais fotos?</p>
-                    <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.',',')}</strong>.</p>
+                    <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.</p>
                 </div>
                 ${extrasGrid}
                 <div id="extrasRequestBar" style="grid-column:1/-1; display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:1rem; margin-top:0.5rem;">
                     <span id="extrasRequestCount" style="font-size:0.875rem;"></span>
-                    <button id="extrasPayBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Pagar Extras</button>
+                    <button id="extrasPayBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
                 </div>
             `;
         }
@@ -908,19 +907,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                             body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos })
                         });
                         const data = await resp.json();
-                        if (data.paymentUrl) {
-                            window.location.href = data.paymentUrl;
-                        } else if (data.success) {
+                        if (data.success) {
+                            alert('Solicitação de fotos extras enviada com sucesso!');
                             await loadSessionData();
                         } else {
                             alert(data.error || 'Erro ao processar solicitação.');
                             payBtn.disabled = false;
-                            payBtn.textContent = 'Pagar Extras';
+                            payBtn.textContent = 'Solicitar Extras';
                         }
-                    } catch(e) {
+                    } catch (e) {
                         alert('Erro de conexão. Tente novamente.');
                         payBtn.disabled = false;
-                        payBtn.textContent = 'Pagar Extras';
+                        payBtn.textContent = 'Solicitar Extras';
                     }
                 });
             }
@@ -955,12 +953,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.selectedPhotos = result.selectedPhotos || [];
             state.isSelectionMode = result.mode === 'selection' && result.selectionStatus !== 'delivered';
 
-        // Atualiza texto do botão selecionar tudo
-        const selectAllBtn = document.getElementById('selectAllBtn');
-        if (selectAllBtn) {
-            const allSelected = state.photos.length > 0 && state.photos.every(p => state.selectedPhotos.includes(p.id));
-            selectAllBtn.textContent = allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo';
-        }
+            // Atualiza texto do botão selecionar tudo
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            if (selectAllBtn) {
+                const allSelected = state.photos.length > 0 && state.photos.every(p => state.selectedPhotos.includes(p.id));
+                selectAllBtn.textContent = allSelected ? 'Desmarcar Tudo' : 'Selecionar Tudo';
+            }
 
             // Detectar novas respostas do fotógrafo nos comentários
             if (isPolling) {
@@ -1142,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!state.isSelectionMode || !state.photos.length) return;
 
         const allSelected = state.photos.every(p => state.selectedPhotos.includes(p.id));
-        
+
         if (allSelected) {
             // Desmarcar tudo
             state.selectedPhotos = [];
@@ -1152,14 +1150,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         renderPhotos();
-        
+
         // Atualiza no servidor
         try {
             const url = `/api/client/selection/${state.sessionId}`;
             const headers = { 'Content-Type': 'application/json' };
-            const body = JSON.stringify({ 
-                accessCode: state.accessCode, 
-                selectedPhotos: state.selectedPhotos 
+            const body = JSON.stringify({
+                accessCode: state.accessCode,
+                selectedPhotos: state.selectedPhotos
             });
 
             if (!navigator.onLine) {
@@ -1213,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
+
         const modal = document.getElementById('reopenModal');
         document.getElementById('cancelReopenBtn').addEventListener('click', () => modal.style.display = 'none');
         document.getElementById('confirmReopenBtn').addEventListener('click', () => {
@@ -1230,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function requestReopen() {
         const btn = document.getElementById('reopenRequestBtn');
         if (btn) showLoading(btn, 'Enviando pedido...');
-        
+
         try {
             const response = await fetch(`/api/client/request-reopen/${state.sessionId}`, {
                 method: 'POST',
@@ -1340,16 +1338,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     }
 
-    window.closeLightbox = function() {
+    window.closeLightbox = function () {
         lightbox.classList.remove('active');
     };
 
-    window.lightboxNav = function(dir) {
+    window.lightboxNav = function (dir) {
         lightboxIndex = (lightboxIndex + dir + state.photos.length) % state.photos.length;
         renderLightbox();
     };
 
-    window.toggleLightboxHeart = function() {
+    window.toggleLightboxHeart = function () {
         const photo = state.photos[lightboxIndex];
         if (!photo) return;
         togglePhotoSelection(photo.id);
