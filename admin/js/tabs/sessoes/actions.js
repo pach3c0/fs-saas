@@ -248,11 +248,29 @@ export function setupActions(container, state, renderSessoes) {
 
       const events = [];
 
-      events.push({ icon:'📁', label:'Sessão criada', date: s.createdAt, detail: `Modo: ${s.mode} · Resolução: ${s.photoResolution || '—'}px` });
+      const modeLabel = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-seleção' };
+      events.push({ icon:'📁', label:'Sessão criada', date: s.createdAt, detail: `Modo: ${modeLabel[s.mode] || s.mode} · Resolução: ${s.photoResolution || '—'}px` });
 
-      if (s.selectionStatus !== 'pending') {
-        const submittedEntry = s.deliveryHistory?.[0];
-        events.push({ icon:'✅', label:'Seleção enviada pelo cliente', date: submittedEntry?.deliveredAt ? null : null, detail: `${s.selectedPhotos?.length ?? 0} foto(s) selecionada(s)` });
+      const photoCount = s.photos?.length ?? 0;
+      if (photoCount > 0) {
+        const firstUpload = s.photos.map(p => p.uploadedAt).filter(Boolean).sort()[0];
+        events.push({ icon:'🖼️', label:'Fotos carregadas', date: firstUpload || null, detail: `${photoCount} foto(s) disponível(is) para seleção` });
+      }
+
+      if (['in_progress', 'submitted', 'delivered'].includes(s.selectionStatus)) {
+        events.push({ icon:'👁️', label:'Cliente acessou a galeria', date: null, detail: 'Seleção iniciada' });
+      }
+
+      if (s.selectionSubmittedAt || ['submitted', 'delivered'].includes(s.selectionStatus)) {
+        events.push({ icon:'✅', label:'Seleção enviada pelo cliente', date: s.selectionSubmittedAt || null, detail: `${s.selectedPhotos?.length ?? 0} foto(s) selecionada(s) · Limite: ${s.packageLimit ?? '—'}` });
+      }
+
+      if (s.extraRequest?.status && s.extraRequest.status !== 'none') {
+        const extraStatusLabel = { pending: 'Aguardando aprovação', accepted: 'Aprovado', rejected: 'Recusado' };
+        events.push({ icon:'➕', label:'Fotos extras solicitadas', date: s.extraRequest.requestedAt || null, detail: `${s.extraRequest.photos?.length ?? 0} foto(s) extra(s) · ${extraStatusLabel[s.extraRequest.status] || s.extraRequest.status}` });
+        if (s.extraRequest.respondedAt) {
+          events.push({ icon: s.extraRequest.status === 'accepted' ? '✔️' : '✖️', label: `Extras ${s.extraRequest.status === 'accepted' ? 'aprovadas' : 'recusadas'}`, date: s.extraRequest.respondedAt, detail: '' });
+        }
       }
 
       (s.deliveryHistory || []).forEach((entry, i) => {
@@ -265,7 +283,7 @@ export function setupActions(container, state, renderSessoes) {
         if (entry.reopenedAt) {
           events.push({
             icon: '🔄',
-            label: `Re-entrega solicitada`,
+            label: 'Re-entrega solicitada',
             date: entry.reopenedAt,
             detail: entry.reopenReason ? `Motivo: ${entry.reopenReason}` : 'Sem motivo informado'
           });
