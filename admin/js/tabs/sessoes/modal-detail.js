@@ -27,6 +27,17 @@ export function setupModalDetail(container, state) {
     secondaryBtn.title = 'Upload das fotos editadas — substitui por nome de arquivo';
     secondaryBtn.style.display = 'none';
 
+    // Banner de modo re-entrega
+    const existingBanner = modal.querySelector('#redeliveryBanner');
+    if (existingBanner) existingBanner.remove();
+    if (session.redeliveryMode) {
+      const banner = document.createElement('div');
+      banner.id = 'redeliveryBanner';
+      banner.style.cssText = 'background:rgba(255,166,87,0.12); border:1px solid rgba(255,166,87,0.4); color:var(--orange); padding:0.625rem 1rem; border-radius:0.5rem; font-size:0.8125rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;';
+      banner.innerHTML = `<span style="font-size:1rem;">⚠️</span> <span><strong>Modo re-entrega ativo</strong> — suba as fotos editadas faltantes e clique em "Confirmar entrega" na lista da sessão.</span>`;
+      modal.querySelector('#photosModalTitle').insertAdjacentElement('afterend', banner);
+    }
+
     const photos = session.photos || [];
     const selectedIds = session.selectedPhotos || [];
 

@@ -999,18 +999,74 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
 
 router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
   try {
-    const session = await Session.findOneAndUpdate(
-      { _id: req.params.id, organizationId: req.user.organizationId },
-      { selectionStatus: 'delivered', watermark: false, deliveredAt: new Date() },
-      { new: true }
-    );
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Validação: todas as fotos selecionadas devem ter urlOriginal
+    const selectedSet = new Set(session.selectedPhotos || []);
+    const missing = [];
+    const extrasDelivered = [];
+
+    for (const photo of session.photos) {
+      if (selectedSet.has(photo.id) && !photo.urlOriginal) {
+        missing.push(photo.filename || photo.id);
+      }
+      if (photo.urlOriginal && !selectedSet.has(photo.id)) {
+        extrasDelivered.push(photo.id);
+      }
+    }
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `${missing.length} foto(s) selecionada(s) sem versão editada. Suba as editadas antes de entregar.`,
+        missing
+      });
+    }
+
+    // Registrar ciclo no histórico de entregas
+    session.deliveryHistory.push({
+      deliveredAt: new Date(),
+      selectedCount: session.selectedPhotos.length,
+      extrasDelivered
+    });
+
+    session.selectionStatus = 'delivered';
+    session.watermark = false;
+    session.deliveredAt = new Date();
+    session.redeliveryMode = false;
+
+    await session.save();
 
     // Notificar cliente por e-mail
     if (session.clientEmail) {
       const org = await Organization.findById(session.organizationId).select('name slug');
       sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug).catch(() => {});
     }
+
+    res.json({ success: true, extrasCount: extrasDelivered.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId,
+      selectionStatus: 'delivered'
+    });
+    if (!session) return res.status(400).json({ error: 'Sessão não está no estado entregue' });
+
+    // Registrar reabertura no último ciclo do histórico
+    const lastEntry = session.deliveryHistory[session.deliveryHistory.length - 1];
+    if (lastEntry && !lastEntry.reopenedAt) {
+      lastEntry.reopenedAt = new Date();
+      lastEntry.reopenReason = req.body.reason || '';
+    }
+
+    session.redeliveryMode = true;
+    await session.save();
 
     res.json({ success: true });
   } catch (error) {

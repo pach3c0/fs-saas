@@ -6,6 +6,7 @@ const STATUS_LABELS = {
   in_progress: { text: 'Em seleção', class: 'badge-warning' },
   submitted: { text: 'Seleção enviada', class: 'badge-success' },
   delivered: { text: 'Entregue', class: 'badge-blue' },
+  redelivering: { text: 'Re-entregando', class: 'badge-warning' },
   expired: { text: 'Expirado', class: 'badge-danger' }
 };
 
@@ -74,7 +75,8 @@ function renderList(container, items) {
     const now = new Date();
     const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
     const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
-    const statusKey = isExpired ? 'expired' : session.selectionStatus;
+    const isRedelivering = session.selectionStatus === 'delivered' && session.redeliveryMode === true;
+    const statusKey = isExpired ? 'expired' : (isRedelivering ? 'redelivering' : session.selectionStatus);
     const status = STATUS_LABELS[statusKey] || STATUS_LABELS.pending;
 
     const mode = session.mode || 'gallery';
@@ -85,6 +87,7 @@ function renderList(container, items) {
     const extraPrice = session.extraPhotoPrice || 25;
     const deliveredPhotosCount = (session.photos || []).filter(p => p.urlOriginal).length;
     const isSubmitted = session.selectionStatus === 'submitted';
+    const isDelivered = session.selectionStatus === 'delivered';
 
     let cardBg = 'var(--bg-surface)';
     let cardBorder = 'var(--border)';
@@ -145,25 +148,31 @@ function renderList(container, items) {
               title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
               📧 Enviar
             </button>
-            <button onclick="${!isMulti && isSubmitted ? `reopenSelection('${session._id}')` : ''}" 
-              class="btn btn-sm" 
-              style="background:${!isMulti && isSubmitted ? 'var(--yellow)' : 'rgba(255,255,255,0.05)'}; 
-                     border-color:${!isMulti && isSubmitted ? 'var(--yellow)' : 'var(--border)'}; 
+            <button onclick="${!isMulti && isSubmitted ? `reopenSelection('${session._id}')` : ''}"
+              class="btn btn-sm"
+              style="background:${!isMulti && isSubmitted ? 'var(--yellow)' : 'rgba(255,255,255,0.05)'};
+                     border-color:${!isMulti && isSubmitted ? 'var(--yellow)' : 'var(--border)'};
                      color:${!isMulti && isSubmitted ? 'white' : 'var(--text-muted)'};
                      cursor:${!isMulti && isSubmitted ? 'pointer' : 'not-allowed'};"
               ${!isMulti && isSubmitted ? '' : 'disabled'}
-              title="${isMulti ? 'Não disponível em multi-seleção' : (!isSubmitted ? 'Aguardando cliente enviar seleção' : 'Reabrir seleção')}">
+              title="${isMulti ? 'Não disponível em multi-seleção' : (!isSubmitted ? 'Aguardando cliente enviar seleção' : 'Reabrir seleção do cliente')}">
               Reabrir
             </button>
+            ${!isMulti && isDelivered && !isRedelivering ? `
+            <button onclick="reopenForRedelivery('${session._id}')"
+              style="background:var(--orange); border:none; color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:500;"
+              title="Reabrir sessão para subir fotos faltantes e re-entregar">
+              Re-entregar
+            </button>` : ''}
             <button onclick="deliverSession('${session._id}')"
-              style="background:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'var(--green)' : 'rgba(255,255,255,0.05)'};
-                     color:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)'};
+              style="background:${(isSubmitted || isRedelivering) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'var(--green)' : 'rgba(255,255,255,0.05)'};
+                     color:${(isSubmitted || isRedelivering) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)'};
                      padding:0.375rem 0.75rem; border-radius:0.375rem;
-                     border:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'none' : '1px solid var(--border)'};
-                     cursor:${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'pointer' : 'not-allowed'}; font-size:0.75rem; font-weight:500;"
-              ${isSubmitted && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? '' : 'disabled'}
-              title="${!isSubmitted ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : 'Entregar sessão'))}">
-              Entregar
+                     border:${(isSubmitted || isRedelivering) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'none' : '1px solid var(--border)'};
+                     cursor:${(isSubmitted || isRedelivering) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'pointer' : 'not-allowed'}; font-size:0.75rem; font-weight:500;"
+              ${(isSubmitted || isRedelivering) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? '' : 'disabled'}
+              title="${!(isSubmitted || isRedelivering) ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : (isRedelivering ? 'Confirmar re-entrega' : 'Entregar sessão')))}">
+              ${isRedelivering ? 'Confirmar entrega' : 'Entregar'}
             </button>
             <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);" title="Ver linha do tempo e atividades da sessão">
               Historico

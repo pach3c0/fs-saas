@@ -49,11 +49,55 @@ export function setupActions(container, state, renderSessoes) {
   };
 
   window.deliverSession = async (sessionId) => {
-    const ok = await window.showConfirm?.('Marcar esta sessão como entregue? O watermark será removido e o cliente poderá baixar as fotos.');
-    if (!ok) return;
+    const session = state.sessionsData.find(s => s._id === sessionId);
+    if (!session) return;
+
+    const selectedIds = new Set(session.selectedPhotos || []);
+    const missing = (session.photos || []).filter(p => selectedIds.has(p.id) && !p.urlOriginal);
+    const extras = (session.photos || []).filter(p => p.urlOriginal && !selectedIds.has(p.id));
+
+    // Bloquear se há fotos selecionadas sem editada
+    if (missing.length > 0) {
+      window.showToast?.(
+        `${missing.length} foto(s) selecionada(s) ainda sem versão editada. Faça o upload antes de entregar.`,
+        'error', 6000
+      );
+      return;
+    }
+
+    // Se há extras, pedir confirmação explícita
+    if (extras.length > 0) {
+      const nomes = extras.map(p => p.filename || p.id).join(', ');
+      const ok = await window.showConfirm?.(
+        `${extras.length} foto(s) têm versão editada mas NÃO foram selecionadas pelo cliente: ${nomes}.\n\nDeseja entregar mesmo assim? Fotos extras podem gerar cobrança adicional.`
+      );
+      if (!ok) return;
+    } else {
+      const isRedelivery = session.redeliveryMode === true;
+      const msg = isRedelivery
+        ? `Confirmar re-entrega? O cliente receberá e-mail e poderá baixar as fotos atualizadas.`
+        : `Marcar esta sessão como entregue? O watermark será removido e o cliente poderá baixar as fotos.`;
+      const ok = await window.showConfirm?.(msg);
+      if (!ok) return;
+    }
+
     try {
       await apiPut(`/api/sessions/${sessionId}/deliver`);
       await renderSessoes(container);
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
+  window.reopenForRedelivery = async (sessionId) => {
+    const ok = await window.showConfirm?.(
+      'Reabrir para re-entrega? A sessão entrará em modo de re-entrega. O cliente continua podendo baixar as fotos já entregues enquanto você sobe as faltantes.'
+    );
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${sessionId}/reopen-delivery`, {});
+      await renderSessoes(container);
+      window.showToast?.('Modo re-entrega ativado. Acesse as fotos da sessão para subir as editadas.', 'success', 5000);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }

@@ -46,6 +46,16 @@ const sessionSchema = new mongoose.Schema({
     canShare: { type: Boolean, default: false },
     allowExtraPurchasePostSubmit: { type: Boolean, default: true },
     allowReopen: { type: Boolean, default: true },
+    // Re-entrega: ativado pelo admin para subir fotos faltantes sem fechar o download do cliente
+    redeliveryMode: { type: Boolean, default: false },
+    // Histórico de ciclos de entrega (audit trail)
+    deliveryHistory: [{
+        deliveredAt: Date,
+        selectedCount: Number,
+        extrasDelivered: [String], // IDs de fotos entregues que não foram selecionadas
+        reopenedAt: Date,
+        reopenReason: String
+    }],
     // Solicitacao de fotos extras (apos submit da selecao)
     extraRequest: {
         status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
