@@ -73,9 +73,9 @@ export function setupActions(container, state, renderSessoes) {
       );
       if (!ok) return;
     } else {
-      const isRedelivery = session.redeliveryMode === true;
+      const isRedelivery = session.redeliveryMode === true || session.selectionStatus === 'delivered';
       const msg = isRedelivery
-        ? `Confirmar re-entrega? O cliente receberá e-mail e poderá baixar as fotos atualizadas.`
+        ? `Confirmar re-entrega? O cliente receberá e-mail avisando que as novas fotos estão disponíveis.`
         : `Marcar esta sessão como entregue? O watermark será removido e o cliente poderá baixar as fotos.`;
       const ok = await window.showConfirm?.(msg);
       if (!ok) return;
@@ -84,20 +84,6 @@ export function setupActions(container, state, renderSessoes) {
     try {
       await apiPut(`/api/sessions/${sessionId}/deliver`);
       await renderSessoes(container);
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
-    }
-  };
-
-  window.reopenForRedelivery = async (sessionId) => {
-    const ok = await window.showConfirm?.(
-      'Reabrir para re-entrega? A sessão entrará em modo de re-entrega. O cliente continua podendo baixar as fotos já entregues enquanto você sobe as faltantes.'
-    );
-    if (!ok) return;
-    try {
-      await apiPut(`/api/sessions/${sessionId}/reopen-delivery`, {});
-      await renderSessoes(container);
-      window.showToast?.('Modo re-entrega ativado. Acesse as fotos da sessão para subir as editadas.', 'success', 5000);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }
