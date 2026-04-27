@@ -243,8 +243,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const isDelivered = state.session.selectionStatus === 'delivered';
         const isGalleryMode = state.session.mode === 'gallery';
+
+        let pendingCount = 0;
+        if (isDelivered && !isGalleryMode && state.photos && state.selectedPhotos) {
+            pendingCount = state.selectedPhotos.filter(id => {
+                const p = state.photos.find(ph => ph.id === id);
+                return p && !p.urlOriginal;
+            }).length;
+        }
+
         const downloadAllBtn = (isDelivered || isGalleryMode)
             ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}"
+                  ${pendingCount > 0 ? `onclick="alert('Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição. Elas não estarão em alta qualidade neste arquivo ZIP. Aguarde o aviso de liberação final para baixar o pacote completo.');"` : ''}
                   style="background:#16a34a; color:white; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600; text-decoration:none; white-space:nowrap;"
                   download>
                   ⬇ Baixar Todas
@@ -839,24 +849,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         const extraPrice = state.session.extraPhotoPrice || 25;
         const hasExtras = unselectedPhotos.length > 0;
 
-        const buildPhotoItem = (photo) => `
-            <div class="photo-item" data-photo-id="${photo.id}">
-                <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
-                <a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}"
+        const pendingCount = selectedPhotos.filter(p => !isGalleryMode && !p.urlOriginal).length;
+        const readyCount = selectedPhotos.length - pendingCount;
+
+        const buildPhotoItem = (photo) => {
+            const isReady = isGalleryMode || !!photo.urlOriginal;
+            const itemWm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, !isReady);
+
+            const overlay = isReady
+                ? `<a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}"
                    class="photo-download-overlay"
                    style="position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.5rem; opacity:0; transition:opacity 0.2s; text-decoration:none;"
                    download title="Baixar esta foto">
                     <span style="background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.25rem 0.625rem; border-radius:0.25rem;">⬇ Baixar</span>
-                </a>
-            </div>
-        `;
+                </a>`
+                : `<div class="photo-download-overlay" style="position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.5rem; opacity:0; transition:opacity 0.2s;">
+                    <span style="background:rgba(217, 119, 6, 0.9); color:white; font-size:0.625rem; padding:0.25rem 0.625rem; border-radius:0.25rem;">⏳ Em edição</span>
+                </div>`;
 
-        const infoBanner = `
-            <div style="grid-column:1/-1; background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin-bottom:0.75rem; font-size:0.875rem; color:#166534; text-align:center;">
-                ✅ <strong>${selectedPhotos.length} foto(s)</strong> prontas para download${deliveredDateStr ? ` · disponíveis desde <strong>${deliveredDateStr}</strong>` : ''}.
-                Use o botão <strong>⬇ Baixar Todas</strong> no topo ou passe o mouse sobre cada foto para baixar individualmente.
+            return `
+            <div class="photo-item" data-photo-id="${photo.id}">
+                <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy" style="${!isReady ? 'opacity: 0.8;' : ''}">
+                <div style="${itemWm.style}">${itemWm.innerHTML}</div>
+                ${overlay}
             </div>
-        `;
+            `;
+        };
+
+        const infoBanner = pendingCount > 0
+            ? `<div style="grid-column:1/-1; background:#fffbeb; border:1px solid #f59e0b; border-radius:0.5rem; padding:0.75rem 1rem; margin-bottom:0.75rem; font-size:0.875rem; color:#b45309; text-align:center;">
+                ⏳ <strong>${pendingCount} foto(s) extra(s)</strong> foram aceitas e estão na fila de edição. <br>Elas serão liberadas para download individual em alta resolução assim que o tratamento for finalizado.
+            </div>`
+            : `<div style="grid-column:1/-1; background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin-bottom:0.75rem; font-size:0.875rem; color:#166534; text-align:center;">
+                ✅ <strong>${readyCount} foto(s)</strong> prontas para download${deliveredDateStr ? ` · disponíveis desde <strong>${deliveredDateStr}</strong>` : ''}.
+                Use o botão <strong>⬇ Baixar Todas</strong> no topo ou passe o mouse sobre cada foto para baixar individualmente.
+            </div>`;
 
         let extraStatusBanner = '';
         if (extraRequest.paid) {
