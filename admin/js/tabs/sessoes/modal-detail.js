@@ -210,13 +210,15 @@ export function setupModalDetail(container, state) {
       btnEntrega.style.color = 'var(--text-primary)';
       mainBtn.style.display = 'none';
 
+      const isGallery = session.mode === 'gallery';
       const selectedCount = (session.selectedPhotos || []).length;
       const limit = session.packageLimit || 30;
       const isSubmitted = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
       const meetsLimit = selectedCount >= limit;
+      const uploadEnabled = isGallery ? session.selectionStatus !== 'delivered' : (isSubmitted && meetsLimit);
 
       secondaryBtn.style.display = 'flex';
-      if (isSubmitted && meetsLimit) {
+      if (uploadEnabled) {
         secondaryBtn.style.opacity = '1';
         secondaryBtn.style.pointerEvents = 'auto';
         secondaryBtn.style.cursor = 'pointer';
@@ -225,11 +227,11 @@ export function setupModalDetail(container, state) {
         secondaryBtn.style.opacity = '0.5';
         secondaryBtn.style.pointerEvents = 'none';
         secondaryBtn.style.cursor = 'not-allowed';
-        secondaryBtn.title = 'Aguardando cliente finalizar seleção';
+        secondaryBtn.title = isGallery ? 'Galeria já entregue' : 'Aguardando cliente finalizar seleção';
 
         const selectedGrid = container.querySelector('#selectedPhotosGrid');
         const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
-        if (deliveredCount === 0) {
+        if (deliveredCount === 0 && !isGallery) {
           selectedGrid.innerHTML = `
             <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
               <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>

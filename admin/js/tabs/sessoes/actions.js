@@ -52,6 +52,28 @@ export function setupActions(container, state, renderSessoes) {
     const session = state.sessionsData.find(s => s._id === sessionId);
     if (!session) return;
 
+    // Modo galeria: entrega direta de todas as fotos, sem ciclo de seleção
+    if (session.mode === 'gallery') {
+      const totalPhotos = (session.photos || []).length;
+      if (totalPhotos === 0) {
+        window.showToast?.('Adicione fotos antes de entregar a galeria.', 'warning');
+        return;
+      }
+      const isRedelivery = session.redeliveryMode === true || session.selectionStatus === 'delivered';
+      const msg = isRedelivery
+        ? `Confirmar re-entrega? O cliente receberá e-mail avisando que as novas fotos estão disponíveis.`
+        : `Entregar galeria com ${totalPhotos} foto(s)? O watermark será removido e o cliente poderá baixar tudo.`;
+      const ok = await window.showConfirm?.(msg);
+      if (!ok) return;
+      try {
+        await apiPut(`/api/sessions/${sessionId}/deliver`);
+        await renderSessoes(container);
+      } catch (error) {
+        window.showToast?.('Erro: ' + error.message, 'error');
+      }
+      return;
+    }
+
     const selectedIds = new Set(session.selectedPhotos || []);
     const missing = (session.photos || []).filter(p => selectedIds.has(p.id) && !p.urlOriginal);
     const extras = (session.photos || []).filter(p => p.urlOriginal && !selectedIds.has(p.id));

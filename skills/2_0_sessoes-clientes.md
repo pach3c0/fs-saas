@@ -291,6 +291,14 @@ Se o cliente desejar mais fotos que o limite (`packageLimit`):
 
 Sempre que `urlOriginal` (foto editada re-subida) estiver presente, o download serve essa versão. Caso contrário, serve a `url` (thumb).
 
+**Comportamento para Fotos Extras Pós-Entrega:**
+Quando o cliente solicita fotos extras e o fotógrafo as aprova, a sessão frequentemente já está no status `delivered`. Nesse momento, as fotos recém-aprovadas ainda não possuem `urlOriginal` (ainda não foram tratadas no Lightroom). 
+A Galeria do Cliente (PWA) lida com isso avaliando **foto por foto**:
+1. **Bloqueio Visual:** A marca d'água é reaplicada nas extras brutas e o botão de download individual é substituído por um selo laranja de **"⏳ Em edição"**.
+2. **Avisos:** Um banner informa que há fotos na fila de tratamento. Se o cliente clicar em "Baixar Todas" (ZIP), um alerta avisa que as fotos pendentes de edição não estarão em alta qualidade no arquivo compactado atual.
+3. **Liberação Automática:** Assim que o fotógrafo faz o re-upload das editadas, o `urlOriginal` é preenchido. A galeria atualiza sozinha (via polling), remove as marcas d'água e libera as imagens instantaneamente em alta resolução (inclusive para o ZIP dinâmico).
+4. **Notificação (Re-entrega):** Clicar em "Confirmar Entrega" no fluxo de Re-entrega do Admin não é o que libera o arquivo, mas sim a ação administrativa para **disparar o e-mail** de notificação final para o cliente, limpar o painel do fotógrafo e registrar no `deliveryHistory`.
+
 > **Nota**: Em sessões no modo `gallery`, o ZIP contém **todas** as fotos da sessão, ignorando limites de seleção.
 ---
 
@@ -303,4 +311,3 @@ A partir de 2026-04-25 só existe um fluxo. A única variável da sessão é a *
 | **L1** | 960px | Sobe fotos (brutas ou já editadas) | Thumbs (960px) | Após seleção, re-upload das editadas |
 | **L2** | 1200px | Sobe fotos (brutas ou já editadas) | Thumbs (1200px) | Após seleção, re-upload das editadas |
 | **L3** | 1600px | Sobe fotos (brutas ou já editadas) | Thumbs (1600px) | Após seleção, re-upload das editadas |
-

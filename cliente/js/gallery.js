@@ -1398,8 +1398,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (state.pollingInterval) {
             clearInterval(state.pollingInterval);
         }
-        // Poll only if the selection is not delivered yet
-        if (state.session.selectionStatus !== 'delivered') {
+        // Polling: desnecessário em galeria pendente (sem seleção a sincronizar) ou quando entregue
+        const isGalleryPending = state.session.mode === 'gallery' && state.session.selectionStatus !== 'delivered';
+        if (!isGalleryPending && state.session.selectionStatus !== 'delivered') {
             state.pollingInterval = setInterval(() => loadSessionData(true), 15000);
         }
     }
@@ -1431,7 +1432,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (lightboxWatermark) {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const isDelivered = state.session.selectionStatus === 'delivered';
-            const forceWatermark = isDelivered && !isSelected;
+            const isReady = state.session.mode === 'gallery' || !!photo.urlOriginal;
+            const forceWatermark = isDelivered && (!isSelected || !isReady);
             const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, forceWatermark);
             lightboxWatermark.style.cssText = wm.style;
             lightboxWatermark.innerHTML = wm.innerHTML;

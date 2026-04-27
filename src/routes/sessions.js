@@ -51,6 +51,16 @@ router.post('/client/verify-code', async (req, res) => {
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
+    // Bloquear acesso a galeria entregue com prazo vencido
+    if (
+      session.mode === 'gallery' &&
+      session.selectionStatus === 'delivered' &&
+      session.selectionDeadline &&
+      new Date() > new Date(session.selectionDeadline)
+    ) {
+      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+    }
+
     // Registrar primeiro acesso do cliente
     if (!session.firstAccessAt) {
       session.firstAccessAt = new Date();
@@ -1297,6 +1307,9 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
     if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+    if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+    }
 
     const photo = session.photos.find(p => p.id === req.params.photoId);
     if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
@@ -1328,6 +1341,9 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
     if (session.mode !== 'gallery' && session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+    if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+    }
 
     // Determinar quais fotos incluir no ZIP
     // No modo 'selection': só as fotos selecionadas; no modo 'gallery': todas

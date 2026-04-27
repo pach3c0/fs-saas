@@ -15,9 +15,12 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   // Toggle campos de seleção
   const modeSelect = container.querySelector('#sessionMode');
   const selectionFields = container.querySelector('#selectionFields');
+  const extraConfigFields = container.querySelector('#extraConfigFields');
   const multiHint = container.querySelector('#multiSelectionHint');
   modeSelect.onchange = () => {
-    selectionFields.style.display = modeSelect.value === 'selection' ? 'flex' : 'none';
+    const isSelection = modeSelect.value === 'selection';
+    selectionFields.style.display = isSelection ? 'flex' : 'none';
+    extraConfigFields.style.display = isSelection ? 'flex' : 'none';
     multiHint.style.display = modeSelect.value === 'multi_selection' ? 'block' : 'none';
   };
 
@@ -211,10 +214,17 @@ function _setupEditSessionModal(container, state, renderSessoes) {
   const editModal = container.querySelector('#editSessionModal');
   const editModeSelect = container.querySelector('#editMode');
   const editSelFields = container.querySelector('#editSelectionFields');
+  const editExtraLabel = container.querySelector('#editAllowExtraPurchase')?.closest('label');
+  const editReopenLabel = container.querySelector('#editAllowReopen')?.closest('label');
 
-  editModeSelect.onchange = () => {
-    editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
-  };
+  function _toggleEditSelectionFields() {
+    const isSelection = editModeSelect.value === 'selection';
+    editSelFields.style.display = isSelection ? 'flex' : 'none';
+    if (editExtraLabel) editExtraLabel.style.display = isSelection ? 'flex' : 'none';
+    if (editReopenLabel) editReopenLabel.style.display = isSelection ? 'flex' : 'none';
+  }
+
+  editModeSelect.onchange = _toggleEditSelectionFields;
 
   // Upload de capa no modal de edição
   const editCoverInput = container.querySelector('#editCoverInput');
@@ -270,7 +280,7 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     container.querySelector('#editCommentsEnabled').checked = session.commentsEnabled !== false;
     container.querySelector('#editAllowExtraPurchase').checked = session.allowExtraPurchasePostSubmit !== false;
     container.querySelector('#editAllowReopen').checked = session.allowReopen !== false;
-    editSelFields.style.display = editModeSelect.value === 'selection' ? 'flex' : 'none';
+    _toggleEditSelectionFields();
 
     editCoverPhotoInput.value = session.coverPhoto || '';
     _renderEditCoverPreview(session.coverPhoto || '');
