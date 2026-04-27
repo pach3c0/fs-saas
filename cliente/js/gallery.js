@@ -155,10 +155,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Retorna { style, innerHTML } para o elemento overlay do watermark
-    function getWatermarkOverlay(watermark) {
+    function getWatermarkOverlay(watermark, forceShow = false) {
         const hidden = { style: 'display:none;', innerHTML: '' };
 
-        if (!watermark || state.session.selectionStatus === 'delivered') {
+        if (!watermark || (state.session.selectionStatus === 'delivered' && !forceShow)) {
             return hidden;
         }
 
@@ -451,18 +451,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Grid de fotos não selecionadas (para solicitar extras)
         const canUpsell = state.session.allowExtraPurchasePostSubmit !== false;
-        const canRequestExtras = canUpsell && extraRequest.status !== 'pending' && unselectedPhotos.length > 0;
+        const hasExtras = unselectedPhotos.length > 0;
         let extrasGridHtml = '';
-        if (canRequestExtras) {
+        if (hasExtras) {
+            const buildExtraItem = (photo) => {
+                const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
+                const heartBtn = canUpsell ? `
+                    <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
+                        <button class="photo-heart extra-heart" data-extra-id="${photo.id}" title="Selecionar para comprar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        </button>
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="photo-item" data-photo-id="${photo.id}" style="cursor:pointer; position:relative; aspect-ratio:3/2; background:#e5e5e5; border-radius:0.25rem; overflow:hidden;">
+                        <img src="${photo.url}" alt="Foto extra" style="width:100%; height:100%; object-fit:cover; pointer-events:none;" loading="lazy">
+                        <div style="${wm.style}">${wm.innerHTML}</div>
+                        ${heartBtn}
+                    </div>
+                `;
+            };
+
+            let requestBarHtml = '';
+            if (canUpsell) {
+                if (extraRequest.status === 'pending') {
+                    requestBarHtml = `
+                        <div style="background:#fef3c7; border:1px solid #d97706; color:#92400e; border-radius:0.5rem; padding:0.75rem 1rem; text-align:center; font-size:0.875rem; margin-top:1rem;">
+                            ⏳ Você tem uma solicitação pendente de <strong>${extraRequest.photos.length} foto(s)</strong> extra(s). Aguarde a aprovação do fotógrafo.
+                        </div>
+                    `;
+                } else {
+                    requestBarHtml = `
+                        <div id="extraRequestBar" style="display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:1rem; margin-top:1rem;">
+                            <span id="extraRequestCount" style="font-size:0.875rem;"></span>
+                            <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
+                        </div>
+                    `;
+                }
+            }
+
             extrasGridHtml = `
                 <div style="margin-top:1.5rem; text-align:left;">
-                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">Quer mais fotos?</p>
-                    <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.</p>
-                    <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;"></div>
-                    <div id="extraRequestBar" style="display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-                        <span id="extraRequestCount" style="font-size:0.875rem;"></span>
-                        <button id="sendExtraRequestBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
+                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
+                    <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">
+                        ${canUpsell
+                    ? `Toque no coração nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.`
+                    : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las clicando nelas.'}
+                    </p>
+                    <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;">
+                        ${unselectedPhotos.map(buildExtraItem).join('')}
                     </div>
+                    ${requestBarHtml}
                 </div>
             `;
         }
@@ -502,43 +542,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Renderizar grid de extras
-        if (canRequestExtras) {
+        if (hasExtras && canUpsell) {
             extraSelectedPhotos = [];
             const extrasGrid = document.getElementById('extrasGrid');
             if (extrasGrid) {
-                extrasGrid.innerHTML = unselectedPhotos.map(photo => `
-                    <div data-extra-id="${photo.id}" style="position:relative; aspect-ratio:3/2; background:#e5e5e5; border-radius:0.25rem; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:border-color 0.15s;">
-                        <img src="${photo.url}" style="width:100%; height:100%; object-fit:cover; pointer-events:none;">
-                        <div class="extra-check" style="display:none; position:absolute; top:0.25rem; right:0.25rem; width:22px; height:22px; background:#2563eb; border-radius:50%; align-items:center; justify-content:center; color:#fff; font-size:0.75rem;">✓</div>
-                    </div>
-                `).join('');
-
-                extrasGrid.addEventListener('click', (e) => {
-                    const item = e.target.closest('[data-extra-id]');
-                    if (!item) return;
-                    const id = item.dataset.extraId;
-                    const check = item.querySelector('.extra-check');
-                    const idx = extraSelectedPhotos.indexOf(id);
-                    if (idx > -1) {
-                        extraSelectedPhotos.splice(idx, 1);
-                        item.style.borderColor = 'transparent';
-                        if (check) check.style.display = 'none';
-                    } else {
-                        extraSelectedPhotos.push(id);
-                        item.style.borderColor = '#2563eb';
-                        if (check) check.style.display = 'flex';
-                    }
-                    const bar = document.getElementById('extraRequestBar');
-                    const countEl = document.getElementById('extraRequestCount');
-                    if (bar && countEl) {
-                        if (extraSelectedPhotos.length > 0) {
-                            const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
-                            countEl.textContent = `${extraSelectedPhotos.length} foto(s) — R$ ${total}`;
-                            bar.style.display = 'flex';
-                        } else {
-                            bar.style.display = 'none';
+                extrasGrid.querySelectorAll('.extra-heart').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (extraRequest.status === 'pending') {
+                            alert('Você já tem uma solicitação pendente. Aguarde a aprovação do fotógrafo.');
+                            return;
                         }
-                    }
+                        const id = btn.dataset.extraId;
+                        const idx = extraSelectedPhotos.indexOf(id);
+                        if (idx > -1) {
+                            extraSelectedPhotos.splice(idx, 1);
+                            btn.classList.remove('selected');
+                        } else {
+                            extraSelectedPhotos.push(id);
+                            btn.classList.add('selected');
+                        }
+                        const bar = document.getElementById('extraRequestBar');
+                        const countEl = document.getElementById('extraRequestCount');
+                        if (bar && countEl) {
+                            if (extraSelectedPhotos.length > 0) {
+                                const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
+                                countEl.textContent = `${extraSelectedPhotos.length} foto(s) — R$ ${total}`;
+                                bar.style.display = 'flex';
+                            } else {
+                                bar.style.display = 'none';
+                            }
+                        }
+                    });
                 });
 
                 const sendBtn = document.getElementById('sendExtraRequestBtn');
@@ -782,9 +817,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderDeliveredScreen() {
         renderHeader();
 
+        const isGalleryMode = state.session.mode === 'gallery';
         const selectedSet = new Set(state.selectedPhotos);
-        const selectedPhotos = state.photos.filter(p => selectedSet.has(p.id));
-        const unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id));
+
+        let selectedPhotos, unselectedPhotos;
+        if (isGalleryMode) {
+            selectedPhotos = state.photos;
+            unselectedPhotos = [];
+        } else {
+            selectedPhotos = state.photos.filter(p => selectedSet.has(p.id));
+            unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id));
+        }
 
         const deliveredAt = state.session.deliveredAt ? new Date(state.session.deliveredAt) : null;
         const deliveredDateStr = deliveredAt
@@ -794,7 +837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const canUpsell = state.session.allowExtraPurchasePostSubmit !== false;
         const extraRequest = state.session.extraRequest || { status: 'none', photos: [] };
         const extraPrice = state.session.extraPhotoPrice || 25;
-        const hasExtras = canUpsell && unselectedPhotos.length > 0 && extraRequest.status !== 'pending';
+        const hasExtras = unselectedPhotos.length > 0;
 
         const buildPhotoItem = (photo) => `
             <div class="photo-item" data-photo-id="${photo.id}">
@@ -828,24 +871,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let extrasSection = '';
         if (hasExtras) {
-            const extrasGrid = unselectedPhotos.map(photo => `
-                <div class="photo-item extra-item" data-extra-id="${photo.id}" style="cursor:pointer; opacity:0.75;">
-                    <img src="${photo.url}" alt="Foto extra" class="object-cover w-full h-full rounded-md" loading="lazy">
-                    <div class="extra-overlay" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.25); transition:background 0.2s;">
-                        <span class="extra-icon" style="background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.5); border-radius:9999px; width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; font-size:1rem; color:white;">+</span>
+            const buildExtraItem = (photo) => {
+                const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
+                const heartBtn = canUpsell ? `
+                    <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
+                        <button class="photo-heart extra-heart" data-extra-id="${photo.id}" title="Selecionar para comprar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        </button>
                     </div>
-                </div>
-            `).join('');
+                ` : '';
+
+                return `
+                    <div class="photo-item" data-photo-id="${photo.id}" style="cursor:pointer;">
+                        <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy">
+                        <div style="${wm.style}">${wm.innerHTML}</div>
+                        ${heartBtn}
+                    </div>
+                `;
+            };
+            const extrasGrid = unselectedPhotos.map(buildExtraItem).join('');
+
+            let requestBarHtml = '';
+            if (canUpsell) {
+                if (extraRequest.status === 'pending') {
+                    requestBarHtml = `
+                        <div style="grid-column:1/-1; background:#fef3c7; border:1px solid #d97706; color:#92400e; border-radius:0.5rem; padding:0.75rem 1rem; text-align:center; font-size:0.875rem; margin-top:0.5rem;">
+                            ⏳ Você tem uma solicitação pendente de <strong>${extraRequest.photos.length} foto(s)</strong> extra(s). Aguarde a aprovação.
+                        </div>
+                    `;
+                } else {
+                    requestBarHtml = `
+                        <div id="extrasRequestBar" style="grid-column:1/-1; display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:1rem; margin-top:0.5rem;">
+                            <span id="extrasRequestCount" style="font-size:0.875rem;"></span>
+                            <button id="extrasPayBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
+                        </div>
+                    `;
+                }
+            }
+
             extrasSection = `
                 <div style="grid-column:1/-1; margin-top:2rem; padding-top:1.25rem; border-top:1px solid #e5e7eb;">
-                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">Quer mais fotos?</p>
-                    <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">Toque nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.</p>
+                    <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
+                    <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">
+                        ${canUpsell
+                    ? `O fotógrafo adicionou novas fotos. Clique no coração para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.`
+                    : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las.'}
+                    </p>
                 </div>
                 ${extrasGrid}
-                <div id="extrasRequestBar" style="grid-column:1/-1; display:none; background:#1a1a1a; color:#fff; border-radius:0.5rem; padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:1rem; margin-top:0.5rem;">
-                    <span id="extrasRequestCount" style="font-size:0.875rem;"></span>
-                    <button id="extrasPayBtn" style="background:#2563eb; color:#fff; border:none; padding:0.5rem 1.25rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer; white-space:nowrap;">Solicitar Extras</button>
-                </div>
+                ${requestBarHtml}
             `;
         }
 
@@ -859,7 +933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Interação com fotos extras
-        if (hasExtras) {
+        if (hasExtras && canUpsell) {
             extraSelectedPhotos = [];
             const bar = document.getElementById('extrasRequestBar');
             const countEl = document.getElementById('extrasRequestCount');
@@ -876,22 +950,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             };
 
-            photoGrid.querySelectorAll('.extra-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const id = item.dataset.extraId;
+            photoGrid.querySelectorAll('.extra-heart').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (extraRequest.status === 'pending') {
+                        alert('Você já tem uma solicitação pendente. Aguarde a aprovação.');
+                        return;
+                    }
+                    const id = btn.dataset.extraId;
                     const idx = extraSelectedPhotos.indexOf(id);
-                    const icon = item.querySelector('.extra-icon');
-                    const overlay = item.querySelector('.extra-overlay');
                     if (idx >= 0) {
                         extraSelectedPhotos.splice(idx, 1);
-                        item.style.opacity = '0.75';
-                        if (icon) { icon.textContent = '+'; icon.style.background = 'rgba(255,255,255,0.15)'; icon.style.borderColor = 'rgba(255,255,255,0.5)'; }
-                        if (overlay) overlay.style.background = 'rgba(0,0,0,0.25)';
+                        btn.classList.remove('selected');
                     } else {
                         extraSelectedPhotos.push(id);
-                        item.style.opacity = '1';
-                        if (icon) { icon.textContent = '✓'; icon.style.background = 'rgba(22,163,74,0.8)'; icon.style.borderColor = '#16a34a'; }
-                        if (overlay) overlay.style.background = 'rgba(22,163,74,0.2)';
+                        btn.classList.add('selected');
                     }
                     updateExtrasBar();
                 });
@@ -1329,7 +1402,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Watermark customizado no lightbox
         if (lightboxWatermark) {
-            const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null);
+            const isSelected = state.selectedPhotos.includes(photo.id);
+            const isDelivered = state.session.selectionStatus === 'delivered';
+            const forceWatermark = isDelivered && !isSelected;
+            const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, forceWatermark);
             lightboxWatermark.style.cssText = wm.style;
             lightboxWatermark.innerHTML = wm.innerHTML;
         }
@@ -1468,6 +1544,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (e.target.id === 'viewDeliveredBtn') {
             initializeGallery();
+        }
+        const photoItem = e.target.closest('[data-photo-id]');
+        if (photoItem) {
+            const photoId = photoItem.dataset.photoId;
+            const index = state.photos.findIndex(p => p.id === photoId);
+            if (index > -1) openLightbox(index);
         }
     });
 
