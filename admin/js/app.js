@@ -20,6 +20,7 @@ const TAB_TITLES = {
   clientes: 'Clientes',
   'albuns-prova': 'Prova de Álbuns',
   mensagens: 'Mensagens',
+  crm: 'CRM',
   'meu-site': 'Meu Site',
   dominio: 'Domínio',
   integracoes: 'Integrações',

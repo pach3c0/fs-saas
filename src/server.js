@@ -304,6 +304,7 @@ app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));
 app.use('/api', require('./routes/organization'));
 app.use('/api', require('./routes/clients'));
+app.use('/api', require('./routes/sales'));
 // Fase 8: registrar rotas de álbuns de prova
 app.use('/api', require('./routes/albums'));
 app.use('/api', require('./routes/site'));
