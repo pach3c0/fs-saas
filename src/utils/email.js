@@ -658,46 +658,41 @@ async function sendExtraPhotosRejectedEmail(clientEmail, clientName, orgName, re
 }
 
 /**
- * E-mail de escassez (CRM): faltam 7 dias para a galeria expirar e o cliente
- * deixou fotos para tras. Cria urgencia + entrega cupom de desconto.
+ * Helper interno: monta corpo HTML padrao de e-mail de escassez.
+ * Reaproveitado pelos 4 niveis (15d, 7d, 3d, 24h) variando tom e cores.
  */
-async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
-  const galleryUrl = orgSlug
-    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
-    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+function _buildScarcityHtml({ orgName, headline, subheadline, body, clientName, sessionName, remainingPhotos, couponCode, discountPercent, galleryUrl, accentColor, ctaLabel }) {
+  const coupon = couponCode ? `
+    <div style="background: #fff7ed; border: 2px dashed ${accentColor}; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">
+      <p style="margin: 0 0 0.5rem 0; color: #92400e; font-size: 0.875rem; font-weight: 600;">CUPOM DE DESCONTO</p>
+      <p style="margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.1em; color: #1a1a1a;">${couponCode}</p>
+      <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.8125rem;">${discountPercent}% off nas fotos extras restantes</p>
+    </div>
+  ` : '';
 
-  const subject = `Faltam 7 dias: ${remainingPhotos} fotos vão sumir — ${orgName}`;
-  const html = `
+  return `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName}</h1>
       </div>
 
-      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">⏳ Suas memórias vão sumir em 7 dias</h2>
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">${headline}</h2>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Olá${clientName ? `, <strong>${clientName}</strong>` : ''}! Notamos que você ainda tem
-        <strong>${remainingPhotos} foto${remainingPhotos !== 1 ? 's' : ''}</strong> da sessão
-        <strong>${sessionName}</strong> esperando uma decisão.
+        Olá${clientName ? `, <strong>${clientName}</strong>` : ''}! ${subheadline}
+        Sessão: <strong>${sessionName}</strong> — <strong>${remainingPhotos} foto${remainingPhotos !== 1 ? 's' : ''}</strong> ainda esperando.
       </p>
-      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Após o prazo, elas serão removidas da nossa nuvem definitivamente. Para te ajudar,
-        preparamos um cupom exclusivo:
-      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">${body}</p>
 
-      <div style="background: #fff7ed; border: 2px dashed #d97706; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">
-        <p style="margin: 0 0 0.5rem 0; color: #92400e; font-size: 0.875rem; font-weight: 600;">CUPOM DE DESCONTO</p>
-        <p style="margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.1em; color: #1a1a1a;">${couponCode}</p>
-        <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.8125rem;">${discountPercent}% off nas fotos extras restantes</p>
-      </div>
+      ${coupon}
 
       <div style="text-align: center; margin: 1.5rem 0;">
         <a href="${galleryUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
-          Ver minhas fotos restantes
+          ${ctaLabel}
         </a>
       </div>
 
       <p style="color: #999; font-size: 0.8125rem; text-align: center;">
-        Apresente o cupom no WhatsApp para garantir o desconto.
+        ${couponCode ? 'Apresente o cupom no WhatsApp para garantir o desconto.' : 'A galeria expira automaticamente — não deixe para depois.'}
       </p>
 
       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
@@ -705,6 +700,81 @@ async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName
       </div>
     </div>
   `;
+}
+
+function _galleryUrl(orgSlug, accessCode) {
+  return orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
+    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+}
+
+/**
+ * E-mail de escassez (CRM): aviso suave aos 15 dias do prazo. Sem cupom ainda.
+ */
+async function sendScarcity15dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, accessCode, orgSlug) {
+  const subject = `Faltam 15 dias: suas fotos de ${sessionName} estão te esperando — ${orgName}`;
+  const html = _buildScarcityHtml({
+    orgName, clientName, sessionName, remainingPhotos,
+    headline: 'Suas memórias estão te esperando 📸',
+    subheadline: 'Notamos que você ainda tem fotos importantes pendentes na galeria.',
+    body: 'Faltam 15 dias para o encerramento da sessão. Após o prazo, as fotos não escolhidas serão removidas da nossa nuvem. Aproveite para revisitar a galeria com calma.',
+    couponCode: '', discountPercent: 0,
+    galleryUrl: _galleryUrl(orgSlug, accessCode),
+    accentColor: '#1a1a1a',
+    ctaLabel: 'Revisitar a galeria'
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de escassez (CRM): faltam 7 dias para a galeria expirar e o cliente
+ * deixou fotos para tras. Cria urgencia + entrega cupom de desconto.
+ */
+async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+  const subject = `Faltam 7 dias: ${remainingPhotos} fotos vão sumir — ${orgName}`;
+  const html = _buildScarcityHtml({
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    headline: '⏳ Suas memórias vão sumir em 7 dias',
+    subheadline: 'A contagem regressiva começou.',
+    body: 'Após o prazo, as fotos não escolhidas serão removidas da nossa nuvem definitivamente. Para te ajudar, preparamos um cupom exclusivo:',
+    galleryUrl: _galleryUrl(orgSlug, accessCode),
+    accentColor: '#d97706',
+    ctaLabel: 'Ver minhas fotos restantes'
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de escassez (CRM): faltam 3 dias - urgencia maxima com cupom.
+ */
+async function sendScarcity3dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+  const subject = `🚨 Última chance: 3 dias para suas fotos de ${sessionName} — ${orgName}`;
+  const html = _buildScarcityHtml({
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    headline: '🚨 Apenas 3 dias restantes',
+    subheadline: 'Esta é uma das suas últimas oportunidades.',
+    body: 'Em 72 horas as fotos não escolhidas saem do ar para sempre. Use o cupom abaixo agora — depois disso, fica impossível recuperar.',
+    galleryUrl: _galleryUrl(orgSlug, accessCode),
+    accentColor: '#dc2626',
+    ctaLabel: 'Garantir minhas fotos agora'
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de escassez (CRM): falta 24h - alerta final.
+ */
+async function sendScarcity24hEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+  const subject = `⚠️ ÚLTIMAS HORAS: suas fotos de ${sessionName} expiram amanhã`;
+  const html = _buildScarcityHtml({
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    headline: '⚠️ Hoje é o último dia',
+    subheadline: 'Em 24 horas as fotos somem da nuvem para sempre.',
+    body: 'Não há prorrogação. Se você quer guardar essas memórias, esta é a hora. O cupom abaixo é válido até o vencimento.',
+    galleryUrl: _galleryUrl(orgSlug, accessCode),
+    accentColor: '#dc2626',
+    ctaLabel: 'Salvar minhas fotos antes que sumam'
+  });
   return sendEmail(clientEmail, subject, html);
 }
 
@@ -727,5 +797,8 @@ module.exports = {
   sendOffboardingDeletedEmail,
   sendUpsellEmail,
   sendExtraPhotosRejectedEmail,
-  sendScarcity7dEmail
+  sendScarcity15dEmail,
+  sendScarcity7dEmail,
+  sendScarcity3dEmail,
+  sendScarcity24hEmail
 };

@@ -208,7 +208,7 @@ const OrganizationSchema = new mongoose.Schema({
       enabled: { type: Boolean, default: false },
       scarcity: {
         enabled: { type: Boolean, default: true },
-        daysSchedule: { type: [Number], default: [7] } // Fatia A: somente 7d. Fatia B: [15,7,3,1]
+        daysSchedule: { type: [Number], default: [15, 7, 3, 1] } // niveis de gatilho (dias antes do prazo)
       },
       couponPrefix: { type: String, default: 'CZ' },
       couponDiscountPercent: { type: Number, default: 10 }
