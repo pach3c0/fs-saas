@@ -268,7 +268,7 @@ function _setupEditSessionModal(container, state, renderSessoes) {
   function _toggleEditSelectionFields() {
     const mode = editModeSelect.value;
     const isGallery = mode === 'gallery';
-    const hasPackage = mode === 'selection' || mode === 'multi_selection';
+    const hasPackage = mode === 'selection' || mode === 'multi_selection' || mode === 'multi_instant';
     editSelFields.style.display = hasPackage ? 'flex' : 'none';
     if (editExtraLabel) editExtraLabel.style.display = hasPackage ? 'flex' : 'none';
     if (editReopenLabel) editReopenLabel.style.display = hasPackage ? 'flex' : 'none';

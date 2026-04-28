@@ -22,7 +22,7 @@ const OrganizationSchema = new mongoose.Schema({
   primaryColor: { type: String, default: '#1a1a1a' },
 
   // Watermark
-  watermarkType: { type: String, enum: ['text', 'logo'], default: 'text' },
+  watermarkType: { type: String, enum: ['text', 'logo', 'both'], default: 'text' },
   watermarkText: { type: String, default: '' },
   watermarkOpacity: { type: Number, min: 5, max: 50, default: 15 },
   watermarkPosition: {

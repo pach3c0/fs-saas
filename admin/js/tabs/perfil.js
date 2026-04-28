@@ -11,18 +11,18 @@ import { appState } from '../state.js';
 let organizationData = {};
 
 const positionOptions = [
-    { value: 'center', label: 'Centro' },
-    { value: 'tiled', label: 'Ladrilho' },
-    { value: 'top-left', label: 'Sup. Esquerdo' },
-    { value: 'top-right', label: 'Sup. Direito' },
-    { value: 'bottom-left', label: 'Inf. Esquerdo' },
-    { value: 'bottom-right', label: 'Inf. Direito' },
+  { value: 'center', label: 'Centro' },
+  { value: 'tiled', label: 'Ladrilho' },
+  { value: 'top-left', label: 'Sup. Esquerdo' },
+  { value: 'top-right', label: 'Sup. Direito' },
+  { value: 'bottom-left', label: 'Inf. Esquerdo' },
+  { value: 'bottom-right', label: 'Inf. Direito' },
 ];
 
 const sizeOptions = [
-    { value: 'small', label: 'Pequeno' },
-    { value: 'medium', label: 'Médio' },
-    { value: 'large', label: 'Grande' },
+  { value: 'small', label: 'Pequeno' },
+  { value: 'medium', label: 'Médio' },
+  { value: 'large', label: 'Grande' },
 ];
 
 // Placeholders em Base64 para evitar erros 404 e dependências externas
@@ -30,76 +30,88 @@ const PLACEHOLDER_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3
 const PREVIEW_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzc0MTUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmaWxsPSIjOWNhM2FmIiBmb250LXNpemU9IjI0Ij5Gb3RvIGRlIFByZXZpZXc8L3RleHQ+PC9zdmc+';
 
 function updateWatermarkPreview(container) {
-    if (!container) return;
-    const preview = container.querySelector('#watermarkPreview');
-    if (!preview) return;
+  if (!container) return;
+  const preview = container.querySelector('#watermarkPreview');
+  if (!preview) return;
 
-    const typeInput = container.querySelector('input[name="watermarkType"]:checked');
-    const type = typeInput ? typeInput.value : 'text';
+  const typeInput = container.querySelector('input[name="watermarkType"]:checked');
+  const type = typeInput ? typeInput.value : 'text';
 
-    const textInput = container.querySelector('#watermarkText');
-    const text = textInput ? textInput.value : '';
+  const textInput = container.querySelector('#watermarkText');
+  const text = textInput ? textInput.value : '';
 
-    const opacityInput = container.querySelector('#watermarkOpacity');
-    const opacity = opacityInput ? opacityInput.value : 15;
+  const opacityInput = container.querySelector('#watermarkOpacity');
+  const opacity = opacityInput ? opacityInput.value : 15;
 
-    const positionInput = container.querySelector('input[name="watermarkPosition"]:checked');
-    if (!positionInput) return;
-    const position = positionInput.value;
+  const positionInput = container.querySelector('input[name="watermarkPosition"]:checked');
+  if (!positionInput) return;
+  const position = positionInput.value;
 
-    const sizeInput = container.querySelector('input[name="watermarkSize"]:checked');
-    if (!sizeInput) return;
-    const size = sizeInput.value;
+  const sizeInput = container.querySelector('input[name="watermarkSize"]:checked');
+  if (!sizeInput) return;
+  const size = sizeInput.value;
 
-    const watermarkEl = preview.querySelector('.watermark-overlay');
-    if (!watermarkEl) return;
+  const watermarkEl = preview.querySelector('.watermark-overlay');
+  if (!watermarkEl) return;
 
-    // Reset styles
-    watermarkEl.style = '';
-    watermarkEl.innerHTML = '';
+  // Reset styles
+  watermarkEl.style = '';
+  watermarkEl.innerHTML = '';
 
-    // Common styles
-    watermarkEl.style.opacity = opacity / 100;
-    watermarkEl.style.position = 'absolute';
-    watermarkEl.style.inset = '0';
-    watermarkEl.style.pointerEvents = 'none';
+  // Common styles
+  watermarkEl.style.opacity = opacity / 100;
+  watermarkEl.style.position = 'absolute';
+  watermarkEl.style.inset = '0';
+  watermarkEl.style.pointerEvents = 'none';
 
-    const isTiled = position === 'tiled';
+  const isTiled = position === 'tiled';
 
-    if (isTiled) {
-        watermarkEl.style.backgroundRepeat = 'repeat';
-        watermarkEl.style.backgroundPosition = 'center';
-        if (type === 'logo' && organizationData.logo) {
-            const logoUrl = resolveImagePath(organizationData.logo);
-            const sizeValue = { small: '100px', medium: '150px', large: '200px' }[size];
-            watermarkEl.style.backgroundImage = `url(${logoUrl})`;
-            watermarkEl.style.backgroundSize = sizeValue;
-        } else {
-            const fontSize = { small: 14, medium: 20, large: 28 }[size];
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="rgba(255,255,255,0.7)" transform="rotate(-30 125 100)">${escapeHtml(text || organizationData.name)}</text></svg>`;
-            watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}")`;
-        }
+  if (isTiled) {
+    watermarkEl.style.backgroundRepeat = 'repeat';
+    watermarkEl.style.backgroundPosition = 'center';
+    if (type === 'logo' && organizationData.logo) {
+      const logoUrl = resolveImagePath(organizationData.logo);
+      const sizeValue = { small: '100px', medium: '150px', large: '200px' }[size];
+      watermarkEl.style.backgroundImage = `url(${logoUrl})`;
+      watermarkEl.style.backgroundSize = sizeValue;
+    } else if (type === 'both' && organizationData.logo) {
+      const logoUrl = resolveImagePath(organizationData.logo);
+      const sizeValue = { small: '100px', medium: '150px', large: '200px' }[size];
+      const fontSize = { small: 14, medium: 20, large: 28 }[size];
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="rgba(255,255,255,0.7)" transform="rotate(-30 125 100)">${escapeHtml(text || organizationData.name)}</text></svg>`;
+      watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}"), url(${logoUrl})`;
+      watermarkEl.style.backgroundSize = `250px 200px, ${sizeValue}`;
     } else {
-        watermarkEl.style.display = 'flex';
-        watermarkEl.style.justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
-        watermarkEl.style.alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
-        watermarkEl.style.padding = '1rem';
-
-        if (type === 'logo' && organizationData.logo) {
-            const logoUrl = resolveImagePath(organizationData.logo);
-            const sizeValue = { small: '10%', medium: '20%', large: '30%' }[size];
-            watermarkEl.innerHTML = `<img src="${logoUrl}" style="width:${sizeValue}; height:auto; max-width:100%; max-height:100%;">`;
-        } else {
-            const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size];
-            watermarkEl.innerHTML = `<span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: ${fontSize}; text-shadow: 0 0 2px black;">${escapeHtml(text || organizationData.name)}</span>`;
-        }
+      const fontSize = { small: 14, medium: 20, large: 28 }[size];
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="rgba(255,255,255,0.7)" transform="rotate(-30 125 100)">${escapeHtml(text || organizationData.name)}</text></svg>`;
+      watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}")`;
     }
+  } else {
+    watermarkEl.style.display = 'flex';
+    watermarkEl.style.justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
+    watermarkEl.style.alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
+    watermarkEl.style.padding = '1rem';
+
+    if (type === 'logo' && organizationData.logo) {
+      const logoUrl = resolveImagePath(organizationData.logo);
+      const sizeValue = { small: '10%', medium: '20%', large: '30%' }[size];
+      watermarkEl.innerHTML = `<img src="${logoUrl}" style="width:${sizeValue}; height:auto; max-width:100%; max-height:100%;">`;
+    } else if (type === 'both' && organizationData.logo) {
+      const logoUrl = resolveImagePath(organizationData.logo);
+      const sizeValue = { small: '10%', medium: '20%', large: '30%' }[size];
+      const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size];
+      watermarkEl.innerHTML = `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center;"><img src="${logoUrl}" style="width:${sizeValue}; height:auto; max-width:100%; max-height:100%; opacity:0.8;"><span style="position:absolute; font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: ${fontSize}; text-shadow: 0 0 4px black, 0 0 2px black, 0 0 8px rgba(0,0,0,0.8); text-align:center; white-space:nowrap;">${escapeHtml(text || organizationData.name)}</span></div>`;
+    } else {
+      const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size];
+      watermarkEl.innerHTML = `<span style="font-family: Arial, sans-serif; font-weight: bold; color: white; font-size: ${fontSize}; text-shadow: 0 0 2px black;">${escapeHtml(text || organizationData.name)}</span>`;
+    }
+  }
 }
 
 export async function renderPerfil(container) {
   try {
-        const response = await apiGet('/api/organization/profile');
-        organizationData = response.data || response;
+    const response = await apiGet('/api/organization/profile');
+    organizationData = response.data || response;
   } catch (error) {
     container.innerHTML = `<p style="color:#f87171;">Erro ao carregar dados do perfil.</p>`;
     return;
@@ -160,6 +172,7 @@ export async function renderPerfil(container) {
                     <div style="display:flex; gap:1rem;">
                         <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="text" ${data.watermarkType === 'text' ? 'checked' : ''}> Texto</label>
                         <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="logo" ${data.watermarkType === 'logo' ? 'checked' : ''}> Logo</label>
+                            <label style="color:var(--text-primary);"><input type="radio" name="watermarkType" value="both" ${data.watermarkType === 'both' ? 'checked' : ''}> Texto + Logo</label>
                     </div>
                 </div>
                 <div class="input-group" style="margin-bottom:0;">
@@ -230,21 +243,21 @@ export async function renderPerfil(container) {
 
   // Watermark Preview Listeners
   const watermarkControls = [
-      '#watermarkText',
-      '#watermarkOpacity',
-      ...Array.from(container.querySelectorAll('input[name="watermarkType"]')),
-      ...Array.from(container.querySelectorAll('input[name="watermarkPosition"]')),
-      ...Array.from(container.querySelectorAll('input[name="watermarkSize"]')),
+    '#watermarkText',
+    '#watermarkOpacity',
+    ...Array.from(container.querySelectorAll('input[name="watermarkType"]')),
+    ...Array.from(container.querySelectorAll('input[name="watermarkPosition"]')),
+    ...Array.from(container.querySelectorAll('input[name="watermarkSize"]')),
   ];
 
   const previewUpdater = () => updateWatermarkPreview(container);
 
   watermarkControls.forEach(control => {
-      const el = typeof control === 'string' ? container.querySelector(control) : control;
-      if (el) {
-          el.addEventListener('input', previewUpdater);
-          el.addEventListener('change', previewUpdater);
-      }
+    const el = typeof control === 'string' ? container.querySelector(control) : control;
+    if (el) {
+      el.addEventListener('input', previewUpdater);
+      el.addEventListener('change', previewUpdater);
+    }
   });
 
   // Salvar perfil
@@ -259,10 +272,10 @@ export async function renderPerfil(container) {
 
     const name = container.querySelector('#orgName').value.trim();
     if (!name) {
-        window.showToast?.('O nome do estúdio é obrigatório.', 'warning');
-        btn.textContent = 'Salvar Alterações';
-        btn.disabled = false;
-        return;
+      window.showToast?.('O nome do estúdio é obrigatório.', 'warning');
+      btn.textContent = 'Salvar Alterações';
+      btn.disabled = false;
+      return;
     }
 
     const payload = {

@@ -89,7 +89,7 @@ function renderList(container, items) {
     const statusKey = isExpired ? 'expired' : (isRedelivering ? 'redelivering' : session.selectionStatus);
     const statusMap = mode === 'gallery' ? GALLERY_STATUS_LABELS : STATUS_LABELS;
     const status = statusMap[statusKey] || statusMap.pending;
-    const isMulti = mode === 'multi_selection';
+    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
     const selectedCount = (session.selectedPhotos || []).length;
     const limit = session.packageLimit || 30;
     const extras = Math.max(0, selectedCount - limit);
@@ -149,10 +149,10 @@ function renderList(container, items) {
               Config
             </button>
             ${mode === 'gallery' ? (() => {
-              const hasPhotos = (session.photos?.length || 0) > 0;
-              const canDeliver = hasPhotos && !isDelivered;
-              const canSend = hasPhotos;
-              return `
+        const hasPhotos = (session.photos?.length || 0) > 0;
+        const canDeliver = hasPhotos && !isDelivered;
+        const canSend = hasPhotos;
+        return `
               <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
                 style="background:${canSend ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
                        color:${canSend ? 'var(--text-secondary)' : 'var(--text-muted)'};
@@ -172,7 +172,7 @@ function renderList(container, items) {
                 title="${!hasPhotos ? 'Faça upload de fotos antes de entregar' : (isDelivered ? 'Galeria já entregue — clique para re-entregar' : 'Entregar galeria e liberar download')}">
                 ${isDelivered ? 'Re-entregar' : 'Entregar'}
               </button>`;
-            })() : `
+      })() : `
             <button onclick="sendSessionCode('${session._id}', '${session.accessCode}')"
               style="background:${(session.photos?.length || 0) >= limit ? 'var(--bg-hover)' : 'rgba(255,255,255,0.05)'};
                      color:${(session.photos?.length || 0) >= limit ? 'var(--text-secondary)' : 'var(--text-muted)'};

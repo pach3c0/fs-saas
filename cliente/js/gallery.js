@@ -209,10 +209,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const baseStyle = `position:absolute; inset:0; pointer-events:none; opacity:${opacity / 100};`;
 
         if (position === 'tiled') {
-            const bgStyle = type === 'logo' && logoUrl
-                ? `background-image:url(${logoUrl}); background-size:${{ small: '100px', medium: '150px', large: '200px' }[size] || '150px'}; background-repeat:repeat; background-position:center;`
-                : `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)};`;
-            return { style: baseStyle + bgStyle, innerHTML: '' };
+            if (type === 'logo' && logoUrl) {
+                const bgStyle = `background-image:url(${logoUrl}); background-size:${{ small: '100px', medium: '150px', large: '200px' }[size] || '150px'}; background-repeat:repeat; background-position:center;`;
+                return { style: baseStyle + bgStyle, innerHTML: '' };
+            } else if (type === 'both' && logoUrl) {
+                const bgSize = { small: '100px', medium: '150px', large: '200px' }[size] || '150px';
+                const hybridStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)}, url(${logoUrl}); background-size: 250px 200px, ${bgSize}; background-repeat: repeat, repeat; background-position: center, center;`;
+                return { style: baseStyle + hybridStyle, innerHTML: '' };
+            } else {
+                const bgStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)};`;
+                return { style: baseStyle + bgStyle, innerHTML: '' };
+            }
         }
 
         const justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
@@ -224,6 +231,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return {
                 style: baseStyle + flexStyle,
                 innerHTML: `<img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%;" alt="Watermark">`
+            };
+        } else if (type === 'both' && logoUrl) {
+            const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
+            const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
+            return {
+                style: baseStyle + flexStyle,
+                innerHTML: `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center;"><img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%; opacity:0.8;"><span style="position:absolute; font-family:Arial,sans-serif; font-weight:bold; color:white; font-size:${fontSize}; text-shadow:0 0 4px black, 0 0 2px black, 0 0 8px rgba(0,0,0,0.8); text-align:center; white-space:nowrap;">${escapeHtml(text || orgName)}</span></div>`
             };
         }
 
