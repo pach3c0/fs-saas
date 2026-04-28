@@ -330,8 +330,10 @@ export async function renderSessoes(container) {
         <div style="background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border); margin-bottom:1.5rem;">
             <h4 style="color:var(--text-primary); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">Adicionar Participante</h4>
             <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
-                <div style="flex:2; min-width:200px;">
-                    <input type="text" id="newPartName" class="input" placeholder="Nome completo">
+                <div style="flex:2; min-width:200px; position:relative;">
+                    <input type="text" id="newPartName" class="input" placeholder="Buscar cliente ou digitar nome">
+                    <div id="partClientDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--ad-bg-elevated); border:1px solid var(--ad-border); border-radius:0.375rem; z-index:200; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+                    <input type="hidden" id="newPartClientId">
                 </div>
                 <div style="flex:1; min-width:150px;">
                     <input type="email" id="newPartEmail" class="input" placeholder="Email (opcional)">

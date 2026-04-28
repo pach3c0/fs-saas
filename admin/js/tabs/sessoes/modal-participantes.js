@@ -1,5 +1,6 @@
-import { apiPost, apiPut, apiDelete } from '../../utils/api.js';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api.js';
 import { appState } from '../../state.js';
+import { escapeHtml } from '../../utils/helpers.js';
 
 const STATUS_LABELS = {
   pending: { text: 'Pendente', class: 'badge-neutral' },
@@ -12,6 +13,53 @@ const STATUS_LABELS = {
 export function setupParticipantes(container, state, renderSessoes) {
   const participantsModal = container.querySelector('#participantsModal');
   const participantsList = container.querySelector('#participantsList');
+
+  const partNameInput = container.querySelector('#newPartName');
+  const partEmailInput = container.querySelector('#newPartEmail');
+  const partDropdown = container.querySelector('#partClientDropdown');
+  let _partSearchTimer = null;
+
+  function renderPartDropdown(clients) {
+    partDropdown.innerHTML = '';
+    if (!clients.length) {
+      partDropdown.style.display = 'none';
+      return;
+    }
+    clients.forEach(c => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--ad-text); font-size:0.875rem; border-top:1px solid var(--ad-border);';
+      item.innerHTML = `<strong>${escapeHtml(c.name)}</strong>${c.email ? `<span style="color:var(--ad-text-muted); font-size:0.75rem;"> · ${escapeHtml(c.email)}</span>` : ''}`;
+      item.onmouseenter = () => item.style.background = 'var(--ad-bg-hover)';
+      item.onmouseleave = () => item.style.background = '';
+      item.onclick = () => {
+        partNameInput.value = c.name;
+        partEmailInput.value = c.email || '';
+        container.querySelector('#newPartClientId').value = c._id;
+        partDropdown.style.display = 'none';
+      };
+      partDropdown.appendChild(item);
+    });
+    partDropdown.style.display = 'block';
+  }
+
+  partNameInput.oninput = () => {
+    clearTimeout(_partSearchTimer);
+    container.querySelector('#newPartClientId').value = '';
+    const q = partNameInput.value.trim();
+    if (!q) { partDropdown.style.display = 'none'; return; }
+    _partSearchTimer = setTimeout(async () => {
+      try {
+        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        renderPartDropdown(data.clients || []);
+      } catch { partDropdown.style.display = 'none'; }
+    }, 300);
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!partNameInput.contains(e.target) && !partDropdown.contains(e.target)) {
+      partDropdown.style.display = 'none';
+    }
+  }, { capture: true });
 
   function renderParticipantsList(participants) {
     if (!participants || participants.length === 0) {
@@ -52,16 +100,18 @@ export function setupParticipantes(container, state, renderSessoes) {
   };
 
   container.querySelector('#addParticipantBtn').onclick = async () => {
-    const name = container.querySelector('#newPartName').value.trim();
-    const email = container.querySelector('#newPartEmail').value.trim();
+    const name = partNameInput.value.trim();
+    const email = partEmailInput.value.trim();
     const packageLimit = container.querySelector('#newPartLimit').value;
+    const clientId = container.querySelector('#newPartClientId').value || undefined;
     if (!name) return window.showToast?.('Nome é obrigatório', 'warning');
     try {
-      const result = await apiPost(`/api/sessions/${state.currentParticipantsSessionId}/participants`, { name, email, packageLimit });
+      const result = await apiPost(`/api/sessions/${state.currentParticipantsSessionId}/participants`, { name, email, packageLimit, clientId });
       if (result.success || result.participants) {
         renderParticipantsList(result.participants || result.session.participants);
-        container.querySelector('#newPartName').value = '';
-        container.querySelector('#newPartEmail').value = '';
+        partNameInput.value = '';
+        partEmailInput.value = '';
+        container.querySelector('#newPartClientId').value = '';
       }
     } catch (e) { window.showToast?.(e.message, 'error'); }
   };

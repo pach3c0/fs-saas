@@ -79,6 +79,7 @@ const sessionSchema = new mongoose.Schema({
         email: { type: String, default: '' },
         phone: { type: String, default: '' },
         accessCode: { type: String, required: true },
+        clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
         selectedPhotos: [String],
         selectionStatus: {
             type: String,

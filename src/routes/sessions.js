@@ -1183,16 +1183,19 @@ router.get('/sessions/:sessionId/export', (req, res) => {
 // Adicionar participante
 router.post('/sessions/:id/participants', authenticateToken, async (req, res) => {
   try {
-    const { name, email, phone, packageLimit } = req.body;
+    const { name, email, phone, packageLimit, clientId } = req.body;
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    session.participants.push({
+    const participantData = {
       name, email, phone, packageLimit, accessCode,
       selectionStatus: 'pending',
       selectedPhotos: []
-    });
+    };
+    if (clientId) participantData.clientId = clientId;
+
+    session.participants.push(participantData);
 
     await session.save();
     res.json({ success: true, participants: session.participants });
