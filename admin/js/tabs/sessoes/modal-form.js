@@ -224,11 +224,12 @@ function _setupEditSessionModal(container, state, renderSessoes) {
 
   const editDeadlineLabel = container.querySelector('#editDeadlineLabel');
   function _toggleEditSelectionFields() {
-    const isSelection = editModeSelect.value === 'selection';
-    const isGallery = editModeSelect.value === 'gallery';
-    editSelFields.style.display = isSelection ? 'flex' : 'none';
-    if (editExtraLabel) editExtraLabel.style.display = isSelection ? 'flex' : 'none';
-    if (editReopenLabel) editReopenLabel.style.display = isSelection ? 'flex' : 'none';
+    const mode = editModeSelect.value;
+    const isGallery = mode === 'gallery';
+    const hasPackage = mode === 'selection' || mode === 'multi_selection';
+    editSelFields.style.display = hasPackage ? 'flex' : 'none';
+    if (editExtraLabel) editExtraLabel.style.display = hasPackage ? 'flex' : 'none';
+    if (editReopenLabel) editReopenLabel.style.display = hasPackage ? 'flex' : 'none';
     if (editDeadlineLabel) editDeadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
   }
 

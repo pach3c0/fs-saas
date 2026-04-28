@@ -262,6 +262,7 @@ export async function renderSessoes(container) {
             <select id="editMode" class="select input">
               <option value="selection">Selecao (cliente escolhe favoritas)</option>
               <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
+              <option value="multi_selection">Multi-Selecao (formaturas, shows)</option>
             </select>
           </div>
         </div>
