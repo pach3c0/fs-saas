@@ -21,6 +21,8 @@ export function abrirModalClienteNovo(initialName = '', callback = null) {
   document.getElementById('clienteEmail').value = '';
   document.getElementById('clienteTelefone').value = '';
   document.getElementById('clienteCpf').value = '';
+  document.getElementById('clienteBirthDate').value = '';
+  document.getElementById('clienteLastEventType').value = '';
   document.getElementById('clienteTags').value = '';
   document.getElementById('clienteNotas').value = '';
   document.getElementById('modalClienteErro').style.display = 'none';
@@ -38,6 +40,8 @@ export function abrirModalClienteEditar(cliente, callback = null) {
   document.getElementById('clienteEmail').value = cliente.email || '';
   document.getElementById('clienteTelefone').value = cliente.phone || '';
   document.getElementById('clienteCpf').value = cliente.cpf || '';
+  document.getElementById('clienteBirthDate').value = cliente.birthDate ? String(cliente.birthDate).slice(0, 10) : '';
+  document.getElementById('clienteLastEventType').value = cliente.lastEventType || '';
   document.getElementById('clienteTags').value = (cliente.tags || []).join(', ');
   document.getElementById('clienteNotas').value = cliente.notes || '';
   document.getElementById('modalClienteErro').style.display = 'none';
@@ -56,6 +60,8 @@ async function salvarCliente() {
   const email = document.getElementById('clienteEmail').value.trim();
   const telefone = document.getElementById('clienteTelefone').value.trim();
   const cpf = document.getElementById('clienteCpf').value.trim();
+  const birthDate = document.getElementById('clienteBirthDate').value;
+  const lastEventType = document.getElementById('clienteLastEventType').value;
   const tagsRaw = document.getElementById('clienteTags').value;
   const notas = document.getElementById('clienteNotas').value.trim();
   const btnSalvar = document.getElementById('btnSalvarCliente');
@@ -69,7 +75,11 @@ async function salvarCliente() {
   }
 
   const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t);
-  const payload = { name: nome, email, phone: telefone, cpf, notes: notas, tags };
+  const payload = {
+    name: nome, email, phone: telefone, cpf, notes: notas, tags,
+    birthDate: birthDate || null,
+    lastEventType: lastEventType || ''
+  };
 
   btnSalvar.disabled = true;
   const originalText = btnSalvar.textContent;

@@ -12,7 +12,12 @@ const ClientSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   notes: { type: String, default: '' },
   cpf: { type: String, default: '' },
-  tags: [String]
+  tags: [String],
+  // CRM Fase 1: dados de inteligencia de negocio
+  birthDate: { type: Date, default: null },
+  lastEventType: { type: String, default: '' },
+  lastEventDate: { type: Date, default: null },
+  lifetimeValue: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Email unico por organizacao (sparse para permitir email vazio)

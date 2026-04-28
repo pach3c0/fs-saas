@@ -39,9 +39,18 @@ router.get('/clients', authenticateToken, async (req, res) => {
     const countMap = {};
     sessionCounts.forEach(sc => { countMap[sc._id.toString()] = sc.count; });
 
+    // CRM: LTV dinamico = total de fotos extras pagas em sessoes do cliente
+    const ltvAgg = await Session.aggregate([
+      { $match: { organizationId: orgId, clientId: { $in: clientIds }, 'extraRequest.paid': true } },
+      { $group: { _id: '$clientId', total: { $sum: { $size: { $ifNull: ['$extraRequest.photos', []] } } } } }
+    ]);
+    const ltvMap = {};
+    ltvAgg.forEach(l => { ltvMap[l._id.toString()] = l.total; });
+
     const result = clients.map(c => ({
       ...c,
-      sessionCount: countMap[c._id.toString()] || 0
+      sessionCount: countMap[c._id.toString()] || 0,
+      lifetimeValue: ltvMap[c._id.toString()] || 0
     }));
 
     res.json({ success: true, clients: result });
@@ -55,7 +64,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
 router.post('/clients', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, cpf, notes, tags } = req.body;
+    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
@@ -77,7 +86,9 @@ router.post('/clients', authenticateToken, async (req, res) => {
       phone: phone.trim(),
       cpf: cpf.trim(),
       notes: notes ? notes.trim() : '',
-      tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : []
+      tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : [],
+      birthDate: birthDate ? new Date(birthDate) : null,
+      lastEventType: lastEventType ? String(lastEventType).trim() : ''
     });
 
     await client.save();
@@ -95,7 +106,7 @@ router.post('/clients', authenticateToken, async (req, res) => {
 router.put('/clients/:id', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, cpf, notes, tags } = req.body;
+    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
@@ -118,7 +129,9 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
         phone: phone.trim(),
         cpf: cpf.trim(),
         notes: notes ? notes.trim() : '',
-        tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : []
+        tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : [],
+        birthDate: birthDate ? new Date(birthDate) : null,
+        lastEventType: lastEventType ? String(lastEventType).trim() : ''
       },
       { returnDocument: 'after', runValidators: true }
     );
@@ -179,6 +192,99 @@ router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
     res.json({ success: true, sessions });
   } catch (error) {
     req.logger.error('Erro ao buscar sessoes do cliente', { clientId: req.params.id, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/clients/:id/timeline - linha do tempo consolidada do cliente
+// Cruza: cadastro do cliente, sessoes, entregas, compras de fotos extras e
+// gatilhos enviados pelo robo CRM (quando existirem - Fase 2)
+router.get('/clients/:id/timeline', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId;
+
+    const client = await Client.findOne({ _id: req.params.id, organizationId: orgId }).lean();
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente não encontrado' });
+    }
+
+    const sessions = await Session.find({ organizationId: orgId, clientId: req.params.id }).lean();
+
+    const events = [];
+
+    // 1) Cadastro do cliente
+    events.push({
+      at: client.createdAt,
+      icon: '👤',
+      label: 'Cliente cadastrado',
+      sessionId: null
+    });
+
+    // 2) Eventos por sessao
+    for (const s of sessions) {
+      // Sessao criada
+      events.push({
+        at: s.createdAt,
+        icon: '📸',
+        label: `Sessão "${s.name}" criada`,
+        sessionId: s._id
+      });
+
+      // Entregas (deliveryHistory)
+      if (Array.isArray(s.deliveryHistory)) {
+        for (const d of s.deliveryHistory) {
+          if (d.deliveredAt) {
+            const qtd = typeof d.selectedCount === 'number' ? ` (${d.selectedCount} fotos)` : '';
+            events.push({
+              at: d.deliveredAt,
+              icon: '✅',
+              label: `Sessão "${s.name}" entregue${qtd}`,
+              sessionId: s._id
+            });
+          }
+          if (d.reopenedAt) {
+            events.push({
+              at: d.reopenedAt,
+              icon: '🔁',
+              label: `Sessão "${s.name}" reaberta${d.reopenReason ? ` — ${d.reopenReason}` : ''}`,
+              sessionId: s._id
+            });
+          }
+        }
+      }
+
+      // Compra de fotos extras
+      if (s.extraRequest && s.extraRequest.paid) {
+        const qtd = Array.isArray(s.extraRequest.photos) ? s.extraRequest.photos.length : 0;
+        events.push({
+          at: s.extraRequest.respondedAt || s.extraRequest.requestedAt || s.updatedAt,
+          icon: '💰',
+          label: `Cliente comprou ${qtd} foto${qtd !== 1 ? 's' : ''} extra${qtd !== 1 ? 's' : ''} em "${s.name}"`,
+          sessionId: s._id
+        });
+      }
+
+      // Gatilhos do robo CRM (Fase 2 - preparado para quando existir sentTriggers)
+      if (Array.isArray(s.sentTriggers)) {
+        for (const t of s.sentTriggers) {
+          if (t && t.sentAt) {
+            events.push({
+              at: t.sentAt,
+              icon: '📧',
+              label: `Robô enviou "${t.type || t.name || 'gatilho'}"`,
+              sessionId: s._id
+            });
+          }
+        }
+      }
+    }
+
+    // Ordenar desc por data
+    events.sort((a, b) => new Date(b.at) - new Date(a.at));
+
+    res.json({ success: true, client: { _id: client._id, name: client.name }, events });
+  } catch (error) {
+    req.logger.error('Erro ao montar timeline do cliente', { clientId: req.params.id, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
