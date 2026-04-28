@@ -485,9 +485,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Banner de status da solicitação de extras
         let extraStatusBanner = '';
-        if (extraRequest.paid) {
+        if (extraRequest.status === 'accepted') {
             extraStatusBanner = `<div style="background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#166534; font-size:0.875rem;">
-                🎉 Pagamento recebido! Suas fotos extras foram adicionadas com sucesso.
+                🎉 Solicitação aprovada! Suas fotos extras foram adicionadas à sua seleção.
             </div>`;
         } else if (extraRequest.status === 'pending') {
             extraStatusBanner = `<div style="background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:1rem 0; color:#92400e; font-size:0.875rem;">
@@ -929,9 +929,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>`;
 
         let extraStatusBanner = '';
-        if (extraRequest.paid) {
+        if (extraRequest.status === 'accepted') {
             extraStatusBanner = `<div style="grid-column:1/-1; background:#d1fae5; border:1px solid #16a34a; border-radius:0.5rem; padding:0.75rem 1rem; margin:0.75rem 0; color:#166534; font-size:0.875rem;">
-                🎉 Pagamento recebido! Suas fotos extras foram adicionadas com sucesso.
+                🎉 Solicitação aprovada! Suas fotos extras foram adicionadas à sua seleção.
             </div>`;
         } else if (extraRequest.status === 'pending') {
             extraStatusBanner = `<div style="grid-column:1/-1; background:#fef3c7; border:1px solid #d97706; border-radius:0.5rem; padding:0.75rem 1rem; margin:0.75rem 0; color:#92400e; font-size:0.875rem;">
@@ -1550,13 +1550,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Preencher codigo automaticamente via URL (?code=XXXX) — link do email
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromUrl = urlParams.get('code');
-    const paymentStatus = urlParams.get('payment');
-
-    if (paymentStatus === 'success') {
-        showGalleryToast('Pagamento confirmado! Suas fotos extras foram liberadas.', 'success');
-    } else if (paymentStatus === 'failed') {
-        showGalleryToast('Houve um problema com o pagamento. Tente novamente.', 'error');
-    }
 
     if (codeFromUrl && accessCodeInput) {
         accessCodeInput.value = codeFromUrl;

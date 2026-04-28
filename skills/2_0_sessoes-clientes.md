@@ -24,17 +24,60 @@ O sistema é dividido em três frentes que se comunicam através do `organizatio
 
 ```mermaid
 flowchart TD
-    Start(["Início: Nova Sessão"]) --> Upload["Upload de FOTOS"]
-    Upload --> Res{"Resolução: 960/1200/1400/1600px"}
-    Res --> Storage["Storage: Salva Thumb + DELETA Original"]
-    Storage --> Client_Sel["CLIENTE: Seleciona e Finaliza"]
-    Client_Sel --> Edit_Cycle["Admin edita selecionadas via Lightroom"]
-    Edit_Cycle --> Re_Upload["Admin faz RE-UPLOAD das Editadas"]
-    Re_Upload --> Deliver["Admin clica em 'Entregar'"]
-    Deliver --> End(["Status: DELIVERED (Alta liberada)"])
+    %% Definição de Cores Baseada no Design System do Admin
+    classDef admin fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f3f4f6
+    classDef client fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e
+    classDef system fill:#d1fae5,stroke:#16a34a,stroke-width:2px,color:#166534
 
-    style Upload fill:#f3e5f5,stroke:#4a148c
-    style Edit_Cycle fill:#fff3e0,stroke:#e65100
+    Start([Início]) --> CriaSessao["Admin: Cria Sessão (Modo Seleção, Define Limite)"]:::admin
+    CriaSessao --> UpOriginais["Admin: Upload Fotos Originais"]:::admin
+    
+    UpOriginais --> SysThumb["Sistema: Gera Thumbs (sharp), Salva no Disco e Descarta RAW local"]:::system
+    SysThumb --> EnviaLink["Admin: Envia Código de Acesso ao Cliente"]:::admin
+
+    EnviaLink --> CliLogin["Cliente: Acessa Galeria (verify-code)"]:::client
+    CliLogin --> CliSelect["Cliente: Seleciona Fotos (Coração)"]:::client
+    
+    CliSelect --> ValidaMinimo{"Selecionou >= Limite?"}:::system
+    ValidaMinimo -- "Não" --> CliSelect
+    ValidaMinimo -- "Sim" --> CliSubmit["Cliente: Clica 'Finalizar Seleção'"]:::client
+    
+    CliSubmit --> SysSubmit["Sistema: Muda status para 'submitted'"]:::system
+    
+    %% FLUXO DE REABERTURA E EDIÇÃO
+    SysSubmit -- "Muda de ideia" --> CliPedirReabertura["Cliente: Solicita Reabertura"]:::client
+    CliPedirReabertura --> AdminReabre["Admin: Aceita e Reabre Sessão"]:::admin
+    AdminReabre --> SysReopen["Sistema: Status volta p/ 'in_progress'"]:::system
+    SysReopen --> CliSelect
+    
+    SysSubmit --> ExportLR["Admin: Exporta TXT p/ Lightroom (Nomes das Escolhidas)"]:::admin
+    ExportLR --> UpEditadas["Admin: Edita no LR e faz Upload Editadas"]:::admin
+    
+    UpEditadas --> SysMatch{"Match pelo filename original?"}:::system
+    SysMatch -- "Não" --> SysDescarte["Descarta ou Sobe como extra (allowUnmatched)"]:::system
+    SysMatch -- "Sim" --> SysOriginal["Sistema: Salva 'urlOriginal' e Regenera Thumb Editada"]:::system
+    
+    %% ENTREGA FINAL
+    SysOriginal --> ValidaEntrega{"Todas as fotos escolhidas\ntêm urlOriginal?"}:::system
+    ValidaEntrega -- "Não" --> UpEditadas
+    ValidaEntrega -- "Sim" --> AdminEntrega["Admin: Clica em 'Entregar'"]:::admin
+    
+    AdminEntrega --> SysDelivered["Sistema: Status 'delivered', Watermark = false"]:::system
+    SysDelivered --> CliDownload["Cliente: Acessa Galeria e Baixa Alta Resolução (ZIP/Single)"]:::client
+    
+    %% UPSELL (FOTOS EXTRAS)
+    CliDownload --> CliQuerMais{"Cliente quer mais fotos?"}:::client
+    CliQuerMais -- "Sim" --> CliExtra["Cliente: Marca extras e solicita"]:::client
+    CliExtra --> SysExtraPend["Sistema: extraRequest = 'pending'"]:::system
+    
+    SysExtraPend --> AdminAvaliaExtra{"Admin Aceita?"}:::admin
+    AdminAvaliaExtra -- "Recusa" --> SysRejectExtra["Sistema: extraRequest = 'rejected'"]:::system
+    SysRejectExtra --> CliDownload
+    
+    AdminAvaliaExtra -- "Aceita (Pagamento por fora)" --> SysAcceptExtra["Sistema: Adiciona fotos à lista de selectedPhotos"]:::system
+    SysAcceptExtra --> ExportLR
+    
+    CliQuerMais -- "Não" --> Fim([Fim do Fluxo])
 ```
 
 ### 2.2. Diagrama de Sequência (Sequence)
