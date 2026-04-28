@@ -26,7 +26,7 @@ const sessionSchema = new mongoose.Schema({
         validate: [arr => arr.length <= 10000, 'Limite de 10000 fotos por sessão atingido']
     },
     // Modo da sessao
-    mode: { type: String, enum: ['selection', 'gallery', 'multi_selection'], default: 'selection' },
+    mode: { type: String, enum: ['selection', 'gallery', 'multi_selection', 'multi_instant'], default: 'selection' },
     packageLimit: { type: Number, default: 30 },
     extraPhotoPrice: { type: Number, default: 25 },
     // Fluxo de selecao
