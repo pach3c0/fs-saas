@@ -601,7 +601,7 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
 router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
     const { mode, clientId } = req.body;
-    const isMulti = mode === 'multi_selection';
+    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
     // Validar que clientId é obrigatório apenas para non-multi_selection
     if (!isMulti && !clientId) {
