@@ -311,6 +311,44 @@ router.put('/client/select/:sessionId', async (req, res) => {
   }
 });
 
+// CLIENTE: Substituir seleção em bloco (usado pelo "Selecionar Tudo")
+router.post('/client/selection/:sessionId', async (req, res) => {
+  try {
+    const { accessCode, selectedPhotos, participantId } = req.body;
+    if (!Array.isArray(selectedPhotos)) return res.status(400).json({ error: 'selectedPhotos deve ser array' });
+
+    const session = await Session.findOne({ _id: req.params.sessionId, organizationId: req.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+      return res.status(403).json({ error: 'O prazo de seleção expirou' });
+    }
+    if (session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered') {
+      return res.status(403).json({ error: 'A seleção já foi enviada ou entregue' });
+    }
+
+    if (session.mode === 'multi_selection' && participantId) {
+      const participant = session.participants.id(participantId);
+      if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
+      participant.selectedPhotos = selectedPhotos;
+      if (participant.selectionStatus === 'pending' && selectedPhotos.length > 0) {
+        participant.selectionStatus = 'in_progress';
+      }
+    } else {
+      session.selectedPhotos = selectedPhotos;
+      if (session.selectionStatus === 'pending' && selectedPhotos.length > 0) {
+        session.selectionStatus = 'in_progress';
+      }
+    }
+
+    await session.save();
+    res.json({ success: true, selectedCount: selectedPhotos.length });
+  } catch (error) {
+    req.logger ? req.logger.error('Erro bulk select', { error: error.message }) : console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // CLIENTE: Finalizar seleção
 router.post('/client/submit-selection/:sessionId', async (req, res) => {
   try {
@@ -1309,17 +1347,29 @@ router.post('/sessions/check-deadlines', authenticateToken, async (req, res) => 
 // CLIENTE: Download de foto individual (alta resolução)
 router.get('/client/download/:sessionId/:photoId', async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, participantId } = req.query;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
-    if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
-    if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
-      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+
+    // Validar acesso: código da sessão ou participante
+    if (session.mode === 'multi_selection' && participantId) {
+      const participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== code) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+      if (participant.selectionStatus !== 'delivered') {
+        return res.status(403).json({ error: 'Fotos ainda não foram entregues para este participante' });
+      }
+    } else {
+      if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
+      if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+      if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+        return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+      }
     }
 
     const photo = session.photos.find(p => p.id === req.params.photoId);
@@ -1343,25 +1393,44 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
 // CLIENTE: Download de todas as fotos entregues em ZIP
 router.get('/client/download-all/:sessionId', async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, participantId } = req.query;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
-    if (session.mode !== 'gallery' && session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
-    if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
-      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+
+    // Validar acesso: código da sessão ou código de participante
+    let participant = null;
+    if (session.mode === 'multi_selection' && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== code) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+      if (participant.selectionStatus !== 'delivered') {
+        return res.status(403).json({ error: 'Fotos ainda não foram entregues para este participante' });
+      }
+    } else {
+      if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
+      if (session.mode !== 'gallery' && session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
+      if (session.mode === 'gallery' && session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+        return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+      }
     }
 
     // Determinar quais fotos incluir no ZIP
-    // No modo 'selection': só as fotos selecionadas; no modo 'gallery': todas
-    const selectedIds = session.selectedPhotos || [];
-    const photosToZip = session.mode === 'selection'
-      ? session.photos.filter(p => selectedIds.includes(p.id))
-      : session.photos;
+    // No modo 'multi_selection': fotos do participante; 'selection': fotos selecionadas; 'gallery': todas
+    let selectedIds, photosToZip;
+    if (participant) {
+      selectedIds = participant.selectedPhotos || [];
+      photosToZip = session.photos.filter(p => selectedIds.includes(p.id));
+    } else {
+      selectedIds = session.selectedPhotos || [];
+      photosToZip = session.mode === 'selection'
+        ? session.photos.filter(p => selectedIds.includes(p.id))
+        : session.photos;
+    }
 
     if (photosToZip.length === 0) return res.status(404).json({ error: 'Nenhuma foto para download' });
 

@@ -266,3 +266,6 @@ Itens levantados pelo usuario que ainda nao foram implementados. Ao iniciar impl
 | P2 | Config: opcao para habilitar venda de fotos extras pos-entrega | ✅ | Campo `allowExtraPurchasePostSubmit` existe no modal criar/editar sessao e no backend |
 | P3 | Config: opcao para permitir reabertura de sessao pelo cliente | ✅ | Campo `allowReopen` existe no modal criar/editar sessao e validado no backend |
 
+# pendente
+
+No perfil temos como criar marca d'água pra texto e pra imagem eu quero implementar um botão que faça a função dos dois imagem e texto que o texto apareça no meio da imagem nessa fusão aí eu consegui editar por exemplo cópia não autorizada ou que tenha também as funções que tem a marca d'água principal que é ladrilho sequência duplicar várias vezes tem que ver uma forma boa pra fazer a fusão dos dois eu já tenho somente texto tenho somente imagem eu quero um que tenha os dois juntos.

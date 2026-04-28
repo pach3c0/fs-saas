@@ -124,6 +124,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         return p.innerHTML;
     }
 
+    function showGalleryToast(msg, type = 'info') {
+        const colors = { error: '#dc2626', success: '#16a34a', warning: '#d97706', info: '#1a1a1a' };
+        const toast = document.createElement('div');
+        toast.style.cssText = `position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:${colors[type] || colors.info}; color:white; padding:0.75rem 1.25rem; border-radius:0.5rem; font-size:0.875rem; font-weight:600; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.25); max-width:90vw; text-align:center; animation:fadeInUp 0.2s ease;`;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    function showGalleryConfirm(msg) {
+        return new Promise(resolve => {
+            const existing = document.getElementById('galleryConfirmModal');
+            if (existing) existing.remove();
+            const el = document.createElement('div');
+            el.id = 'galleryConfirmModal';
+            el.style.cssText = 'position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;';
+            el.innerHTML = `
+                <div style="position:absolute; inset:0; background:rgba(0,0,0,0.75);"></div>
+                <div style="position:relative; background:white; border-radius:0.75rem; width:100%; max-width:22rem; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+                    <p style="font-size:0.9375rem; color:#111; margin-bottom:1.25rem; line-height:1.5;">${escapeHtml(msg)}</p>
+                    <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                        <button id="gcCancel" style="padding:0.5rem 1rem; background:#f3f4f6; color:#374151; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Cancelar</button>
+                        <button id="gcConfirm" style="padding:0.5rem 1rem; background:#1a1a1a; color:white; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Confirmar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(el);
+            el.querySelector('#gcConfirm').onclick = () => { el.remove(); resolve(true); };
+            el.querySelector('#gcCancel').onclick = () => { el.remove(); resolve(false); };
+        });
+    }
+
     function showLoading(button, text = 'Carregando...') {
         if (button) {
             button.dataset.originalText = button.textContent;
@@ -252,9 +284,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).length;
         }
 
+        const _participantParam = state.isParticipant && state.participantId ? `&participantId=${state.participantId}` : '';
         const downloadAllBtn = isDelivered
-            ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}"
-                  ${pendingCount > 0 ? `onclick="alert('Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição. Elas não estarão em alta qualidade neste arquivo ZIP. Aguarde o aviso de liberação final para baixar o pacote completo.');"` : ''}
+            ? `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}${_participantParam}"
+                  id="downloadAllBtn"
                   style="background:#16a34a; color:white; padding:0.4rem 0.875rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600; text-decoration:none; white-space:nowrap;"
                   download>
                   ⬇ Baixar Todas
@@ -303,6 +336,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 unreadReplies = [];
                 updateClientBell();
                 if (first) openCommentModal(first.photoId);
+            });
+        }
+
+        const dlBtn = document.getElementById('downloadAllBtn');
+        if (dlBtn && pendingCount > 0) {
+            dlBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showGalleryConfirm(`Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição e não estarão em alta qualidade neste arquivo ZIP. Deseja baixar mesmo assim?`)
+                    .then(ok => { if (ok) window.location.href = dlBtn.href; });
             });
         }
     }
@@ -560,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         if (extraRequest.status === 'pending') {
-                            alert('Você já tem uma solicitação pendente. Aguarde a aprovação do fotógrafo.');
+                            showGalleryToast('Você já tem uma solicitação pendente. Aguarde a aprovação do fotógrafo.', 'warning');
                             return;
                         }
                         const id = btn.dataset.extraId;
@@ -610,11 +652,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await res.json();
             if (!result.success) throw new Error(result.error);
 
-            alert('Solicitação de fotos extras enviada com sucesso!');
+            showGalleryToast('Solicitação de fotos extras enviada com sucesso!', 'success');
             await loadSessionData();
 
         } catch (err) {
-            alert('Erro ao enviar solicitação: ' + err.message);
+            showGalleryToast('Erro ao enviar solicitação: ' + err.message, 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Solicitar Extras'; }
         }
     }
@@ -733,7 +775,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderPhotos();
 
         } catch (error) {
-            alert('Erro ao enviar comentário: ' + error.message);
+            showGalleryToast('Erro ao enviar comentário: ' + error.message, 'error');
         } finally {
             hideLoading(btn);
         }
@@ -856,8 +898,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isReady = isGalleryMode || !!photo.urlOriginal;
             const itemWm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, !isReady);
 
+            const _dlParticipantParam = state.isParticipant && state.participantId ? `&participantId=${state.participantId}` : '';
             const overlay = isReady
-                ? `<a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}"
+                ? `<a href="/api/client/download/${state.sessionId}/${photo.id}?code=${encodeURIComponent(state.accessCode)}${_dlParticipantParam}"
                    class="photo-download-overlay"
                    style="position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.5rem; opacity:0; transition:opacity 0.2s; text-decoration:none;"
                    download title="Baixar esta foto">
@@ -981,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (extraRequest.status === 'pending') {
-                        alert('Você já tem uma solicitação pendente. Aguarde a aprovação.');
+                        showGalleryToast('Você já tem uma solicitação pendente. Aguarde a aprovação.', 'warning');
                         return;
                     }
                     const id = btn.dataset.extraId;
@@ -1010,15 +1053,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                         const data = await resp.json();
                         if (data.success) {
-                            alert('Solicitação de fotos extras enviada com sucesso!');
+                            showGalleryToast('Solicitação de fotos extras enviada com sucesso!', 'success');
                             await loadSessionData();
                         } else {
-                            alert(data.error || 'Erro ao processar solicitação.');
+                            showGalleryToast(data.error || 'Erro ao processar solicitação.', 'error');
                             payBtn.disabled = false;
                             payBtn.textContent = 'Solicitar Extras';
                         }
                     } catch (e) {
-                        alert('Erro de conexão. Tente novamente.');
+                        showGalleryToast('Erro de conexão. Tente novamente.', 'error');
                         payBtn.disabled = false;
                         payBtn.textContent = 'Solicitar Extras';
                     }
@@ -1054,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
-            state.isSelectionMode = result.mode === 'selection' && result.selectionStatus !== 'delivered';
+            state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection') && result.selectionStatus !== 'delivered';
 
             // Atualiza texto do botão selecionar tudo
             const selectAllBtn = document.getElementById('selectAllBtn');
@@ -1143,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error("Erro ao inicializar a galeria:", error);
-            alert("Ocorreu um erro ao carregar a galeria. Por favor, recarregue a página e tente novamente.");
+            showGalleryToast('Ocorreu um erro ao carregar a galeria. Por favor, recarregue a página.', 'error');
             loginSection.style.display = 'block';
             gallerySection.style.display = 'none';
         }
@@ -1189,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         } catch (error) {
             // Revert UI on error
-            alert('Erro ao salvar seleção. Tente novamente.');
+            showGalleryToast('Erro ao salvar seleção. Tente novamente.', 'error');
             if (isSelected) {
                 state.selectedPhotos.push(photoId);
                 selectBtn.classList.add('selected');
@@ -1206,13 +1249,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const count = state.selectedPhotos.length;
 
         if (count < limit) {
-            alert(`Ops! Você selecionou ${count} foto(s), mas o seu pacote inclui ${limit} foto(s). \n\nPor favor, selecione pelo menos ${limit} fotos para concluir o envio da sua seleção.`);
+            showGalleryToast(`Você selecionou ${count} foto(s), mas o pacote inclui ${limit}. Selecione pelo menos ${limit} fotos para finalizar.`, 'warning');
             return;
         }
 
-        if (!confirm('Tem certeza que deseja finalizar sua seleção? Após o envio, não será possível fazer alterações sem solicitar ao fotógrafo.')) {
-            return;
-        }
+        const confirmed = await showGalleryConfirm('Tem certeza que deseja finalizar sua seleção? Após o envio, não será possível fazer alterações sem solicitar ao fotógrafo.');
+        if (!confirmed) return;
 
         showLoading(submitSelectionBtn, 'Enviando...');
 
@@ -1234,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderStatusScreen();
 
         } catch (error) {
-            alert('Erro ao enviar seleção: ' + error.message);
+            showGalleryToast('Erro ao enviar seleção: ' + error.message, 'error');
         } finally {
             hideLoading(submitSelectionBtn);
         }
@@ -1259,10 +1301,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const url = `/api/client/selection/${state.sessionId}`;
             const headers = { 'Content-Type': 'application/json' };
-            const body = JSON.stringify({
-                accessCode: state.accessCode,
-                selectedPhotos: state.selectedPhotos
-            });
+            const payload = { accessCode: state.accessCode, selectedPhotos: state.selectedPhotos };
+            if (state.isParticipant && state.participantId) payload.participantId = state.participantId;
+            const body = JSON.stringify(payload);
 
             if (!navigator.onLine) {
                 await queueSyncRequest(url, 'POST', headers, body);
@@ -1342,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await response.json();
             if (!result.success) throw new Error(result.error);
 
-            alert('Seu pedido de reabertura foi enviado ao fotógrafo!');
+            showGalleryToast('Seu pedido de reabertura foi enviado ao fotógrafo!', 'success');
             if (btn) {
                 btn.textContent = 'Pedido Enviado';
                 btn.disabled = true;
@@ -1350,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
         } catch (error) {
-            alert('Erro ao solicitar reabertura: ' + error.message);
+            showGalleryToast('Erro ao solicitar reabertura: ' + error.message, 'error');
             if (btn) hideLoading(btn);
         }
     }
@@ -1512,9 +1553,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const paymentStatus = urlParams.get('payment');
 
     if (paymentStatus === 'success') {
-        alert('🎉 Pagamento confirmado! Suas fotos extras foram liberadas.');
+        showGalleryToast('Pagamento confirmado! Suas fotos extras foram liberadas.', 'success');
     } else if (paymentStatus === 'failed') {
-        alert('❌ Houve um problema com o pagamento. Tente novamente.');
+        showGalleryToast('Houve um problema com o pagamento. Tente novamente.', 'error');
     }
 
     if (codeFromUrl && accessCodeInput) {
