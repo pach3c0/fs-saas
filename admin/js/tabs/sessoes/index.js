@@ -182,6 +182,35 @@ export async function renderSessoes(container) {
             <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
           </div>
 
+          <!-- CRM: classificacao + automacao de vendas -->
+          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">CRM e Vendas</h4>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Tipo de Evento</label>
+              <div class="select-wrap">
+                <select id="sessionEventType" class="select input" disabled>
+                  <option value="outro">Outro</option>
+                  <option value="aniversario">Aniversário</option>
+                  <option value="casamento">Casamento</option>
+                  <option value="formatura">Formatura</option>
+                  <option value="corporativo">Corporativo</option>
+                  <option value="show">Show</option>
+                  <option value="ensaio">Ensaio</option>
+                  <option value="gestante">Gestante</option>
+                  <option value="newborn">Newborn</option>
+                  <option value="debutante">Debutante</option>
+                  <option value="batizado">Batizado</option>
+                </select>
+              </div>
+              <p class="input-hint">Categoria do evento. Usada para reativação anual e relatórios.</p>
+            </div>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="sessionSalesAutomation" checked class="check" disabled>
+              <span style="color:var(--text-primary); font-size:0.875rem;">🤖 Automação de vendas (escassez)</span>
+            </label>
+            <p class="input-hint" style="margin:0;">O robô envia e-mails de urgência ao cliente conforme o prazo se aproxima. Requer ativar a automação na configuração da organização.</p>
+          </div>
+
         </div>
 
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
@@ -322,6 +351,31 @@ export async function renderSessoes(container) {
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editAllowReopen" class="check">
             <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Reabertura de sessão permitida</span>
+          </label>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">CRM e Vendas</h4>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Tipo de Evento</label>
+            <div class="select-wrap">
+              <select id="editEventType" class="select input">
+                <option value="outro">Outro</option>
+                <option value="aniversario">Aniversário</option>
+                <option value="casamento">Casamento</option>
+                <option value="formatura">Formatura</option>
+                <option value="corporativo">Corporativo</option>
+                <option value="show">Show</option>
+                <option value="ensaio">Ensaio</option>
+                <option value="gestante">Gestante</option>
+                <option value="newborn">Newborn</option>
+                <option value="debutante">Debutante</option>
+                <option value="batizado">Batizado</option>
+              </select>
+            </div>
+          </div>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+            <input type="checkbox" id="editSalesAutomation" class="check">
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">🤖 Automação de vendas (escassez)</span>
           </label>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">

@@ -76,6 +76,10 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     container.querySelector('#sessionCreatedAtDate').value = today;
     container.querySelector('#sessionDate').value = '';
     container.querySelector('#sessionDeadline').value = '';
+    const evtSel = container.querySelector('#sessionEventType');
+    if (evtSel) evtSel.value = 'outro';
+    const autoChk = container.querySelector('#sessionSalesAutomation');
+    if (autoChk) autoChk.checked = true;
     newSessionModal.style.display = 'flex';
   };
 
@@ -193,6 +197,8 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase')?.checked || false;
     const allowReopen = container.querySelector('#sessionAllowReopen')?.checked || false;
+    const eventType = container.querySelector('#sessionEventType')?.value || 'outro';
+    const salesAutomationEnabled = container.querySelector('#sessionSalesAutomation')?.checked !== false;
     const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
     let hasError = false;
@@ -238,7 +244,10 @@ function _setupNewSessionModal(container, state, renderSessoes) {
       const payload = {
         name, date, selectionDeadline, mode, packageLimit,
         extraPhotoPrice, coverPhoto,
-        allowExtraPurchasePostSubmit: allowExtraPurchase, allowReopen
+        allowExtraPurchasePostSubmit: allowExtraPurchase, allowReopen,
+        eventType,
+        eventDate: date || null,
+        salesAutomation: { enabled: salesAutomationEnabled, sentTriggers: [] }
       };
 
       // Incluir clientId e clientEmail apenas se não for multi_selection
@@ -336,6 +345,11 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     editCoverPhotoInput.value = session.coverPhoto || '';
     _renderEditCoverPreview(session.coverPhoto || '');
 
+    const editEvtSel = container.querySelector('#editEventType');
+    if (editEvtSel) editEvtSel.value = session.eventType || 'outro';
+    const editAutoChk = container.querySelector('#editSalesAutomation');
+    if (editAutoChk) editAutoChk.checked = session.salesAutomation?.enabled !== false;
+
     editModal.style.display = 'flex';
   };
 
@@ -355,11 +369,15 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     const allowExtraPurchasePostSubmit = container.querySelector('#editAllowExtraPurchase').checked;
     const allowReopen = container.querySelector('#editAllowReopen').checked;
     const coverPhoto = container.querySelector('#editCoverPhoto').value;
+    const eventType = container.querySelector('#editEventType')?.value || 'outro';
+    const salesAutomationEnabled = container.querySelector('#editSalesAutomation')?.checked !== false;
 
     try {
       await apiPut(`/api/sessions/${state.editingSessionId}`, {
         name, mode, selectionDeadline, packageLimit,
-        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen, coverPhoto
+        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen, coverPhoto,
+        eventType,
+        'salesAutomation.enabled': salesAutomationEnabled
       });
       editModal.style.display = 'none';
       state.editingSessionId = null;
