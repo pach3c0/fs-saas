@@ -89,7 +89,23 @@ const sessionSchema = new mongoose.Schema({
         packageLimit: { type: Number, default: 30 },
         submittedAt: Date,
         deliveredAt: Date
-    }]
+    }],
+    // CRM Fase 2: classificacao de evento + automacao de vendas
+    eventType: {
+        type: String,
+        enum: ['aniversario', 'casamento', 'formatura', 'corporativo', 'show', 'ensaio', 'gestante', 'newborn', 'debutante', 'batizado', 'outro'],
+        default: 'outro',
+        index: true
+    },
+    eventDate: { type: Date, default: null },
+    salesAutomation: {
+        enabled: { type: Boolean, default: true },
+        sentTriggers: [{
+            trigger: { type: String }, // ex: scarcity_7d, scarcity_15d, reactivation_90d
+            sentAt: { type: Date, default: Date.now },
+            couponCode: { type: String, default: '' }
+        }]
+    }
 }, { timestamps: true });
 
 // Index composto para busca rápida de sessão por org + código

@@ -202,6 +202,16 @@ const OrganizationSchema = new mongoose.Schema({
       enabled: { type: Boolean, default: false },
       daysWarning: { type: Number, default: 3 }, // quantos dias antes do prazo enviar aviso
       sendEmail: { type: Boolean, default: true }
+    },
+    // CRM Fase 2: motor de vendas automaticas (escassez)
+    salesAutomator: {
+      enabled: { type: Boolean, default: false },
+      scarcity: {
+        enabled: { type: Boolean, default: true },
+        daysSchedule: { type: [Number], default: [7] } // Fatia A: somente 7d. Fatia B: [15,7,3,1]
+      },
+      couponPrefix: { type: String, default: 'CZ' },
+      couponDiscountPercent: { type: Number, default: 10 }
     }
   },
   // Onboarding

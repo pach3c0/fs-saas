@@ -115,6 +115,64 @@ router.get('/onboarding', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/organization/integrations - Configs de integracoes/automacoes
+router.get('/organization/integrations', authenticateToken, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.user.organizationId).select('integrations').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
+    res.json({ success: true, integrations: org.integrations || {} });
+  } catch (error) {
+    req.logger.error('Erro ao buscar integrations', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/organization/integrations - Atualizar integrations (atualmente: salesAutomator)
+router.put('/organization/integrations', authenticateToken, async (req, res) => {
+  try {
+    const { salesAutomator } = req.body;
+    const $set = {};
+
+    if (salesAutomator && typeof salesAutomator === 'object') {
+      if (typeof salesAutomator.enabled === 'boolean') {
+        $set['integrations.salesAutomator.enabled'] = salesAutomator.enabled;
+      }
+      if (salesAutomator.scarcity && typeof salesAutomator.scarcity === 'object') {
+        if (typeof salesAutomator.scarcity.enabled === 'boolean') {
+          $set['integrations.salesAutomator.scarcity.enabled'] = salesAutomator.scarcity.enabled;
+        }
+        if (Array.isArray(salesAutomator.scarcity.daysSchedule)) {
+          $set['integrations.salesAutomator.scarcity.daysSchedule'] = salesAutomator.scarcity.daysSchedule
+            .map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0);
+        }
+      }
+      if (typeof salesAutomator.couponPrefix === 'string') {
+        $set['integrations.salesAutomator.couponPrefix'] = salesAutomator.couponPrefix.trim().slice(0, 8) || 'CZ';
+      }
+      if (typeof salesAutomator.couponDiscountPercent === 'number') {
+        const pct = Math.max(0, Math.min(100, salesAutomator.couponDiscountPercent));
+        $set['integrations.salesAutomator.couponDiscountPercent'] = pct;
+      }
+    }
+
+    if (Object.keys($set).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhuma configuracao valida enviada' });
+    }
+
+    const org = await Organization.findByIdAndUpdate(
+      req.user.organizationId,
+      { $set },
+      { new: true, runValidators: true }
+    ).select('integrations');
+
+    if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
+    res.json({ success: true, integrations: org.integrations });
+  } catch (error) {
+    req.logger.error('Erro ao atualizar integrations', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/onboarding/dismiss - Finalizar onboarding manualmente
 router.post('/onboarding/dismiss', authenticateToken, async (req, res) => {
   try {
