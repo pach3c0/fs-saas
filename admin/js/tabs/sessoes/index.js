@@ -74,99 +74,112 @@ export async function renderSessoes(container) {
       <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:30rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Nova Sessão</h3>
 
-        <div class="input-group" style="position:relative; margin-bottom:0;">
-          <label>Cliente <span style="color:var(--red);">*</span></label>
-          <input type="text" id="clientSearchInput" class="input" autocomplete="off" placeholder="Busque ou cadastre o cliente...">
-          <input type="hidden" id="sessionClientId" value="">
-          <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
-          <p id="clientSearchHint" class="input-hint" style="margin-top:0.25rem;"></p>
-        </div>
-
+        <!-- PRIMEIRO: Modo da Sessão -->
         <div class="input-group" style="margin-bottom:0;">
-          <label>Nome da Sessão <span style="color:var(--red);">*</span></label>
-          <input type="text" id="sessionName" class="input" placeholder="Ex: Ensaio Família Silva">
+          <label>Modo da Sessão <span style="color:var(--red);">*</span></label>
+          <div class="select-wrap">
+            <select id="sessionMode" class="select input">
+              <option value="">Escolher modo de sessão</option>
+              <option value="selection">Seleção — cliente escolhe suas favoritas</option>
+              <option value="gallery">Galeria — cliente visualiza e baixa</option>
+              <option value="multi_selection">Multi-seleção — formaturas, shows, eventos</option>
+            </select>
+          </div>
         </div>
 
-        <div style="border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">📅 Datas</h4>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Criado em</label>
-            <input type="date" id="sessionCreatedAtDate" class="input">
-            <p class="input-hint">Data de abertura da sessão (hoje por padrão).</p>
-          </div>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Data do Evento</label>
-            <input type="date" id="sessionDate" class="input">
-            <p class="input-hint">Quando o ensaio/evento aconteceu.</p>
-          </div>
-          <div class="input-group" style="margin-bottom:0;">
-            <label id="deadlineLabel">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
-            <input type="datetime-local" id="sessionDeadline" class="input">
-            <p class="input-hint">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
-          </div>
-          <p id="dateValidationMsg" style="display:none; font-size:0.75rem; color:var(--red); font-weight:500;"></p>
-        </div>
+        <!-- Wrapper para campos que serão desabilitados até escolher o modo -->
+        <div id="sessionFieldsWrapper" style="display:flex; flex-direction:column; gap:1rem; opacity:0.4; pointer-events:none; transition:opacity 0.2s;">
 
-        <div class="input-group" style="margin-bottom:0;">
-          <label>Foto de Capa</label>
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div id="coverPreview" style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-              <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
-            </div>
-            <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer; color: white !important;">
-              Upload
-              <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;">
-            </label>
-            <div id="coverProgress"></div>
+          <!-- Campo Cliente (oculto em multi_selection) -->
+          <div id="clientRowWrapper" class="input-group" style="position:relative; margin-bottom:0;">
+            <label>Cliente <span style="color:var(--red);">*</span></label>
+            <input type="text" id="clientSearchInput" class="input" disabled autocomplete="off" placeholder="Busque ou cadastre o cliente...">
+            <input type="hidden" id="sessionClientId" value="">
+            <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
+            <p id="clientSearchHint" class="input-hint" style="margin-top:0.25rem;"></p>
           </div>
-          <input type="hidden" id="sessionCoverPhoto" value="">
-        </div>
 
-        <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
+          <!-- Nome da Sessão -->
           <div class="input-group" style="margin-bottom:0;">
-            <label>Modo</label>
-            <div class="select-wrap">
-              <select id="sessionMode" class="select input">
-                <option value="selection">Seleção (cliente escolhe favoritas)</option>
-                <option value="gallery">Galeria (cliente só visualiza/baixa)</option>
-                <option value="multi_selection">Multi-Seleção (formaturas, shows)</option>
-              </select>
-            </div>
+            <label>Nome da Sessão <span style="color:var(--red);">*</span></label>
+            <input type="text" id="sessionName" class="input" disabled placeholder="Ex: Ensaio Família Silva ou Formatura Direito 2026">
           </div>
+
+          <!-- Datas -->
+          <div style="border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+            <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">📅 Datas</h4>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Criado em</label>
+              <input type="date" id="sessionCreatedAtDate" class="input" disabled>
+              <p class="input-hint">Data de abertura da sessão (hoje por padrão).</p>
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Data do Evento</label>
+              <input type="date" id="sessionDate" class="input" disabled>
+              <p class="input-hint">Quando o ensaio/evento aconteceu.</p>
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label id="deadlineLabel">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
+              <input type="datetime-local" id="sessionDeadline" class="input" disabled>
+              <p class="input-hint">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
+            </div>
+            <p id="dateValidationMsg" style="display:none; font-size:0.75rem; color:var(--red); font-weight:500;"></p>
+          </div>
+
+          <!-- Foto de Capa -->
           <div class="input-group" style="margin-bottom:0;">
-            <label>Resolução das fotos de seleção</label>
-            <div class="select-wrap">
-              <select id="sessionResolution" class="select input">
-                <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
-                <option value="1200" selected>1200px — padrão (equilíbrio)</option>
-                <option value="1400">1400px — alta qualidade</option>
-                <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
-              </select>
+            <label>Foto de Capa</label>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div id="coverPreview" style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
+              </div>
+              <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer; color: white !important;">
+                Upload
+                <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;" disabled>
+              </label>
+              <div id="coverProgress"></div>
             </div>
-            <p class="input-hint">Não pode ser alterado após a criação da sessão.</p>
+            <input type="hidden" id="sessionCoverPhoto" value="">
           </div>
-          <div id="selectionFields" style="display:flex; gap:0.75rem;">
-            <div class="input-group" style="flex:1; margin-bottom:0;">
-              <label>Fotos do pacote</label>
-              <input type="number" id="sessionLimit" class="input" value="30" min="1">
+
+          <!-- Configuração da Galeria -->
+          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Resolução das fotos de seleção</label>
+              <div class="select-wrap">
+                <select id="sessionResolution" class="select input" disabled>
+                  <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
+                  <option value="1200" selected>1200px — padrão (equilíbrio)</option>
+                  <option value="1400">1400px — alta qualidade</option>
+                  <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
+                </select>
+              </div>
+              <p class="input-hint">Não pode ser alterado após a criação da sessão.</p>
             </div>
-            <div class="input-group" style="flex:1; margin-bottom:0;">
-              <label>Preço foto extra (R$)</label>
-              <input type="number" id="sessionExtraPrice" class="input" value="25" min="0" step="0.01">
+            <div id="selectionFields" style="display:flex; gap:0.75rem;">
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Fotos do pacote</label>
+                <input type="number" id="sessionLimit" class="input" value="30" min="1" disabled>
+              </div>
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Preço foto extra (R$)</label>
+                <input type="number" id="sessionExtraPrice" class="input" value="25" min="0" step="0.01" disabled>
+              </div>
             </div>
+            <div id="extraConfigFields" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionAllowExtraPurchase" checked class="check" disabled>
+                <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar venda de fotos extras</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionAllowReopen" checked class="check" disabled>
+                <span style="color:var(--text-primary); font-size:0.875rem;">Permitir pedido de reabertura</span>
+              </label>
+            </div>
+            <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
           </div>
-          <div id="extraConfigFields" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
-            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-              <input type="checkbox" id="sessionAllowExtraPurchase" checked class="check">
-              <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar venda de fotos extras</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-              <input type="checkbox" id="sessionAllowReopen" checked class="check">
-              <span style="color:var(--text-primary); font-size:0.875rem;">Permitir pedido de reabertura</span>
-            </label>
-          </div>
-          <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
+
         </div>
 
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">

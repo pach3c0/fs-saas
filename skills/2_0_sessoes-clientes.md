@@ -1,6 +1,6 @@
 # Grupo 2: Sessões de Clientes e CRM
 
-> Documentação consolidada em 2026-04-24. Atualizada em 2026-04-26 (modularização). Atualizada em 2026-04-27 (re-entrega segura + galeria pós-entrega).
+> Documentação consolidada em 2026-04-24. Atualizada em 2026-04-26 (modularização). Atualizada em 2026-04-27 (re-entrega segura + galeria pós-entrega). Atualizada em 2026-04-28 (fluxo de criação: modo como primeiro campo, multi-seleção sem cliente obrigatório).
 > Unifica `Sessões (Admin)`, `Galeria do Cliente (Público)` e `Clientes (CRM)`.
 > Referências frontend: `admin/js/tabs/sessoes.js` (proxy) → `admin/js/tabs/sessoes/` (módulos).
 > Referências backend: `src/routes/sessions.js`, `src/routes/clients.js`.
@@ -245,6 +245,37 @@ Estrutura real em `admin/js/tabs/sessoes/`:
 - **Split Button Inteligente**: O botão de upload alterna automaticamente entre "+ Upload" e "✏️ Subir Editadas" com base no status da sessão, mantendo ambas as funções acessíveis via dropdown.
 - **Validação Pré-Upload (Entrega)**: Antes de iniciar o re-upload de fotos editadas, o sistema realiza uma análise de nomes de arquivos, seleção do cliente e limites de pacote, solicitando confirmação do fotógrafo caso detecte inconsistências ou brindes extras.
 - **Branding Dinâmico**: A galeria pública NUNCA exibe marcas do CliqueZoom; apenas a logo e cores do fotógrafo (`state.session.organization`).
+
+---
+
+## 5.1. Novo Fluxo de Criação de Sessão (2026-04-28)
+
+**Problema resolvido:** O modal de criação pedia "Cliente" como primeiro campo obrigatório, o que não fazia sentido para `multi_selection` (formaturas, shows) onde existem **vários participantes** adicionados depois, não um cliente único.
+
+**Nova abordagem:**
+
+1. **Dropdown "Modo da Sessão"** é o **primeiro campo** — sempre habilitado.
+   - Opções: `""` (placeholder: "Escolher modo de sessão"), `"selection"`, `"gallery"`, `"multi_selection"`.
+
+2. **Desbloqueio Progressivo**: Todos os demais campos (cliente, nome, datas, etc.) iniciam com `disabled` e opacidade `0.4`.
+   - Ao selecionar um modo, os campos são **habilitados** e opacidade volta a `1`.
+
+3. **Comportamento por Modo**:
+   - **Seleção / Galeria**: Campo "Cliente" é **obrigatório** (visível).
+   - **Multi-seleção**: Campo "Cliente" fica **oculto** e **não obrigatório** (display: none). Apenas nome do evento é necessário (ex: "Formatura Direito 2026", "Show de Pagode").
+
+4. **Backend (`POST /api/sessions`)**:
+   - Valida: Se `mode !== 'multi_selection'` e `!clientId`, retorna erro 400.
+   - Multi-seleção pode ser criada com `clientId: null`.
+
+5. **Após Criação**:
+   - **Seleção/Galeria**: Fotógrafo faz upload de fotos imediatamente.
+   - **Multi-seleção**: Fotógrafo clica em "Participantes" para adicionar os clientes individualmente. Cada participante tem seu próprio `accessCode`, `packageLimit` e fluxo de seleção independente.
+
+**Implementação:**
+- `admin/js/tabs/sessoes/index.js` (linhas 72–177): Reordenação HTML do modal, wrapper com `id="sessionFieldsWrapper"`.
+- `admin/js/tabs/sessoes/modal-form.js` (linhas 21–45): Função `modeSelect.onchange()` expanda para habilitar/desabilitar campos progressivamente.
+- `src/routes/sessions.js` (linha 556): Validação de `clientId` condicional ao modo.
 
 ---
 

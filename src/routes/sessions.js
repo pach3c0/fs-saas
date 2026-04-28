@@ -555,6 +555,14 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
 
 router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
+    const { mode, clientId } = req.body;
+    const isMulti = mode === 'multi_selection';
+
+    // Validar que clientId é obrigatório apenas para non-multi_selection
+    if (!isMulti && !clientId) {
+      return res.status(400).json({ error: 'clientId é obrigatório para este modo de sessão' });
+    }
+
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     const session = await Session.create({
       ...req.body,

@@ -12,18 +12,37 @@ export function setupModalForm(container, state, renderSessoes) {
 function _setupNewSessionModal(container, state, renderSessoes) {
   const newSessionModal = container.querySelector('#newSessionModal');
 
-  // Toggle campos de seleção
+  // Elementos do modal
   const modeSelect = container.querySelector('#sessionMode');
+  const fieldsWrapper = container.querySelector('#sessionFieldsWrapper');
+  const clientRowWrapper = container.querySelector('#clientRowWrapper');
   const selectionFields = container.querySelector('#selectionFields');
   const extraConfigFields = container.querySelector('#extraConfigFields');
   const multiHint = container.querySelector('#multiSelectionHint');
   const deadlineLabel = container.querySelector('#deadlineLabel');
+  const allDisabledInputs = fieldsWrapper.querySelectorAll('input, select');
+
   modeSelect.onchange = () => {
-    const isSelection = modeSelect.value === 'selection';
-    const isGallery = modeSelect.value === 'gallery';
-    selectionFields.style.display = isSelection ? 'flex' : 'none';
+    const mode = modeSelect.value;
+    const hasMode = mode !== '';
+    const isSelection = mode === 'selection';
+    const isGallery = mode === 'gallery';
+    const isMulti = mode === 'multi_selection';
+
+    // Habilita/desabilita todos os campos baseado na escolha do modo
+    allDisabledInputs.forEach(input => {
+      input.disabled = !hasMode;
+    });
+    fieldsWrapper.style.opacity = hasMode ? '1' : '0.4';
+    fieldsWrapper.style.pointerEvents = hasMode ? 'auto' : 'none';
+
+    // Oculta campo cliente em multi_selection
+    clientRowWrapper.style.display = isMulti ? 'none' : '';
+
+    // Ajusta campos condicionais
+    selectionFields.style.display = (isSelection || isMulti) ? 'flex' : 'none';
     extraConfigFields.style.display = isSelection ? 'flex' : 'none';
-    multiHint.style.display = modeSelect.value === 'multi_selection' ? 'block' : 'none';
+    multiHint.style.display = isMulti ? 'block' : 'none';
     if (deadlineLabel) deadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
   };
 
@@ -164,27 +183,39 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   container.querySelector('#cancelNewSession').onclick = () => { newSessionModal.style.display = 'none'; };
 
   container.querySelector('#confirmNewSession').onclick = async () => {
+    const mode = container.querySelector('#sessionMode').value;
     const name = container.querySelector('#sessionName').value.trim();
     const clientId = container.querySelector('#sessionClientId').value || null;
     const date = container.querySelector('#sessionDate').value;
     const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
-    const mode = container.querySelector('#sessionMode').value;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase')?.checked || false;
     const allowReopen = container.querySelector('#sessionAllowReopen')?.checked || false;
+    const isMulti = mode === 'multi_selection';
 
     let hasError = false;
+
+    // Validar modo
+    const modeSelect = container.querySelector('#sessionMode');
+    if (!mode) {
+      modeSelect.style.borderColor = 'var(--red)';
+      window.showToast?.('Escolha o modo da sessão para continuar', 'warning');
+      hasError = true;
+    } else { modeSelect.style.borderColor = ''; }
+
+    // Validar nome
     const nameInput = container.querySelector('#sessionName');
     if (!name) {
       nameInput.style.borderColor = 'var(--red)';
-      window.showToast?.('Nome da sessão é obrigatório', 'warning');
+      if (!hasError) window.showToast?.('Nome da sessão é obrigatório', 'warning');
       hasError = true;
     } else { nameInput.style.borderColor = ''; }
 
+    // Validar cliente (obrigatório apenas se não for multi_selection)
     const clientInput = container.querySelector('#clientSearchInput');
-    if (!clientId) {
+    if (!isMulti && !clientId) {
       clientInput.style.borderColor = 'var(--red)';
       if (!hasError) window.showToast?.('Selecione ou cadastre um cliente para continuar', 'warning');
       hasError = true;
@@ -193,19 +224,30 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     if (hasError) return;
     if (!validateDates()) return;
 
+    // Resolver email do cliente (apenas se não for multi_selection)
     let clientEmail = '';
-    try {
-      const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(clientInput.value)}`);
-      const linked = (data.clients || []).find(c => c._id === clientId);
-      if (linked) clientEmail = linked.email || '';
-    } catch (e) { /* silencioso */ }
+    if (!isMulti) {
+      try {
+        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(clientInput.value)}`);
+        const linked = (data.clients || []).find(c => c._id === clientId);
+        if (linked) clientEmail = linked.email || '';
+      } catch (e) { /* silencioso */ }
+    }
 
     try {
-      const result = await apiPost('/api/sessions', {
-        name, clientEmail, date, selectionDeadline, mode, packageLimit,
-        extraPhotoPrice, coverPhoto, clientId,
+      const payload = {
+        name, date, selectionDeadline, mode, packageLimit,
+        extraPhotoPrice, coverPhoto,
         allowExtraPurchasePostSubmit: allowExtraPurchase, allowReopen
-      });
+      };
+
+      // Incluir clientId e clientEmail apenas se não for multi_selection
+      if (!isMulti) {
+        payload.clientId = clientId;
+        payload.clientEmail = clientEmail;
+      }
+
+      const result = await apiPost('/api/sessions', payload);
       newSessionModal.style.display = 'none';
       window.showToast?.(`Sessão criada! Código: ${result.accessCode || result.session?.accessCode}`, 'success', 6000);
       await renderSessoes(container);
