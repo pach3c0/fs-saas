@@ -1097,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
-            state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection') && result.selectionStatus !== 'delivered';
+            state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection' || result.mode === 'multi_instant') && result.selectionStatus !== 'delivered';
 
             // Atualiza texto do botão selecionar tudo
             const selectAllBtn = document.getElementById('selectAllBtn');

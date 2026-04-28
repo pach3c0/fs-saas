@@ -190,7 +190,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     let selectionStatus = session.selectionStatus;
     let packageLimit = session.packageLimit;
 
-    if (session.mode === 'multi_selection' && participantId) {
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const p = session.participants.id(participantId);
       if (p) {
         selectedPhotos = p.selectedPhotos || [];
@@ -260,7 +260,7 @@ router.put('/client/select/:sessionId', async (req, res) => {
     let currentSelection = [];
     let participant = null;
 
-    if (session.mode === 'multi_selection' && participantId) {
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       participant = session.participants.id(participantId);
       if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
       if (!participant.selectedPhotos) participant.selectedPhotos = [];
@@ -327,7 +327,7 @@ router.post('/client/selection/:sessionId', async (req, res) => {
       return res.status(403).json({ error: 'A seleção já foi enviada ou entregue' });
     }
 
-    if (session.mode === 'multi_selection' && participantId) {
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const participant = session.participants.id(participantId);
       if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
       participant.selectedPhotos = selectedPhotos;
@@ -365,11 +365,18 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
     }
 
     let participant = null;
-    if (session.mode === 'multi_selection' && participantId) {
+    let isInstant = false;
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       participant = session.participants.id(participantId);
       if (!participant) return res.status(404).json({ error: 'Participante não encontrado' });
-      participant.selectionStatus = 'submitted';
-      participant.submittedAt = new Date();
+      if (session.mode === 'multi_instant') {
+        participant.selectionStatus = 'delivered';
+        participant.submittedAt = new Date();
+        isInstant = true;
+      } else {
+        participant.selectionStatus = 'submitted';
+        participant.submittedAt = new Date();
+      }
     } else {
       session.selectionStatus = 'submitted';
       session.selectionSubmittedAt = new Date();
@@ -381,10 +388,10 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     try {
       await Notification.create({
-        type: 'selection_submitted',
+        type: isInstant ? 'selection_delivered' : 'selection_submitted',
         sessionId: session._id,
         sessionName: participant ? `${participant.name} (${session.name})` : session.name,
-        message: `${participant ? participant.name : session.name} finalizou a seleção (${selectedCount} fotos)`,
+        message: `${participant ? participant.name : session.name} finalizou a seleção${isInstant ? ' e já recebeu as fotos' : ` (${selectedCount} fotos)`}`,
         organizationId: session.organizationId
       });
     } catch (e) { }
@@ -804,15 +811,18 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
       generatedThumbs.push(thumbPath);
 
-      // Original do upload nao tem valor (sera substituida pela editada via upload-edited).
-      // Deleta do disco, urlOriginal fica vazio ate a re-subida.
-      await storage.deleteFile(originalPath);
+      // No modo galeria (entrega direta), o fotografo ja sobe as fotos em alta resolucao prontas, entao preservamos a original.
+      // No multi_instant (real-time), também preservamos.
+      const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_instant';
+      if (!isGalleryMode) {
+        await storage.deleteFile(originalPath);
+      }
 
       newPhotos.push({
         id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         filename: file.originalname, // Nome original preservado para exportação e Lightroom
         url: `/uploads/${orgId}/sessions/${thumbFilename}`,
-        urlOriginal: '',
+        urlOriginal: isGalleryMode ? `/uploads/${orgId}/sessions/${file.filename}` : '',
         uploadedAt: new Date()
       });
     }
@@ -1356,7 +1366,7 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     // Validar acesso: código da sessão ou participante
-    if (session.mode === 'multi_selection' && participantId) {
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const participant = session.participants.id(participantId);
       if (!participant || participant.accessCode !== code) {
         return res.status(403).json({ error: 'Acesso não autorizado' });
@@ -1403,7 +1413,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 
     // Validar acesso: código da sessão ou código de participante
     let participant = null;
-    if (session.mode === 'multi_selection' && participantId) {
+    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       participant = session.participants.id(participantId);
       if (!participant || participant.accessCode !== code) {
         return res.status(403).json({ error: 'Acesso não autorizado' });

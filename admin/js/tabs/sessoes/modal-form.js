@@ -27,7 +27,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const hasMode = mode !== '';
     const isSelection = mode === 'selection';
     const isGallery = mode === 'gallery';
-    const isMulti = mode === 'multi_selection';
+    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
     // Habilita/desabilita todos os campos baseado na escolha do modo
     allDisabledInputs.forEach(input => {
@@ -193,7 +193,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const coverPhoto = container.querySelector('#sessionCoverPhoto').value;
     const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase')?.checked || false;
     const allowReopen = container.querySelector('#sessionAllowReopen')?.checked || false;
-    const isMulti = mode === 'multi_selection';
+    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
     let hasError = false;
 

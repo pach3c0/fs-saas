@@ -12,13 +12,13 @@ export function setupModalDetail(container, state) {
     const title = container.querySelector('#photosModalTitle');
     const grid = container.querySelector('#sessionPhotosGrid');
 
-    const modeLabels = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-Seleção' };
+    const modeLabels = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-Seleção', multi_instant: 'Multi-Imediata' };
     title.textContent = `Fotos - ${session.name} (${modeLabels[session.mode] || 'Galeria'})`;
 
     const mainBtn = container.querySelector('#mainUploadBtn');
     const secondaryBtn = container.querySelector('#secondaryUploadBtn');
     const tabBar = container.querySelector('#photoTabBar');
-    const isGalleryMode = session.mode === 'gallery';
+    const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_instant';
 
     mainBtn.innerHTML = `<span>+</span> Upload`;
     mainBtn.htmlFor = 'sessionUploadInput';
