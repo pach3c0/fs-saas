@@ -210,6 +210,10 @@ const OrganizationSchema = new mongoose.Schema({
         enabled: { type: Boolean, default: true },
         daysSchedule: { type: [Number], default: [15, 7, 3, 1] } // niveis de gatilho (dias antes do prazo)
       },
+      reactivation: {
+        enabled: { type: Boolean, default: true },
+        daysBeforeAnniversary: { type: [Number], default: [90, 30, 7] }
+      },
       couponPrefix: { type: String, default: 'CZ' },
       couponDiscountPercent: { type: Number, default: 10 }
     }

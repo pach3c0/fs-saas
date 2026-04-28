@@ -186,6 +186,7 @@ const connectWithRetry = async () => {
 const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
 const salesAutomator = require('./utils/salesAutomator');
+const anniversaryAutomator = require('./utils/anniversaryAutomator');
 
 // Evita execuções sobrepostas: se a rodada anterior ainda está em curso, pula o tick
 function safeInterval(fn, ms) {
@@ -217,6 +218,10 @@ function startDeadlineScheduler() {
   // CRM Fase 2 (Fatia A): motor de vendas automaticas — escassez 7d
   safeInterval(() => salesAutomator.run(), SIX_HOURS);
   console.log('[scheduler] Sales automator iniciado (a cada 6h)');
+
+  // CRM Fase 2 (Fatia E): reativacao anual de eventos recorrentes
+  safeInterval(() => anniversaryAutomator.run(), ONE_DAY);
+  console.log('[scheduler] Anniversary automator iniciado (a cada 24h)');
 }
 
 connectWithRetry();

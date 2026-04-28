@@ -778,6 +778,95 @@ async function sendScarcity24hEmail(clientEmail, clientName, sessionName, orgNam
   return sendEmail(clientEmail, subject, html);
 }
 
+/**
+ * Helper: monta corpo HTML padrao de e-mail de reativacao anual com foto-memoria.
+ * Usado pelos 3 niveis (90d, 30d, 7d antes do proximo aniversario do evento).
+ */
+function _buildReactivationHtml({ orgName, headline, body, clientName, sessionName, eventDateStr, memoryPhotoUrl, ctaLabel, contactUrl }) {
+  const memoryBlock = memoryPhotoUrl ? `
+    <div style="text-align:center; margin: 1.25rem 0;">
+      <img src="${memoryPhotoUrl}" alt="${sessionName}" style="max-width:100%; border-radius:0.5rem; border:1px solid #e5e5e5;">
+      <p style="color:#999; font-size:0.75rem; margin:0.5rem 0 0;">Foto de ${sessionName}${eventDateStr ? ` — ${eventDateStr}` : ''}</p>
+    </div>
+  ` : '';
+
+  return `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName}</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">${headline}</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        ${clientName ? `Olá, <strong>${clientName}</strong>! ` : 'Olá! '}${body}
+      </p>
+
+      ${memoryBlock}
+
+      <div style="text-align: center; margin: 1.5rem 0;">
+        <a href="${contactUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          ${ctaLabel}
+        </a>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>${orgName} - Fotografia Profissional</p>
+      </div>
+    </div>
+  `;
+}
+
+function _contactUrl(orgSlug) {
+  return orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br`
+    : (process.env.BASE_URL || 'https://app.cliquezoom.com.br');
+}
+
+/**
+ * E-mail de reativacao 90d: lembramos que faz quase 1 ano do seu evento.
+ */
+async function sendReactivation90dEmail(clientEmail, clientName, sessionName, eventDateStr, orgName, orgSlug, memoryPhotoUrl) {
+  const subject = `Lembra dessa data? Está chegando — ${orgName}`;
+  const html = _buildReactivationHtml({
+    orgName, clientName, sessionName, eventDateStr, memoryPhotoUrl,
+    headline: '📸 Lembra dessa data?',
+    body: `Faz quase um ano que registramos esse momento de <strong>${sessionName}</strong>. Que tal repetir e atualizar essas memórias? Já estou abrindo agendas — quanto antes reservarmos, melhores horários você pega.`,
+    ctaLabel: 'Quero conversar',
+    contactUrl: _contactUrl(orgSlug)
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de reativacao 30d: vamos agendar?
+ */
+async function sendReactivation30dEmail(clientEmail, clientName, sessionName, eventDateStr, orgName, orgSlug, memoryPhotoUrl) {
+  const subject = `Daqui 30 dias é a data — vamos repetir? — ${orgName}`;
+  const html = _buildReactivationHtml({
+    orgName, clientName, sessionName, eventDateStr, memoryPhotoUrl,
+    headline: '🗓️ Faltam 30 dias',
+    body: `Estamos chegando perto da data anual de <strong>${sessionName}</strong>. Bora agendar e marcar mais um capítulo dessa história?`,
+    ctaLabel: 'Reservar agenda',
+    contactUrl: _contactUrl(orgSlug)
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de reativacao 7d: ultima chamada.
+ */
+async function sendReactivation7dEmail(clientEmail, clientName, sessionName, eventDateStr, orgName, orgSlug, memoryPhotoUrl) {
+  const subject = `Está chegando! 7 dias para ${sessionName} — ${orgName}`;
+  const html = _buildReactivationHtml({
+    orgName, clientName, sessionName, eventDateStr, memoryPhotoUrl,
+    headline: '⏰ Última chamada para garantir agenda',
+    body: `Faltam 7 dias para o aniversário de <strong>${sessionName}</strong>. Se quiser repetir o ensaio neste ano, este é o melhor momento — minhas datas estão fechando rápido.`,
+    ctaLabel: 'Reservar agora',
+    contactUrl: _contactUrl(orgSlug)
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -800,5 +889,8 @@ module.exports = {
   sendScarcity15dEmail,
   sendScarcity7dEmail,
   sendScarcity3dEmail,
-  sendScarcity24hEmail
+  sendScarcity24hEmail,
+  sendReactivation90dEmail,
+  sendReactivation30dEmail,
+  sendReactivation7dEmail
 };
