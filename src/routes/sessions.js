@@ -609,8 +609,15 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
     }
 
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    // Evitar CastErrors do Mongoose limpando strings vazias
+    const sessionData = { ...req.body };
+    if (!sessionData.clientId) delete sessionData.clientId;
+    if (!sessionData.date) delete sessionData.date;
+    if (!sessionData.selectionDeadline) delete sessionData.selectionDeadline;
+
     const session = await Session.create({
-      ...req.body,
+      ...sessionData,
       accessCode,
       isActive: true,
       organizationId: req.user.organizationId
@@ -637,9 +644,14 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
 
 router.put('/sessions/:id', authenticateToken, async (req, res) => {
   try {
+    const updateData = { ...req.body };
+    if (updateData.clientId === '') delete updateData.clientId;
+    if (updateData.date === '') updateData.date = null;
+    if (updateData.selectionDeadline === '') updateData.selectionDeadline = null;
+
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
-      req.body,
+      updateData,
       { returnDocument: 'after' }
     );
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });

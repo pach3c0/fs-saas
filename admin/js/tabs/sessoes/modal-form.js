@@ -186,7 +186,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const mode = container.querySelector('#sessionMode').value;
     const name = container.querySelector('#sessionName').value.trim();
     const clientId = container.querySelector('#sessionClientId').value || null;
-    const date = container.querySelector('#sessionDate').value;
+    const date = container.querySelector('#sessionDate').value || null;
     const selectionDeadline = container.querySelector('#sessionDeadline').value || null;
     const packageLimit = parseInt(container.querySelector('#sessionLimit').value) || 30;
     const extraPhotoPrice = parseFloat(container.querySelector('#sessionExtraPrice').value) || 25;
