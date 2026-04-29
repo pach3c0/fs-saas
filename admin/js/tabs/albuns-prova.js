@@ -1,6 +1,13 @@
 // admin/js/tabs/albuns-prova.js
 // Aba Prova de Álbuns — ES Module
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
+import { appState } from '../state.js';
+
+function albumPublicUrl(accessCode) {
+  const slug = appState.orgSlug;
+  const base = slug ? `${window.location.origin}/${slug}` : window.location.origin;
+  return `${base}/album/?code=${accessCode}`;
+}
 
 const pal = {
   bg: 'var(--bg-base)',
@@ -154,7 +161,7 @@ function renderAlbumCard(album, container) {
 
   const btnCopy = makeBtn('Copiar Link', pal.input, pal.primary, pal.primary);
   btnCopy.onclick = () => {
-    const url = `${window.location.origin}/album/?code=${album.accessCode}`;
+    const url = albumPublicUrl(album.accessCode);
     navigator.clipboard?.writeText(url) || fallbackCopy(url);
     btnCopy.textContent = 'Copiado!';
     setTimeout(() => (btnCopy.textContent = 'Copiar Link'), 1500);
@@ -255,15 +262,23 @@ async function openNovoAlbumModal(container) {
           showAccessCode(box, res.album.accessCode);
           await loadAlbums(container);
 
-          // Esconder botões de ação após criar com sucesso
+          // Substituir botões por "Fechar" após criar com sucesso
           const btns = box.querySelector('.modal-btns');
-          if (btns) btns.style.display = 'none';
+          if (btns) {
+            btns.innerHTML = '';
+            const btnClose = makeBtn('Fechar', pal.primary, '#fff', 'none');
+            btnClose.onclick = () => modal.remove();
+            btns.appendChild(btnClose);
+          }
         } else {
           window.showToast?.(res?.error || 'Erro ao criar álbum', 'warning');
         }
       } catch (err) {
-        console.error(err);
-        window.showToast?.('Erro de conexão ao criar álbum', 'error');
+        if (err.upgrade) {
+          window.showToast?.(err.message || 'Limite de álbuns atingido. Faça upgrade do seu plano.', 'warning');
+        } else {
+          window.showToast?.('Erro de conexão ao criar álbum', 'error');
+        }
       }
     },
     saveLabel: 'Criar Álbum',
@@ -328,7 +343,7 @@ async function openPagesEditor(album, container) {
   linkRow.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:12px;';
   const linkInput = document.createElement('input');
   linkInput.readOnly = true;
-  linkInput.value = `${window.location.origin}/album/?code=${fullAlbum.accessCode}`;
+  linkInput.value = albumPublicUrl(fullAlbum.accessCode);
   linkInput.className = 'input';
   const btnCopyLink = makeBtn('Copiar Link', pal.input, pal.primary, pal.primary);
   btnCopyLink.style.fontSize = '0.8rem';
