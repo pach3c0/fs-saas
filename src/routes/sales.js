@@ -62,8 +62,9 @@ router.get('/sales/dashboard', authenticateToken, async (req, res) => {
           sessionName: s.name,
           accessCode: s.accessCode,
           deadline: s.selectionDeadline,
-          // Tentativa simples de detectar se ja foi convertido: cliente comprou extras pagos
-          redeemed: !!(s.extraRequest && s.extraRequest.paid)
+          redeemedAt: t.redeemedAt || null,
+          // Convertido = marcado manualmente OU cliente pagou extras
+          redeemed: !!t.redeemedAt || !!(s.extraRequest && s.extraRequest.paid)
         });
       }
     }
@@ -86,6 +87,38 @@ router.get('/sales/dashboard', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     req.logger.error('Erro ao montar dashboard de vendas', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/sales/coupons/:code/redeem - marca cupom como usado manualmente
+// Como nao ha checkout integrado, o fotografo aciona apos fechar a venda
+// no WhatsApp. Permite alternar (mark/unmark) via flag redeemed do body.
+router.post('/sales/coupons/:code/redeem', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId;
+    const code = req.params.code;
+    const desired = req.body?.redeemed !== false; // default true
+
+    const session = await Session.findOne({
+      organizationId: orgId,
+      'salesAutomation.sentTriggers.couponCode': code
+    });
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Cupom não encontrado' });
+    }
+
+    const trigger = (session.salesAutomation?.sentTriggers || []).find(t => t.couponCode === code);
+    if (!trigger) {
+      return res.status(404).json({ success: false, error: 'Cupom não encontrado na sessão' });
+    }
+
+    trigger.redeemedAt = desired ? new Date() : null;
+    await session.save();
+
+    res.json({ success: true, code, redeemedAt: trigger.redeemedAt });
+  } catch (error) {
+    req.logger.error('Erro ao marcar cupom', { code: req.params.code, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

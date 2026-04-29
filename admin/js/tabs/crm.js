@@ -3,7 +3,7 @@
  * Dashboard de cupons, gatilhos e KPIs do robo de escassez.
  */
 
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPost } from '../utils/api.js';
 import { escapeHtml } from '../utils/helpers.js';
 
 let dashboardData = null;
@@ -132,6 +132,9 @@ function renderCuponsList(cupons) {
         const status = c.redeemed
           ? `<span class="badge badge-success">Convertido</span>`
           : `<span class="badge badge-neutral">Em aberto</span>`;
+        const actionBtn = c.redeemed
+          ? `<button class="btn btn-sm btn-ghost" data-coupon-action="unredeem" data-code="${escapeHtml(c.code)}">Desmarcar</button>`
+          : `<button class="btn btn-sm btn-success" data-coupon-action="redeem" data-code="${escapeHtml(c.code)}">Marcar como usado</button>`;
         return `
           <div style="border:1px solid var(--border); border-radius:0.375rem; padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
             <div style="display:flex; flex-direction:column; gap:0.2rem; min-width:0;">
@@ -140,7 +143,10 @@ function renderCuponsList(cupons) {
                 ${escapeHtml(c.sessionName)} · ${escapeHtml(TRIGGER_LABEL[c.trigger] || c.trigger)} · enviado em ${formatDateTime(c.sentAt)}
               </span>
             </div>
-            ${status}
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              ${status}
+              ${actionBtn}
+            </div>
           </div>
         `;
       }).join('')}
@@ -153,6 +159,22 @@ function setupHandlers(container) {
   enabledChk.onchange = () => {
     enabledChk.nextElementSibling.textContent = enabledChk.checked ? 'Ativado' : 'Desativado';
   };
+
+  container.querySelectorAll('[data-coupon-action]').forEach(btn => {
+    btn.onclick = async () => {
+      const code = btn.dataset.code;
+      const wantRedeemed = btn.dataset.couponAction === 'redeem';
+      btn.disabled = true;
+      try {
+        await apiPost(`/api/sales/coupons/${encodeURIComponent(code)}/redeem`, { redeemed: wantRedeemed });
+        window.showToast?.(wantRedeemed ? 'Cupom marcado como usado!' : 'Cupom voltou para "em aberto"', 'success');
+        await carregar(container);
+      } catch (error) {
+        window.showToast?.('Erro: ' + error.message, 'error');
+        btn.disabled = false;
+      }
+    };
+  });
 
   container.querySelector('#crmSaveBtn').onclick = async (e) => {
     const btn = e.currentTarget;

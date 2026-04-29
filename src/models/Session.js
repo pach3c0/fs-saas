@@ -103,7 +103,8 @@ const sessionSchema = new mongoose.Schema({
         sentTriggers: [{
             trigger: { type: String }, // ex: scarcity_7d, scarcity_15d, reactivation_90d
             sentAt: { type: Date, default: Date.now },
-            couponCode: { type: String, default: '' }
+            couponCode: { type: String, default: '' },
+            redeemedAt: { type: Date, default: null } // marcacao manual de cupom usado
         }]
     }
 }, { timestamps: true });
