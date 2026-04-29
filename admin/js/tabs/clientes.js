@@ -11,6 +11,7 @@ let clientesData = [];
 let searchTerm = '';
 let filterAniversariantes = false;
 let filterEventType = '';
+let selectedClientIds = [];
 
 // Helpers de data
 function formatBirthShort(d) {
@@ -62,6 +63,20 @@ export async function renderClientes(container) {
       <!-- Busca -->
       <div class="input-group" style="margin-bottom:0;">
         <input type="text" id="searchClientes" class="input" placeholder="Buscar por nome, e-mail ou telefone..." value="${searchTerm}">
+      </div>
+
+      <!-- Barra de Ações em Massa -->
+      <div id="bulkActionsBarClientes" style="display:none; justify-content:space-between; align-items:center; background:var(--bg-elevated); padding:0.75rem 1rem; border-radius:0.5rem; border:1px solid var(--border); margin-bottom:1rem;">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--text-primary);">
+          <input type="checkbox" id="selectAllClientes" class="check">
+          <span>Selecionar Tudo</span>
+        </label>
+        <div style="display:flex; gap:0.75rem; align-items:center;">
+          <span id="selectedClientesCount" style="font-size:0.875rem; color:var(--text-secondary);">0 selecionados</span>
+          <button id="btnBulkDeleteClientes" class="btn btn-danger btn-sm">
+            Excluir Selecionados
+          </button>
+        </div>
       </div>
 
       <!-- Lista -->
@@ -157,25 +172,31 @@ function renderLista(container) {
       ? `<span class="badge badge-neutral">${escapeHtml(c.lastEventType)}</span>`
       : '';
 
+    const isSelected = selectedClientIds.includes(c._id);
+
     return `
     <div class="cliente-item" data-id="${c._id}"
-      style="border:1px solid var(--border); border-radius:0.5rem; padding:1rem 1.25rem; background:var(--bg-surface); margin-bottom:0.75rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+      style="border:1px solid var(--border); border-radius:0.5rem; padding:1rem 1.25rem; background:var(--bg-surface); margin-bottom:0.75rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; position:relative; ${isSelected ? 'border-color:var(--accent); background:var(--bg-elevated);' : ''}">
 
-      <div style="flex:1; min-width:200px;">
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-          <span style="font-weight:600; color:var(--text-primary); font-size:1rem;">${escapeHtml(c.name)}</span>
-          ${eventBlock}
-          ${(c.tags && c.tags.length > 0) ? c.tags.map(t => `<span class="badge badge-neutral">${escapeHtml(t)}</span>`).join('') : ''}
-          ${badgeAniv}
+      <div style="display:flex; align-items:center; gap:1rem; flex:1; min-width:200px;">
+        <input type="checkbox" data-select-cliente="${c._id}" class="check" ${isSelected ? 'checked' : ''} style="transform:scale(1.1);">
+        
+        <div style="flex:1;">
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <span style="font-weight:600; color:var(--text-primary); font-size:1rem;">${escapeHtml(c.name)}</span>
+            ${eventBlock}
+            ${(c.tags && c.tags.length > 0) ? c.tags.map(t => `<span class="badge badge-neutral">${escapeHtml(t)}</span>`).join('') : ''}
+            ${badgeAniv}
+          </div>
+          <div style="display:flex; gap:1.5rem; margin-top:0.375rem; flex-wrap:wrap;">
+            ${c.email ? `<span style="color:var(--text-muted); font-size:0.8rem;">✉ ${escapeHtml(c.email)}</span>` : ''}
+            ${c.phone ? `<span style="color:var(--text-muted); font-size:0.8rem;">📱 ${escapeHtml(c.phone)}</span>` : ''}
+            ${birthBlock}
+            <span style="color:var(--text-muted); font-size:0.8rem;">📁 ${c.sessionCount || 0} sessão${c.sessionCount !== 1 ? 's' : ''}</span>
+            ${ltvBlock}
+          </div>
+          ${c.notes ? `<p style="color:var(--text-muted); font-size:0.8rem; margin:0.375rem 0 0; font-style:italic;">${escapeHtml(c.notes.substring(0, 100))}${c.notes.length > 100 ? '...' : ''}</p>` : ''}
         </div>
-        <div style="display:flex; gap:1.5rem; margin-top:0.375rem; flex-wrap:wrap;">
-          ${c.email ? `<span style="color:var(--text-muted); font-size:0.8rem;">✉ ${escapeHtml(c.email)}</span>` : ''}
-          ${c.phone ? `<span style="color:var(--text-muted); font-size:0.8rem;">📱 ${escapeHtml(c.phone)}</span>` : ''}
-          ${birthBlock}
-          <span style="color:var(--text-muted); font-size:0.8rem;">📁 ${c.sessionCount || 0} sessão${c.sessionCount !== 1 ? 's' : ''}</span>
-          ${ltvBlock}
-        </div>
-        ${c.notes ? `<p style="color:var(--text-muted); font-size:0.8rem; margin:0.375rem 0 0; font-style:italic;">${escapeHtml(c.notes.substring(0, 100))}${c.notes.length > 100 ? '...' : ''}</p>` : ''}
       </div>
 
       <div style="display:flex; gap:0.5rem; flex-shrink:0; flex-wrap:wrap;">
@@ -203,6 +224,71 @@ function renderLista(container) {
   lista.querySelectorAll('[data-ver-timeline]').forEach(btn => {
     btn.onclick = () => verTimelineCliente(container, btn.dataset.verTimeline);
   });
+
+  // Checkboxes de seleção
+  lista.querySelectorAll('[data-select-cliente]').forEach(chk => {
+    chk.onchange = () => toggleSelectClient(container, chk.dataset.selectCliente);
+  });
+
+  updateBulkActionsBar(container, filtrados);
+}
+
+function updateBulkActionsBar(container, filtradosVisiveis) {
+  const bar = container.querySelector('#bulkActionsBarClientes');
+  const countSpan = container.querySelector('#selectedClientesCount');
+  const selectAllChk = container.querySelector('#selectAllClientes');
+
+  if (!bar || !countSpan || !selectAllChk) return;
+
+  const count = selectedClientIds.length;
+  bar.style.display = count > 0 ? 'flex' : 'none';
+  countSpan.textContent = `${count} selecionado${count !== 1 ? 's' : ''}`;
+
+  // Sincronizar select all (so se todos os visiveis estiverem selecionados)
+  const idsVisiveis = filtradosVisiveis.map(c => c._id);
+  const todosSelecionados = idsVisiveis.length > 0 && idsVisiveis.every(id => selectedClientIds.includes(id));
+  selectAllChk.checked = todosSelecionados;
+}
+
+function toggleSelectClient(container, id) {
+  if (selectedClientIds.includes(id)) {
+    selectedClientIds = selectedClientIds.filter(cid => cid !== id);
+  } else {
+    selectedClientIds.push(id);
+  }
+  renderLista(container);
+}
+
+function toggleSelectAll(container) {
+  // Pegamos os filtrados atuais (precisamos recalcular ou passar)
+  // Como renderLista ja faz o filtro, podemos extrair os IDs do DOM ou refiltrar
+  const term = searchTerm.toLowerCase();
+  const filtrados = clientesData.filter(c => {
+    if (term) {
+      const matchTerm = (c.name || '').toLowerCase().includes(term) ||
+        (c.email || '').toLowerCase().includes(term) ||
+        (c.phone || '').toLowerCase().includes(term);
+      if (!matchTerm) return false;
+    }
+    if (filterAniversariantes && !aniversarioNoMes(c.birthDate)) return false;
+    if (filterEventType && c.lastEventType !== filterEventType) return false;
+    return true;
+  });
+
+  const idsVisiveis = filtrados.map(c => c._id);
+  const todosSelecionados = idsVisiveis.every(id => selectedClientIds.includes(id));
+
+  if (todosSelecionados) {
+    // Desmarcar apenas os visiveis
+    selectedClientIds = selectedClientIds.filter(id => !idsVisiveis.includes(id));
+  } else {
+    // Adicionar os visiveis que ainda nao estao
+    idsVisiveis.forEach(id => {
+      if (!selectedClientIds.includes(id)) selectedClientIds.push(id);
+    });
+  }
+
+  renderLista(container);
 }
 
 function setupEventos(container) {
@@ -240,6 +326,16 @@ function setupEventos(container) {
   container.querySelector('#btnFecharTimeline').onclick = () => {
     container.querySelector('#modalTimelineCliente').style.display = 'none';
   };
+
+  // Selecionar tudo
+  container.querySelector('#selectAllClientes').onchange = () => {
+    toggleSelectAll(container);
+  };
+
+  // Botão excluir em massa
+  container.querySelector('#btnBulkDeleteClientes').onclick = () => {
+    deletarClientesEmMassa(container);
+  };
 }
 
 function abrirModalEditar(container, id) {
@@ -274,6 +370,27 @@ async function deletarCliente(container, id) {
     renderLista(container);
   } catch (error) {
     window.showToast?.('Erro: ' + error.message, 'error');
+  }
+}
+
+async function deletarClientesEmMassa(container) {
+  const count = selectedClientIds.length;
+  if (count === 0) return;
+
+  const confirmado = await window.showConfirm?.(`Excluir ${count} cliente${count !== 1 ? 's' : ''} selecionado${count !== 1 ? 's' : ''}? Esta ação desvinculará as sessões associadas, mas não as excluirá.`);
+  if (!confirmado) return;
+
+  try {
+    await apiDelete('/api/clients/bulk', { ids: selectedClientIds });
+    
+    // Remover da lista local
+    clientesData = clientesData.filter(c => !selectedClientIds.includes(c._id));
+    selectedClientIds = []; // Limpar selecao
+    
+    window.showToast?.(`${count} cliente${count !== 1 ? 's' : ''} excluído${count !== 1 ? 's' : ''} com sucesso.`, 'success');
+    renderLista(container);
+  } catch (error) {
+    window.showToast?.('Erro ao excluir clientes: ' + error.message, 'error');
   }
 }
 

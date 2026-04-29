@@ -37,6 +37,8 @@ test.describe('CRM — Gerenciamento de Clientes (LOCAL)', () => {
     await page.locator('#btnNovoCliente').click();
     await page.locator('#clienteNome').fill(clientName);
     await page.locator('#clienteEmail').fill(clientEmail);
+    await page.locator('#clienteTelefone').fill('11999999999');
+    await page.locator('#clienteCpf').fill('000.000.000-00');
     await page.locator('#btnSalvarCliente').click();
     await expect(page.locator('#modalCliente')).not.toBeVisible({ timeout: 10000 });
 
@@ -68,4 +70,5 @@ test.describe('CRM — Gerenciamento de Clientes (LOCAL)', () => {
     
     await expect(page.locator('#clientesLista')).not.toContainText(newName, { timeout: 15000 });
   });
+
 });

@@ -174,6 +174,38 @@ router.delete('/clients/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE /api/clients/bulk - deletar múltiplos clientes
+router.delete('/clients/bulk', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'Lista de IDs inválida' });
+    }
+
+    // 1. Verificar se todos os clientes pertencem à organização
+    const count = await Client.countDocuments({ _id: { $in: ids }, organizationId: orgId });
+    if (count !== ids.length) {
+      return res.status(403).json({ success: false, error: 'Um ou mais clientes não pertencem à sua organização ou não existem' });
+    }
+
+    // 2. Desvincular sessões de todos os clientes selecionados
+    await Session.updateMany(
+      { organizationId: orgId, clientId: { $in: ids } },
+      { $unset: { clientId: '' } }
+    );
+
+    // 3. Excluir os clientes
+    await Client.deleteMany({ _id: { $in: ids }, organizationId: orgId });
+
+    res.json({ success: true, deletedCount: count });
+  } catch (error) {
+    req.logger.error('Erro ao deletar clientes em massa', { ids: req.body.ids, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/clients/:id/sessions - sessoes do cliente
 router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
   try {
