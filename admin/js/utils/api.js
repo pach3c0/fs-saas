@@ -16,7 +16,23 @@ async function apiRequest(method, url, body = null) {
     ...(body && { body: body instanceof FormData ? body : JSON.stringify(body) })
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('organizationId');
+    window.showToast?.('Sua sessão expirou. Faça login novamente.', 'warning', 0);
+    window.location.reload();
+    return;
+  }
+
+  if (res.status === 403) {
+    const body = await res.json().catch(() => ({}));
+    if (body.upgrade) {
+      const error = new Error(body.error || 'Limite do plano atingido');
+      error.status = 403;
+      error.upgrade = true;
+      throw error;
+    }
+    // 403 sem upgrade = acesso negado (token inválido)
     localStorage.removeItem('authToken');
     localStorage.removeItem('organizationId');
     window.showToast?.('Sua sessão expirou. Faça login novamente.', 'warning', 0);
