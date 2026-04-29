@@ -150,30 +150,6 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/clients/:id - deletar cliente (remove clientId das sessoes vinculadas)
-router.delete('/clients/:id', authenticateToken, async (req, res) => {
-  try {
-    const orgId = req.user.organizationId;
-
-    const client = await Client.findOne({ _id: req.params.id, organizationId: orgId });
-    if (!client) {
-      return res.status(404).json({ success: false, error: 'Cliente não encontrado' });
-    }
-
-    // Desvincular sessoes
-    await Session.updateMany(
-      { organizationId: orgId, clientId: req.params.id },
-      { $unset: { clientId: '' } }
-    );
-
-    await client.deleteOne();
-    res.json({ success: true });
-  } catch (error) {
-    req.logger.error('Erro ao deletar cliente', { clientId: req.params.id, error: error.message });
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // DELETE /api/clients/bulk - deletar múltiplos clientes
 router.delete('/clients/bulk', authenticateToken, async (req, res) => {
   try {
@@ -201,7 +177,41 @@ router.delete('/clients/bulk', authenticateToken, async (req, res) => {
 
     res.json({ success: true, deletedCount: count });
   } catch (error) {
-    req.logger.error('Erro ao deletar clientes em massa', { ids: req.body.ids, error: error.message });
+    if (req.logger) {
+      req.logger.error('Erro ao deletar clientes em massa', { ids: req.body?.ids, error: error.message });
+    } else {
+      console.error('Erro ao deletar clientes em massa:', error);
+    }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/clients/:id - deletar um cliente
+router.delete('/clients/:id', authenticateToken, async (req, res) => {
+  try {
+    const orgId = req.user.organizationId;
+    const clientId = req.params.id;
+
+    const client = await Client.findOne({ _id: clientId, organizationId: orgId });
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente não encontrado' });
+    }
+
+    // Desvincular sessões deste cliente (sem deletar as sessões)
+    await Session.updateMany(
+      { organizationId: orgId, clientId: clientId },
+      { $unset: { clientId: '' } }
+    );
+
+    await Client.deleteOne({ _id: clientId, organizationId: orgId });
+
+    res.json({ success: true });
+  } catch (error) {
+    if (req.logger) {
+      req.logger.error('Erro ao deletar cliente', { clientId: req.params.id, error: error.message });
+    } else {
+      console.error('Erro ao deletar cliente:', error);
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });
