@@ -1,12 +1,9 @@
 // admin/js/tabs/albuns-prova.js
 // Aba Prova de Álbuns — ES Module
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
-import { appState } from '../state.js';
 
 function albumPublicUrl(accessCode) {
-  const slug = appState.orgSlug;
-  const base = slug ? `${window.location.origin}/${slug}` : window.location.origin;
-  return `${base}/album/?code=${accessCode}`;
+  return `${window.location.origin}/album/?code=${accessCode}`;
 }
 
 const pal = {
