@@ -1,26 +1,71 @@
 # Arquivos e pastas ignorados pelo Claude para economizar contexto
 
+# Controle de Versão
+.git/
+
+# Configurações e Segredos
+.env
+.env.*
+!.env.example
+
 # Dependências
 node_modules/
+.venv/
+bower_components/
 
-# Uploads de usuários (binários, imagens)
+# Ferramentas de IA (Arquivos internos)
+.claude/
+.agents/
+scratch/
+
+# Uploads e Mídia (Binários pesados)
 uploads/
+assets/*.png
+assets/*.jpg
+assets/*.jpeg
+assets/*.gif
+assets/*.svg
+assets/*.ico
+assets/*.pdf
+*.srt
+*.mp4
+*.webm
+*.zip
+*.gz
+*.tar
 
-# Build e assets gerados
-assets/css/tailwind.css
+# Build e Assets Gerados
 public/
+dist/
+build/
+out/
+assets/css/tailwind.css
+playwright-report/
+test-results/
 
-# Logs e temporários
+# Logs e Temporários
+logs/
 *.log
 *.tmp
+*.temp
+tmp/
+temp/
 .DS_Store
+**/.DS_Store
+.npm/
+.eslintcache
 
-# Arquivos de lock (raramente precisam ser lidos)
+# Arquivos de lock
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Documentos de arquitetura legados (substituídos pelo CLAUDE.md)
+# Documentos de arquitetura legados ou duplicados (conforme CLAUDE.md)
 ARCHITECTURE.md
 PROJECT_OVERVIEW.md
 Organization.js
 gallery.js
 perfil.js
+cliquezoom_logo_animacao.srt
+
+

@@ -19,16 +19,32 @@ const pal = {
 };
 
 const STATUS = {
-  draft:              { color: '#6b7280', label: 'Rascunho' },
-  sent:               { color: '#2563eb', label: 'Enviado' },
+  draft: { color: '#6b7280', label: 'Rascunho' },
+  sent: { color: '#2563eb', label: 'Enviado' },
   revision_requested: { color: '#dc2626', label: 'Revisão solicitada' },
-  approved:           { color: '#16a34a', label: 'Aprovado ✓' },
+  approved: { color: '#16a34a', label: 'Aprovado ✓' },
 };
 
 const PAGE_STATUS = {
-  awaiting_review:    { color: '#6b7280', label: 'Aguardando' },
-  approved:           { color: '#16a34a', label: 'Aprovada ✓' },
+  awaiting_review: { color: '#6b7280', label: 'Aguardando' },
+  approved: { color: '#16a34a', label: 'Aprovada ✓' },
   revision_requested: { color: '#dc2626', label: 'Revisão' },
+};
+
+const LAYOUT_SLOTS = {
+  'single': 1,
+  'double-horizontal': 2,
+  'double-vertical': 2,
+  'triple': 3,
+  'quad': 4
+};
+
+const LAYOUT_LABELS = {
+  'single': '1 Foto (Página Inteira)',
+  'double-horizontal': '2 Fotos (Horizontal)',
+  'double-vertical': '2 Fotos (Vertical)',
+  'triple': '3 Fotos (Destaque)',
+  'quad': '4 Fotos (Grade)'
 };
 
 let albums = [];
@@ -151,7 +167,8 @@ function renderAlbumCard(album, container) {
       window.showToast?.('Adicione pelo menos uma página antes de enviar.', 'warning');
       return;
     }
-    if (!confirm('Enviar álbum para aprovação do cliente?')) return;
+    const ok = await window.showConfirm('Enviar álbum para aprovação do cliente?');
+    if (!ok) return;
     await apiPost(`/api/albums/${album._id}/send`);
     await loadAlbums(container);
   };
@@ -170,7 +187,8 @@ function renderAlbumCard(album, container) {
 
   const btnDel = makeBtn('Excluir', 'none', pal.del, 'none');
   btnDel.onclick = async () => {
-    if (!confirm(`Excluir o álbum "${album.name}"?`)) return;
+    const ok = await window.showConfirm(`Excluir o álbum "${album.name}"?`, { danger: true });
+    if (!ok) return;
     await apiDelete(`/api/albums/${album._id}`);
     await loadAlbums(container);
   };
@@ -225,19 +243,40 @@ async function openNovoAlbumModal(container) {
         inputNome.style.border = `2px solid ${pal.del}`;
         return;
       }
-      const res = await apiPost('/api/albums', {
-        name: nome,
-        welcomeText: inputWelcome.value,
-        sessionId: select.value || undefined,
-      });
-      if (res.success && res.album) {
-        // Mostrar código de acesso gerado
-        showAccessCode(box, res.album.accessCode);
-        await loadAlbums(container);
+      inputNome.style.border = `1px solid ${pal.border}`;
+
+      const payload = { name: nome, welcomeText: inputWelcome.value };
+      if (select.value) payload.sessionId = select.value;
+
+      try {
+        const res = await apiPost('/api/albums', payload);
+        if (res && res.success && res.album) {
+          // Mostrar código de acesso gerado
+          showAccessCode(box, res.album.accessCode);
+          await loadAlbums(container);
+
+          // Esconder botões de ação após criar com sucesso
+          const btns = box.querySelector('.modal-btns');
+          if (btns) btns.style.display = 'none';
+        } else {
+          window.showToast?.(res?.error || 'Erro ao criar álbum', 'warning');
+        }
+      } catch (err) {
+        console.error(err);
+        window.showToast?.('Erro de conexão ao criar álbum', 'error');
       }
     },
     saveLabel: 'Criar Álbum',
     cancel: () => modal.remove(),
+  });
+
+  // Permite salvar pressionando "Enter" no teclado de forma segura
+  inputNome.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const saveBtn = box.querySelector('.modal-btns button');
+      if (saveBtn) saveBtn.click();
+    }
   });
 
   document.body.appendChild(modal);
@@ -260,7 +299,7 @@ async function openPagesEditor(album, container) {
   try {
     const res = await apiGet(`/api/albums/${album._id}`);
     if (res.success) fullAlbum = res.album;
-  } catch (e) {}
+  } catch (e) { }
 
   // Buscar fotos da sessão vinculada
   let sessionPhotos = [];
@@ -269,7 +308,7 @@ async function openPagesEditor(album, container) {
     try {
       const res = await apiGet(`/api/sessions/${sid}`);
       sessionPhotos = res.session?.photos || [];
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const modal = createModal(true); // wide
@@ -459,7 +498,8 @@ async function openPagesEditor(album, container) {
       window.showToast?.('Adicione pelo menos uma página antes de enviar.', 'warning');
       return;
     }
-    if (!confirm('Enviar álbum para aprovação do cliente?')) return;
+    const ok = await window.showConfirm('Enviar álbum para aprovação do cliente?');
+    if (!ok) return;
     await apiPost(`/api/albums/${fullAlbum._id}/send`);
     modal.remove();
     await loadAlbums(container);
@@ -522,7 +562,13 @@ function addModalButtons(box, { save, saveLabel = 'Salvar', cancel }) {
 
   const btnSave = makeBtn(saveLabel, pal.primary, '#fff', 'none');
   btnSave.style.fontWeight = 'bold';
-  btnSave.onclick = save;
+  btnSave.onclick = async () => {
+    if (window.withSaveLoading) {
+      await window.withSaveLoading(btnSave, save);
+    } else {
+      await save();
+    }
+  };
 
   const btnCancel = makeBtn('Cancelar', 'none', pal.text2, 'none');
   btnCancel.onclick = cancel;
@@ -533,6 +579,7 @@ function addModalButtons(box, { save, saveLabel = 'Salvar', cancel }) {
 
 function makeBtn(text, bg, color, border) {
   const btn = document.createElement('button');
+  btn.type = 'button'; // Previne o comportamento padrão de submit (que recarrega a página e perde a sessão)
   btn.textContent = text;
   btn.style.cssText = `background:${bg};color:${color};border:1px solid ${border};padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.875rem;`;
   return btn;
@@ -544,6 +591,6 @@ function fallbackCopy(text) {
   ta.style.cssText = 'position:fixed;opacity:0;';
   document.body.appendChild(ta);
   ta.select();
-  try { document.execCommand('copy'); } catch (e) {}
+  try { document.execCommand('copy'); } catch (e) { }
   ta.remove();
 }
