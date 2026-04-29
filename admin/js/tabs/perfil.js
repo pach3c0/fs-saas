@@ -76,11 +76,14 @@ function updateWatermarkPreview(container) {
       watermarkEl.style.backgroundSize = sizeValue;
     } else if (type === 'both' && organizationData.logo) {
       const logoUrl = resolveImagePath(organizationData.logo);
-      const sizeValue = { small: '100px', medium: '150px', large: '200px' }[size];
+      const logoSize = { small: '60px', medium: '90px', large: '120px' }[size];
       const fontSize = { small: 14, medium: 20, large: 28 }[size];
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="rgba(255,255,255,0.7)" transform="rotate(-30 125 100)">${escapeHtml(text || organizationData.name)}</text></svg>`;
+      // Texto repete; logo fica como marca unica no canto inferior direito
       watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}"), url(${logoUrl})`;
-      watermarkEl.style.backgroundSize = `250px 200px, ${sizeValue}`;
+      watermarkEl.style.backgroundSize = `250px 200px, ${logoSize}`;
+      watermarkEl.style.backgroundRepeat = 'repeat, no-repeat';
+      watermarkEl.style.backgroundPosition = 'center, bottom 1rem right 1rem';
     } else {
       const fontSize = { small: 14, medium: 20, large: 28 }[size];
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}" fill="rgba(255,255,255,0.7)" transform="rotate(-30 125 100)">${escapeHtml(text || organizationData.name)}</text></svg>`;

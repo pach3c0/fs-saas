@@ -213,8 +213,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const bgStyle = `background-image:url(${logoUrl}); background-size:${{ small: '100px', medium: '150px', large: '200px' }[size] || '150px'}; background-repeat:repeat; background-position:center;`;
                 return { style: baseStyle + bgStyle, innerHTML: '' };
             } else if (type === 'both' && logoUrl) {
-                const bgSize = { small: '100px', medium: '150px', large: '200px' }[size] || '150px';
-                const hybridStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)}, url(${logoUrl}); background-size: 250px 200px, ${bgSize}; background-repeat: repeat, repeat; background-position: center, center;`;
+                // Texto repete sobre toda a imagem; logo aparece como marca unica
+                // no canto inferior direito para evitar clash entre tiles.
+                const logoSize = { small: '60px', medium: '90px', large: '120px' }[size] || '90px';
+                const hybridStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)}, url(${logoUrl}); background-size: 250px 200px, ${logoSize}; background-repeat: repeat, no-repeat; background-position: center, bottom 1rem right 1rem;`;
                 return { style: baseStyle + hybridStyle, innerHTML: '' };
             } else {
                 const bgStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)};`;
