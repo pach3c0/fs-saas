@@ -104,26 +104,37 @@ app.get('/site', async (req, res) => {
       theme = req.query._preview_theme;
     } else {
       const tenant = req.query._tenant || req.headers['x-tenant'];
-      const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
-      const hostname = req.hostname;
-      const subdomain = hostname.replace(`.${baseDomain}`, '');
-      const ownerSlug = process.env.OWNER_SLUG || 'fs';
+      const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
+      const hostname = req.hostname.toLowerCase();
+      const subdomain = hostname.endsWith(`.${baseDomain}`) ? hostname.replace(`.${baseDomain}`, '') : null;
+      const ownerSlug = (process.env.OWNER_SLUG || 'fs').trim();
 
-      // Candidatos em ordem de prioridade: tenant header/query → subdomínio → fallback owner
-      const candidates = [
+      // Candidatos em ordem de prioridade para slug: tenant header/query → subdomínio → fallback owner
+      const slugCandidates = [
         tenant,
         (subdomain && subdomain !== hostname && subdomain !== 'app') ? subdomain : null,
         ownerSlug
       ].filter(Boolean);
 
-      // Uma única query — prioridade respeitada em JS após resultado
-      const orgs = await Organization.find({ slug: { $in: candidates } })
-        .select('_id siteTheme slug')
-        .lean();
+      // Busca por slug OU por domínio customizado
+      const orgs = await Organization.find({
+        $or: [
+          { slug: { $in: slugCandidates } },
+          { customDomain: hostname }
+        ]
+      })
+      .select('_id siteTheme slug customDomain')
+      .lean();
 
-      // Reordenar conforme prioridade dos candidatos
-      const bySlug = Object.fromEntries(orgs.map(o => [o.slug, o]));
-      const org = candidates.map(s => bySlug[s]).find(Boolean);
+      // Resolução de prioridade:
+      // 1. Domínio customizado exato
+      // 2. Slug candidatos (tenant > subdomain > owner)
+      let org = orgs.find(o => o.customDomain === hostname);
+      
+      if (!org) {
+        const bySlug = Object.fromEntries(orgs.map(o => [o.slug, o]));
+        org = slugCandidates.map(s => bySlug[s]).find(Boolean);
+      }
 
       if (org?.siteTheme && validThemes.includes(org.siteTheme)) {
         theme = org.siteTheme;

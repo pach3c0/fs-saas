@@ -47,6 +47,9 @@ const OrganizationSchema = new mongoose.Schema({
     enum: ['elegante', 'minimalista', 'moderno', 'escuro', 'colorido'],
     default: 'elegante'
   },
+  customDomain: { type: String, unique: true, sparse: true },
+  domainStatus: { type: String, enum: ['pending', 'verified'], default: 'pending' },
+  domainVerifiedAt: { type: Date },
   // Configurações gerais do site
   siteConfig: {
     title: { type: String, default: '' },

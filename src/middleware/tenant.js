@@ -23,35 +23,32 @@ async function resolveTenant(req, res, next) {
     const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
     const ownerSlug = (process.env.OWNER_SLUG || 'fs').trim();
 
-    let slug = null;
-
+    const hostWithoutPort = host.split(':')[0];
+    let query = null;
     const isPreview = req.query._preview === '1';
 
-    // Em preview do builder ou em desenvolvimento: aceitar ?_tenant=xxx
     if (isPreview || process.env.NODE_ENV === 'development' || host.includes('localhost')) {
-      slug = req.query._tenant || ownerSlug;
+      const slug = req.query._tenant || ownerSlug;
+      query = { slug: slug.toLowerCase() };
     } else {
-      // Produção: extrair do subdomínio
-      // joao.cliquezoom.com.br → slug = 'joao'
-      // cliquezoom.com.br → slug = ownerSlug (domínio principal)
-
-      // Remover porta se existir
-      const hostWithoutPort = host.split(':')[0];
-
+      // Produção: extrair do subdomínio ou domínio customizado
       if (hostWithoutPort === baseDomain || hostWithoutPort === `www.${baseDomain}`) {
         // Domínio principal: usar slug do dono
-        slug = ownerSlug;
+        query = { slug: ownerSlug.toLowerCase() };
       } else if (hostWithoutPort.endsWith(`.${baseDomain}`)) {
         // Subdomínio: extrair slug
-        slug = hostWithoutPort.replace(`.${baseDomain}`, '');
+        const subdomain = hostWithoutPort.replace(`.${baseDomain}`, '');
+        query = { slug: subdomain.toLowerCase() };
       } else {
-        // Domínio desconhecido: usar owner slug como fallback
-        slug = ownerSlug;
+        // Domínio customizado: buscar pelo campo customDomain
+        query = { customDomain: hostWithoutPort.toLowerCase() };
       }
     }
 
+    // Identificador único para o cache baseado na query
+    const cacheKey = query.slug ? `slug:${query.slug}` : `domain:${query.customDomain}`;
+
     // Verificar cache (não cachear em preview para sempre ter dados frescos)
-    const cacheKey = `org:${slug}`;
     if (!isPreview) {
       const cached = cache.get(cacheKey);
       if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
@@ -62,13 +59,24 @@ async function resolveTenant(req, res, next) {
     }
 
     // Buscar organização no banco (preview ignora isActive para permitir edição)
-    const query = isPreview ? { slug: slug.toLowerCase() } : { slug: slug.toLowerCase(), isActive: true };
-    const org = await Organization.findOne(query).lean();
+    const dbQuery = isPreview ? query : { ...query, isActive: true };
+    const org = await Organization.findOne(dbQuery).lean();
+    if (!org && query.customDomain) {
+      // Fallback para ownerSlug se for domínio customizado não encontrado
+      // (evita quebrar o servidor se o DNS apontar mas o domínio não estiver no banco)
+      const fallbackOrg = await Organization.findOne({ slug: ownerSlug.toLowerCase(), isActive: true }).lean();
+      if (fallbackOrg) {
+        req.organization = fallbackOrg;
+        req.organizationId = fallbackOrg._id;
+        return next();
+      }
+    }
+
     if (!org) {
       return res.status(404).json({ 
         error: 'Organização não encontrada',
-        slug,
-        hint: 'Verifique se o subdomínio está correto ou se a organização está ativa'
+        query,
+        hint: 'Verifique se o domínio/subdomínio está correto ou se a organização está ativa'
       });
     }
 
