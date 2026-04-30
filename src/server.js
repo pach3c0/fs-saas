@@ -293,7 +293,11 @@ const { resolveTenant } = require('./middleware/tenant');
 app.use('/api/hero', resolveTenant);
 app.use('/api/site-config', resolveTenant);
 app.use('/api/faq', resolveTenant);
-app.use('/api/client', resolveTenant);
+// Rotas de álbum cliente usam accessCode (sem tenant) — não aplicar resolveTenant
+app.use('/api/client', (req, res, next) => {
+  if (req.path.startsWith('/album')) return next();
+  return resolveTenant(req, res, next);
+});
 app.use('/api/organization/public', resolveTenant);
 app.use('/api/site/config', resolveTenant);
 app.use('/api/site/depoimento', resolveTenant);
