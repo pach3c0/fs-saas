@@ -3,7 +3,9 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 
 function albumPublicUrl(accessCode) {
-  return `${window.location.origin}/album/?code=${accessCode}`;
+  const isProd = window.location.hostname.includes('cliquezoom.com.br');
+  const base = isProd ? 'https://cliquezoom.com.br' : window.location.origin;
+  return `${base}/album/?code=${accessCode}`;
 }
 
 const pal = {
