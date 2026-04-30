@@ -225,7 +225,7 @@ router.post('/site/depoimento', async (req, res) => {
 
     const id = require('crypto').randomBytes(8).toString('hex');
     await Organization.findByIdAndUpdate(req.organizationId, {
-      $push: { pendingDepoimentos: { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
+      $push: { 'siteContent.pendingDepoimentos': { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
     });
     res.json({ success: true });
 
@@ -277,8 +277,8 @@ router.post('/site/contact', async (req, res) => {
 // Admin: Listar depoimentos pendentes
 router.get('/site/admin/depoimentos-pendentes', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId).select('pendingDepoimentos');
-    res.json({ pending: org?.pendingDepoimentos || [] });
+    const org = await Organization.findById(req.user.organizationId).select('siteContent.pendingDepoimentos');
+    res.json({ pending: org?.siteContent?.pendingDepoimentos || [] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -290,7 +290,7 @@ router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, 
     const org = await Organization.findById(req.user.organizationId);
     if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
 
-    const pending = org.pendingDepoimentos.find(d => d.id === req.params.id);
+    const pending = org.siteContent && org.siteContent.pendingDepoimentos ? org.siteContent.pendingDepoimentos.find(d => d.id === req.params.id) : null;
     if (!pending) return res.status(404).json({ error: 'Depoimento não encontrado' });
 
     // Mover para aprovados
@@ -299,9 +299,8 @@ router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, 
     org.siteContent.depoimentos.push({ id: pending.id, name: pending.name, text: pending.text, rating: pending.rating, photo: '', socialLink: '' });
 
     // Remover dos pendentes
-    org.pendingDepoimentos = org.pendingDepoimentos.filter(d => d.id !== req.params.id);
+    org.siteContent.pendingDepoimentos = (org.siteContent.pendingDepoimentos || []).filter(d => d.id !== req.params.id);
     org.markModified('siteContent');
-    org.markModified('pendingDepoimentos');
     await org.save();
 
     res.json({ success: true });
@@ -314,7 +313,7 @@ router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, 
 router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, async (req, res) => {
   try {
     await Organization.findByIdAndUpdate(req.user.organizationId, {
-      $pull: { pendingDepoimentos: { id: req.params.id } }
+      $pull: { 'siteContent.pendingDepoimentos': { id: req.params.id } }
     });
     res.json({ success: true });
   } catch (error) {
