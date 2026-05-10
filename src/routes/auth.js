@@ -6,7 +6,8 @@ const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
-const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail } = require('../utils/email');
+const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhotographerNotificationEmail } = require('../utils/email');
+const { applyDefaultTemplate } = require('./site');
 
 router.post('/login', async (req, res) => {
   try {
@@ -173,7 +174,9 @@ router.post('/auth/register', async (req, res) => {
       usage: { sessions: 0, photos: 0, albums: 0, storage: 0 }
     });
 
+    applyDefaultTemplate(org._id).catch(() => { });
     sendWelcomeEmail(user.email, user.name, org.slug).catch(() => { });
+    sendNewPhotographerNotificationEmail(user.name, user.email, org.slug).catch(() => { });
 
     res.status(201).json({
       success: true,

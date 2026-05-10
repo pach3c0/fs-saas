@@ -1,113 +1,178 @@
 import { apiGet, apiPost } from '../utils/api.js';
 
 export async function renderPlano(container) {
-  const { subscription, planDetails, usage } = await apiGet('/api/billing/subscription');
-  const { plans } = await apiGet('/api/billing/plans');
+  container.innerHTML = `<div style="color:var(--ad-text); padding:2rem;">Carregando...</div>`;
+
+  try {
+    const [subRes, plansRes] = await Promise.all([
+      apiGet('/api/billing/subscription'),
+      apiGet('/api/billing/plans')
+    ]);
+
+    const { subscription, planDetails, usage, stripeConfigured } = subRes;
+    const { plans } = plansRes;
+
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured });
+  } catch (error) {
+    container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
+  }
+}
+
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo }) {
+  const limites = subscription.limits;
+  const uso     = subscription.usage;
+  const planoKey = subscription.plan;
+
+  const pct = (usado, max) => max === -1 ? 0 : Math.min(100, Math.round((usado / max) * 100));
+  const fmtMax = (v) => v === -1 ? '∞' : v.toLocaleString('pt-BR');
+
+  const barColor = (p) => p >= 90 ? 'var(--ad-red)' : p >= 70 ? 'var(--ad-yellow)' : 'var(--ad-accent)';
+
+  const _bar = (label, usado, max) => {
+    const p = pct(usado, max);
+    return `
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.375rem;">
+          <span style="color:var(--ad-text); opacity:0.7; font-size:0.875rem;">${label}</span>
+          <span style="color:var(--ad-text); font-size:0.875rem; font-weight:600;">${usado.toLocaleString('pt-BR')} / ${fmtMax(max)}</span>
+        </div>
+        <div style="background:color-mix(in srgb, var(--ad-text) 12%, transparent); height:6px; border-radius:9999px; overflow:hidden;">
+          <div style="background:${barColor(p)}; height:100%; width:${p}%; transition:width 0.4s ease; border-radius:9999px;"></div>
+        </div>
+        ${p >= 90 && max !== -1 ? `<p style="font-size:0.75rem; color:var(--ad-red); margin-top:0.25rem;">⚠ Limite quase atingido</p>` : ''}
+      </div>`;
+  };
+
+  const storagePct = pct(usage?.storageMB || 0, limites.maxStorage);
+
+  const _planCard = (key, plan) => {
+    const isCurrent = key === planoKey;
+    const isFree    = plan.price === 0;
+    const preco     = isFree ? 'Grátis' : `R$ ${(plan.price / 100).toFixed(2)}<span style="font-size:0.875rem; font-weight:400;">/mês</span>`;
+
+    let btnHtml = '';
+    if (isCurrent) {
+      btnHtml = `<button disabled style="width:100%; padding:0.625rem; border-radius:0.375rem; border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); background:transparent; color:var(--ad-text); opacity:0.5; cursor:not-allowed; font-size:0.9rem;">Plano Atual</button>`;
+    } else if (!isFree) {
+      if (stripeAtivo) {
+        btnHtml = `<button class="selectPlanBtn" data-plan="${key}" style="width:100%; padding:0.625rem; border-radius:0.375rem; border:none; background:var(--ad-accent); color:var(--ad-bg-base); cursor:pointer; font-weight:600; font-size:0.9rem;">Selecionar</button>`;
+      } else {
+        btnHtml = `
+          <button disabled title="Pagamentos em breve" style="width:100%; padding:0.625rem; border-radius:0.375rem; border:none; background:var(--ad-accent); color:var(--ad-bg-base); opacity:0.45; cursor:not-allowed; font-weight:600; font-size:0.9rem;">Em Breve</button>
+          <p style="text-align:center; font-size:0.75rem; color:var(--ad-text); opacity:0.5; margin-top:0.5rem;">Pagamentos online em breve</p>`;
+      }
+    }
+
+    return `
+      <div style="background:var(--ad-bg-surface); padding:1.75rem; border-radius:0.5rem; border:2px solid ${isCurrent ? 'var(--ad-accent)' : 'color-mix(in srgb, var(--ad-text) 15%, transparent)'}; position:relative; display:flex; flex-direction:column; gap:1rem;">
+        ${isCurrent ? `<span style="position:absolute; top:-1px; right:1rem; background:var(--ad-accent); color:var(--ad-bg-base); font-size:0.7rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:0 0 0.375rem 0.375rem; letter-spacing:0.05em;">ATUAL</span>` : ''}
+        <div>
+          <h4 style="font-size:1.125rem; font-weight:700; color:var(--ad-text); margin:0 0 0.25rem;">${plan.name}</h4>
+          <p style="font-size:1.75rem; font-weight:700; color:var(--ad-text); margin:0;">${preco}</p>
+        </div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+          ${plan.features.map(f => `<li style="color:var(--ad-text); opacity:0.8; font-size:0.875rem; display:flex; gap:0.5rem; align-items:flex-start;"><span style="color:var(--ad-green); flex-shrink:0;">✓</span>${f}</li>`).join('')}
+        </ul>
+        ${btnHtml}
+      </div>`;
+  };
 
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:2rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Seu Plano</h2>
+    <div style="display:flex; flex-direction:column; gap:2rem; max-width:900px;">
+      <h2 style="font-size:1.5rem; font-weight:700; color:var(--ad-text); margin:0;">Seu Plano</h2>
 
-      <!-- Plano Atual -->
-      <div style="background:var(--bg-surface); padding:2rem; border-radius:0.5rem; border:2px solid var(--accent);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+      <!-- Plano atual + uso -->
+      <div style="background:var(--ad-bg-surface); padding:1.75rem; border-radius:0.5rem; border:2px solid var(--ad-accent);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
           <div>
-            <h3 style="font-size:1.25rem; font-weight:bold; color:var(--text-primary);">${planDetails.name}</h3>
-            <p style="color:var(--text-secondary); margin-top:0.5rem;">
-              ${subscription.plan === 'free' ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`}
+            <h3 style="font-size:1.25rem; font-weight:700; color:var(--ad-text); margin:0 0 0.25rem;">${planDetails.name}</h3>
+            <p style="color:var(--ad-text); opacity:0.6; margin:0; font-size:0.9rem;">
+              ${planDetails.price === 0 ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`}
+              ${subscription.currentPeriodEnd ? ` · Renova em ${new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}` : ''}
+              ${subscription.cancelAtPeriodEnd ? ` <span style="color:var(--ad-red); font-weight:600;">· Cancelamento agendado</span>` : ''}
             </p>
           </div>
-          ${subscription.plan !== 'pro' ? `
-            <button id="upgradeBtn" class="btn btn-primary">
-              Fazer Upgrade
-            </button>
-          ` : ''}
+          ${planoKey !== 'pro' ? `<button id="verPlansBtn" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Ver planos ↓</button>` : ''}
         </div>
 
-        <!-- Uso atual -->
-        <div style="margin-top:2rem; display:grid; gap:1rem;">
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <span style="color:var(--text-secondary);">Sessões</span>
-              <span style="color:var(--text-primary);">${subscription.usage.sessions} / ${subscription.limits.maxSessions === -1 ? '∞' : subscription.limits.maxSessions}</span>
-            </div>
-            <div style="background:var(--bg-hover); height:0.5rem; border-radius:9999px; overflow:hidden;">
-              <div style="background:var(--accent); height:100%; width:${subscription.limits.maxSessions === -1 ? 0 : (subscription.usage.sessions / subscription.limits.maxSessions * 100)}%;"></div>
-            </div>
-          </div>
+        <div style="display:grid; gap:1rem;">
+          ${_bar('Sessões', uso.sessions, limites.maxSessions)}
+          ${_bar('Fotos', uso.photos, limites.maxPhotos)}
+          ${_bar('Armazenamento (MB)', usage?.storageMB || 0, limites.maxStorage)}
+        </div>
 
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <span style="color:var(--text-secondary);">Fotos</span>
-              <span style="color:var(--text-primary);">${subscription.usage.photos} / ${subscription.limits.maxPhotos === -1 ? '∞' : subscription.limits.maxPhotos}</span>
-            </div>
-            <div style="background:var(--bg-hover); height:0.5rem; border-radius:9999px; overflow:hidden;">
-              <div style="background:var(--accent); height:100%; width:${subscription.limits.maxPhotos === -1 ? 0 : (subscription.usage.photos / subscription.limits.maxPhotos * 100)}%;"></div>
-            </div>
-          </div>
+        ${usage?.breakdown ? `
+        <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid color-mix(in srgb, var(--ad-text) 10%, transparent);">
+          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Sessões: ${usage.breakdown.sessionsMB} MB</span>
+          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Site: ${usage.breakdown.siteMB} MB</span>
+          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Vídeos: ${usage.breakdown.videosMB} MB</span>
+        </div>` : ''}
+      </div>
 
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <span style="color:var(--text-secondary);">Armazenamento</span>
-              <span style="color:var(--text-primary);">${usage?.storageMB || 0} MB / ${subscription.limits.maxStorage} MB</span>
-            </div>
-            <div style="background:var(--bg-hover); height:0.5rem; border-radius:9999px; overflow:hidden;">
-              <div style="background:var(--accent); height:100%; width:${Math.min(100, (usage?.storageMB || 0) / subscription.limits.maxStorage * 100)}%;"></div>
-            </div>
-            ${usage?.breakdown ? `
-            <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-top:0.5rem; font-size:0.75rem; color:var(--text-muted);">
-              <span>📁 Sessões: ${usage.breakdown.sessionsMB} MB</span>
-              <span>🌐 Site: ${usage.breakdown.siteMB} MB</span>
-              <span>🎬 Vídeos: ${usage.breakdown.videosMB} MB</span>
-            </div>` : ''}
-          </div>
+      <!-- Planos disponíveis -->
+      <div>
+        <h3 id="planosSection" style="font-size:1.125rem; font-weight:700; color:var(--ad-text); margin:0 0 1rem;">Planos Disponíveis</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem;">
+          ${Object.entries(plans).map(([key, plan]) => _planCard(key, plan)).join('')}
         </div>
       </div>
 
-      <!-- Planos Disponíveis -->
-      <h3 style="font-size:1.25rem; font-weight:bold; color:var(--text-primary);">Planos Disponíveis</h3>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
-        ${Object.entries(plans).map(([key, plan]) => `
-          <div style="background:var(--bg-surface); padding:2rem; border-radius:0.5rem; border:1px solid ${subscription.plan === key ? 'var(--accent)' : 'var(--border)'};">
-            <h4 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">${plan.name}</h4>
-            <p style="font-size:2rem; font-weight:bold; color:var(--text-primary); margin:1rem 0;">
-              ${plan.price === 0 ? 'Grátis' : `R$ ${(plan.price / 100).toFixed(2)}`}
-            </p>
-            <ul style="list-style:none; padding:0; margin:1.5rem 0; display:flex; flex-direction:column; gap:0.75rem;">
-              ${plan.features.map(f => `<li style="color:var(--text-secondary);">✓ ${f}</li>`).join('')}
-            </ul>
-            ${subscription.plan === key ? `
-              <button disabled class="btn" style="width:100%;">
-                Plano Atual
-              </button>
-            ` : plan.price > 0 ? `
-              <button class="btn btn-primary selectPlanBtn" data-plan="${key}" style="width:100%;">
-                Selecionar
-              </button>
-            ` : ''}
-          </div>
-        `).join('')}
-      </div>
+      ${planoKey !== 'free' ? `
+      <!-- Cancelamento -->
+      <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-red) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-red) 30%, transparent); border-radius:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">Cancelar assinatura</p>
+          <p style="font-size:0.8rem; color:var(--ad-text); opacity:0.6; margin:0;">Seu plano permanece ativo até o final do período pago.</p>
+        </div>
+        <button id="cancelBtn" style="background:transparent; border:1px solid var(--ad-red); color:var(--ad-red); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Cancelar Plano</button>
+      </div>` : ''}
     </div>
   `;
 
-  // Event listeners
+  // Scroll para planos
+  const verBtn = container.querySelector('#verPlansBtn');
+  if (verBtn) {
+    verBtn.onclick = () => container.querySelector('#planosSection').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Selecionar plano (só quando Stripe ativo)
   container.querySelectorAll('.selectPlanBtn').forEach(btn => {
     btn.onclick = async () => {
       const plan = btn.dataset.plan;
+      btn.textContent = 'Aguarde...';
+      btn.disabled = true;
       try {
         const { checkoutUrl } = await apiPost('/api/billing/checkout', { plan });
         window.location.href = checkoutUrl;
       } catch (error) {
-        window.showToast?.('Erro: ' + error.message, 'error');
+        window.showToast('Erro: ' + error.message, 'error');
+        btn.textContent = 'Selecionar';
+        btn.disabled = false;
       }
     };
   });
-  
-  const upgradeBtn = container.querySelector('#upgradeBtn');
-  if (upgradeBtn) {
-    upgradeBtn.onclick = () => {
-        container.querySelector('h3:nth-of-type(2)').scrollIntoView({ behavior: 'smooth' });
+
+  // Cancelar plano
+  const cancelBtn = container.querySelector('#cancelBtn');
+  if (cancelBtn) {
+    cancelBtn.onclick = async () => {
+      const ok = await window.showConfirm('Cancelar assinatura?', {
+        message: 'Seu plano permanece ativo até o final do período atual. Após isso você voltará para o plano gratuito.',
+        confirmText: 'Cancelar Plano',
+        cancelText: 'Manter Plano'
+      });
+      if (!ok) return;
+      cancelBtn.textContent = 'Cancelando...';
+      cancelBtn.disabled = true;
+      try {
+        await apiPost('/api/billing/cancel', {});
+        window.showToast('Cancelamento agendado com sucesso.', 'success');
+        renderPlano(container);
+      } catch (error) {
+        window.showToast('Erro: ' + error.message, 'error');
+        cancelBtn.textContent = 'Cancelar Plano';
+        cancelBtn.disabled = false;
+      }
     };
   }
 }

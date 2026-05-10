@@ -126,7 +126,7 @@ nav#siteNav {
 /* ============================================
    HERO
    ============================================ */
-.section-hero {
+.section-hero, .t-hero {
   position: relative;
   height: 100svh;
   display: flex;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Organization = require('../models/Organization');
+const DefaultSiteTemplate = require('../models/DefaultSiteTemplate');
 
 const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 const { authenticateToken } = require('../middleware/auth');
@@ -321,4 +322,108 @@ router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, async 
   }
 });
 
+// ============================================================================
+// TEMPLATE DEFAULT DA PLATAFORMA
+// ============================================================================
+
+const FALLBACK_TEMPLATE = {
+  siteSections: ['hero', 'portfolio', 'servicos', 'sobre', 'faq', 'contato'],
+  siteConfig: {
+    heroTitle: 'Capturando Momentos Únicos',
+    heroSubtitle: 'Fotografia profissional para os momentos que importam'
+  },
+  siteContent: {
+    sobre: {
+      title: 'Sobre Mim',
+      text: 'Sou fotógrafo profissional apaixonado por contar histórias através das imagens. Com anos de experiência, transformo instantes em memórias eternas para casais, famílias e empresas.'
+    },
+    servicos: [
+      { id: 'svc-1', title: 'Ensaio Externo', description: 'Sessão em locações especiais, com luz natural e cenários únicos.', price: 'A partir de R$ 350', icon: '📸' },
+      { id: 'svc-2', title: 'Casamento Completo', description: 'Cobertura total do seu dia especial, do making off à festa.', price: 'Consulte', icon: '💍' },
+      { id: 'svc-3', title: 'Ensaio Newborn', description: 'Registros delicados dos primeiros dias do seu bebê.', price: 'A partir de R$ 450', icon: '👶' }
+    ],
+    faq: [
+      { id: 'faq-1', question: 'Qual o prazo de entrega das fotos?', answer: 'As fotos editadas são entregues em até 15 dias úteis após a sessão.' },
+      { id: 'faq-2', question: 'Como funciona a seleção de fotos?', answer: 'Você recebe um link exclusivo para visualizar todas as fotos e escolher suas favoritas diretamente pela plataforma.' },
+      { id: 'faq-3', question: 'Posso agendar uma conversa antes de contratar?', answer: 'Sim! Gosto muito de conhecer meus clientes antes da sessão. Entre em contato pelo WhatsApp ou formulário.' }
+    ],
+    contato: {
+      title: 'Vamos Conversar?',
+      text: 'Entre em contato para verificar disponibilidade, tirar dúvidas e fazer seu orçamento sem compromisso.'
+    }
+  },
+  siteStyle: {}
+};
+
+// Função reutilizável para aplicar o template em uma organização
+async function applyDefaultTemplate(orgId) {
+  const tmpl = await DefaultSiteTemplate.findOne().lean();
+  const source = (tmpl && (tmpl.siteSections?.length || Object.keys(tmpl.siteConfig || {}).length))
+    ? tmpl
+    : FALLBACK_TEMPLATE;
+
+  const $set = {};
+  if (source.siteSections?.length) $set.siteSections = source.siteSections;
+
+  if (source.siteConfig && typeof source.siteConfig === 'object') {
+    Object.entries(source.siteConfig).forEach(([k, v]) => { $set[`siteConfig.${k}`] = v; });
+  }
+  if (source.siteContent && typeof source.siteContent === 'object') {
+    Object.entries(source.siteContent).forEach(([k, v]) => {
+      $set[k === 'portfolio' ? 'siteContent.portfolio' : `siteContent.${k}`] = v;
+    });
+  }
+  if (source.siteStyle && typeof source.siteStyle === 'object' && Object.keys(source.siteStyle).length) {
+    Object.entries(source.siteStyle).forEach(([k, v]) => { $set[`siteStyle.${k}`] = v; });
+  }
+
+  if (Object.keys($set).length) {
+    await Organization.findByIdAndUpdate(orgId, { $set }, { strict: false });
+  }
+}
+
+// GET /api/site/default-template — lê template atual (autenticado)
+router.get('/site/default-template', authenticateToken, async (req, res) => {
+  try {
+    const tmpl = await DefaultSiteTemplate.findOne().lean();
+    res.json({ success: true, template: tmpl || FALLBACK_TEMPLATE });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/site/default-template — salva template (requer X-Admin-Key)
+router.put('/site/default-template', authenticateToken, async (req, res) => {
+  const adminKey = process.env.PLATFORM_ADMIN_KEY;
+  if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+    return res.status(403).json({ success: false, error: 'Acesso negado' });
+  }
+  try {
+    const { siteConfig, siteContent, siteStyle, siteSections } = req.body;
+    const tmpl = await DefaultSiteTemplate.findOneAndUpdate(
+      {},
+      { $set: { siteConfig, siteContent, siteStyle, siteSections, updatedBy: req.user?.email || '' } },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, template: tmpl });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/site/default-template/apply — aplica template na org do usuário logado
+router.post('/site/default-template/apply', authenticateToken, async (req, res) => {
+  try {
+    await applyDefaultTemplate(req.user.organizationId);
+    if (req.user?.organizationId) {
+      const org = await Organization.findById(req.user.organizationId).select('slug');
+      if (org?.slug) clearOrgCache(org.slug);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
+module.exports.applyDefaultTemplate = applyDefaultTemplate;

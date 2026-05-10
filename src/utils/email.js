@@ -1,10 +1,8 @@
 const nodemailer = require('nodemailer');
 
 // Cria transporter SMTP (Hostinger)
-let transporter = null;
-
 function getTransporter() {
-  if (transporter) return transporter;
+  let transporter = null;
 
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '465');
@@ -867,6 +865,44 @@ async function sendReactivation7dEmail(clientEmail, clientName, sessionName, eve
   return sendEmail(clientEmail, subject, html);
 }
 
+/**
+ * Notifica o dono da plataforma sobre novo fotografo cadastrado
+ */
+async function sendNewPhotographerNotificationEmail(photographerName, photographerEmail, slug) {
+  const ownerEmail = process.env.OWNER_EMAIL || 'contato@cliquezoom.com.br';
+  const adminUrl = `https://app.cliquezoom.com.br/admin`;
+  const subject = `Novo fotógrafo cadastrado: ${photographerName}`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Novo fotógrafo cadastrado!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Um novo fotógrafo acabou de se cadastrar na plataforma:
+      </p>
+
+      <div style="background: #f5f5f5; border-radius: 0.5rem; padding: 1.25rem; margin: 1.5rem 0;">
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.9375rem;"><strong>Nome:</strong> ${photographerName}</p>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.9375rem;"><strong>E-mail:</strong> ${photographerEmail}</p>
+        <p style="margin: 0; font-size: 0.9375rem;"><strong>Site:</strong> <a href="https://${slug}.cliquezoom.com.br" style="color: #2563eb;">${slug}.cliquezoom.com.br</a></p>
+      </div>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${adminUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Ver no Painel Admin
+        </a>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -892,5 +928,6 @@ module.exports = {
   sendScarcity24hEmail,
   sendReactivation90dEmail,
   sendReactivation30dEmail,
-  sendReactivation7dEmail
+  sendReactivation7dEmail,
+  sendNewPhotographerNotificationEmail
 };

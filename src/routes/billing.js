@@ -40,6 +40,7 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
     res.json({
       subscription: sub,
       planDetails: plans[sub.plan],
+      stripeConfigured: !!stripe,
       usage: {
         storageMB,
         storageBytes,

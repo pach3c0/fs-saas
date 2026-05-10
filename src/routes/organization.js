@@ -31,7 +31,8 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         watermarkOpacity: org.watermarkOpacity,
         watermarkPosition: org.watermarkPosition,
         watermarkSize: org.watermarkSize,
-        plan: org.plan
+        plan: org.plan,
+        integrations: org.integrations || {}
       }
     });
   } catch (error) {
@@ -127,11 +128,41 @@ router.get('/organization/integrations', authenticateToken, async (req, res) => 
   }
 });
 
-// PUT /api/organization/integrations - Atualizar integrations (atualmente: salesAutomator)
+// PUT /api/organization/integrations - Atualizar integrations
 router.put('/organization/integrations', authenticateToken, async (req, res) => {
   try {
-    const { salesAutomator } = req.body;
+    const { salesAutomator, googleAnalytics, metaPixel, deadlineAutomation } = req.body;
     const $set = {};
+
+    if (googleAnalytics && typeof googleAnalytics === 'object') {
+      if (typeof googleAnalytics.enabled === 'boolean') {
+        $set['integrations.googleAnalytics.enabled'] = googleAnalytics.enabled;
+      }
+      if (typeof googleAnalytics.measurementId === 'string') {
+        $set['integrations.googleAnalytics.measurementId'] = googleAnalytics.measurementId.trim();
+      }
+    }
+
+    if (metaPixel && typeof metaPixel === 'object') {
+      if (typeof metaPixel.enabled === 'boolean') {
+        $set['integrations.metaPixel.enabled'] = metaPixel.enabled;
+      }
+      if (typeof metaPixel.pixelId === 'string') {
+        $set['integrations.metaPixel.pixelId'] = metaPixel.pixelId.trim();
+      }
+    }
+
+    if (deadlineAutomation && typeof deadlineAutomation === 'object') {
+      if (typeof deadlineAutomation.enabled === 'boolean') {
+        $set['integrations.deadlineAutomation.enabled'] = deadlineAutomation.enabled;
+      }
+      if (typeof deadlineAutomation.daysWarning === 'number') {
+        $set['integrations.deadlineAutomation.daysWarning'] = Math.max(1, Math.min(30, deadlineAutomation.daysWarning));
+      }
+      if (typeof deadlineAutomation.sendEmail === 'boolean') {
+        $set['integrations.deadlineAutomation.sendEmail'] = deadlineAutomation.sendEmail;
+      }
+    }
 
     if (salesAutomator && typeof salesAutomator === 'object') {
       if (typeof salesAutomator.enabled === 'boolean') {

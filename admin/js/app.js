@@ -803,7 +803,7 @@ export async function switchTab(tabName) {
 
   if (!tabModules[tabName]) {
     try {
-      tabModules[tabName] = await import(`./tabs/${tabName}.js`);
+      tabModules[tabName] = await import(`./tabs/${tabName}.js?v=${Date.now()}`);
     } catch (error) {
       console.error(`Erro ao carregar tab ${tabName}:`, error);
       container.innerHTML = `

@@ -97,6 +97,10 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="sub-tab-btn builder-nav-item" data-target="config-rodape"><span class="material-symbols-outlined">bottom_app_bar</span>Rodapé</button>
           <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
           <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span>Personalizar</button>
+          <div id="adminTemplateNavItem" style="display:none;">
+            <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
+            <button class="sub-tab-btn builder-nav-item" data-target="config-default-template" style="color:#f59e0b;"><span class="material-symbols-outlined" style="color:#f59e0b;">admin_panel_settings</span>Padrão</button>
+          </div>
         </div>
 
         <!-- Conteúdo das Abas -->
@@ -115,6 +119,12 @@ async function renderSiteContent(container, builderTabsEl) {
                 </div>
                 <div>
                     <button id="saveGeralBtn" class="builder-save-btn">Salvar Tema</button>
+                </div>
+                <!-- Restaurar conteúdo de exemplo -->
+                <div style="padding:1rem; background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem;">
+                    <p style="font-weight:600; color:#f3f4f6; margin:0 0 0.25rem; font-size:0.9rem;">Restaurar conteúdo de exemplo</p>
+                    <p style="font-size:0.78rem; color:#9ca3af; margin:0 0 0.75rem;">Preenche seu site com textos, serviços e FAQ de exemplo para você visualizar como ficará. O conteúdo atual será substituído.</p>
+                    <button id="applyDefaultTemplateBtn" style="background:transparent; border:1px solid #4b5563; color:#d1d5db; padding:0.4rem 0.9rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;">Aplicar Exemplo</button>
                 </div>
             </div>
         </div>
@@ -154,6 +164,9 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Template Padrão (admin CliqueZoom only) -->
+        <div id="config-default-template" class="sub-tab-content" style="display:none;"></div>
       </div>
       <!-- fim subTabContent -->
       </div>
@@ -634,6 +647,47 @@ async function renderSiteContent(container, builderTabsEl) {
       liveRefresh({ siteTheme: newTheme });
     });
   };
+
+  // --- RESTAURAR EXEMPLO ---
+  const applyDefaultBtn = container.querySelector('#applyDefaultTemplateBtn');
+  if (applyDefaultBtn) {
+    applyDefaultBtn.onclick = async () => {
+      const ok = await window.showConfirm?.('Aplicar conteúdo de exemplo?', {
+        message: 'Textos, serviços e FAQ serão substituídos pelo conteúdo de exemplo da plataforma. Fotos e configurações visuais não serão afetadas.',
+        confirmText: 'Aplicar Exemplo',
+        cancelText: 'Cancelar'
+      });
+      if (!ok) return;
+      applyDefaultBtn.textContent = 'Aplicando...';
+      applyDefaultBtn.disabled = true;
+      try {
+        await apiPost('/api/site/default-template/apply', {});
+        window.showToast?.('Conteúdo de exemplo aplicado! Recarregando...', 'success');
+        setTimeout(() => window.location.reload(), 1200);
+      } catch (err) {
+        window.showToast?.('Erro: ' + err.message, 'error');
+        applyDefaultBtn.textContent = 'Aplicar Exemplo';
+        applyDefaultBtn.disabled = false;
+      }
+    };
+  }
+
+  // --- ADMIN: TEMPLATE PADRÃO (só para superadmin) ---
+  const adminNavItem = container.querySelector('#adminTemplateNavItem');
+  let isSuperadmin = false;
+  try {
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      isSuperadmin = payload.role === 'superadmin';
+    }
+  } catch (_) {}
+
+  if (isSuperadmin && adminNavItem) {
+    adminNavItem.style.display = 'block';
+    const adminTabEl = container.querySelector('#config-default-template');
+    if (adminTabEl) _renderDefaultTemplateAdmin(adminTabEl, container);
+  }
 
   // --- SOBRE --- (canvas editor — setup feito por sobre.js ao abrir a sub-aba)
 
@@ -1714,5 +1768,235 @@ async function renderSiteContent(container, builderTabsEl) {
       };
       await saveRodape();
     };
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: Editor do Template Padrão da Plataforma
+// Visível apenas para contato@cliquezoom.com.br
+// ─────────────────────────────────────────────────────────────────────────────
+async function _renderDefaultTemplateAdmin(el, rootContainer) {
+  el.innerHTML = `<div style="color:#9ca3af; font-size:0.8rem; padding:0.5rem;">Carregando template...</div>`;
+
+  let tmpl = {};
+  try {
+    const res = await apiGet('/api/site/default-template');
+    tmpl = res.template || {};
+  } catch (e) {
+    el.innerHTML = `<div style="color:#f85149;">Erro ao carregar: ${e.message}</div>`;
+    return;
+  }
+
+  const cfg = tmpl.siteConfig || {};
+  const cnt = tmpl.siteContent || {};
+  const servicos = cnt.servicos || [];
+  const faq = cnt.faq || [];
+  const sections = tmpl.siteSections || [];
+  let _dtHeroImageUrl = cfg.heroImage || '';
+
+  const SECTION_OPTIONS = ['hero','portfolio','albuns','servicos','estudio','depoimentos','contato','sobre','faq'];
+
+  const _svcItem = (s, i) => `
+    <div class="dt-svc-item" data-idx="${i}" style="background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.625rem; display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.5rem;">
+      <div style="display:flex; gap:0.5rem;">
+        <input class="dt-svc-icon" value="${s.icon||'📸'}" style="width:2.5rem; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem; font-size:1rem; text-align:center;">
+        <input class="dt-svc-title" placeholder="Título" value="${s.title||''}" style="flex:1; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.85rem;">
+        <button class="dt-svc-remove" style="background:none; border:none; color:#f85149; cursor:pointer; font-size:1rem; padding:0 0.25rem;">✕</button>
+      </div>
+      <input class="dt-svc-desc" placeholder="Descrição" value="${s.description||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem;">
+      <input class="dt-svc-price" placeholder="Preço (ex: A partir de R$ 350)" value="${s.price||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem;">
+    </div>`;
+
+  const _faqItem = (f, i) => `
+    <div class="dt-faq-item" data-idx="${i}" style="background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.625rem; display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.5rem;">
+      <div style="display:flex; gap:0.5rem;">
+        <input class="dt-faq-q" placeholder="Pergunta" value="${f.question||''}" style="flex:1; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.85rem;">
+        <button class="dt-faq-remove" style="background:none; border:none; color:#f85149; cursor:pointer; font-size:1rem; padding:0 0.25rem;">✕</button>
+      </div>
+      <textarea class="dt-faq-a" placeholder="Resposta" rows="2" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem; resize:vertical;">${f.answer||''}</textarea>
+    </div>`;
+
+  el.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:1.25rem; padding-bottom:2rem;">
+      <div style="background:#f59e0b22; border:1px solid #f59e0b55; border-radius:0.375rem; padding:0.625rem 0.75rem;">
+        <p style="color:#f59e0b; font-size:0.8rem; margin:0; font-weight:600;">⚙ Conteúdo Padrão da Plataforma</p>
+        <p style="color:#9ca3af; font-size:0.75rem; margin:0.25rem 0 0;">Este conteúdo é aplicado automaticamente em novos cadastros e pode ser restaurado por qualquer fotógrafo.</p>
+      </div>
+
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título do Hero</label>
+        <input id="dt-heroTitle" value="${cfg.heroTitle||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Subtítulo do Hero</label>
+        <input id="dt-heroSubtitle" value="${cfg.heroSubtitle||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Imagem de Fundo do Hero</label>
+        <div id="dt-heroImgPreview" style="width:100%; height:7rem; background:#111827; border:1px solid #374151; border-radius:0.375rem; margin-bottom:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+          ${cfg.heroImage
+            ? `<img src="${cfg.heroImage}" style="width:100%; height:100%; object-fit:cover;">`
+            : `<span style="color:#4b5563; font-size:0.8rem;">Sem imagem</span>`}
+        </div>
+        <div id="dt-heroBgProgress" style="margin-bottom:0.375rem;"></div>
+        <div style="display:flex; gap:0.5rem;">
+          <label style="cursor:pointer; background:#1f2937; border:1px solid #374151; color:#d1d5db; padding:0.3rem 0.75rem; border-radius:0.25rem; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.3rem;">
+            <span class="material-symbols-outlined" style="font-size:1rem;">upload</span>Enviar Imagem
+            <input type="file" id="dt-heroBgFile" accept="image/*" style="display:none;">
+          </label>
+          <button id="dt-heroBgRemove" style="background:none; border:1px solid #374151; color:#f85149; padding:0.3rem 0.75rem; border-radius:0.25rem; font-size:0.8rem; cursor:pointer;">Remover</button>
+        </div>
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título — Sobre</label>
+        <input id="dt-sobreTitle" value="${cnt.sobre?.title||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Texto — Sobre</label>
+        <textarea id="dt-sobreText" rows="3" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem; resize:vertical;">${cnt.sobre?.text||''}</textarea>
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título — Contato</label>
+        <input id="dt-contatoTitle" value="${cnt.contato?.title||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
+      </div>
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Texto — Contato</label>
+        <textarea id="dt-contatoText" rows="2" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem; resize:vertical;">${cnt.contato?.text||''}</textarea>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <label style="color:#9ca3af; font-size:0.8rem;">Serviços de Exemplo</label>
+          <button id="dt-addSvc" style="background:none; border:1px solid #374151; color:#d1d5db; padding:0.2rem 0.6rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;">+ Adicionar</button>
+        </div>
+        <div id="dt-svcList">${servicos.map(_svcItem).join('')}</div>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <label style="color:#9ca3af; font-size:0.8rem;">FAQ de Exemplo</label>
+          <button id="dt-addFaq" style="background:none; border:1px solid #374151; color:#d1d5db; padding:0.2rem 0.6rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;">+ Adicionar</button>
+        </div>
+        <div id="dt-faqList">${faq.map(_faqItem).join('')}</div>
+      </div>
+
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.5rem;">Seções Ativas por Default</label>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+          ${SECTION_OPTIONS.map(s => `
+            <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.25rem 0.6rem;">
+              <input type="checkbox" class="dt-section-chk" value="${s}" ${sections.includes(s)?'checked':''}>
+              <span style="color:#d1d5db; font-size:0.8rem;">${s}</span>
+            </label>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Chave de Administrador</label>
+        <input id="dt-adminKey" type="password" placeholder="Chave secreta da plataforma" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
+      </div>
+
+      <button id="dt-saveBtn" style="background:#f59e0b; color:#000; font-weight:700; border:none; padding:0.6rem 1.25rem; border-radius:0.375rem; cursor:pointer; font-size:0.9rem; align-self:flex-start;">Salvar como Padrão</button>
+    </div>`;
+
+  // Adicionar serviço
+  el.querySelector('#dt-addSvc').onclick = () => {
+    const list = el.querySelector('#dt-svcList');
+    const idx = list.querySelectorAll('.dt-svc-item').length;
+    list.insertAdjacentHTML('beforeend', _svcItem({ icon:'📸', title:'', description:'', price:'' }, idx));
+    _bindRemove(list, '.dt-svc-remove', '.dt-svc-item');
+  };
+
+  // Adicionar FAQ
+  el.querySelector('#dt-addFaq').onclick = () => {
+    const list = el.querySelector('#dt-faqList');
+    const idx = list.querySelectorAll('.dt-faq-item').length;
+    list.insertAdjacentHTML('beforeend', _faqItem({ question:'', answer:'' }, idx));
+    _bindRemove(list, '.dt-faq-remove', '.dt-faq-item');
+  };
+
+  function _bindRemove(list, btnSel, itemSel) {
+    list.querySelectorAll(btnSel).forEach(btn => {
+      btn.onclick = () => btn.closest(itemSel).remove();
+    });
+  }
+
+  _bindRemove(el.querySelector('#dt-svcList'), '.dt-svc-remove', '.dt-svc-item');
+  _bindRemove(el.querySelector('#dt-faqList'), '.dt-faq-remove', '.dt-faq-item');
+
+  // Upload imagem hero
+  el.querySelector('#dt-heroBgFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('dt-heroBgProgress', p));
+      _dtHeroImageUrl = result.url;
+      el.querySelector('#dt-heroImgPreview').innerHTML = `<img src="${result.url}" style="width:100%; height:100%; object-fit:cover;">`;
+    } catch (err) {
+      window.showToast?.('Erro ao enviar imagem: ' + err.message, 'error');
+    }
+  };
+
+  el.querySelector('#dt-heroBgRemove').onclick = () => {
+    _dtHeroImageUrl = '';
+    el.querySelector('#dt-heroImgPreview').innerHTML = `<span style="color:#4b5563; font-size:0.8rem;">Sem imagem</span>`;
+  };
+
+  // Salvar
+  el.querySelector('#dt-saveBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.textContent = 'Salvando...';
+    btn.disabled = true;
+
+    const svcItems = [...el.querySelectorAll('.dt-svc-item')].map((item, i) => ({
+      id: `svc-${i+1}`,
+      icon:        item.querySelector('.dt-svc-icon').value,
+      title:       item.querySelector('.dt-svc-title').value,
+      description: item.querySelector('.dt-svc-desc').value,
+      price:       item.querySelector('.dt-svc-price').value
+    }));
+
+    const faqItems = [...el.querySelectorAll('.dt-faq-item')].map((item, i) => ({
+      id: `faq-${i+1}`,
+      question: item.querySelector('.dt-faq-q').value,
+      answer:   item.querySelector('.dt-faq-a').value
+    }));
+
+    const checkedSections = [...el.querySelectorAll('.dt-section-chk:checked')].map(c => c.value);
+    const adminKey = el.querySelector('#dt-adminKey').value.trim();
+    if (!adminKey) { window.showToast?.('Insira a chave de administrador.', 'error'); btn.textContent = 'Salvar como Padrão'; btn.disabled = false; return; }
+
+    try {
+      await fetch('/api/site/default-template', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'X-Admin-Key': adminKey
+        },
+        body: JSON.stringify({
+          siteConfig: {
+            heroTitle:    el.querySelector('#dt-heroTitle').value,
+            heroSubtitle: el.querySelector('#dt-heroSubtitle').value,
+            heroImage:    _dtHeroImageUrl
+          },
+          siteContent: {
+            sobre:   { title: el.querySelector('#dt-sobreTitle').value, text: el.querySelector('#dt-sobreText').value },
+            contato: { title: el.querySelector('#dt-contatoTitle').value, text: el.querySelector('#dt-contatoText').value },
+            servicos: svcItems,
+            faq: faqItems
+          },
+          siteSections: checkedSections
+        })
+      }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+        window.showToast?.('Template padrão salvo!', 'success');
+      });
+    } catch (err) {
+      window.showToast?.('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar como Padrão';
+      btn.disabled = false;
+    }
   };
 }
