@@ -790,6 +790,18 @@ function renderLandingEditor() {
         <button onclick="addFaq()" style="margin-top:0.75rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; padding:0.5rem 1rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">+ Adicionar pergunta</button>
       `)}
 
+      <!-- SOLUÇÕES -->
+      ${landingSection('Soluções', `
+        ${fieldRow([
+          ['Título da seção', 'solutionsTitle', (d.solutions || {}).title || ''],
+          ['Subtítulo', 'solutionsSub', (d.solutions || {}).subtitle || '']
+        ])}
+        <div style="display:flex; flex-direction:column; gap:1rem; margin-top:0.75rem;" id="solutionsList">
+          ${((d.solutions || {}).items || []).map((s, i) => renderSolutionCard(s, i)).join('')}
+        </div>
+        <button onclick="addSolution()" style="margin-top:1rem; background:#16a34a; color:white; border:none; border-radius:0.375rem; padding:0.5rem 1.25rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">+ Novo Card</button>
+      `)}
+
       <!-- CTA FINAL -->
       ${landingSection('CTA Final', `
         ${field('Titulo', 'ctaTitle', d.cta.title)}
@@ -901,6 +913,62 @@ window.removeFaq = (i) => {
   renderLandingEditor();
 };
 
+// ── Helpers Soluções ──
+function renderSolutionCard(s, i) {
+  const subHtml = (s.subItems || []).map((sub, j) => `
+    <div style="display:grid; grid-template-columns:1fr 2fr auto; gap:0.5rem; align-items:center; margin-bottom:0.375rem;">
+      <input type="text" value="${esc(sub.name)}" id="subName${i}_${j}"
+        style="${inputStyle()} width:100%;" placeholder="Nome (ex: Seleção)">
+      <input type="text" value="${esc(sub.description)}" id="subDesc${i}_${j}"
+        style="${inputStyle()} width:100%;" placeholder="Descrição curta">
+      <button onclick="removeSubItem(${i},${j})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1rem; padding:0.25rem;" title="Remover">×</button>
+    </div>
+  `).join('');
+
+  return `
+    <div id="solutionCard${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1.25rem;">
+      <div style="display:grid; grid-template-columns:3rem 1fr auto auto; gap:0.75rem; align-items:center; margin-bottom:0.875rem;">
+        <input type="text" value="${esc(s.icon || '')}" id="solIcon${i}"
+          style="${inputStyle()} text-align:center; font-size:1.25rem;" placeholder="📷">
+        <input type="text" value="${esc(s.title || '')}" id="solTitle${i}"
+          style="${inputStyle()} width:100%;" placeholder="Título do card">
+        <label style="display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; color:#94a3b8; cursor:pointer; white-space:nowrap;">
+          <input type="checkbox" id="solActive${i}" ${s.active !== false ? 'checked' : ''}> Ativo
+        </label>
+        <button onclick="removeSolution(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover card">×</button>
+      </div>
+      <input type="text" value="${esc(s.description || '')}" id="solDesc${i}"
+        style="${inputStyle()} width:100%; margin-bottom:1rem;" placeholder="Descrição do card">
+      <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem;">Sub-itens:</div>
+      <div id="subItemsList${i}">${subHtml}</div>
+      <button onclick="addSubItem(${i})" style="margin-top:0.5rem; background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); border-radius:0.25rem; padding:0.3rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer;">+ Add sub-item</button>
+    </div>
+  `;
+}
+
+window.addSolution = () => {
+  if (!landingData.solutions) landingData.solutions = { title: '', subtitle: '', items: [] };
+  landingData.solutions.items.push({ icon: '📷', title: '', description: '', subItems: [], active: true });
+  renderLandingEditor();
+  document.getElementById('landingEditor').scrollTop = 99999;
+};
+
+window.removeSolution = (i) => {
+  landingData.solutions.items.splice(i, 1);
+  renderLandingEditor();
+};
+
+window.addSubItem = (i) => {
+  landingData.solutions.items[i].subItems = landingData.solutions.items[i].subItems || [];
+  landingData.solutions.items[i].subItems.push({ name: '', description: '' });
+  renderLandingEditor();
+};
+
+window.removeSubItem = (i, j) => {
+  landingData.solutions.items[i].subItems.splice(j, 1);
+  renderLandingEditor();
+};
+
 // ── Helper: lê valor de um campo (RTE ou input simples) ──
 function _rteVal(key, inputId) {
   return _landingRtes[key]?.getValue() || document.getElementById(inputId)?.value || '';
@@ -1000,6 +1068,17 @@ async function saveLanding() {
 
   try {
     const d = landingData;
+    const solutions = ((landingData.solutions || {}).items || []).map((s, i) => ({
+      icon: document.getElementById(`solIcon${i}`)?.value || s.icon || '',
+      title: document.getElementById(`solTitle${i}`)?.value || s.title || '',
+      description: document.getElementById(`solDesc${i}`)?.value || s.description || '',
+      active: document.getElementById(`solActive${i}`)?.checked !== false,
+      subItems: (s.subItems || []).map((sub, j) => ({
+        name: document.getElementById(`subName${i}_${j}`)?.value || sub.name || '',
+        description: document.getElementById(`subDesc${i}_${j}`)?.value || sub.description || '',
+      })),
+    }));
+
     const steps = d.howItWorks.steps.map((s, i) => ({
       icon: document.getElementById(`stepIcon${i}`)?.value || '',
       title: document.getElementById(`stepTitle${i}`)?.value || '',
@@ -1036,6 +1115,9 @@ async function saveLanding() {
     }));
 
     const payload = {
+      'solutions.title':    document.getElementById('solutionsTitle')?.value || '',
+      'solutions.subtitle': document.getElementById('solutionsSub')?.value || '',
+      'solutions.items':    solutions,
       'hero.headline':     _rteVal('heroHeadline', 'heroHeadline'),
       'hero.subheadline':  _rteVal('heroSubheadline', 'heroSubheadline'),
       'hero.ctaText':      document.getElementById('heroCtaText')?.value || '',

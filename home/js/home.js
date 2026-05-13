@@ -40,20 +40,42 @@ async function loadLandingConfig() {
       `).join('');
     }
 
-    // Features
-    if (d.features && document.getElementById('solutionsGrid')) {
-      if (document.getElementById('featuresTitle')) document.getElementById('featuresTitle').textContent = d.features.title || '';
+    // Soluções (novo layout vertical com sub-itens)
+    if (document.getElementById('solutionsGrid')) {
       const grid = document.getElementById('solutionsGrid');
-      grid.innerHTML = (d.features.items || []).filter(f => f.active !== false).map(f => `
+
+      // Atualiza título e subtítulo da seção
+      if (d.solutions) {
+        if (document.getElementById('solutionsTitle')) document.getElementById('solutionsTitle').textContent = d.solutions.title || '';
+        if (document.getElementById('solutionsSub')) document.getElementById('solutionsSub').textContent = d.solutions.subtitle || '';
+      }
+
+      // Usa d.solutions.items se existir; caso contrário usa d.features como fallback
+      const items = (d.solutions && d.solutions.items && d.solutions.items.length > 0)
+        ? d.solutions.items.filter(s => s.active !== false)
+        : (d.features ? (d.features.items || []).filter(f => f.active !== false).map(f => ({
+            icon: f.icon, title: f.title, description: f.description, subItems: []
+          })) : []);
+
+      grid.innerHTML = items.map(s => `
         <div class="solution-card">
-            <div class="solution-icon">
-                <span style="font-size: 1.5rem;">${f.icon || '✨'}</span>
-            </div>
-            <h3>${f.title || ''}</h3>
-            <p>${f.description || ''}</p>
+          <div class="solution-left">
+            <div class="solution-icon">${s.icon || '✨'}</div>
+            <h3>${s.title || ''}</h3>
+            <p class="sol-desc">${s.description || ''}</p>
+          </div>
+          <div class="solution-right">
+            ${(s.subItems || []).map(sub => `
+              <div class="sol-sub-item">
+                <span class="sol-sub-name">${sub.name || ''}</span>
+                <span class="sol-sub-desc">${sub.description || ''}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
       `).join('');
     }
+
 
     // Plans
     if (d.plans && document.getElementById('pricingGrid')) {

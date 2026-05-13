@@ -129,6 +129,61 @@ const LandingDataSchema = new mongoose.Schema({
     buttonText: { type: String, default: 'Criar conta grátis' }
   },
 
+  solutions: {
+    title: { type: String, default: 'Soluções completas para fotógrafos' },
+    subtitle: { type: String, default: 'Escolha o fluxo ideal para cada tipo de trabalho.' },
+    items: {
+      type: [{
+        icon: { type: String, default: '📷' },
+        title: String,
+        description: String,
+        subItems: [{
+          name: String,
+          description: String
+        }],
+        active: { type: Boolean, default: true }
+      }],
+      default: [
+        {
+          icon: '🖼️',
+          title: 'Portfólio Online',
+          description: 'Seu site profissional com subdomínio exclusivo. Mostre seu trabalho de forma elegante e atraia novos clientes.',
+          active: true,
+          subItems: [
+            { name: 'Galeria responsiva', description: 'Design moderno que se adapta a qualquer dispositivo, desktop ou celular.' },
+            { name: 'Subdomínio exclusivo', description: 'Seu endereço seu-nome.cliquezoom.com.br, pronto para compartilhar.' },
+            { name: 'Seções completas', description: 'Hero, Sobre, Portfólio, Álbuns, FAQ — tudo editável pelo painel admin.' },
+            { name: 'Domínio próprio', description: 'Plano Pro permite conectar seu domínio personalizado.' }
+          ]
+        },
+        {
+          icon: '❤️',
+          title: 'Galeria de Seleção',
+          description: 'Fluxos de entrega adaptados a qualquer tipo de sessão — do ensaio individual à formatura com centenas de pessoas.',
+          active: true,
+          subItems: [
+            { name: 'Seleção', description: 'Cliente escolhe suas fotos favoritas com um coração. Ideal para ensaios e casamentos com limite de pacote configurável.' },
+            { name: 'Galeria', description: 'Cliente visualiza e baixa as fotos diretamente, sem etapa de seleção. Perfeito para entregas imediatas.' },
+            { name: 'Multi-Seleção', description: 'Vários participantes acessam a mesma galeria e fazem suas seleções individualmente. Ideal para formaturas e shows.' },
+            { name: 'Multi-Imediata', description: 'Fotos entregues em tempo real conforme o upload. Cada participante vê e baixa suas fotos na hora. Perfeito para eventos ao vivo.' }
+          ]
+        },
+        {
+          icon: '📦',
+          title: 'Entrega Online',
+          description: 'Entregue as fotos finais com download seguro e profissional. Controle total sobre o que o cliente acessa e quando.',
+          active: true,
+          subItems: [
+            { name: 'Download individual ou em lote', description: 'Cliente baixa foto a foto ou todas de uma vez em arquivo ZIP.' },
+            { name: 'Sem marca d\'água na entrega', description: 'Watermark removido automaticamente após aprovação do pacote.' },
+            { name: 'Status em tempo real', description: 'Acompanhe o status de cada sessão: pendente, enviado ou entregue.' },
+            { name: 'Controle pelo painel admin', description: 'Você define quando liberar o acesso e quais fotos estão disponíveis.' }
+          ]
+        }
+      ]
+    }
+  },
+
   footer: {
     text: { type: String, default: '© 2026 CliqueZoom. Todos os direitos reservados.' }
   }
