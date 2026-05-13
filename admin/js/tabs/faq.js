@@ -4,6 +4,7 @@
 
 import { generateId } from '../utils/helpers.js';
 import { apiGet, apiPut } from '../utils/api.js';
+import { addInlineToolbar, createRichEditor } from '../utils/richtext.js';
 
 let _faqItems = null;
 
@@ -33,9 +34,46 @@ export async function renderFaq(container) {
   if (_faqItems.length === 0) {
     _faqItems = DEFAULT_FAQS.map(f => ({ id: generateId(), ...f }));
   }
-  const faqData = { faqs: _faqItems };
 
   let html = `
+    <style>
+      .faq-editor-card {
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        background: var(--bg-surface);
+        overflow: hidden;
+        transition: box-shadow 0.15s;
+      }
+      .faq-editor-card:focus-within {
+        box-shadow: 0 0 0 2px var(--ad-accent-soft);
+        border-color: var(--accent);
+      }
+      .faq-editor-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border);
+      }
+      .faq-editor-header .drag-handle {
+        color: var(--text-muted);
+        cursor: grab;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+      .faq-q-wrap { flex: 1; }
+      .faq-answer-wrap { padding: 0.75rem 1rem; }
+      .faq-answer-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.375rem;
+      }
+    </style>
+
     <div style="display:flex; flex-direction:column; gap:1rem;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">FAQ</h2>
@@ -44,21 +82,26 @@ export async function renderFaq(container) {
         </button>
       </div>
 
-      <div id="faqList" style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div id="faqList" style="display:flex; flex-direction:column; gap:0.75rem;">
   `;
 
-  faqData.faqs.forEach((item, idx) => {
+  _faqItems.forEach((item, idx) => {
     html += `
-      <div style="border:1px solid var(--border); border-radius:0.375rem; padding:1rem; background:var(--bg-surface);">
-        <div class="input-group" style="flex:1; margin-bottom:0; display:flex; flex-direction:row; gap:0.5rem; align-items:center;">
-          <label style="cursor:move; color:var(--text-muted);" title="Arraste para reordenar">☰</label>
-          <input type="text" class="input" style="flex:1; min-width:0;"
-            value="${item.question || ''}" data-faq-question="${idx}" placeholder="Pergunta">
-          <button class="btn btn-ghost" style="color:var(--red);" onclick="deleteFaq(${idx})" title="Remover">🗑️</button>
+      <div class="faq-editor-card" data-faq-card="${idx}">
+        <div class="faq-editor-header">
+          <span class="drag-handle" title="Arraste para reordenar">☰</span>
+          <div class="faq-q-wrap">
+            <div id="faqQWrap_${idx}"></div>
+            <input type="text" id="faqQ_${idx}" value="${(item.question || '').replace(/"/g, '&quot;')}"
+              style="display:none;" data-faq-question="${idx}">
+          </div>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red); flex-shrink:0;"
+            onclick="deleteFaq(${idx})" title="Remover">🗑️</button>
         </div>
-        <div class="input-group" style="margin-bottom:0; margin-top:0.5rem;">
-          <textarea class="input" rows="3"
-            data-faq-answer="${idx}" placeholder="Resposta">${item.answer || ''}</textarea>
+        <div class="faq-answer-wrap">
+          <div class="faq-answer-label">Resposta</div>
+          <div id="faqAWrap_${idx}"></div>
+          <textarea id="faqA_${idx}" style="display:none;" data-faq-answer="${idx}">${item.answer || ''}</textarea>
         </div>
       </div>
     `;
@@ -66,13 +109,47 @@ export async function renderFaq(container) {
 
   html += `
       </div>
-      <button id="saveFaqBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
+      <button id="saveFaqBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer; margin-top:1rem;">
         Salvar FAQ
       </button>
     </div>
   `;
 
   container.innerHTML = html;
+
+  // ── Inicializa editores para cada item ──
+  const questionRtes = [];
+  const answerRtes = [];
+
+  _faqItems.forEach((item, idx) => {
+    // Toolbar inline na PERGUNTA
+    const qInput = container.querySelector(`#faqQ_${idx}`);
+    if (qInput) {
+      const qRte = addInlineToolbar(
+        qInput,
+        () => { /* live update — salva ao clicar Salvar FAQ */ },
+        { placeholder: 'Digite a pergunta...', features: ['bold', 'italic', 'emoji'] }
+      );
+      qRte.setValue(item.question || '');
+      questionRtes[idx] = qRte;
+    }
+
+    // Editor rico na RESPOSTA
+    const aWrap = container.querySelector(`#faqAWrap_${idx}`);
+    if (aWrap) {
+      const aRte = createRichEditor(
+        aWrap,
+        item.answer || '',
+        () => { /* live update — salva ao clicar Salvar FAQ */ },
+        {
+          placeholder: 'Escreva a resposta completa...',
+          minHeight: 80,
+          features: ['bold', 'italic', 'underline', 'br', 'list', 'emoji', 'clear'],
+        }
+      );
+      answerRtes[idx] = aRte;
+    }
+  });
 
   window.deleteFaq = async (index) => {
     const ok = await window.showConfirm?.('Remover esta pergunta?', { confirmText: 'Remover', danger: true }) ?? true;
@@ -88,14 +165,11 @@ export async function renderFaq(container) {
   };
 
   container.querySelector('#saveFaqBtn').onclick = async () => {
-    _faqItems = [];
-    container.querySelectorAll('[data-faq-question]').forEach((input, index) => {
-      _faqItems.push({
-        id: generateId(),
-        question: input.value,
-        answer: container.querySelector(`[data-faq-answer="${index}"]`)?.value || ''
-      });
-    });
+    _faqItems = _faqItems.map((item, idx) => ({
+      id: item.id || generateId(),
+      question: questionRtes[idx]?.getValue() || item.question,
+      answer: answerRtes[idx]?.getValue() || item.answer,
+    }));
     await saveFaq();
   };
 }

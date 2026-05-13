@@ -6,6 +6,7 @@ import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, uploadVideo, showUploadProgress } from '../utils/upload.js';
 import { appState } from '../state.js';
+import { addInlineToolbar, createRichEditor } from '../utils/richtext.js';
 
 let _studio = null;
 let _studioSelectedLayerId = null;
@@ -16,7 +17,7 @@ async function saveEstudio(silent = false) {
   window._meuSitePostPreview?.();
 }
 
-function getCurrentStudio(container) {
+function getCurrentStudio(container, overrides = {}) {
   const msgs = [];
   container.querySelectorAll('[data-whatsapp-text]').forEach((textarea, idx) => {
     msgs.push({
@@ -25,12 +26,16 @@ function getCurrentStudio(container) {
     });
   });
   const videoToggle = container.querySelector('#videoEnabledToggle');
+  // Coleta valores dos RTE se disponíveis, senão cai para os inputs ocultos
+  const titleEl = container.querySelector('#studioTitle');
+  const descEl = container.querySelector('#studioDesc');
+  const hoursEl = container.querySelector('#studioHours');
   return {
     ..._studio,
-    title: container.querySelector('#studioTitle')?.value || _studio.title || '',
-    description: container.querySelector('#studioDesc')?.value || _studio.description || '',
+    title: overrides.title ?? (titleEl ? titleEl.value : _studio.title || ''),
+    description: overrides.description ?? (descEl ? descEl.value : _studio.description || ''),
     address: container.querySelector('#studioAddress')?.value || _studio.address || '',
-    hours: container.querySelector('#studioHours')?.value || _studio.hours || '',
+    hours: overrides.hours ?? (hoursEl ? hoursEl.value : _studio.hours || ''),
     whatsapp: container.querySelector('#studioWhatsapp')?.value || _studio.whatsapp || '',
     whatsappMessages: msgs.length > 0 ? msgs : _studio.whatsappMessages,
     videoEnabled: videoToggle ? videoToggle.checked : (_studio.videoEnabled ?? false),
@@ -101,12 +106,14 @@ export async function renderEstudio(container) {
         <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Apresentacao</h3>
         <div>
           <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Titulo</label>
-          <input type="text" id="studioTitle" class="se-input"
+          <div id="studioTitleWrap"></div>
+          <input type="text" id="studioTitle" class="se-input" style="display:none;"
             value="${(_studio.title || '').replace(/"/g, '&quot;')}">
         </div>
         <div>
           <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Descricao</label>
-          <textarea id="studioDesc" class="se-textarea" rows="3">${_studio.description || ''}</textarea>
+          <div id="studioDescWrap"></div>
+          <textarea id="studioDesc" class="se-textarea" rows="3" style="display:none;">${_studio.description || ''}</textarea>
         </div>
       </div>
 
@@ -127,7 +134,8 @@ export async function renderEstudio(container) {
         </div>
         <div>
           <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Horario de Atendimento</label>
-          <textarea id="studioHours" class="se-textarea" rows="2">${_studio.hours || ''}</textarea>
+          <div id="studioHoursWrap"></div>
+          <textarea id="studioHours" class="se-textarea" rows="2" style="display:none;">${_studio.hours || ''}</textarea>
         </div>
       </div>
 
@@ -220,6 +228,39 @@ export async function renderEstudio(container) {
 
   const liveNotify = () => window._meuSitePostPreview?.();
   const layers = _studio.studioLayers;
+
+  // ── Rich text editors ──
+  const studioTitleInput = container.querySelector('#studioTitle');
+  const studioTitleRte = addInlineToolbar(
+    studioTitleInput,
+    () => liveNotify(),
+    { placeholder: 'Nome ou título do estúdio', features: ['bold', 'italic', 'emoji'] }
+  );
+  studioTitleRte.setValue(_studio.title || '');
+
+  const studioDescWrap = container.querySelector('#studioDescWrap');
+  const studioDescRte = createRichEditor(
+    studioDescWrap,
+    _studio.description || '',
+    () => liveNotify(),
+    {
+      placeholder: 'Descrição do estúdio...',
+      minHeight: 80,
+      features: ['bold', 'italic', 'underline', 'br', 'list', 'emoji', 'clear'],
+    }
+  );
+
+  const studioHoursWrap = container.querySelector('#studioHoursWrap');
+  const studioHoursRte = createRichEditor(
+    studioHoursWrap,
+    _studio.hours || '',
+    () => liveNotify(),
+    {
+      placeholder: 'Ex: Seg-Sex: 9h às 18h...',
+      minHeight: 50,
+      features: ['bold', 'italic', 'br'],
+    }
+  );
 
   // --- Renderização da lista de camadas ---
   const _renderLayerList = () => {
@@ -514,7 +555,13 @@ export async function renderEstudio(container) {
   };
 
   container.querySelector('#saveStudioBtn').onclick = async () => {
-    _studio = getCurrentStudio(container);
+    _studio = {
+      ...getCurrentStudio(container, {
+        title: studioTitleRte?.getValue(),
+        description: studioDescRte?.getValue(),
+        hours: studioHoursRte?.getValue(),
+      }),
+    };
     await saveEstudio();
   };
 }

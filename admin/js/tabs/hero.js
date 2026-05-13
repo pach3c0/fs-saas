@@ -5,6 +5,7 @@
 import { apiGet, apiPut } from '../utils/api.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage, showUploadProgress } from '../utils/upload.js';
+import { addInlineToolbar } from '../utils/richtext.js';
 
 let _hero = null;
 
@@ -75,11 +76,13 @@ export async function renderHero(container) {
             <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
               <div class="input-group" style="margin-bottom:0;">
                 <label>Título Principal</label>
-                <input type="text" id="heroTitle" class="input" value="${_hero.heroTitle}">
+                <div id="heroTitleRteWrap"></div>
+                <input type="text" id="heroTitle" style="display:none;" value="${_hero.heroTitle}">
               </div>
               <div class="input-group" style="margin-bottom:0;">
                 <label>Subtítulo</label>
-                <input type="text" id="heroSubtitle" class="input" value="${_hero.heroSubtitle}">
+                <div id="heroSubtitleRteWrap"></div>
+                <input type="text" id="heroSubtitle" style="display:none;" value="${_hero.heroSubtitle}">
               </div>
             </div>
           </details>
@@ -229,6 +232,21 @@ export async function renderHero(container) {
   const topBarInput = container.querySelector('#topBarHeight');
   const bottomBarInput = container.querySelector('#bottomBarHeight');
 
+  // ── Rich text editors para Título e Subtítulo ──
+  const titleRte = addInlineToolbar(
+    titleInput,
+    (html) => { updatePreview(); },
+    { placeholder: 'Título principal do site', features: ['bold', 'italic', 'emoji'] }
+  );
+  titleRte.setValue(_hero.heroTitle || '');
+
+  const subtitleRte = addInlineToolbar(
+    subtitleInput,
+    (html) => { updatePreview(); },
+    { placeholder: 'Subtítulo descritivo', features: ['bold', 'italic', 'emoji'] }
+  );
+  subtitleRte.setValue(_hero.heroSubtitle || '');
+
   const sliderBindings = [
     [scaleInput, container.querySelector('#scaleValue'), v => parseFloat(v).toFixed(2) + 'x'],
     [overlayInput, container.querySelector('#overlayVal'), v => v + '%'],
@@ -248,8 +266,6 @@ export async function renderHero(container) {
     input.oninput = updatePreview;
   });
 
-  titleInput.oninput = updatePreview;
-  subtitleInput.oninput = updatePreview;
   titleFSInput.oninput = updatePreview;
   subtitleFSInput.oninput = updatePreview;
 
@@ -271,8 +287,8 @@ export async function renderHero(container) {
   container.querySelector('#saveHeroBtn').onclick = async () => {
     _hero = {
       ..._hero,
-      heroTitle: titleInput.value,
-      heroSubtitle: subtitleInput.value,
+      heroTitle: titleRte.getValue(),
+      heroSubtitle: subtitleRte.getValue(),
       heroScale: parseFloat(scaleInput.value),
       heroPosX: parseInt(posXInput.value),
       heroPosY: parseInt(posYInput.value),
@@ -312,6 +328,10 @@ export async function renderHero(container) {
     const titleMinCqw = (28 / windowW) * 100;
     const subMinCqw = (14 / windowW) * 100;
 
+    // Usa o HTML do editor rico para o preview
+    const titleHtml = titleRte ? titleRte.getValue() : (titleInput.value || '');
+    const subtitleHtml = subtitleRte ? subtitleRte.getValue() : (subtitleInput.value || '');
+
     const imgHtml = image
       ? `<img src="${resolveImagePath(image)}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:${px}% ${py}%; transform:scale(${scale}); transform-origin:${px}% ${py}%; pointer-events:none; user-select:none;">`
       : '';
@@ -321,8 +341,8 @@ export async function renderHero(container) {
       <div data-type="bg" style="position:absolute; inset:0; background:rgba(0,0,0,${overlay/100}); cursor:move;"></div>
       <div style="position:absolute; top:0; left:0; right:0; height:${topBar}%; background:#000; z-index:2; pointer-events:none;"></div>
       <div style="position:absolute; bottom:0; left:0; right:0; height:${bottomBar}%; background:#000; z-index:2; pointer-events:none;"></div>
-      <h1 data-type="title" style="position:absolute; left:${tpx}%; top:${tpy}%; transform:translate(-50%,-50%); color:white; font-family:'Playfair Display',serif; font-size:clamp(${titleMinCqw}cqw, 6cqw, ${titleFontSizeCqw}cqw); font-weight:bold; text-align:center; text-shadow:2px 2px 4px rgba(0,0,0,0.7); z-index:3; line-height:1.15; width:100%; max-width:min(90cqw, ${titleMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${titleInput.value || ''}</h1>
-      <p data-type="subtitle" style="position:absolute; left:${spx}%; top:${spy}%; transform:translate(-50%,-50%); color:#e5e7eb; font-size:clamp(${subMinCqw}cqw, 3.5cqw, ${subFontSizeCqw}cqw); text-align:center; text-shadow:1px 1px 2px rgba(0,0,0,0.7); z-index:3; line-height:1.6; width:100%; max-width:min(90cqw, ${subMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${subtitleInput.value || ''}</p>
+      <h1 data-type="title" style="position:absolute; left:${tpx}%; top:${tpy}%; transform:translate(-50%,-50%); color:white; font-family:'Playfair Display',serif; font-size:clamp(${titleMinCqw}cqw, 6cqw, ${titleFontSizeCqw}cqw); font-weight:bold; text-align:center; text-shadow:2px 2px 4px rgba(0,0,0,0.7); z-index:3; line-height:1.15; width:100%; max-width:min(90cqw, ${titleMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${titleHtml}</h1>
+      <p data-type="subtitle" style="position:absolute; left:${spx}%; top:${spy}%; transform:translate(-50%,-50%); color:#e5e7eb; font-size:clamp(${subMinCqw}cqw, 3.5cqw, ${subFontSizeCqw}cqw); text-align:center; text-shadow:1px 1px 2px rgba(0,0,0,0.7); z-index:3; line-height:1.6; width:100%; max-width:min(90cqw, ${subMaxW}cqw); white-space:normal; cursor:move; user-select:none; border:1px dashed rgba(255,255,255,0.3); padding:0.5rem;">${subtitleHtml}</p>
     `;
   }
 

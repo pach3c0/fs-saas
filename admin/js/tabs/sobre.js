@@ -8,6 +8,7 @@ import { appState } from '../state.js';
 import { resolveImagePath } from '../utils/helpers.js';
 import { uploadImage } from '../utils/upload.js';
 import { apiPut } from '../utils/api.js';
+import { addInlineToolbar, createRichEditor } from '../utils/richtext.js';
 
 let _sobreSidebarContainer = null;
 let _sobreSelectedLayerId = null;
@@ -68,11 +69,13 @@ function _renderSobreSidebar(container) {
         <div class="sc-section-head">✏️ Conteúdo</div>
         <div class="sc-row">
           <span class="sc-label">Título</span>
-          <input type="text" class="sc-input" id="scTitle" value="${(sobreData.title || '').replace(/"/g, '&quot;')}">
+          <div id="scTitleWrap"></div>
+          <input type="text" class="sc-input" id="scTitle" value="${(sobreData.title || '').replace(/"/g, '&quot;')}" style="display:none;">
         </div>
         <div class="sc-row">
           <span class="sc-label">Texto / Bio</span>
-          <textarea class="sc-textarea" id="scText">${sobreData.text || ''}</textarea>
+          <div id="scTextWrap"></div>
+          <textarea class="sc-textarea" id="scText" style="display:none;">${sobreData.text || ''}</textarea>
         </div>
       </div>
 
@@ -109,8 +112,27 @@ function _renderSobreSidebar(container) {
   // Bind events
   const liveNotify = () => window._meuSitePostPreview?.();
 
-  container.querySelector('#scTitle').oninput = (e) => { sobreData.title = e.target.value; liveNotify(); };
-  container.querySelector('#scText').oninput = (e) => { sobreData.text = e.target.value; liveNotify(); };
+  // ── Rich text editor para Título ──
+  const titleInput = container.querySelector('#scTitle');
+  const titleRte = addInlineToolbar(
+    titleInput,
+    (html) => { sobreData.title = html; liveNotify(); },
+    { placeholder: 'Título da seção Sobre', features: ['bold', 'italic', 'emoji'] }
+  );
+  titleRte.setValue(sobreData.title || '');
+
+  // ── Rich text editor para Texto/Bio ──
+  const textWrap = container.querySelector('#scTextWrap');
+  const textRte = createRichEditor(
+    textWrap,
+    sobreData.text || '',
+    (html) => { sobreData.text = html; liveNotify(); },
+    {
+      placeholder: 'Conte sua história como fotógrafo...',
+      minHeight: 120,
+      features: ['bold', 'italic', 'underline', 'br', 'list', 'emoji', 'clear'],
+    }
+  );
 
   container.querySelector('#scAddPhoto').onchange = async (e) => {
     if (layers.length >= 4) {
@@ -143,8 +165,8 @@ function _renderSobreSidebar(container) {
     const oldText = btn.textContent;
     btn.disabled = true; btn.textContent = 'Salvando...';
     try {
-      const title = container.querySelector('#scTitle').value;
-      const text = container.querySelector('#scText').value;
+      const title = titleRte.getValue();
+      const text = textRte.getValue();
       await apiPut('/api/site/admin/config', {
         siteContent: {
           ...siteContent,
