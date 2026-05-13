@@ -2,6 +2,10 @@
  * SaaS Admin Panel - CliqueZoom
  * Painel de gerenciamento de organizações (superadmin only)
  */
+import { addInlineToolbar, createRichEditor } from '../../admin/js/utils/richtext.js';
+
+// Mapa de instâncias RTE do landing editor (rebuilt a cada renderLandingEditor())
+let _landingRtes = {};
 
 let authToken = localStorage.getItem('saas_token') || '';
 let userEmail = localStorage.getItem('saas_email') || '';
@@ -802,6 +806,10 @@ function renderLandingEditor() {
   `;
 
   document.getElementById('saveLandingBtn').onclick = saveLanding;
+
+  // Inicializa rich text editors após o HTML estar no DOM
+  _landingRtes = {};
+  applyRteToLandingEditor();
 }
 
 function landingSection(title, content) {
@@ -841,27 +849,33 @@ function inputStyle() {
 
 function renderTestimonialRow(t, i) {
   return `
-    <div id="testimonialRow${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:grid; grid-template-columns:2fr 1fr 1fr auto auto; gap:0.5rem; align-items:center;">
-      <input type="text" value="${esc(t.text)}" id="testimonText${i}" style="${inputStyle()} width:100%;" placeholder="Texto do depoimento">
-      <input type="text" value="${esc(t.author)}" id="testimonAuthor${i}" style="${inputStyle()} width:100%;" placeholder="Nome">
-      <input type="text" value="${esc(t.role)}" id="testimonRole${i}" style="${inputStyle()} width:100%;" placeholder="Funcao">
-      <label style="display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; color:#94a3b8; cursor:pointer;">
-        <input type="checkbox" id="testimonActive${i}" ${t.active !== false ? 'checked' : ''}> Ativo
-      </label>
-      <button onclick="removeTestimonial(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover">×</button>
+    <div id="testimonialRow${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.625rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr auto auto; gap:0.5rem; align-items:center;">
+        <input type="text" value="${esc(t.author)}" id="testimonAuthor${i}" style="${inputStyle()} width:100%;" placeholder="Nome do autor">
+        <input type="text" value="${esc(t.role)}" id="testimonRole${i}" style="${inputStyle()} width:100%;" placeholder="Funcao">
+        <label style="display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; color:#94a3b8; cursor:pointer; white-space:nowrap;">
+          <input type="checkbox" id="testimonActive${i}" ${t.active !== false ? 'checked' : ''}> Ativo
+        </label>
+        <button onclick="removeTestimonial(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover">×</button>
+      </div>
+      <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:0.125rem;">Texto do depoimento</div>
+      <div id="testimonTextWrap${i}"></div>
     </div>
   `;
 }
 
 function renderFaqRow(f, i) {
   return `
-    <div id="faqRow${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:grid; grid-template-columns:2fr 2fr auto auto; gap:0.5rem; align-items:center;">
-      <input type="text" value="${esc(f.question)}" id="faqQ${i}" style="${inputStyle()} width:100%;" placeholder="Pergunta">
-      <input type="text" value="${esc(f.answer)}" id="faqA${i}" style="${inputStyle()} width:100%;" placeholder="Resposta">
-      <label style="display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; color:#94a3b8; cursor:pointer;">
-        <input type="checkbox" id="faqActive${i}" ${f.active !== false ? 'checked' : ''}> Ativo
-      </label>
-      <button onclick="removeFaq(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover">×</button>
+    <div id="faqRow${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.625rem;">
+      <div style="display:grid; grid-template-columns:1fr auto auto; gap:0.5rem; align-items:center;">
+        <input type="text" value="${esc(f.question)}" id="faqQ${i}" style="${inputStyle()} width:100%;" placeholder="Pergunta">
+        <label style="display:flex; align-items:center; gap:0.25rem; font-size:0.75rem; color:#94a3b8; cursor:pointer; white-space:nowrap;">
+          <input type="checkbox" id="faqActive${i}" ${f.active !== false ? 'checked' : ''}> Ativo
+        </label>
+        <button onclick="removeFaq(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover">×</button>
+      </div>
+      <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:0.125rem;">Resposta</div>
+      <div id="faqAWrap${i}"></div>
     </div>
   `;
 }
@@ -887,6 +901,98 @@ window.removeFaq = (i) => {
   renderLandingEditor();
 };
 
+// ── Helper: lê valor de um campo (RTE ou input simples) ──
+function _rteVal(key, inputId) {
+  return _landingRtes[key]?.getValue() || document.getElementById(inputId)?.value || '';
+}
+
+// ── Aplica RTEs após renderLandingEditor() popular o DOM ──
+function applyRteToLandingEditor() {
+  const d = landingData;
+  if (!d) return;
+
+  // Hero — toolbar inline em Headline e Subheadline
+  const headlineEl = document.getElementById('heroHeadline');
+  if (headlineEl) {
+    _landingRtes['heroHeadline'] = addInlineToolbar(headlineEl, null, {
+      placeholder: 'Título principal da landing page',
+      features: ['bold', 'italic', 'emoji'],
+    });
+    _landingRtes['heroHeadline'].setValue(d.hero.headline || '');
+  }
+  const subHeadlineEl = document.getElementById('heroSubheadline');
+  if (subHeadlineEl) {
+    _landingRtes['heroSubheadline'] = addInlineToolbar(subHeadlineEl, null, {
+      placeholder: 'Subtítulo / proposta de valor',
+      features: ['bold', 'italic', 'emoji'],
+    });
+    _landingRtes['heroSubheadline'].setValue(d.hero.subheadline || '');
+  }
+
+  // Steps — toolbar inline nas descrições
+  d.howItWorks.steps.forEach((s, i) => {
+    const el = document.getElementById(`stepDesc${i}`);
+    if (el) {
+      _landingRtes[`stepDesc${i}`] = addInlineToolbar(el, null, {
+        placeholder: 'Descrição do passo',
+        features: ['bold', 'italic'],
+      });
+      _landingRtes[`stepDesc${i}`].setValue(s.description || '');
+    }
+  });
+
+  // Features — toolbar inline nas descrições
+  d.features.items.forEach((f, i) => {
+    const el = document.getElementById(`featDesc${i}`);
+    if (el) {
+      _landingRtes[`featDesc${i}`] = addInlineToolbar(el, null, {
+        placeholder: 'Descrição da funcionalidade',
+        features: ['bold', 'italic'],
+      });
+      _landingRtes[`featDesc${i}`].setValue(f.description || '');
+    }
+  });
+
+  // Depoimentos — editor rico no campo texto
+  d.testimonials.items.forEach((t, i) => {
+    const wrap = document.getElementById(`testimonTextWrap${i}`);
+    if (wrap) {
+      _landingRtes[`testimonText${i}`] = createRichEditor(
+        wrap,
+        t.text || '',
+        null,
+        { placeholder: 'Texto do depoimento...', minHeight: 60, features: ['bold', 'italic', 'emoji', 'clear'] }
+      );
+    }
+  });
+
+  // FAQ — editor rico na resposta
+  d.faq.items.forEach((f, i) => {
+    const wrap = document.getElementById(`faqAWrap${i}`);
+    if (wrap) {
+      _landingRtes[`faqA${i}`] = createRichEditor(
+        wrap,
+        f.answer || '',
+        null,
+        { placeholder: 'Resposta completa...', minHeight: 70, features: ['bold', 'italic', 'underline', 'br', 'list', 'emoji', 'clear'] }
+      );
+    }
+  });
+
+  // CTA e Footer — toolbar inline
+  ['ctaTitle', 'ctaSub', 'footerText'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const key = id;
+    const vals = { ctaTitle: d.cta.title, ctaSub: d.cta.subtitle, footerText: d.footer.text };
+    _landingRtes[key] = addInlineToolbar(el, null, {
+      placeholder: el.placeholder || '',
+      features: ['bold', 'italic', 'emoji'],
+    });
+    _landingRtes[key].setValue(vals[key] || '');
+  });
+}
+
 async function saveLanding() {
   const btn = document.getElementById('saveLandingBtn');
   btn.textContent = 'Salvando...';
@@ -894,61 +1000,61 @@ async function saveLanding() {
 
   try {
     const d = landingData;
-    const steps = d.howItWorks.steps.map((_, i) => ({
+    const steps = d.howItWorks.steps.map((s, i) => ({
       icon: document.getElementById(`stepIcon${i}`)?.value || '',
       title: document.getElementById(`stepTitle${i}`)?.value || '',
-      description: document.getElementById(`stepDesc${i}`)?.value || ''
+      description: _rteVal(`stepDesc${i}`, `stepDesc${i}`) || s.description,
     }));
 
-    const features = d.features.items.map((_, i) => ({
+    const features = d.features.items.map((f, i) => ({
       icon: document.getElementById(`featIcon${i}`)?.value || '',
       title: document.getElementById(`featTitle${i}`)?.value || '',
-      description: document.getElementById(`featDesc${i}`)?.value || '',
-      active: document.getElementById(`featActive${i}`)?.checked !== false
+      description: _rteVal(`featDesc${i}`, `featDesc${i}`) || f.description,
+      active: document.getElementById(`featActive${i}`)?.checked !== false,
     }));
 
-    const plans = d.plans.items.map((_, i) => ({
+    const plans = d.plans.items.map((p, i) => ({
       name: document.getElementById(`planName${i}`)?.value || '',
       price: document.getElementById(`planPrice${i}`)?.value || '',
       period: document.getElementById(`planPeriod${i}`)?.value || '',
       description: document.getElementById(`planDesc${i}`)?.value || '',
       highlighted: document.getElementById(`planHL${i}`)?.checked || false,
-      features: (document.getElementById(`planFeatures${i}`)?.value || '').split('\n').filter(f => f.trim())
+      features: (document.getElementById(`planFeatures${i}`)?.value || '').split('\n').filter(f => f.trim()),
     }));
 
-    const testimonials = d.testimonials.items.map((_, i) => ({
-      text: document.getElementById(`testimonText${i}`)?.value || '',
+    const testimonials = d.testimonials.items.map((t, i) => ({
+      text: _rteVal(`testimonText${i}`, `testimonText${i}`) || t.text,
       author: document.getElementById(`testimonAuthor${i}`)?.value || '',
       role: document.getElementById(`testimonRole${i}`)?.value || '',
-      active: document.getElementById(`testimonActive${i}`)?.checked !== false
+      active: document.getElementById(`testimonActive${i}`)?.checked !== false,
     }));
 
-    const faqs = d.faq.items.map((_, i) => ({
+    const faqs = d.faq.items.map((f, i) => ({
       question: document.getElementById(`faqQ${i}`)?.value || '',
-      answer: document.getElementById(`faqA${i}`)?.value || '',
-      active: document.getElementById(`faqActive${i}`)?.checked !== false
+      answer: _rteVal(`faqA${i}`, `faqA${i}`) || f.answer,
+      active: document.getElementById(`faqActive${i}`)?.checked !== false,
     }));
 
     const payload = {
-      'hero.headline': document.getElementById('heroHeadline')?.value || '',
-      'hero.subheadline': document.getElementById('heroSubheadline')?.value || '',
-      'hero.ctaText': document.getElementById('heroCtaText')?.value || '',
-      'hero.ctaSubtext': document.getElementById('heroCtaSubtext')?.value || '',
-      'howItWorks.title': document.getElementById('howTitle')?.value || '',
-      'howItWorks.steps': steps,
-      'features.title': document.getElementById('featuresSectionTitle')?.value || d.features.title,
-      'features.items': features,
-      'plans.title': document.getElementById('plansTitle')?.value || '',
-      'plans.subtitle': document.getElementById('plansSub')?.value || '',
-      'plans.items': plans,
+      'hero.headline':     _rteVal('heroHeadline', 'heroHeadline'),
+      'hero.subheadline':  _rteVal('heroSubheadline', 'heroSubheadline'),
+      'hero.ctaText':      document.getElementById('heroCtaText')?.value || '',
+      'hero.ctaSubtext':   document.getElementById('heroCtaSubtext')?.value || '',
+      'howItWorks.title':  document.getElementById('howTitle')?.value || '',
+      'howItWorks.steps':  steps,
+      'features.title':    document.getElementById('featuresSectionTitle')?.value || d.features.title,
+      'features.items':    features,
+      'plans.title':       document.getElementById('plansTitle')?.value || '',
+      'plans.subtitle':    document.getElementById('plansSub')?.value || '',
+      'plans.items':       plans,
       'testimonials.title': document.getElementById('testimonTitle')?.value || '',
       'testimonials.items': testimonials,
-      'faq.title': document.getElementById('faqTitle')?.value || '',
-      'faq.items': faqs,
-      'cta.title': document.getElementById('ctaTitle')?.value || '',
-      'cta.subtitle': document.getElementById('ctaSub')?.value || '',
-      'cta.buttonText': document.getElementById('ctaBtn')?.value || '',
-      'footer.text': document.getElementById('footerText')?.value || ''
+      'faq.title':         document.getElementById('faqTitle')?.value || '',
+      'faq.items':         faqs,
+      'cta.title':         _rteVal('ctaTitle', 'ctaTitle'),
+      'cta.subtitle':      _rteVal('ctaSub', 'ctaSub'),
+      'cta.buttonText':    document.getElementById('ctaBtn')?.value || '',
+      'footer.text':       _rteVal('footerText', 'footerText'),
     };
 
     await apiRequest('PUT', '/api/admin/landing/config', payload);
