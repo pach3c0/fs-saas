@@ -29,7 +29,7 @@ router.put('/site-data', authenticateToken, async (req, res) => {
     const data = await SiteData.findOneAndUpdate(
       { organizationId: req.user.organizationId },
       { $set: { ...setFields, organizationId: req.user.organizationId } },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     res.json(data);
   } catch (error) {

@@ -403,7 +403,7 @@ router.put('/site/default-template', authenticateToken, async (req, res) => {
     const tmpl = await DefaultSiteTemplate.findOneAndUpdate(
       {},
       { $set: { siteConfig, siteContent, siteStyle, siteSections, updatedBy: req.user?.email || '' } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
     res.json({ success: true, template: tmpl });
   } catch (error) {

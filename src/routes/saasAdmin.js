@@ -275,7 +275,7 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
         const planLimits = loadPlanLimits();
         if (!planLimits[plan]) return res.status(400).json({ error: 'Plano inválido' });
 
-        const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { new: true });
+        const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { returnDocument: 'after' });
         await Subscription.findOneAndUpdate({ organizationId: org._id }, { plan, limits: planLimits[plan] });
         res.json({ success: true, message: `Plano alterado para ${plan}` });
     } catch (error) {

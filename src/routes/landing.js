@@ -26,7 +26,7 @@ router.put('/admin/landing/config', authenticateToken, requireSuperadmin, async 
     const data = await LandingData.findOneAndUpdate(
       {},
       { $set: payload },
-      { upsert: true, new: true, runValidators: false }
+      { upsert: true, returnDocument: 'after', runValidators: false }
     );
     res.json({ success: true, data });
   } catch (error) {

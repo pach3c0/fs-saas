@@ -60,7 +60,7 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,
       { $set: updates },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!org) {
@@ -193,7 +193,7 @@ router.put('/organization/integrations', authenticateToken, async (req, res) => 
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,
       { $set },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('integrations');
 
     if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
