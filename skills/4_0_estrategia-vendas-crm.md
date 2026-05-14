@@ -12,11 +12,13 @@ Utilização de sequências de e-mails/notificações baseadas no comportamento 
 O backend (`src/utils/salesAutomator.js`) deve monitorar diariamente:
 - **Público:** Sessões de seleção/venda (não galeria).
 - **Condição:** Existência de fotos pendentes (`photos.selected: false`).
-- **Prazos:** Gatilhos em 15 dias, 7 dias e 48 horas antes do vencimento.
+- **Prazos Expiração:** Gatilhos em 15 dias, 7 dias e 48 horas antes do vencimento.
+- **Re-engajamento Anual (CRM):** Disparo automático 11 meses após a data de eventos anuais (ex: festa infantil) para oferecer novo ensaio/cobertura.
 
 ### Copywriting e Psicologia de Venda
-- **Foco:** Perda e Escassez ("Não deixe suas memórias expirarem").
-- **CTA:** Link direto para o checkout de fotos extras.
+- **Foco (Expiração):** Perda e Escassez ("Não deixe suas memórias expirarem").
+- **Foco (CRM 11 Meses):** Antecipação e Recordação ("Seu evento completa 1 ano mês que vem, vamos registrar o próximo?").
+- **CTA:** Link direto para o checkout de fotos extras ou contato para novo agendamento.
 
 ## 🛠️ 2. Arquitetura Técnica
 

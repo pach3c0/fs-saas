@@ -174,5 +174,5 @@
 - [ ] **Template Padrão — fix 403:** Confirmar que `PLATFORM_ADMIN_KEY` está no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
 - [ ] **Marca D'água Híbrida:** Perfil/`both` mode — texto + imagem robustos. Mesmas posições (tile, sequência, repetição).
 - [ ] **Monetização Direta:** Payment gateway → libera download pós-upsell. (Ver [4_0_estrategia-vendas-crm.md](file:///Users/macbook/Documents/ProjetoEstudio/FsSaaS/skills/4_0_estrategia-vendas-crm.md))
-- [ ] **CRM Automático:** Implementar `salesAutomator.js` e aba de métricas de vendas.
+- [ ] **CRM Automático:** Implementar `salesAutomator.js` e aba de métricas de vendas (inclui disparo de re-engajamento 11 meses pós-sessão).
 - [ ] **Slideshow Viral:** Video gen (ffmpeg + Bull queue) para sessões.
