@@ -822,6 +822,9 @@ function renderLandingEditor() {
   // Inicializa rich text editors após o HTML estar no DOM
   _landingRtes = {};
   applyRteToLandingEditor();
+
+  // Inicializa drag & drop nos cards de soluções
+  setupSolutionsDragDrop();
 }
 
 function landingSection(title, content) {
@@ -926,8 +929,14 @@ function renderSolutionCard(s, i) {
   `).join('');
 
   return `
-    <div id="solutionCard${i}" style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1.25rem;">
-      <div style="display:grid; grid-template-columns:3rem 1fr auto auto; gap:0.75rem; align-items:center; margin-bottom:0.875rem;">
+    <div id="solutionCard${i}" data-sol-index="${i}" draggable="true"
+      style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:1.25rem; transition: opacity 0.2s, border-color 0.2s;">
+
+      <!-- Linha topo: handle + ícone + título + ativo + excluir -->
+      <div style="display:grid; grid-template-columns:1.5rem 3rem 1fr auto auto; gap:0.75rem; align-items:center; margin-bottom:0.875rem;">
+        <!-- Handle de arraste -->
+        <div class="sol-drag-handle" title="Arrastar para reordenar"
+          style="color:#475569; font-size:1.1rem; cursor:grab; user-select:none; display:flex; align-items:center; justify-content:center; padding:0.25rem;">⠿</div>
         <input type="text" value="${esc(s.icon || '')}" id="solIcon${i}"
           style="${inputStyle()} text-align:center; font-size:1.25rem;" placeholder="📷">
         <input type="text" value="${esc(s.title || '')}" id="solTitle${i}"
@@ -937,6 +946,7 @@ function renderSolutionCard(s, i) {
         </label>
         <button onclick="removeSolution(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.125rem; padding:0.25rem;" title="Remover card">×</button>
       </div>
+
       <input type="text" value="${esc(s.description || '')}" id="solDesc${i}"
         style="${inputStyle()} width:100%; margin-bottom:1rem;" placeholder="Descrição do card">
       <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem;">Sub-itens:</div>
@@ -944,6 +954,94 @@ function renderSolutionCard(s, i) {
       <button onclick="addSubItem(${i})" style="margin-top:0.5rem; background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); border-radius:0.25rem; padding:0.3rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer;">+ Add sub-item</button>
     </div>
   `;
+}
+
+// ── Drag & Drop para reordenar soluções ──
+function setupSolutionsDragDrop() {
+  const list = document.getElementById('solutionsList');
+  if (!list) return;
+
+  let dragSrcIndex = null;
+
+  list.querySelectorAll('[data-sol-index]').forEach(card => {
+    const idx = parseInt(card.dataset.solIndex);
+
+    // Só inicia drag quando clica no handle
+    const handle = card.querySelector('.sol-drag-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', () => { card.draggable = true; });
+      // Volta draggable=false quando soltar para não interferir nos inputs
+      card.addEventListener('dragend', () => { card.draggable = false; });
+      // Inicialmente não draggable (evita conflito com inputs/textareas)
+      card.draggable = false;
+    }
+
+    card.addEventListener('dragstart', (e) => {
+      dragSrcIndex = idx;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', idx);
+      setTimeout(() => { card.style.opacity = '0.4'; }, 0);
+    });
+
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '1';
+      card.style.borderColor = '#334155';
+      list.querySelectorAll('[data-sol-index]').forEach(c => {
+        c.style.borderColor = '#334155';
+        c.style.transform = '';
+      });
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      // Highlight do card alvo
+      list.querySelectorAll('[data-sol-index]').forEach(c => { c.style.borderColor = '#334155'; });
+      if (dragSrcIndex !== idx) {
+        card.style.borderColor = '#6366f1';
+      }
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.style.borderColor = '#334155';
+    });
+
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dragSrcIndex === null || dragSrcIndex === idx) return;
+
+      // Lê os valores atuais dos inputs ANTES de re-renderizar
+      _syncSolutionsFromDOM();
+
+      // Reordena o array
+      const items = landingData.solutions.items;
+      const moved = items.splice(dragSrcIndex, 1)[0];
+      items.splice(idx, 0, moved);
+
+      dragSrcIndex = null;
+      renderLandingEditor();
+      // Garante scroll na lista para mostrar o card movido
+      setTimeout(() => {
+        document.getElementById('solutionsList')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    });
+  });
+}
+
+// ── Sincroniza DOM → landingData.solutions.items (para preservar edições antes do drag) ──
+function _syncSolutionsFromDOM() {
+  const items = (landingData.solutions || {}).items || [];
+  items.forEach((s, i) => {
+    s.icon        = document.getElementById(`solIcon${i}`)?.value        ?? s.icon;
+    s.title       = document.getElementById(`solTitle${i}`)?.value       ?? s.title;
+    s.description = document.getElementById(`solDesc${i}`)?.value       ?? s.description;
+    s.active      = document.getElementById(`solActive${i}`)?.checked    ?? s.active;
+    (s.subItems || []).forEach((sub, j) => {
+      sub.name        = document.getElementById(`subName${i}_${j}`)?.value  ?? sub.name;
+      sub.description = document.getElementById(`subDesc${i}_${j}`)?.value ?? sub.description;
+    });
+  });
 }
 
 window.addSolution = () => {
