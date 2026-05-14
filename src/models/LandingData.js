@@ -18,9 +18,9 @@ const LandingDataSchema = new mongoose.Schema({
         description: String
       }],
       default: [
-        { icon: '📸', title: 'Crie sua conta', description: 'Cadastre-se gratuitamente e configure seu estúdio em minutos.' },
-        { icon: '🖼️', title: 'Envie suas fotos', description: 'Faça upload das fotos da sessão e compartilhe o link com seu cliente.' },
-        { icon: '✅', title: 'Cliente aprova', description: 'Seu cliente seleciona, aprova e você entrega com um clique.' }
+        { icon: '<svg viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>', title: 'Crie sua conta', description: 'Cadastre-se gratuitamente e configure seu estúdio em minutos.' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><polyline points="9 14 12 11 15 14"></polyline></svg>', title: 'Envie suas fotos', description: 'Faça upload das fotos da sessão e compartilhe o link com seu cliente.' },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>', title: 'Cliente aprova', description: 'Seu cliente seleciona, aprova e você entrega com um clique.' }
       ]
     }
   },
@@ -35,14 +35,14 @@ const LandingDataSchema = new mongoose.Schema({
         active: Boolean
       }],
       default: [
-        { icon: '🖼️', title: 'Galeria de Seleção', description: 'Cliente seleciona as fotos favoritas com um coração. Limite de pacote e preço por foto extra configuráveis.', active: true },
-        { icon: '📦', title: 'Entrega Online', description: 'Entregue as fotos em alta resolução direto pelo link. Cliente baixa individualmente ou em ZIP.', active: true },
-        { icon: '📖', title: 'Prova de Álbum', description: 'Envie a prova do álbum folheável para aprovação. Cliente aprova página por página ou tudo de uma vez.', active: true },
-        { icon: '🌐', title: 'Site Profissional', description: 'Crie seu site de portfólio com 5 templates exclusivos. Domínio próprio suportado.', active: true },
-        { icon: '👥', title: 'CRM de Clientes', description: 'Gerencie seus clientes, histórico de sessões e dados de contato em um só lugar.', active: true },
-        { icon: '💧', title: 'Marca D\'Água', description: 'Proteja suas fotos com marca d\'água personalizada (texto ou logo) com opacidade ajustável.', active: true },
-        { icon: '📊', title: 'Analytics', description: 'Acompanhe acessos à sua galeria com Google Analytics e Meta Pixel integrados.', active: true },
-        { icon: '📱', title: 'PWA Offline', description: 'Galeria funciona offline como app nativo. Cliente instala no celular e acessa sem internet.', active: true }
+        { icon: '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>', title: 'Galeria de Seleção', description: 'Cliente seleciona as fotos favoritas com um coração. Limite de pacote e preço por foto extra configuráveis.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>', title: 'Entrega Online', description: 'Entregue as fotos em alta resolução direto pelo link. Cliente baixa individualmente ou em ZIP.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>', title: 'Prova de Álbum', description: 'Envie a prova do álbum folheável para aprovação. Cliente aprova página por página ou tudo de uma vez.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>', title: 'Site Profissional', description: 'Crie seu site de portfólio com 5 templates exclusivos. Domínio próprio suportado.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>', title: 'CRM de Clientes', description: 'Gerencie seus clientes, histórico de sessões e dados de contato em um só lugar.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>', title: 'Marca D\'Água', description: 'Proteja suas fotos com marca d\'água personalizada (texto ou logo) com opacidade ajustável.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>', title: 'Analytics', description: 'Acompanhe acessos à sua galeria com Google Analytics e Meta Pixel integrados.', active: true },
+        { icon: '<svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>', title: 'PWA Offline', description: 'Galeria funciona offline como app nativo. Cliente instala no celular e acessa sem internet.', active: true }
       ]
     }
   },
