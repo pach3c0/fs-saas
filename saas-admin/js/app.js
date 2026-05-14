@@ -1045,6 +1045,7 @@ function _syncSolutionsFromDOM() {
 }
 
 window.addSolution = () => {
+  _syncSolutionsFromDOM();
   if (!landingData.solutions) landingData.solutions = { title: '', subtitle: '', items: [] };
   landingData.solutions.items.push({ icon: '📷', title: '', description: '', subItems: [], active: true });
   renderLandingEditor();
@@ -1052,17 +1053,20 @@ window.addSolution = () => {
 };
 
 window.removeSolution = (i) => {
+  _syncSolutionsFromDOM();
   landingData.solutions.items.splice(i, 1);
   renderLandingEditor();
 };
 
 window.addSubItem = (i) => {
+  _syncSolutionsFromDOM();
   landingData.solutions.items[i].subItems = landingData.solutions.items[i].subItems || [];
   landingData.solutions.items[i].subItems.push({ name: '', description: '' });
   renderLandingEditor();
 };
 
 window.removeSubItem = (i, j) => {
+  _syncSolutionsFromDOM();
   landingData.solutions.items[i].subItems.splice(j, 1);
   renderLandingEditor();
 };
