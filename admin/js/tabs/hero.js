@@ -100,6 +100,14 @@ export async function renderHero(container) {
               </label>
               <div id="heroUploadProgress"></div>
 
+              <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+                <label style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Ou URL da Imagem (Drive, etc.)</label>
+                <div style="display:flex; gap:0.5rem;">
+                  <input type="text" id="heroImageUrl" placeholder="https://..." value="${_hero.heroImage && _hero.heroImage.startsWith('http') ? _hero.heroImage : ''}" style="flex:1; padding:0.5rem; border-radius:0.25rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
+                  <button id="applyHeroUrlBtn" style="background:var(--border); color:white; border:none; padding:0.5rem 1rem; border-radius:0.25rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Aplicar</button>
+                </div>
+              </div>
+
               <div>
                 <div class="range-group"><label class="range-label" style="flex:1">Zoom</label><span id="scaleValue" class="range-val"></span></div>
                 <input type="range" id="heroScale" min="0.5" max="2" step="0.05" value="${_hero.heroScale}" style="width:100%;">
@@ -219,6 +227,8 @@ export async function renderHero(container) {
   const titleInput = container.querySelector('#heroTitle');
   const subtitleInput = container.querySelector('#heroSubtitle');
   const imageInput = container.querySelector('#heroImage');
+  const heroImageUrlInput = container.querySelector('#heroImageUrl');
+  const applyHeroUrlBtn = container.querySelector('#applyHeroUrlBtn');
   const scaleInput = container.querySelector('#heroScale');
   const posXInput = container.querySelector('#heroPosX');
   const posYInput = container.querySelector('#heroPosY');
@@ -277,12 +287,35 @@ export async function renderHero(container) {
         showUploadProgress('heroUploadProgress', percent);
       });
       _hero.heroImage = result.url;
+      if (heroImageUrlInput) heroImageUrlInput.value = '';
       updatePreview();
       e.target.value = '';
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }
   };
+
+  if (applyHeroUrlBtn && heroImageUrlInput) {
+    applyHeroUrlBtn.onclick = () => {
+      const url = heroImageUrlInput.value.trim();
+      if (url) {
+        let finalUrl = url;
+        // Tenta converter link de visualização do Google Drive para link direto
+        if (url.includes('drive.google.com/file/d/')) {
+           const match = url.match(/\\/d\\/(.*?)\\//) || url.match(/\\/d\\/(.*?)$/);
+           if (match && match[1]) {
+             finalUrl = \`https://drive.google.com/uc?export=view&id=\${match[1]}\`;
+           }
+        }
+        
+        _hero.heroImage = finalUrl;
+        updatePreview();
+        window.showToast?.('Imagem aplicada! Clique em "Salvar Design" para persistir.', 'success');
+      } else {
+        window.showToast?.('Digite uma URL válida.', 'error');
+      }
+    };
+  }
 
   container.querySelector('#saveHeroBtn').onclick = async () => {
     _hero = {
