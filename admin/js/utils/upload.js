@@ -11,6 +11,14 @@
  */
 export async function compressImage(file, maxWidth = 1200, quality = 0.8) {
   return new Promise((resolve) => {
+    // Se o arquivo tiver tamanho 0 (comum em arquivos virtuais da nuvem que ainda não baixaram)
+    // ou se não for jpeg/png/webp (ex: HEIC, TIFF), pulamos a compressão local.
+    // Assim o navegador pode lidar de forma nativa com a leitura e streaming no XHR.
+    if (!file || file.size === 0 || !file.type.match(/image\\/(jpeg|png|webp|gif)/i)) {
+      console.log('Pulando compressão local (nuvem ou formato não suportado):', file.name);
+      return resolve(file);
+    }
+
     const reader = new FileReader();
     
     reader.onload = (e) => {
@@ -30,12 +38,29 @@ export async function compressImage(file, maxWidth = 1200, quality = 0.8) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        canvas.toBlob(resolve, 'image/jpeg', quality);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            resolve(file); // Falhou na conversão, envia original
+          }
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => {
+        resolve(file); // Não conseguiu ler como imagem (ex: formato proprietário), envia original
       };
       img.src = e.target.result;
     };
     
-    reader.readAsDataURL(file);
+    reader.onerror = () => {
+      resolve(file); // Erro de leitura (arquivos na nuvem às vezes fazem isso), envia original
+    };
+    
+    try {
+      reader.readAsDataURL(file);
+    } catch (err) {
+      resolve(file); // Erro cataclísmico, fallback pro original
+    }
   });
 }
 
