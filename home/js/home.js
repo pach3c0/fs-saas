@@ -31,13 +31,24 @@ async function loadLandingConfig() {
     if (d.howItWorks && document.getElementById('stepsGrid')) {
       if (document.getElementById('howTitle')) document.getElementById('howTitle').textContent = d.howItWorks.title || '';
       const grid = document.getElementById('stepsGrid');
-      grid.innerHTML = (d.howItWorks.steps || []).map((step, i) => `
-        <div class="step">
-            <div class="step-number">${step.icon || (i + 1)}</div>
-            <h3>${step.title || ''}</h3>
-            <p>${step.description || ''}</p>
-        </div>
-      `).join('');
+      // Ícones Lucide padrão por posição (fallback quando DB não tem SVG)
+      const defaultIcons = [
+        '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        '<svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline></svg>',
+        '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
+      ];
+      grid.innerHTML = (d.howItWorks.steps || []).map((step, i) => {
+        // Usa icon do DB se for SVG, senão usa o padrão por posição
+        const isSvg = step.icon && step.icon.trim().startsWith('<svg');
+        const icon = isSvg ? step.icon : (defaultIcons[i] || defaultIcons[0]);
+        return `
+          <div class="step">
+              <div class="step-icon">${icon}</div>
+              <h3>${step.title || ''}</h3>
+              <p>${step.description || ''}</p>
+          </div>
+        `;
+      }).join('');
     }
 
     // Soluções (novo layout vertical com sub-itens)
