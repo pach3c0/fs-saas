@@ -14,7 +14,7 @@ export async function compressImage(file, maxWidth = 1200, quality = 0.8) {
     // Se o arquivo tiver tamanho 0 (comum em arquivos virtuais da nuvem que ainda não baixaram)
     // ou se não for jpeg/png/webp (ex: HEIC, TIFF), pulamos a compressão local.
     // Assim o navegador pode lidar de forma nativa com a leitura e streaming no XHR.
-    if (!file || file.size === 0 || !file.type.match(/image\\/(jpeg|png|webp|gif)/i)) {
+    if (!file || file.size === 0 || !file.type.match(/image\/(jpeg|png|webp|gif)/i)) {
       console.log('Pulando compressão local (nuvem ou formato não suportado):', file.name);
       return resolve(file);
     }
