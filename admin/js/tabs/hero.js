@@ -283,6 +283,9 @@ export async function renderHero(container) {
     const file = e.target.files[0];
     if (!file) return;
     try {
+      // Mostrar feedback visual de que o sistema já está trabalhando (especial para GDrive/iCloud)
+      showUploadProgress('heroUploadProgress', 'indeterminate', 'Processando arquivo (aguarde nuvem se necessário)...');
+      
       const result = await uploadImage(file, (percent) => {
         showUploadProgress('heroUploadProgress', percent);
       });
@@ -291,6 +294,7 @@ export async function renderHero(container) {
       updatePreview();
       e.target.value = '';
     } catch (error) {
+      showUploadProgress('heroUploadProgress', 0, 'Erro no upload');
       window.showToast?.('Erro: ' + error.message, 'error');
     }
   };

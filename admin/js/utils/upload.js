@@ -172,31 +172,42 @@ export async function uploadVideo(file, authToken, onProgress = null) {
  * @param {string} containerId - ID do container
  * @param {number} percent - Porcentagem (0-100)
  */
-export function showUploadProgress(containerId, percent) {
+export function showUploadProgress(containerId, percent, message = null) {
   const container = document.getElementById(containerId);
   if (!container) return;
   
-  if (percent === 0) {
-    container.innerHTML = `
-      <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-        <div style="flex:1; height:0.5rem; background:#374151; border-radius:9999px; overflow:hidden;">
-          <div id="progress-bar" style="height:100%; background:#3b82f6; transition:width 0.3s; width:0%"></div>
+  const isIndeterminate = percent === 'indeterminate';
+  
+  if (percent === 0 || isIndeterminate) {
+    const text = message || (isIndeterminate ? 'Processando...' : '0%');
+    container.innerHTML = \`
+      <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
+        <span id="progress-text" style="font-size:0.75rem; color:#9ca3af;">\${text}</span>
+        <div style="flex:1; height:0.5rem; background:var(--border, #374151); border-radius:9999px; overflow:hidden; position:relative;">
+          <div id="progress-bar" style="height:100%; background:var(--accent, #3b82f6); transition:width 0.3s; width:\${isIndeterminate ? '100%' : '0%'}"></div>
+          \${isIndeterminate ? '<div style="position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation:shimmer 1.5s infinite;"></div>' : ''}
         </div>
-        <span id="progress-text" style="font-size:0.875rem; color:#9ca3af;">0%</span>
       </div>
-    `;
+      <style>
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      </style>
+    \`;
   } else if (percent === 100) {
     const bar = container.querySelector('#progress-bar');
     const text = container.querySelector('#progress-text');
     if (bar) bar.style.width = '100%';
-    if (text) text.textContent = '100%';
+    if (text) text.textContent = message || 'Concluído!';
     setTimeout(() => {
       container.innerHTML = '';
-    }, 1500);
+    }, 2000);
   } else {
     const bar = container.querySelector('#progress-bar');
     const text = container.querySelector('#progress-text');
-    if (bar) bar.style.width = `${percent}%`;
+    if (bar) bar.style.width = \`\${percent}%\`;
+    if (text) text.textContent = message || \`\${percent}%\`;
   }
 }
 
