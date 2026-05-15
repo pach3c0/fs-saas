@@ -24,16 +24,7 @@
         .nav-links { display: flex; align-items: center; gap: 2rem; }
         .nav-link { font-size: 0.875rem; color: #555; text-decoration: none; transition: color 0.2s; font-weight: 500; }
         .nav-link:hover { color: #1a1a1a; }
-        .nav-dropdown { position: relative; }
-        .nav-dropdown-trigger { font-size: 0.875rem; color: #555; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.25rem; background: none; border: none; font-family: inherit; }
-        .nav-dropdown-trigger:hover { color: #1a1a1a; }
-        .nav-dropdown-trigger svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.2s; }
-        .nav-dropdown-menu { position: absolute; top: calc(100% + 0.75rem); left: -1rem; background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 0.5rem; min-width: 220px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: all 0.2s; }
-        .nav-dropdown:hover .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
-        .nav-dropdown:hover .nav-dropdown-trigger svg { transform: rotate(180deg); }
-        .nav-dropdown-menu a { display: block; padding: 0.625rem 0.875rem; font-size: 0.8125rem; color: #444; text-decoration: none; border-radius: 0.375rem; transition: background 0.15s; }
-        .nav-dropdown-menu a:hover { background: #f5f5f5; color: #1a1a1a; }
-        .nav-dropdown-menu a span { display: block; font-size: 0.6875rem; color: #999; margin-top: 0.125rem; }
+
         .nav-cta { background: #1a1a1a; color: #fff !important; padding: 0.5rem 1.25rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.8125rem; text-decoration: none; transition: background 0.2s; }
         .nav-cta:hover { background: #333; }
         .nav-mobile-btn { display: none; background: none; border: none; cursor: pointer; padding: 0.25rem; }
@@ -95,7 +86,8 @@
         .how-it-works-inner { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
         .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 3.5rem; }
         .step { text-align: center; position: relative; }
-        .step-number { width: 52px; height: 52px; background: #1a1a1a; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin: 0 auto 1.25rem; }
+        .step-icon { width: 56px; height: 56px; background: #f5f5f5; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; border: 1px solid #eee; }
+        .step-icon svg { width: 26px; height: 26px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
         .step h3 { font-size: 1.0625rem; font-weight: 700; margin-bottom: 0.5rem; }
         .step p { font-size: 0.875rem; color: #666; line-height: 1.6; max-width: 260px; margin: 0 auto; }
 
@@ -236,11 +228,10 @@
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <a href="#solucoes" onclick="document.getElementById('mobileMenu').classList.remove('active')">Solucoes</a>
+        <a href="#solucoes" onclick="document.getElementById('mobileMenu').classList.remove('active')">Soluções</a>
         <a href="#planos" onclick="document.getElementById('mobileMenu').classList.remove('active')">Planos</a>
         <a href="#faq-section" onclick="document.getElementById('mobileMenu').classList.remove('active')">FAQ</a>
-        <a href="/">Portfolio FS</a>
-        <a href="#cadastro" class="mobile-cta" onclick="document.getElementById('mobileMenu').classList.remove('active')">Criar Conta Gratis</a>
+        <a href="#cadastro" class="mobile-cta" onclick="document.getElementById('mobileMenu').classList.remove('active')">Criar Conta Grátis</a>
     </div>
 
     <!-- NAV -->
@@ -248,17 +239,7 @@
         <div class="nav-inner">
             <a href="/" class="nav-logo">CliqueZoom</a>
             <div class="nav-links">
-                <div class="nav-dropdown">
-                    <button class="nav-dropdown-trigger">
-                        Solucoes
-                        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="nav-dropdown-menu">
-                        <a href="#solucoes">Portfolio Online <span>Seu trabalho exposto com elegancia</span></a>
-                        <a href="#solucoes">Selecao de Fotos <span>Clientes selecionam direto no site</span></a>
-                        <a href="#solucoes">Entrega Online <span>Download seguro e profissional</span></a>
-                    </div>
-                </div>
+                <a href="#solucoes" class="nav-link">Soluções</a>
                 <a href="#planos" class="nav-link">Planos</a>
                 <a href="#faq-section" class="nav-link">FAQ</a>
                 <a href="/admin/" class="nav-link" style="font-weight:600; color:#555;">Entrar</a>
@@ -330,19 +311,25 @@
 
             <div class="steps-grid" id="stepsGrid">
                 <div class="step">
-                    <div class="step-number">1</div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </div>
                     <h3>Crie sua conta</h3>
                     <p>Preencha seus dados e escolha a URL do seu site. Leva menos de 2 minutos.</p>
                 </div>
                 <div class="step">
-                    <div class="step-number">2</div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline></svg>
+                    </div>
                     <h3>Acesse na hora</h3>
-                    <p>Sua conta e ativada imediatamente. Voce ja recebe um email com o link do seu painel.</p>
+                    <p>Sua conta é ativada imediatamente. Você já recebe um e-mail com o link do seu painel.</p>
                 </div>
                 <div class="step">
-                    <div class="step-number">3</div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
                     <h3>Configure e publique</h3>
-                    <p>Acesse o painel, configure seu portfolio e comece a receber clientes.</p>
+                    <p>Acesse o painel, configure seu portfólio e comece a receber clientes.</p>
                 </div>
             </div>
         </div>
@@ -422,72 +409,16 @@
                 </div>
             </div>
 
-            <p style="text-align:center; font-size:0.8125rem; color:#999; margin-top:1.5rem;">
-                Durante o beta, todas as funcionalidades estao disponiveis gratuitamente.
-            </p>
         </div>
     </section>
 
     <!-- FAQ -->
     <section class="faq" id="faq-section">
         <div class="faq-inner" id="faqContainer">
-            <div class="section-label">Duvidas</div>
+            <div class="section-label">Dúvidas</div>
             <h2 class="section-title" id="faqTitle" style="margin-bottom:2.5rem;">Perguntas frequentes</h2>
-
             <div id="faqList">
-                <button class="faq-question">
-                    Quanto custa a plataforma?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Atualmente estamos em beta e todas as funcionalidades estao disponiveis gratuitamente. Quando lancado, o plano Free continuara gratuito com recursos essenciais.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Preciso esperar para usar a plataforma?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Nao ha aprovacao manual. Sua conta e ativada automaticamente assim que voce conclui o cadastro. Voce ja pode acessar o painel e comecar a configurar seu site.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Posso usar meu dominio proprio?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>No momento, voce recebe um subdominio exclusivo (seudominio.cliquezoom.com.br). Dominios proprios serao suportados em uma atualizacao futura.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Como funciona a selecao de fotos?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Voce cria uma sessao no painel, faz upload das fotos e define um codigo de acesso. Seu cliente acessa a galeria privada, seleciona as fotos favoritas (com limite de pacote) e finaliza. Voce recebe uma notificacao e pode revisar, reabrir ou entregar.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Preciso saber programar?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Nao! Tudo e configuravel pelo painel administrativo. Voce atualiza fotos, textos, cores e conteudo sem precisar escrever nenhuma linha de codigo.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Meus dados estao seguros?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Sim. Cada fotografo tem seus dados completamente isolados. Utilizamos HTTPS em todas as conexoes e as fotos dos clientes sao protegidas por codigo de acesso exclusivo.</p></div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question">
-                    Posso cancelar a qualquer momento?
-                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="faq-answer"><p>Sim, sem fidelidade. Voce pode fazer downgrade para o plano Free ou encerrar sua conta quando quiser. Seus dados ficam disponiveis por 30 dias apos o cancelamento.</p></div>
+                <!-- Preenchido via JS a partir de /api/landing/config -->
             </div>
         </div>
     </section>
@@ -569,10 +500,9 @@
         <div class="footer-inner">
             <div class="footer-logo">CliqueZoom</div>
             <div class="footer-links">
-                <a href="#solucoes">Solucoes</a>
+                <a href="#solucoes">Soluções</a>
                 <a href="#planos">Planos</a>
                 <a href="#faq-section">FAQ</a>
-                <a href="/">Portfolio</a>
             </div>
             <div class="footer-copy" id="footerText">&copy; 2026 CliqueZoom</div>
         </div>
