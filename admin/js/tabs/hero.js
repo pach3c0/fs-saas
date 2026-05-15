@@ -282,20 +282,42 @@ export async function renderHero(container) {
   imageInput.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const saveBtn = container.querySelector('#saveHeroBtn');
+    const uploadLabel = container.querySelector('label[for-upload]');
+
+    // Bloqueia interação durante o upload
+    const setUploading = (isUploading) => {
+      if (saveBtn) {
+        saveBtn.disabled = isUploading;
+        saveBtn.style.opacity = isUploading ? '0.5' : '1';
+        saveBtn.style.cursor = isUploading ? 'not-allowed' : 'pointer';
+        saveBtn.textContent = isUploading ? 'Aguarde o upload...' : 'Salvar Design';
+      }
+      imageInput.disabled = isUploading;
+    };
+
     try {
-      // Mostrar feedback visual de que o sistema já está trabalhando (especial para GDrive/iCloud)
+      setUploading(true);
+
+      // Mostra barra indeterminada enquanto comprime / aguarda nuvem
       showUploadProgress('heroUploadProgress', 'indeterminate', 'Processando arquivo (aguarde nuvem se necessário)...');
-      
-      const result = await uploadImage(file, (percent) => {
-        showUploadProgress('heroUploadProgress', percent);
+
+      const authToken = localStorage.getItem('authToken');
+      const result = await uploadImage(file, authToken, (percent) => {
+        showUploadProgress('heroUploadProgress', percent, `Enviando... ${percent}%`);
       });
+
+      showUploadProgress('heroUploadProgress', 100, 'Upload concluído!');
       _hero.heroImage = result.url;
       if (heroImageUrlInput) heroImageUrlInput.value = '';
       updatePreview();
       e.target.value = '';
     } catch (error) {
-      showUploadProgress('heroUploadProgress', 0, 'Erro no upload');
-      window.showToast?.('Erro: ' + error.message, 'error');
+      showUploadProgress('heroUploadProgress', 0, 'Erro: ' + error.message);
+      window.showToast?.('Erro no upload: ' + error.message, 'error');
+    } finally {
+      setUploading(false);
     }
   };
 
