@@ -99,15 +99,7 @@
         .step h3 { font-size: 1.0625rem; font-weight: 700; margin-bottom: 0.5rem; }
         .step p { font-size: 0.875rem; color: #666; line-height: 1.6; max-width: 260px; margin: 0 auto; }
 
-        /* ==================== FEATURES DETAIL ==================== */
-        .features-detail { max-width: 1120px; margin: 0 auto; padding: 5rem 1.5rem; }
-        .features-detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-top: 3.5rem; }
-        .fd-card { background: #fff; border: 1px solid #eee; border-radius: 0.75rem; padding: 1.75rem; display: flex; gap: 1.25rem; align-items: flex-start; transition: box-shadow 0.2s; }
-        .fd-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
-        .fd-icon { width: 40px; height: 40px; background: #f5f5f5; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .fd-icon svg { width: 20px; height: 20px; stroke: #1a1a1a; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-        .fd-text h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.25rem; }
-        .fd-text p { font-size: 0.8125rem; color: #666; line-height: 1.55; }
+
 
         /* ==================== PRICING ==================== */
         .pricing { background: #fff; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
@@ -210,7 +202,7 @@
             .proof-item { min-width: 100px; }
             .solutions-grid { grid-template-columns: 1fr; }
             .steps-grid { grid-template-columns: 1fr; gap: 2rem; }
-            .features-detail-grid { grid-template-columns: 1fr; }
+
             .pricing-grid { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; }
             .form-row { grid-template-columns: 1fr; }
             .nav-links .nav-link, .nav-links .nav-dropdown { display: none; }
@@ -356,69 +348,6 @@
         </div>
     </section>
 
-    <!-- FEATURES DETAIL -->
-    <section class="features-detail">
-        <div class="section-label">Recursos</div>
-        <h2 class="section-title">Projetado para fotografos</h2>
-        <p class="section-sub">Cada recurso foi pensado para facilitar seu trabalho e impressionar seus clientes.</p>
-
-        <div class="features-detail-grid">
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>Painel Administrativo</h4>
-                    <p>Gerencie todo o conteudo do seu site, albuns, sessoes e notificacoes em um so lugar.</p>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>Subdominio Exclusivo</h4>
-                    <p>Seu nome na URL: seudominio.cliquezoom.com.br. Profissional e facil de compartilhar.</p>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>Notificacoes em Tempo Real</h4>
-                    <p>Saiba quando clientes acessam galerias, selecionam fotos ou finalizam selecoes.</p>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>100% Responsivo</h4>
-                    <p>Seu site e a galeria do cliente funcionam perfeitamente em celular, tablet e desktop.</p>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>Newsletter Integrada</h4>
-                    <p>Capture leads no seu site com formulario de newsletter e gerencie inscritos pelo painel.</p>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-icon">
-                    <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                </div>
-                <div class="fd-text">
-                    <h4>Zero Codigo</h4>
-                    <p>Tudo configuravel pelo painel. Atualize fotos, textos e cores sem precisar programar.</p>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- PRICING -->
     <section class="pricing" id="planos">
