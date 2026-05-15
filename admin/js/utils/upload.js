@@ -180,12 +180,12 @@ export function showUploadProgress(containerId, percent, message = null) {
   
   if (percent === 0 || isIndeterminate) {
     const text = message || (isIndeterminate ? 'Processando...' : '0%');
-    container.innerHTML = \`
+    container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
-        <span id="progress-text" style="font-size:0.75rem; color:#9ca3af;">\${text}</span>
+        <span id="progress-text" style="font-size:0.75rem; color:#9ca3af;">${text}</span>
         <div style="flex:1; height:0.5rem; background:var(--border, #374151); border-radius:9999px; overflow:hidden; position:relative;">
-          <div id="progress-bar" style="height:100%; background:var(--accent, #3b82f6); transition:width 0.3s; width:\${isIndeterminate ? '100%' : '0%'}"></div>
-          \${isIndeterminate ? '<div style="position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation:shimmer 1.5s infinite;"></div>' : ''}
+          <div id="progress-bar" style="height:100%; background:var(--accent, #3b82f6); transition:width 0.3s; width:${isIndeterminate ? '100%' : '0%'}"></div>
+          ${isIndeterminate ? '<div style="position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation:shimmer 1.5s infinite;"></div>' : ''}
         </div>
       </div>
       <style>
@@ -194,7 +194,7 @@ export function showUploadProgress(containerId, percent, message = null) {
           100% { transform: translateX(100%); }
         }
       </style>
-    \`;
+    `;
   } else if (percent === 100) {
     const bar = container.querySelector('#progress-bar');
     const text = container.querySelector('#progress-text');
@@ -206,8 +206,8 @@ export function showUploadProgress(containerId, percent, message = null) {
   } else {
     const bar = container.querySelector('#progress-bar');
     const text = container.querySelector('#progress-text');
-    if (bar) bar.style.width = \`\${percent}%\`;
-    if (text) text.textContent = message || \`\${percent}%\`;
+    if (bar) bar.style.width = `${percent}%`;
+    if (text) text.textContent = message || `${percent}%`;
   }
 }
 
