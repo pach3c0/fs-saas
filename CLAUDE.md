@@ -6,8 +6,13 @@
 - **Superadmin da plataforma:** `admin@cliquezoom.com.br` — `role: superadmin` no MongoDB. Tem acesso ao painel SaaS em `/saas-admin` e à aba "Padrão" no Meu Site.
 
 ## DEPLOY (VPS Contabo)
-- **Localização:** `/var/www/cz-saas`, PM2 app: `cliquezoom-saas`, porta 3051.
-- **Comando deploy:** `git pull && npm install && pm2 reload cliquezoom-saas`
+- **Servidor:** `root@vmi3069803` (IP: `5.189.174.18`)
+- **Localização:** `/var/www/cz-saas`, PM2 app: `cliquezoom-saas` (IDs 8 e 9), porta 3051.
+- **Comando deploy:**
+  ```bash
+  cd /var/www/cz-saas && git pull && pm2 reload ecosystem.config.js --env production
+  ```
+- **Ver logs após deploy:** `pm2 logs cliquezoom-saas --lines 20`
 - **Tailwind:** Se mudou CSS, execute `npm run build:css` ANTES de commit.
 - **Proibido:** Não altere Nginx/porta, não mexer em `crm-backend` ou `vps-hub` sem autorização.
 - **Sem commit/push automático:** Aguarde pedido explícito do usuário.

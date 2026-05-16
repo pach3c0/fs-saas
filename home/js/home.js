@@ -316,7 +316,14 @@ form.addEventListener('submit', async function (e) {
     var res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password, name: name, orgName: orgName, slug: slug })
+      body: JSON.stringify({ 
+        email: email, 
+        password: password, 
+        name: name, 
+        orgName: orgName, 
+        slug: slug,
+        _hp_trap: document.getElementById('_hp_trap').value 
+      })
     });
 
     var data = await res.json();

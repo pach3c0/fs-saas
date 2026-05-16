@@ -10,6 +10,7 @@ const { createUploader } = require('../utils/multerConfig');
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
+const { checkHoneyPot } = require('../middleware/security');
 
 const uploadSite = createUploader('site');
 
@@ -218,7 +219,7 @@ router.get('/site/admin/storage', authenticateToken, async (req, res) => {
 
 
 // Público: Submeter depoimento para aprovação
-router.post('/site/depoimento', async (req, res) => {
+router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
   try {
     if (!req.organizationId) return res.status(404).json({ error: 'Organização não encontrada' });
     const { name, text, email, rating } = req.body;
@@ -256,7 +257,7 @@ router.post('/site/depoimento', async (req, res) => {
 });
 
 // Público: Formulário de contato
-router.post('/site/contact', async (req, res) => {
+router.post('/site/contact', checkHoneyPot, async (req, res) => {
   try {
     if (!req.organizationId) return res.status(404).json({ error: 'Organização não encontrada' });
     const { nome, email, assunto, mensagem } = req.body;

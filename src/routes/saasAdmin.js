@@ -9,6 +9,7 @@ const SiteData = require('../models/SiteData');
 const Notification = require('../models/Notification');
 const Album = require('../models/Album');
 const Client = require('../models/Client');
+const SecurityLog = require('../models/SecurityLog');
 const path = require('path');
 const fs = require('fs');
 const storage = require('../services/storage');
@@ -355,6 +356,19 @@ router.post('/admin/organizations/:id/reset/site', authenticateToken, requireSup
             await SiteData.findOneAndUpdate({ organizationId: req.params.id }, { $set: { albums: [] } });
         }
         res.json({ success: true, message: `Reset de "${section}" realizado` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Logs de Segurança (Ataques de Bots)
+router.get('/admin/saas/security-logs', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const logs = await SecurityLog.find()
+            .sort({ timestamp: -1 })
+            .limit(100)
+            .lean();
+        res.json({ logs });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

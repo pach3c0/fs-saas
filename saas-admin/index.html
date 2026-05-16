@@ -239,6 +239,7 @@
             <button class="tab-btn" onclick="switchTab('trash')">Lixeira <span id="trashCount"></span></button>
             <button class="tab-btn" onclick="switchTab('landing')">Landing Page</button>
             <button class="tab-btn" onclick="switchTab('componentes')">Componentes (Site)</button>
+            <button class="tab-btn" onclick="switchTab('security')">Segurança</button>
         </div>
 
         <!-- Tab: Organizações -->
@@ -297,6 +298,30 @@
         <div class="tab-content" id="tabComponentes">
             <div id="componentesEditor" style="max-width:64rem; margin:0 auto;">
                 <div class="loading">Carregando biblioteca de componentes...</div>
+            </div>
+        </div>
+        
+        <!-- Tab: Segurança -->
+        <div class="tab-content" id="tabSecurity">
+            <div class="table-wrap">
+                <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="font-size:0.875rem; font-weight:600;">Logs de Bots Detectados (Honey Pot)</h3>
+                    <button class="btn" onclick="loadSecurityLogs()">Atualizar</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>IP</th>
+                            <th>Rota</th>
+                            <th>Evento</th>
+                            <th>User Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="securityLogsTable">
+                        <tr><td colspan="5" class="loading">Clique em carregar para ver os logs</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

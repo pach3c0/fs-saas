@@ -1074,7 +1074,8 @@ function renderSite(data, opts = {}) {
             name: depoimentoForm.name.value,
             text: depoimentoForm.text.value,
             email: depoimentoForm.email?.value || '',
-            rating: depoimentoForm.rating?.value || 5
+            rating: depoimentoForm.rating?.value || 5,
+            _hp_trap: depoimentoForm._hp_trap?.value || ''
           })
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1151,6 +1152,7 @@ function renderSite(data, opts = {}) {
       const email = contactForm.querySelector('[name="email"]')?.value || '';
       const assunto = contactForm.querySelector('[name="assunto"]')?.value || '';
       const mensagem = contactForm.querySelector('[name="mensagem"]')?.value || '';
+      const _hp_trap = contactForm.querySelector('[name="_hp_trap"]')?.value || '';
 
       const submitBtn = contactForm.querySelector('[type="submit"]');
       const originalText = submitBtn?.textContent;
@@ -1160,7 +1162,7 @@ function renderSite(data, opts = {}) {
         const res = await fetch('/api/site/contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome, email, assunto, mensagem })
+          body: JSON.stringify({ nome, email, assunto, mensagem, _hp_trap })
         });
         if (res.ok) {
           contactForm.reset();
