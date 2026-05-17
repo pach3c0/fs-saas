@@ -1681,12 +1681,6 @@ async function deleteTutorial(id, title) {
 }
 window.deleteTutorial = deleteTutorial;
 
-// Escapar HTML simples (helper)
-function esc(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 // Fechar modal ao clicar fora
 document.getElementById('tutorialModal').onclick = (e) => {
   if (e.target === document.getElementById('tutorialModal')) closeTutorialModal();

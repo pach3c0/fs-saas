@@ -222,15 +222,15 @@ function renderDemoList() {
   // Renderiza reverso para refletir o Z-index visualmente
   list.innerHTML = [..._demoLayers].reverse().map((l, idx) => {
     const active = l.id === _demoSelectedId ? 'background:#1e293b; border-color:#6366f1;' : 'background:#161b22; border-color:transparent;';
-    return \`
-      <div class="demo-layer-item" data-id="\${l.id}" data-idx="\${idx}" draggable="true" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; \${active}">
+    return `
+      <div class="demo-layer-item" data-id="${l.id}" data-idx="${idx}" draggable="true" style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.75rem; border-radius:0.375rem; border:1px solid transparent; cursor:pointer; ${active}">
         <div style="display:flex; align-items:center; gap:0.5rem; pointer-events:none;">
-          <span style="color:\${l.color}">■</span>
-          <span style="font-size:0.8125rem; color:#f1f5f9;">\${l.name}</span>
+          <span style="color:${l.color}">■</span>
+          <span style="font-size:0.8125rem; color:#f1f5f9;">${l.name}</span>
         </div>
-        <span onclick="demoDeleteLayer('\${l.id}', event)" style="color:#ef4444; font-size:1rem; cursor:pointer;">&times;</span>
+        <span onclick="demoDeleteLayer('${l.id}', event)" style="color:#ef4444; font-size:1rem; cursor:pointer;">&times;</span>
       </div>
-    \`;
+    `;
   }).join('');
 
   // Setup Drag and Drop
@@ -294,38 +294,38 @@ function renderDemoProps() {
     return;
   }
   
-  container.innerHTML = \`
+  container.innerHTML = `
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-      \${demoRange('x', 'Eixo X', l.x, 0, 100, '%')}
-      \${demoRange('y', 'Eixo Y', l.y, 0, 100, '%')}
-      \${demoRange('width', 'Largura', l.width, 5, 150, '%')}
-      \${demoRange('height', 'Altura', l.height, 5, 150, '%')}
-      \${demoRange('rotation', 'Rotação', l.rotation, -180, 180, '°')}
-      \${demoRange('opacity', 'Opacidade', l.opacity, 0, 100, '%')}
-      \${demoRange('borderRadius', 'Bordas', l.borderRadius, 0, 200, 'px')}
-      \${demoRange('shadowBlur', 'Sombra (Blur)', l.shadowBlur, 0, 60, 'px')}
+      ${demoRange('x', 'Eixo X', l.x, 0, 100, '%')}
+      ${demoRange('y', 'Eixo Y', l.y, 0, 100, '%')}
+      ${demoRange('width', 'Largura', l.width, 5, 150, '%')}
+      ${demoRange('height', 'Altura', l.height, 5, 150, '%')}
+      ${demoRange('rotation', 'Rotação', l.rotation, -180, 180, '°')}
+      ${demoRange('opacity', 'Opacidade', l.opacity, 0, 100, '%')}
+      ${demoRange('borderRadius', 'Bordas', l.borderRadius, 0, 200, 'px')}
+      ${demoRange('shadowBlur', 'Sombra (Blur)', l.shadowBlur, 0, 60, 'px')}
     </div>
     <div style="margin-top:1.25rem; display:flex; gap:0.5rem;">
       <label style="flex:1; display:flex; align-items:center; gap:0.5rem; font-size:0.75rem; color:#94a3b8; cursor:pointer;">
-        <input type="checkbox" \${l.shadow ? 'checked' : ''} onchange="demoUpdateProp('shadow', this.checked)"> Sombra Ativa
+        <input type="checkbox" ${l.shadow ? 'checked' : ''} onchange="demoUpdateProp('shadow', this.checked)"> Sombra Ativa
       </label>
     </div>
     <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
-      <button onclick="demoUpdateProp('flipH', !\${l.flipH})" style="flex:1; background:\${l.flipH ? '#3b82f6' : '#1e293b'}; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Horiz.</button>
-      <button onclick="demoUpdateProp('flipV', !\${l.flipV})" style="flex:1; background:\${l.flipV ? '#3b82f6' : '#1e293b'}; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Vert.</button>
+      <button onclick="demoUpdateProp('flipH', !${l.flipH})" style="flex:1; background:${l.flipH ? '#3b82f6' : '#1e293b'}; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Horiz.</button>
+      <button onclick="demoUpdateProp('flipV', !${l.flipV})" style="flex:1; background:${l.flipV ? '#3b82f6' : '#1e293b'}; color:#e2e8f0; border:1px solid #334155; padding:0.5rem; border-radius:0.375rem; font-size:0.75rem; cursor:pointer;">Espelhar Vert.</button>
     </div>
-  \`;
+  `;
 }
 
 function demoRange(field, label, value, min, max, suffix) {
-  return \`
+  return `
     <div>
       <label style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem;">
-        <span>\${label}</span> <span id="demoVal_\${field}">\${value}\${suffix}</span>
+        <span>${label}</span> <span id="demoVal_${field}">${value}${suffix}</span>
       </label>
-      <input type="range" min="\${min}" max="\${max}" value="\${value}" oninput="demoUpdateProp('\${field}', parseInt(this.value)); document.getElementById('demoVal_\${field}').textContent=this.value+'\${suffix}'" style="width:100%; accent-color:#6366f1;">
+      <input type="range" min="${min}" max="${max}" value="${value}" oninput="demoUpdateProp('${field}', parseInt(this.value)); document.getElementById('demoVal_${field}').textContent=this.value+'${suffix}'" style="width:100%; accent-color:#6366f1;">
     </div>
-  \`;
+  `;
 }
 
 window.demoUpdateProp = function(field, val) {
@@ -342,34 +342,34 @@ function renderDemoPreview() {
   if (!container) return;
   
   container.innerHTML = _demoLayers.map((l, zIndex) => {
-    let t = \`translate(-50%, -50%) rotate(\${l.rotation}deg)\`;
+    let t = `translate(-50%, -50%) rotate(${l.rotation}deg)`;
     if (l.flipH) t += ' scaleX(-1)';
     if (l.flipV) t += ' scaleY(-1)';
     
     let box = '';
     if (l.shadow) {
-      box = \`box-shadow: 0 \${l.shadowBlur/2}px \${l.shadowBlur}px rgba(0,0,0,0.5);\`;
+      box = `box-shadow: 0 ${l.shadowBlur/2}px ${l.shadowBlur}px rgba(0,0,0,0.5);`;
     }
     
     const isSelected = l.id === _demoSelectedId;
     const border = isSelected ? 'border:2px dashed white;' : '';
     
-    return \`
+    return `
       <div style="
         position:absolute;
-        left:\${l.x}%; top:\${l.y}%;
-        width:\${l.width}%; height:\${l.height}%;
-        background:\${l.color};
-        transform:\${t};
-        opacity:\${l.opacity/100};
-        border-radius:\${l.borderRadius}px;
-        z-index:\${zIndex};
-        \${box}
-        \${border}
+        left:${l.x}%; top:${l.y}%;
+        width:${l.width}%; height:${l.height}%;
+        background:${l.color};
+        transform:${t};
+        opacity:${l.opacity/100};
+        border-radius:${l.borderRadius}px;
+        z-index:${zIndex};
+        ${box}
+        ${border}
         display:flex; align-items:center; justify-content:center;
         color:rgba(255,255,255,0.8); font-size:0.75rem; font-weight:bold;
-      ">\${l.name}</div>
-    \`;
+      ">${l.name}</div>
+    `;
   }).join('');
 }
 
