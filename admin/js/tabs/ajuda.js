@@ -161,7 +161,7 @@ function renderLayout(container) {
 
   // Event Listeners
   document.getElementById('tutorialSearch').addEventListener('input', (e) => {
-    searchQuery = e.target.value.toLowerCase().trim();
+    searchQuery = e.target.value;
     filterAndRenderGrid();
   });
 
@@ -251,8 +251,9 @@ function filterAndRenderGrid() {
     
     // Filtro por busca
     if (searchQuery) {
-      const titleMatch = t.title.toLowerCase().includes(searchQuery);
-      const descMatch = (t.description || '').toLowerCase().includes(searchQuery);
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = t.title.toLowerCase().includes(q);
+      const descMatch = (t.description || '').toLowerCase().includes(q);
       return titleMatch || descMatch;
     }
     

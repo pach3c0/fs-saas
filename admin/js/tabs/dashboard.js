@@ -251,11 +251,10 @@ function getIconPath(icon) {
 }
 
 window.openTutorialHelp = async function(category, queryText = '') {
-    // Se o módulo 'ajuda' ainda não foi carregado, vamos mudar de aba primeiro
-    if (!window._ajudaLoaded) {
-        await switchTab('ajuda');
-    }
-    // Agora que o módulo foi importado, chamamos a função real anexada ao window
+    // Sempre navegar para a aba ajuda primeiro
+    await switchTab('ajuda');
+    
+    // Agora que a aba mudou e o módulo foi importado, chamamos a função real
     if (window._openTutorialHelpReal) {
         window._openTutorialHelpReal(category, queryText);
     }
