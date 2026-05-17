@@ -340,3 +340,31 @@ function filterAndRenderGrid() {
     });
   });
 }
+
+window._ajudaLoaded = true;
+window._openTutorialHelpReal = function(category, queryText = '') {
+  currentCategory = category || 'all';
+  searchQuery = queryText;
+  
+  if (allTutorials.length > 0) {
+    let match = null;
+    if (queryText) {
+      match = allTutorials.find(t => 
+        (t.title.toLowerCase().includes(queryText.toLowerCase()) || (t.description || '').toLowerCase().includes(queryText.toLowerCase())) &&
+        (category && category !== 'all' ? t.category === category : true)
+      );
+    }
+    if (!match && category && category !== 'all') {
+      match = allTutorials.find(t => t.category === category);
+    }
+    if (match) {
+      activeTutorial = match;
+    }
+  }
+
+  // Se já estivermos na aba ajuda, forçar re-renderização
+  const container = document.getElementById('tabContent');
+  if (container && appState.currentTab === 'ajuda') {
+    renderLayout(container);
+  }
+};

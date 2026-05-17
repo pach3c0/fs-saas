@@ -145,10 +145,10 @@ function renderOnboardingChecklist(container, steps) {
     if (!target) return;
 
     const items = [
-        { key: 'sessionCreated', label: 'Criar sua primeira sessão', hint: 'Clique em "Nova Sessão" no menu' },
-        { key: 'photosUploaded', label: 'Subir as primeiras fotos', hint: 'Acesse a sessão e arraste seus arquivos' },
-        { key: 'clientLinked',   label: 'Vincular um cliente', hint: 'Defina para quem as fotos serão enviadas' },
-        { key: 'linkSent',       label: 'Enviar link de acesso', hint: 'Mande o código de acesso por e-mail' }
+        { key: 'sessionCreated', label: 'Criar sua primeira sessão', hint: 'Clique em "Nova Sessão" no menu', category: 'sessoes', query: 'Sessão' },
+        { key: 'photosUploaded', label: 'Subir as primeiras fotos', hint: 'Acesse a sessão e arraste seus arquivos', category: 'sessoes', query: 'Fotos' },
+        { key: 'clientLinked',   label: 'Vincular um cliente', hint: 'Defina para quem as fotos serão enviadas', category: 'clientes', query: 'Clientes' },
+        { key: 'linkSent',       label: 'Enviar link de acesso', hint: 'Mande o código de acesso por e-mail', category: 'sessoes', query: 'Clientes' }
     ];
 
     const completedCount = items.filter(i => steps[i.key]).length;
@@ -184,7 +184,10 @@ function renderOnboardingChecklist(container, steps) {
                             </div>
                             <div>
                                 <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); text-decoration:${isDone ? 'line-through' : 'none'};">${item.label}</div>
-                                <div style="font-size:0.7rem; color:var(--text-secondary);">${isDone ? 'Concluído!' : item.hint}</div>
+                                <div style="display:flex; align-items:center; gap:0.35rem; margin-top:0.15rem;">
+                                    <div style="font-size:0.7rem; color:var(--text-secondary);">${isDone ? 'Concluído!' : item.hint}</div>
+                                    ${!isDone ? `• <span onclick="openTutorialHelp('${item.category}', '${item.query}')" style="font-size:0.6875rem; color:var(--accent); cursor:pointer; font-weight:600; text-decoration:underline;">Ver Tutorial</span>` : ''}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -246,3 +249,14 @@ function getIconPath(icon) {
     };
     return icons[icon] || '';
 }
+
+window.openTutorialHelp = async function(category, queryText = '') {
+    // Se o módulo 'ajuda' ainda não foi carregado, vamos mudar de aba primeiro
+    if (!window._ajudaLoaded) {
+        await switchTab('ajuda');
+    }
+    // Agora que o módulo foi importado, chamamos a função real anexada ao window
+    if (window._openTutorialHelpReal) {
+        window._openTutorialHelpReal(category, queryText);
+    }
+};
