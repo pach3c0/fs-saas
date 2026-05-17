@@ -53,9 +53,9 @@
 - `server.js` — entrypoint, middleware (CORS, logging, rate-limit, auth tenant)
 - **routes/** — 14 endpoints (auth, clients, sessions, albums, organization, billing, domains, site, etc)
   - **sessions.js** — Modos: `gallery` (upload público), `selection` (com seleção), `multi_selection` (múltiplos participantes com seleção), `multi_instant` (múltiplos participantes com entrega real-time)
-- **models/** — Mongoose schemas: Organization (central), User, Session, Album, Client, Subscription, LandingData, DefaultSiteTemplate (singleton)
-- **middleware/** — Auth (JWT, tenant validation), logging, error handling
+- **middleware/** — Auth (JWT, tenant validation), logging, security (honey pot), error handling
 - **services/** — storage.js (file ops), utils genéricos
+- **models/** — Organization (central), User, Session, Album, Client, Subscription, LandingData, SecurityLog (logs de bot), DefaultSiteTemplate (singleton)
 - **utils/** — logger (Winston), validators, helpers
 
 **Data Flow:** Client → Route → Middleware (auth/tenant) → Controller logic → Model query (`.lean()` on reads) → Response
@@ -174,6 +174,12 @@
 3. Editar textos → campo "Chave de Administrador" → digitar `cz-admin-2025-542a04deba81b574` → Salvar
 
 **Problema em aberto:** A rota `PUT /api/site/default-template` retorna 403 mesmo com a chave correta. Suspeita: o campo `PLATFORM_ADMIN_KEY` pode não estar sendo lido pelo processo PM2 (variável adicionada manualmente ao `.env` após o deploy). Verificar com `pm2 reload --update-env` e conferir se `process.env.PLATFORM_ADMIN_KEY` está definido no runtime.
+
+### Segurança Anti-Bot (src/middleware/security.js + src/models/SecurityLog.js)
+- **Nível 1 (Honey Pot):** Campo invisível `_hp_trap` adicionado aos formulários públicos (registro, contato, depoimentos).
+- **Funcionamento:** Se preenchido (comportamento de bot), a requisição é bloqueada e logada.
+- **Auditoria:** Nova aba **"Segurança"** no Painel SaaS (`/saas-admin`) permite visualizar IPs e User Agents detectados.
+- **Auto-limpeza:** Logs de segurança expiram automaticamente após 30 dias (TTL index no MongoDB).
 
 ## BACKLOG ATIVO
 - [ ] **Template Padrão — fix 403:** Confirmar que `PLATFORM_ADMIN_KEY` está no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`

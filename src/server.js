@@ -333,6 +333,8 @@ app.use('/api', require('./routes/billing'));
 app.use('/api', require('./routes/payments'));
 app.use('/api', require('./routes/landing'));
 app.use('/api', require('./routes/saasAdmin'));
+app.use('/api', require('./routes/tutorials'));
+
 
 // ============================================================================
 // GLOBAL ERROR HANDLER — deve vir APÓS todas as rotas

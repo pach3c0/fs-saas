@@ -27,6 +27,7 @@ const TAB_TITLES = {
   marketing: 'Marketing',
   perfil: 'Perfil',
   plano: 'Plano',
+  ajuda: 'Ajuda & Tutoriais',
 };
 
 // ── Skeleton loading ──────────────────────────────────────────────────────
