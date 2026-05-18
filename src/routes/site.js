@@ -33,6 +33,14 @@ router.get('/site/config', async (req, res) => {
     if (result.siteEnabled == null) result.siteEnabled = true;
     if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
 
+    // Se estiver em modo preview, substitui o tema retornado pelo simulado na query
+    if (req.query._preview_theme) {
+      const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
+      if (validThemes.includes(req.query._preview_theme)) {
+        result.siteTheme = req.query._preview_theme;
+      }
+    }
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

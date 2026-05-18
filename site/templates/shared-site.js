@@ -8,9 +8,11 @@ function buildApiUrl() {
   const params = new URLSearchParams(window.location.search);
   const tenantParam = params.get('_tenant');
   const isPreview = params.get('_preview') === '1';
+  const previewTheme = params.get('_preview_theme');
   const qs = [];
   if (tenantParam) qs.push('_tenant=' + encodeURIComponent(tenantParam));
   if (isPreview) qs.push('_preview=1');
+  if (previewTheme) qs.push('_preview_theme=' + encodeURIComponent(previewTheme));
   return '/api/site/config' + (qs.length ? '?' + qs.join('&') : '');
 }
 

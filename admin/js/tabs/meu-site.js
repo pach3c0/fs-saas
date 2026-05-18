@@ -726,6 +726,7 @@ async function renderSiteContent(container, builderTabsEl) {
     setV('hcBgScale', cfg.heroScale ?? 1, 'x', true);
     setV('hcBgPosX', cfg.heroPosX ?? 50, '%');
     setV('hcBgPosY', cfg.heroPosY ?? 50, '%');
+    setV('hcBgOverlayOpacity', cfg.overlayOpacity ?? 30, '%');
 
     // Re-renderizar lista de camadas e esconder painel de propriedades
     heroRenderLayerList();
@@ -823,6 +824,13 @@ async function renderSiteContent(container, builderTabsEl) {
                 <span class="hc-range-val" id="hcBgPosYVal">${cfg.heroPosY ?? 50}%</span>
               </div>
             </div>
+            <div class="hc-row">
+              <div class="hc-label">Escurecer Capa</div>
+              <div class="hc-range-row">
+                <input type="range" class="hc-range" id="hcBgOverlayOpacity" min="0" max="100" step="1" value="${cfg.overlayOpacity ?? 30}">
+                <span class="hc-range-val" id="hcBgOverlayOpacityVal">${cfg.overlayOpacity ?? 30}%</span>
+              </div>
+            </div>
           </details>
         </div>
 
@@ -856,11 +864,12 @@ async function renderSiteContent(container, builderTabsEl) {
       cfg.heroScale = parseFloat(heroContainer.querySelector('#hcBgScale').value);
       cfg.heroPosX = parseInt(heroContainer.querySelector('#hcBgPosX').value);
       cfg.heroPosY = parseInt(heroContainer.querySelector('#hcBgPosY').value);
+      cfg.overlayOpacity = parseInt(heroContainer.querySelector('#hcBgOverlayOpacity').value);
       liveNotify();
     };
 
     // ── Sliders Bind ──
-    ['hcBgScale', 'hcBgPosX', 'hcBgPosY'].forEach(id => {
+    ['hcBgScale', 'hcBgPosX', 'hcBgPosY', 'hcBgOverlayOpacity'].forEach(id => {
       heroContainer.querySelector('#' + id).oninput = (e) => {
         const val = e.target.value;
         const suffix = id === 'hcBgScale' ? 'x' : '%';
