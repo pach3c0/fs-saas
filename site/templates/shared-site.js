@@ -1093,14 +1093,25 @@ function renderSite(data, opts = {}) {
     }
   }
 
-  // WhatsApp flutuante com mensagens do estúdio
+  // WhatsApp flutuante e Botão do Cabeçalho com mensagens do estúdio
   const whatsappBtn = document.getElementById('whatsappBtn');
+  const navCta = document.getElementById('navCta');
   const whatsappNumber = content.studio?.whatsapp || config.whatsapp || '';
-  if (whatsappBtn && whatsappNumber) {
+  
+  if (whatsappNumber) {
     const cleanNumber = whatsappNumber.replace(/\D/g, '');
     const defaultMsg = encodeURIComponent(config.whatsappMessage || 'Olá! Vi seu site e gostaria de mais informações.');
-    whatsappBtn.href = `https://wa.me/${cleanNumber}?text=${defaultMsg}`;
-    whatsappBtn.style.display = 'flex';
+    const waLink = `https://wa.me/${cleanNumber}?text=${defaultMsg}`;
+    
+    if (whatsappBtn) {
+      whatsappBtn.href = waLink;
+      whatsappBtn.style.display = 'flex';
+    }
+    
+    if (navCta) {
+      navCta.onclick = () => window.open(waLink, '_blank');
+      navCta.style.display = 'inline-block';
+    }
 
     const messages = (content.studio?.whatsappMessages || []).filter(m => m.text?.trim());
     if (messages.length > 0) {
@@ -1138,6 +1149,9 @@ function renderSite(data, opts = {}) {
       // Aguarda 1.5s antes de exibir a primeira mensagem
       setTimeout(showNextMessage, 1500);
     }
+  } else {
+    if (whatsappBtn) whatsappBtn.style.display = 'none';
+    if (navCta) navCta.style.display = 'none';
   }
 
   // FAQ
