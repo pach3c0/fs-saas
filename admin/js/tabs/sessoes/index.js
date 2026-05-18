@@ -45,7 +45,8 @@ export async function renderSessoes(container) {
                   <option value="selection">Seleção</option>
                   <option value="multi_selection">Multi-Seleção</option>
                   <option value="gallery">Galeria</option>
-                  <option value="multi_instant">Multi-Imediata</option>
+                  <!-- v2: Multi-Imediata oculta até implementação de face search -->
+                  <!-- <option value="multi_instant">Multi-Imediata</option> -->
               </select>
             </div>
         </div>
@@ -84,7 +85,8 @@ export async function renderSessoes(container) {
               <option value="selection">Seleção — cliente escolhe suas favoritas</option>
               <option value="gallery">Galeria — cliente visualiza e baixa</option>
               <option value="multi_selection">Multi-seleção — formaturas, shows, eventos</option>
-                  <option value="multi_instant">Multi-Imediata — cliente escolhe e baixa na hora (Real-Time)</option>
+                  <!-- v2: Multi-Imediata oculta até implementação de face search -->
+                  <!-- <option value="multi_instant">Multi-Imediata — cliente escolhe e baixa na hora (Real-Time)</option> -->
             </select>
           </div>
         </div>
@@ -307,7 +309,8 @@ export async function renderSessoes(container) {
               <option value="selection">Selecao (cliente escolhe favoritas)</option>
               <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
               <option value="multi_selection">Multi-Selecao (formaturas, shows)</option>
-                  <option value="multi_instant">Multi-Imediata (Real-Time)</option>
+                  <!-- v2: Multi-Imediata oculta até implementação de face search -->
+                  <!-- <option value="multi_instant">Multi-Imediata (Real-Time)</option> -->
             </select>
           </div>
         </div>
