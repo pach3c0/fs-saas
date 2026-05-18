@@ -51,14 +51,43 @@ async function loadAndRenderSite() {
   }
 }
 
+function hexToRgb(hex) {
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return '201,169,110';
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `${r},${g},${b}`;
+}
+
 function applyCustomStyle(siteStyle) {
   if (!siteStyle) return;
   const root = document.documentElement;
-  if (siteStyle.accentColor) root.style.setProperty('--accent', siteStyle.accentColor);
-  if (siteStyle.bgColor)     root.style.setProperty('--bg', siteStyle.bgColor);
-  if (siteStyle.textColor)   root.style.setProperty('--text', siteStyle.textColor);
+  
+  if (siteStyle.accentColor) {
+    root.style.setProperty('--accent', siteStyle.accentColor);
+    root.style.setProperty('--t-accent', siteStyle.accentColor);
+    try {
+      const rgb = hexToRgb(siteStyle.accentColor);
+      root.style.setProperty('--t-accent-rgb', rgb);
+    } catch (e) {}
+  }
+  if (siteStyle.bgColor) {
+    root.style.setProperty('--bg', siteStyle.bgColor);
+    root.style.setProperty('--t-bg', siteStyle.bgColor);
+    root.style.setProperty('--t-bg-alt', siteStyle.bgColor);
+  }
+  if (siteStyle.textColor) {
+    root.style.setProperty('--text', siteStyle.textColor);
+    root.style.setProperty('--t-ink', siteStyle.textColor);
+  }
   if (siteStyle.fontFamily) {
     root.style.setProperty('--font-body', siteStyle.fontFamily);
+    root.style.setProperty('--t-font-body', siteStyle.fontFamily);
     document.body.style.fontFamily = siteStyle.fontFamily;
     // Injetar fonte do Google Fonts se necessário
     const fontName = siteStyle.fontFamily.replace(/'/g, '').split(',')[0].trim();
