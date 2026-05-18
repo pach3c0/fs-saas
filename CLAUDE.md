@@ -2,7 +2,8 @@
 
 ## ORGANIZAÇÃO DO PROJETO
 - **Pastas:** PWA (`cliente/`), Admin Vanilla JS (`admin/`), Site Público (`site/templates/`), Backend Express+MongoDB (`src/`).
-- **Clientes:** `fsfotografias` está em PRODUÇÃO REAL — máxima cautela. Código deve ser genérico (`cliquezoom` não `fsfotografias`).
+- **Produção real:** A plataforma já tem uma fotógrafa ativa — **Flávia Cristina Pacheco** (`flavia.cristthina@gmail.com`). Máxima cautela em alterações que afetam dados existentes ou fluxos ativos.
+- **Código genérico:** Nunca hardcodar nomes de orgs. Usar variáveis de ambiente (`OWNER_SLUG`, `BASE_DOMAIN`).
 - **Superadmin da plataforma:** `admin@cliquezoom.com.br` — `role: superadmin` no MongoDB. Tem acesso ao painel SaaS em `/saas-admin` e à aba "Padrão" no Meu Site.
 
 ## DEPLOY (VPS Contabo)
@@ -10,7 +11,7 @@
 - **Localização:** `/var/www/cz-saas`, PM2 app: `cliquezoom-saas` (IDs 8 e 9), porta 3051.
 - **Comando deploy:**
   ```bash
-  cd /var/www/cz-saas && git pull && pm2 reload ecosystem.config.js --env production
+  cd /var/www/cz-saas && git pull && pm2 reload ecosystem.config.js --env production --update-env
   ```
 - **Ver logs após deploy:** `pm2 logs cliquezoom-saas --lines 20`
 - **Tailwind:** Se mudou CSS, execute `npm run build:css` ANTES de commit.
@@ -46,72 +47,112 @@
 - **Auditoria:** Front → Back → DB → Testes Playwright (`--workers=1`).
 - **Validação:** Leia front (sem alert/hexcodes/CSS hardcoded). Leia back (require no topo, I/O async, .lean()).
 
+---
+
 ## ARQUITETURA DO APP
 
 ### BACKEND (src/)
 **Express + MongoDB, CommonJS**
 - `server.js` — entrypoint, middleware (CORS, logging, rate-limit, auth tenant)
-- **routes/** — 14 endpoints (auth, clients, sessions, albums, organization, billing, domains, site, etc)
-  - **sessions.js** — Modos: `gallery` (upload público), `selection` (com seleção), `multi_selection` (múltiplos participantes com seleção), `multi_instant` (múltiplos participantes com entrega real-time)
-- **middleware/** — Auth (JWT, tenant validation), logging, security (honey pot), error handling
-- **services/** — storage.js (file ops), utils genéricos
-- **models/** — Organization (central), User, Session, Album, Client, Subscription, LandingData, SecurityLog (logs de bot), DefaultSiteTemplate (singleton)
-- **utils/** — logger (Winston), validators, helpers
+- **routes/** — 16 arquivos de rotas (~126 endpoints no total)
+  - `auth.js` — login, registro, recuperação de senha
+  - `sessions.js` — CRUD de sessões, upload de fotos, modos de entrega
+  - `clients.js` — CRM de clientes
+  - `albums.js` — álbuns de prova (código preservado, funcionalidade V2)
+  - `organization.js` — perfil, integrações, marca d'água
+  - `billing.js` — planos e assinaturas
+  - `domains.js` — domínios customizados
+  - `site.js` — templates do site público, template padrão
+  - `siteData.js` — dados públicos (hero, faq, marketing overview)
+  - `notifications.js`, `upload.js`, `sales.js`, `payments.js`, `landing.js`, `saasAdmin.js`, `tutorials.js`
+- **middleware/** — auth.js (JWT), tenant.js (multi-tenant), security.js (honey pot), planLimits.js, stripe.js, mercadopago.js
+- **models/** — Organization (central), User, Session, Album, Client, Subscription, SiteData, LandingData, Notification, SecurityLog, Tutorial, DefaultSiteTemplate, plans
+- **utils/** — logger (Winston), email.js, multerConfig, deadlineChecker, offboardingChecker, salesAutomator, anniversaryAutomator, dnsVerifier, cleanupStorage (script standalone)
+- **services/** — storage.js (operações de arquivo)
 
-**Data Flow:** Client → Route → Middleware (auth/tenant) → Controller logic → Model query (`.lean()` on reads) → Response
+**Data Flow:** Client → Route → Middleware (auth/tenant) → Controller logic → Model query (`.lean()` em reads) → Response
 
-**Modos de Sessão:**
-- `gallery`: Galeria pública com upload (sem seleção)
-- `selection`: Galeria com seleção de fotos (deadline)
+**Modos de Sessão (V1 — ativos):**
+- `gallery`: Galeria pública, cliente visualiza e baixa (sem seleção)
+- `selection`: Galeria com seleção de fotos pelo cliente (com deadline)
 - `multi_selection`: Múltiplos participantes, cada um com sua seleção (deadline compartilhado)
-- `multi_instant`: Múltiplos participantes, fotos entregues em real-time conforme upload (sem deadline, modo imediata)
+
+**Modos de Sessão (V2 — ocultos no front, código preservado no back):**
+- `multi_instant`: Entrega real-time sem deadline. Aguarda implementação de reconhecimento facial (face search) para ter valor real. Código no backend intacto.
+
+---
 
 ### ADMIN (admin/)
 **Vanilla JS ES Modules, Dual-theme**
 - `index.html` — SPA, theme script (localStorage), CSS tokens
-- **js/tabs/** — 17 tabs (albuns, clientes, dashboard, estudio, faq, hero, integracoes, marketing, mensagens, meu-site, perfil, plano, portfolio, sessoes, sobre, dominio)
-  - Pequenos (< 600 linhas): arquivo único (`faq.js`, `plano.js`)
-  - Grandes (> 600 linhas): pasta com `index.js`, `state.js`, `list.js`, `modal-form.js`, `actions.js`
-  - **sessoes/** — Gerenciamento de sessões (criar, editar, detalhes, fotos). Suporta 4 modos: `gallery`, `selection`, `multi_selection`, `multi_instant`
-  - **meu-site.js** — Builder do site do fotógrafo. Aba "Padrão" visível SOMENTE se `role === 'superadmin'` (lido do JWT via `atob(token.split('.')[1])`)
-- **js/components/** — Reusable UI components
-- **js/utils/** — Helpers, API calls, formatters
-- CSS tokens via `:root` → `var(--ad-bg-base)`, etc
+- **js/tabs/** — tabs ativas no menu:
+
+  **PRINCIPAL**
+  - `dashboard.js` — KPIs, sessões recentes, ações rápidas
+  - `sessoes/` — CRUD de sessões (3 modos V1), upload de fotos, comentários, participantes
+  - `clientes.js` — CRM básico de clientes
+  - `mensagens.js` — contatos do site + depoimentos pendentes de aprovação
+  - `crm.js` — automação de vendas (gatilhos de escassez, cupons)
+
+  **SITE**
+  - `meu-site.js` — builder visual do site (hero, sobre, portfólio, estúdio, álbuns, FAQ, área do cliente). Aba "Padrão" visível SOMENTE se `role === 'superadmin'`
+  - `dominio.js` — domínio customizado + verificação DNS
+  - `integracoes.js` — GA4, Meta Pixel, Google Ads, TikTok, Zapier, Make, Webhook
+  - `marketing.js` — dashboard de KPIs e funil de conversão
+
+  **CONTA**
+  - `perfil.js` — identidade visual, marca d'água
+  - `plano.js` — assinatura, barras de uso, billing
+  - `ajuda.js` — tutoriais em vídeo (YouTube)
+
+  **TABS OCULTAS (V2 — código preservado, comentado no index.html):**
+  - `albuns-prova.js` — proofing de álbuns. Aguarda redesign completo do fluxo.
+
+- **js/utils/** — api.js, helpers.js, upload.js, photoEditor.js, richtext.js, notifications.js (polling), toast.js, client-modal.js
+- **js/components/** — upload-panel.js
 
 **Theme:** `[data-theme]` attribute on `<html>`. Light (default) / Dark. Inline styles ONLY nas tabs.
 
 **Dialogs:** `window.showToast()` e `window.showConfirm()` — nunca `alert/confirm`.
 
-**Sessões - Fluxo de Modos:**
-- Na criação (`modal-form.js`), o usuário seleciona o modo como primeiro campo
-- `multi_instant` não permite deadline (entrega real-time conforme fotos são feitas)
+**Sessões — Fluxo de Modos V1:**
+- Na criação (`modal-form.js`), o usuário seleciona: Seleção, Galeria ou Multi-Seleção
 - `multi_selection` exige deadline compartilhado entre participantes
-- Cada modo tem validações específicas no front (checks de cliente, participantes, campos condicionais)
+- `selection` exige deadline individual
+- `gallery` não tem seleção — cliente visualiza e baixa direto
+
+---
 
 ### CLIENTE (cliente/)
 **PWA, Vanilla JS**
 - `index.html` — SPA da galeria, login com tenant
 - `sw.js` — Service Worker (offline, caching)
-- **js/** — Lógica da galeria pública (seleção, upload de fotos, entrega)
+- **js/gallery.js** — lógica da galeria (seleção, download, entrega)
 
-**Nota:** Cliente renderiza com tema do fotógrafo, não herda do admin. Isolado via iframe.
+**Nota:** Cliente renderiza com tema do fotógrafo, não herda do admin.
+
+---
 
 ### SITE PÚBLICO (site/templates/)
-**HTML estático renderizado pelo backend**
-- Landing page, hero, integração com builder iframe
-- Templates para cada fotógrafo (customização via Organization)
+**HTML renderizado dinamicamente pelo backend**
+- `master/index.html` — template único com `data-theme` injetado pelo server.js
+- Temas disponíveis: `elegante`, `minimalista`, `moderno`, `escuro`, `galeria`
+- Preview: `?_preview_theme=<tema>` (sem alterar o banco)
+- Tenant resolvido por: subdomínio → header `x-tenant` → query `_tenant` → fallback `OWNER_SLUG`
+
+---
 
 ### TESTES (tests/)
 **Playwright, E2E**
 - `1_0_landing-page.spec.js` — site público
 - `2_0_login.spec.js` — login admin + cliente
-- `3_0_sessoes.spec.js` — fluxo de sessões (todos os modos: gallery, selection, multi_selection, multi_instant)
-- `3_1_cliente-galeria.spec.js` — galeria cliente (modo multi_instant com entrega real-time)
+- `3_0_sessoes.spec.js` — fluxo de sessões (modos V1: gallery, selection, multi_selection)
+- `3_1_cliente-galeria.spec.js` — galeria cliente
 - `4_0_clientes.spec.js` — CRUD clientes
 
 **Executar:** `npx playwright test --workers=1`
 
-**Nota Sessões:** Testar que `multi_instant` não exibe campo de deadline, e que fotos são entregues sem prazo limit.
+---
 
 ## PADRÕES & ANTI-PADRÕES
 
@@ -127,63 +168,78 @@
 - Tailwind em tabs (invisível no dark)
 - Hexcodes hardcoded em CSS (use tokens)
 
-## FUNCIONALIDADES IMPLEMENTADAS (histórico recente)
+---
 
-### E-mails (src/utils/email.js + src/routes/auth.js)
+## FUNCIONALIDADES IMPLEMENTADAS
+
+### E-mails (src/utils/email.js)
 - Boas-vindas ao fotógrafo: `sendWelcomeEmail(email, name, slug)`
-- Notificação ao dono da plataforma no novo cadastro: `sendNewPhotographerNotificationEmail(name, email, slug)` → envia para `process.env.OWNER_EMAIL`
-- SMTP: `smtp.hostinger.com` porta 465, credenciais em `.env`
+- Notificação ao dono no novo cadastro: `sendNewPhotographerNotificationEmail(name, email, slug)` → `process.env.OWNER_EMAIL`
+- SMTP: `smtp.hostinger.com` porta 465. Credenciais em `.env` com `dotenv({ override: true })` — garante que o .env sempre vence vars do PM2.
+- Transporter singleton com pool (maxConnections: 3) — evita reconexão a cada envio.
+- **Schedulers rodam apenas no worker 0 do PM2** (via `NODE_APP_INSTANCE`) para evitar envios duplicados em cluster.
 
 ### Integrações (admin/js/tabs/integracoes.js + src/routes/organization.js)
-- Salva via `PUT /api/organization/integrations` (não `/profile`)
-- Campos: `googleAnalytics` (enabled, measurementId), `metaPixel` (enabled, pixelId), `deadlineAutomation` (enabled, daysWarning, sendEmail)
+- Salva via `PUT /api/organization/integrations`
+- Campos: `googleAnalytics`, `metaPixel`, `googleAds`, `tiktokPixel`, `zapier`, `make`, `customWebhook`
 - Meta Pixel lido de `Organization.integrations.metaPixel` (não SiteData)
 
 ### Marketing (admin/js/tabs/marketing.js + src/routes/siteData.js)
-- `GET /api/marketing/overview` — dados 100% reais do MongoDB
+- `GET /api/marketing/overview` — dados reais do MongoDB
 - Retorna: KPIs 30d, funil (codeSent→accessed→submitted→delivered), statusCount, byEventType, byMode, crm (triggers/coupons), rates, ga
-- Módulo do admin mostra delta % com cores, barras de funil proporcionais, bloco GA pronto para quando configurado
 
 ### Plano (admin/js/tabs/plano.js + src/routes/billing.js)
 - Barras de uso reais (sessions, photos, armazenamento em MB calculado em disco)
 - Barra muda cor: verde → amarelo (70%) → vermelho (90%)
-- Backend retorna `stripeConfigured: true/false` → botões "Em Breve" quando Stripe não configurado
-- Cancelamento com `showConfirm` (sem `confirm()` nativo)
+- Botões Stripe mostram "Em Breve" quando `stripeConfigured: false`
 
-### Template Padrão para Novos Fotógrafos
-**Objetivo:** Todo novo fotógrafo recebe conteúdo de exemplo (mocap) no site ao se cadastrar.
-
-**Arquivos:**
-- `src/models/DefaultSiteTemplate.js` — modelo singleton MongoDB (`siteConfig`, `siteContent`, `siteStyle`, `siteSections`, `updatedBy`)
-- `src/routes/site.js` — 3 novas rotas + função exportada `applyDefaultTemplate(orgId)`:
-  - `GET /api/site/default-template` — lê template atual (autenticado)
-  - `PUT /api/site/default-template` — salva template, requer header `X-Admin-Key: <PLATFORM_ADMIN_KEY>`
-  - `POST /api/site/default-template/apply` — aplica template na org do usuário logado
-- `src/routes/auth.js` — `applyDefaultTemplate(org._id)` chamado fire-and-forget após criar novo org no registro
-- `admin/js/tabs/meu-site.js`:
-  - Card "Restaurar conteúdo de exemplo" na aba Geral — qualquer fotógrafo pode usar
-  - Aba **Padrão** visível somente para `role === 'superadmin'` (lido do JWT), com formulário completo e campo de chave
-
-**Chave na VPS:** `PLATFORM_ADMIN_KEY=cz-admin-2025-542a04deba81b574` (em `/var/www/cz-saas/.env`)
-
-**Fallback:** Se não houver template salvo no banco, usa `FALLBACK_TEMPLATE` hardcoded em `site.js` com textos genéricos de fotógrafo.
-
-**Como usar (superadmin):**
-1. Login com `admin@cliquezoom.com.br` no painel fotógrafo (app.cliquezoom.com.br/admin)
-2. Meu Site → aba **Padrão**
-3. Editar textos → campo "Chave de Administrador" → digitar `cz-admin-2025-542a04deba81b574` → Salvar
-
-**Problema em aberto:** A rota `PUT /api/site/default-template` retorna 403 mesmo com a chave correta. Suspeita: o campo `PLATFORM_ADMIN_KEY` pode não estar sendo lido pelo processo PM2 (variável adicionada manualmente ao `.env` após o deploy). Verificar com `pm2 reload --update-env` e conferir se `process.env.PLATFORM_ADMIN_KEY` está definido no runtime.
+### Template Padrão para Novos Fotógrafos (src/routes/site.js)
+- `applyDefaultTemplate(orgId)` chamado fire-and-forget no registro de novo fotógrafo
+- `GET/PUT /api/site/default-template` — lê e salva o template (PUT exige `X-Admin-Key`)
+- Aba **Padrão** no Meu Site visível apenas para superadmin
+- Fallback hardcoded em `site.js` se não houver template no banco
+- **Chave:** `PLATFORM_ADMIN_KEY=cz-admin-2025-542a04deba81b574`
 
 ### Segurança Anti-Bot (src/middleware/security.js + src/models/SecurityLog.js)
-- **Nível 1 (Honey Pot):** Campo invisível `_hp_trap` adicionado aos formulários públicos (registro, contato, depoimentos).
-- **Funcionamento:** Se preenchido (comportamento de bot), a requisição é bloqueada e logada.
-- **Auditoria:** Nova aba **"Segurança"** no Painel SaaS (`/saas-admin`) permite visualizar IPs e User Agents detectados.
-- **Auto-limpeza:** Logs de segurança expiram automaticamente após 30 dias (TTL index no MongoDB).
+- Honey pot: campo invisível `_hp_trap` nos formulários públicos — bloqueia e loga bots
+- Aba "Segurança" no SaaS Admin exibe IPs detectados
+- TTL index: logs expiram em 30 dias
 
-## BACKLOG ATIVO
-- [ ] **Template Padrão — fix 403:** Confirmar que `PLATFORM_ADMIN_KEY` está no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
-- [ ] **Marca D'água Híbrida:** Perfil/`both` mode — texto + imagem robustos. Mesmas posições (tile, sequência, repetição).
-- [ ] **Monetização Direta:** Payment gateway → libera download pós-upsell. (Ver [4_0_estrategia-vendas-crm.md](file:///Users/macbook/Documents/ProjetoEstudio/FsSaaS/skills/4_0_estrategia-vendas-crm.md))
-- [ ] **CRM Automático:** Implementar `salesAutomator.js` e aba de métricas de vendas (inclui disparo de re-engajamento 11 meses pós-sessão).
-- [ ] **Slideshow Viral:** Video gen (ffmpeg + Bull queue) para sessões.
+### CRM — Automação de Vendas (src/utils/salesAutomator.js)
+- Gatilhos de escassez: 15d (sem cupom), 7d, 3d, 1d (com cupom)
+- Idempotência via `session.salesAutomation.sentTriggers`
+- Roda a cada 6h no worker 0
+
+---
+
+## ESTADO ATUAL DO PROJETO (V1 — pré-lançamento)
+
+### Concluído ✅
+- Backend completo: 16 rotas, 126 endpoints, todos ativos
+- Admin completo: 19 tabs funcionais (1 oculta para V2)
+- Site público: 5 temas, builder visual, domínio customizado
+- Email: SMTP Hostinger funcionando, fix do bug de credenciais do PM2
+- Segurança: honey pot, rate limiting, logs anti-bot
+- CRM: automação de vendas, gatilhos de escassez, reativação anual
+- Limpeza estrutural: removidos 7 arquivos de código morto (gallery.js, perfil.js, Organization.js, test-email.js, scratch/, tokens 2.css, utils/notifications.js, utils/features.js)
+
+### Em andamento — Auditoria de 7 dias 🔄
+**Dia 1 ✅ — Limpeza estrutural** (concluído)
+**Dia 2** — Auditoria backend: auth + sessões (endpoints, erros, emails)
+**Dia 3** — Auditoria frontend: dashboard, sessões, clientes, mensagens
+**Dia 4** — Auditoria site builder: hero, sobre, portfólio, estúdio, FAQ
+**Dia 5** — Funcionalidades avançadas: CRM, marketing, integrações, plano
+**Dia 6** — Domínio, segurança, testes Playwright E2E
+**Dia 7** — Correções, polimento, deploy final
+
+### Pendências antes do lançamento ⚠️
+- [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
+- [ ] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
+- [ ] Completar auditoria dos dias 2–7
+
+### V2 — Funcionalidades ocultas aguardando desenvolvimento
+- **Prova de Álbuns:** fluxo completo de proofing (páginas, layouts, revisões, aprovação)
+- **Multi-Imediata + Face Search:** reconhecimento facial para entregar fotos por participante em eventos em tempo real
+- **Marca D'água Híbrida:** modo `both` (texto + imagem), posições tile/sequência/repetição
+- **Monetização Direta:** payment gateway para liberar download pós-upsell
+- **Slideshow Viral:** geração de vídeo com ffmpeg + Bull queue
