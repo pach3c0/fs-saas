@@ -1,9 +1,10 @@
 const nodemailer = require('nodemailer');
 
-// Cria transporter SMTP (Hostinger)
-function getTransporter() {
-  let transporter = null;
+// Transporter singleton — reutiliza a conexão SMTP entre envios
+let _transporter = null;
+let _lastCredentials = '';
 
+function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '465');
   const user = process.env.SMTP_USER;
@@ -14,14 +15,22 @@ function getTransporter() {
     return null;
   }
 
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass }
-  });
+  // Recria o transporter apenas se as credenciais mudaram
+  const credKey = `${host}:${port}:${user}:${pass}`;
+  if (!_transporter || _lastCredentials !== credKey) {
+    _transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100
+    });
+    _lastCredentials = credKey;
+  }
 
-  return transporter;
+  return _transporter;
 }
 
 /**

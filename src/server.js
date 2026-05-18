@@ -186,7 +186,11 @@ const connectWithRetry = async () => {
     });
     isConnected = true;
     console.log('MongoDB conectado com sucesso');
-    startDeadlineScheduler();
+    // Em cluster PM2, apenas o worker 0 roda os schedulers para evitar envios duplicados
+    const instanceId = process.env.NODE_APP_INSTANCE;
+    if (instanceId === undefined || instanceId === '0') {
+      startDeadlineScheduler();
+    }
   } catch (err) {
     console.error('Erro na conexão MongoDB:', err.message);
     isConnected = false;
