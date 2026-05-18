@@ -183,7 +183,7 @@ export async function renderSessoes(container) {
           </div>
 
           <!-- CRM: classificacao + automacao de vendas -->
-          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <div id="crmFields" style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
             <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">CRM e Vendas</h4>
             <div class="input-group" style="margin-bottom:0;">
               <label>Tipo de Evento</label>
@@ -353,7 +353,7 @@ export async function renderSessoes(container) {
             <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Reabertura de sessão permitida</span>
           </label>
         </div>
-        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+        <div id="editCrmFields" style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
           <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">CRM e Vendas</h4>
           <div class="input-group" style="margin-bottom:0;">
             <label>Tipo de Evento</label>

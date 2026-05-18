@@ -18,6 +18,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   const clientRowWrapper = container.querySelector('#clientRowWrapper');
   const selectionFields = container.querySelector('#selectionFields');
   const extraConfigFields = container.querySelector('#extraConfigFields');
+  const crmFields = container.querySelector('#crmFields');
   const multiHint = container.querySelector('#multiSelectionHint');
   const deadlineLabel = container.querySelector('#deadlineLabel');
   const allDisabledInputs = fieldsWrapper.querySelectorAll('input, select');
@@ -42,6 +43,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     // Ajusta campos condicionais
     selectionFields.style.display = (isSelection || isMulti) ? 'flex' : 'none';
     extraConfigFields.style.display = isSelection ? 'flex' : 'none';
+    if (crmFields) crmFields.style.display = isGallery ? 'none' : 'flex';
     multiHint.style.display = isMulti ? 'block' : 'none';
     if (deadlineLabel) deadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
   };
@@ -272,6 +274,7 @@ function _setupEditSessionModal(container, state, renderSessoes) {
   const editSelFields = container.querySelector('#editSelectionFields');
   const editExtraLabel = container.querySelector('#editAllowExtraPurchase')?.closest('label');
   const editReopenLabel = container.querySelector('#editAllowReopen')?.closest('label');
+  const editCrmFields = container.querySelector('#editCrmFields');
 
   const editDeadlineLabel = container.querySelector('#editDeadlineLabel');
   function _toggleEditSelectionFields() {
@@ -282,6 +285,7 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     if (editExtraLabel) editExtraLabel.style.display = hasPackage ? 'flex' : 'none';
     if (editReopenLabel) editReopenLabel.style.display = hasPackage ? 'flex' : 'none';
     if (editDeadlineLabel) editDeadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
+    if (editCrmFields) editCrmFields.style.display = isGallery ? 'none' : 'flex';
   }
 
   editModeSelect.onchange = _toggleEditSelectionFields;
