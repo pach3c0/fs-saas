@@ -67,7 +67,7 @@ const OrganizationSchema = new mongoose.Schema({
     subtitlePosX: { type: Number, default: 50, min: 0, max: 100 },
     subtitlePosY: { type: Number, default: 55, min: 0, max: 100 },
     subtitleFontSize: { type: Number, default: 40, min: 10, max: 100 },
-    overlayOpacity: { type: Number, default: 30, min: 0, max: 95 },
+    overlayOpacity: { type: Number, default: 30, min: 0, max: 100 },
     topBarHeight: { type: Number, default: 0, min: 0, max: 20 },
     bottomBarHeight: { type: Number, default: 0, min: 0, max: 20 },
     heroLayers: { type: mongoose.Schema.Types.Mixed, default: [] },

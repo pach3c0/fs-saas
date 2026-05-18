@@ -114,7 +114,7 @@ export async function renderHero(container) {
               </div>
               <div>
                 <div class="range-group"><label class="range-label" style="flex:1">Escurecer Capa</label><span id="overlayVal" class="range-val"></span></div>
-                <input type="range" id="overlayOpacity" min="0" max="95" step="5" value="${_hero.overlayOpacity}" style="width:100%;">
+                <input type="range" id="overlayOpacity" min="0" max="100" step="1" value="${_hero.overlayOpacity}" style="width:100%;">
               </div>
               <input type="hidden" id="heroPosX" value="${_hero.heroPosX}">
               <input type="hidden" id="heroPosY" value="${_hero.heroPosY}">
