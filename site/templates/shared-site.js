@@ -384,7 +384,7 @@ function renderSite(data, opts = {}) {
         max-width: 90vw;
         pointer-events: none;
         user-select: none;
-      ">${esc(layer.text || '')}</div>`;
+      ">${layer.text || ''}</div>`;
     }).join('');
 
     // Injetar CSS responsivo dos presets
@@ -402,12 +402,12 @@ function renderSite(data, opts = {}) {
   // Preencher Sobre
   const sobreTitle = document.getElementById('sobreTitle');
   if (sobreTitle) {
-    sobreTitle.textContent = content.sobre?.title || 'Sobre';
+    sobreTitle.innerHTML = content.sobre?.title || 'Sobre';
   }
 
   const sobreText = document.getElementById('sobreText');
   if (sobreText) {
-    sobreText.textContent = content.sobre?.text || '';
+    sobreText.innerHTML = content.sobre?.text || '';
   }
 
   const sobreImage = document.getElementById('sobreImage');
@@ -813,8 +813,8 @@ function renderSite(data, opts = {}) {
   if (studioSection && sections.includes('estudio')) studioSection.style.display = '';
   if (content.studio) {
     const studio = content.studio;
-    if (studioTitle && studio.title) studioTitle.textContent = studio.title;
-    if (studioDesc && studio.description) studioDesc.textContent = studio.description;
+    if (studioTitle && studio.title) studioTitle.innerHTML = studio.title;
+    if (studioDesc && studio.description) studioDesc.innerHTML = studio.description;
     if (studioPhotosGrid) {
       if (studio.studioLayers && studio.studioLayers.length > 0) {
         // Canvas mode: remover grid para não interferir no posicionamento livre
@@ -849,7 +849,7 @@ function renderSite(data, opts = {}) {
     if (studioInfo) {
       let html = '';
       if (studio.address) html += `<div class="studio-info-item">📍 ${esc(studio.address)}</div>`;
-      if (studio.hours) html += `<div class="studio-info-item">🕐 ${esc(studio.hours)}</div>`;
+      if (studio.hours) html += `<div class="studio-info-item">🕐 ${studio.hours}</div>`;
       if (studio.whatsapp) html += `<div class="studio-info-item">📱 <a href="https://wa.me/${studio.whatsapp.replace(/\D/g,'')}" target="_blank">${esc(studio.whatsapp)}</a></div>`;
       studioInfo.innerHTML = html;
     }
@@ -1044,7 +1044,7 @@ function renderSite(data, opts = {}) {
           <span>${esc(item.question)}</span>
           <span id="faq-icon-${i}" style="font-size:1.25rem;transition:transform 0.2s;flex-shrink:0;">+</span>
         </button>
-        <div id="faq-answer-${i}" style="display:none;padding:0.75rem 0 0;opacity:0.8;line-height:1.6;">${esc(item.answer)}</div>
+        <div id="faq-answer-${i}" style="display:none;padding:0.75rem 0 0;opacity:0.8;line-height:1.6;">${item.answer}</div>
       </div>
     `).join('');
   }
