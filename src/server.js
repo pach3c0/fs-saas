@@ -8,7 +8,8 @@ const Organization = require('./models/Organization');
 const logger = require('./utils/logger');
 const { v4: uuidv4 } = require('uuid');
 
-require('dotenv').config();
+// override: true garante que o .env sempre vence variáveis de ambiente do sistema/PM2
+require('dotenv').config({ override: true });
 
 const app = express();
 
