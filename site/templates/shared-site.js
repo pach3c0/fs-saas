@@ -899,6 +899,22 @@ function renderSite(data, opts = {}) {
         studioVideoWrap.innerHTML = '';
       }
     }
+
+    // Mapa do estúdio (Google Maps)
+    const studioMapWrap = document.getElementById('studioMapWrap');
+    if (studioMapWrap) {
+      const showMap = studio.mapEnabled !== false && studio.address && studio.address.trim().length > 0;
+      if (showMap) {
+        studioMapWrap.style.display = 'block';
+        const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(studio.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+        studioMapWrap.innerHTML = `<div class="studio-map-iframe-container" style="border-radius:0.75rem; overflow:hidden; aspect-ratio:21/9; min-height:300px; border:1px solid var(--t-border); box-shadow: 0 4px 20px rgba(0,0,0,0.05); background:var(--t-bg-alt);">
+          <iframe width="100%" height="100%" frameborder="0" style="border:0; display:block;" src="${embedUrl}" allowfullscreen loading="lazy"></iframe>
+        </div>`;
+      } else {
+        studioMapWrap.style.display = 'none';
+        studioMapWrap.innerHTML = '';
+      }
+    }
   }
 
   // Preencher Contato

@@ -26,6 +26,7 @@ function getCurrentStudio(container, overrides = {}) {
     });
   });
   const videoToggle = container.querySelector('#videoEnabledToggle');
+  const mapToggle = container.querySelector('#studioMapEnabledToggle');
   // Coleta valores dos RTE se disponíveis, senão cai para os inputs ocultos
   const titleEl = container.querySelector('#studioTitle');
   const descEl = container.querySelector('#studioDesc');
@@ -39,6 +40,7 @@ function getCurrentStudio(container, overrides = {}) {
     whatsapp: container.querySelector('#studioWhatsapp')?.value || _studio.whatsapp || '',
     whatsappMessages: msgs.length > 0 ? msgs : _studio.whatsappMessages,
     videoEnabled: videoToggle ? videoToggle.checked : (_studio.videoEnabled ?? false),
+    mapEnabled: mapToggle ? mapToggle.checked : (_studio.mapEnabled ?? true),
   };
 }
 
@@ -136,6 +138,15 @@ export async function renderEstudio(container) {
           <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Horario de Atendimento</label>
           <div id="studioHoursWrap"></div>
           <textarea id="studioHours" class="se-textarea" rows="2" style="display:none;">${_studio.hours || ''}</textarea>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
+          <label style="position:relative; display:inline-block; width:2.5rem; height:1.375rem; flex-shrink:0; cursor:pointer;">
+            <input type="checkbox" id="studioMapEnabledToggle" ${_studio.mapEnabled !== false ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
+            <span id="studioMapToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.mapEnabled !== false ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
+              <span style="position:absolute; left:${_studio.mapEnabled !== false ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
+            </span>
+          </label>
+          <span style="font-size:0.875rem; color:var(--text-primary);">Exibir mapa interativo de localização no site</span>
         </div>
       </div>
 
@@ -533,6 +544,31 @@ export async function renderEstudio(container) {
         track.style.background = videoToggle.checked ? 'var(--accent)' : 'var(--border)';
         track.querySelector('span').style.left = videoToggle.checked ? '1.125rem' : '0.125rem';
       }
+      _studio = getCurrentStudio(container);
+      await saveEstudio(true);
+    };
+  }
+
+  const mapToggle = container.querySelector('#studioMapEnabledToggle');
+  if (mapToggle) {
+    mapToggle.onchange = async () => {
+      const track = container.querySelector('#studioMapToggleTrack');
+      if (track) {
+        track.style.background = mapToggle.checked ? 'var(--accent)' : 'var(--border)';
+        track.querySelector('span').style.left = mapToggle.checked ? '1.125rem' : '0.125rem';
+      }
+      _studio = getCurrentStudio(container);
+      await saveEstudio(true);
+    };
+  }
+
+  const studioAddressInput = container.querySelector('#studioAddress');
+  if (studioAddressInput) {
+    studioAddressInput.oninput = (e) => {
+      _studio.address = e.target.value;
+      liveNotify();
+    };
+    studioAddressInput.onblur = async () => {
       _studio = getCurrentStudio(container);
       await saveEstudio(true);
     };
