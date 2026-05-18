@@ -239,6 +239,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
 router.put('/client/select/:sessionId', async (req, res) => {
   try {
     const { photoId, participantId } = req.body;
+    if (!photoId) return res.status(400).json({ error: 'photoId é obrigatório' });
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
