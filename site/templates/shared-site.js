@@ -84,6 +84,15 @@ function applyCustomStyle(siteStyle) {
   if (siteStyle.textColor) {
     root.style.setProperty('--text', siteStyle.textColor);
     root.style.setProperty('--t-ink', siteStyle.textColor);
+    try {
+      if (siteStyle.textColor.startsWith('#')) {
+        root.style.setProperty('--t-ink-muted', siteStyle.textColor + 'b3');
+      } else {
+        root.style.setProperty('--t-ink-muted', siteStyle.textColor);
+      }
+    } catch (e) {
+      root.style.setProperty('--t-ink-muted', siteStyle.textColor);
+    }
   }
   if (siteStyle.fontFamily) {
     root.style.setProperty('--font-body', siteStyle.fontFamily);
@@ -102,6 +111,34 @@ function applyCustomStyle(siteStyle) {
 
 function icon(name) {
   return `<i data-lucide="${name}" style="width:1.15rem; height:1.15rem; vertical-align:middle; display:inline-block; margin-right:0.5rem; stroke-width:1.8px; opacity:0.85;"></i>`;
+}
+
+function renderServicoIcon(iconValue) {
+  if (!iconValue) return `<i data-lucide="camera" style="width:2rem; height:2rem; vertical-align:middle; display:inline-block; stroke-width:1.6px; opacity:0.95;"></i>`;
+  
+  const emojiMap = {
+    '📸': 'camera',
+    '📷': 'camera',
+    '🎥': 'video',
+    '💍': 'gem',
+    '👶': 'baby',
+    '🎓': 'graduation-cap',
+    '💼': 'briefcase',
+    '🌳': 'trees',
+    '🏠': 'home',
+    '❤️': 'heart',
+    '✨': 'sparkles',
+    '🌟': 'star',
+  };
+
+  const name = emojiMap[iconValue] || iconValue;
+  
+  const isEmoji = /\p{Emoji}/u.test(iconValue) && !emojiMap[iconValue];
+  if (isEmoji) {
+    return `<span style="font-size:1.5rem; display:inline-block; vertical-align:middle;">${iconValue}</span>`;
+  }
+
+  return `<i data-lucide="${name}" style="width:2rem; height:2rem; vertical-align:middle; display:inline-block; stroke-width:1.6px; opacity:0.95;"></i>`;
 }
 
 function renderSite(data, opts = {}) {
@@ -677,7 +714,7 @@ function renderSite(data, opts = {}) {
   if (servicosGrid && content.servicos) {
     servicosGrid.innerHTML = content.servicos.map(s => `
       <div class="servico-card">
-        <div class="servico-icon">${s.icon || '📸'}</div>
+        <div class="servico-icon" style="display:flex; align-items:center; justify-content:center;">${renderServicoIcon(s.icon)}</div>
         <div class="servico-info">
           <h3>${esc(s.title)}</h3>
           <p>${esc(s.description)}</p>

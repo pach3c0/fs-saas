@@ -1218,8 +1218,8 @@ async function renderSiteContent(container, builderTabsEl) {
             </div>
             <div style="display:flex; gap:0.75rem;">
               <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Ícone (emoji)</label>
-                <input type="text" id="srv-icon-${idx}" class="input" value="${srv.icon || '📸'}" data-srv-icon="${idx}" placeholder="📸">
+                <label>Ícone (Emoji ou nome do Lucide)</label>
+                <input type="text" id="srv-icon-${idx}" class="input" value="${srv.icon || '📸'}" data-srv-icon="${idx}" placeholder="Ex: camera, gem, baby, heart ou 📸">
               </div>
               <div class="input-group" style="flex:1; margin-bottom:0;">
                 <label>Preço (opcional)</label>
