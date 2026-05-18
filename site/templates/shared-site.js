@@ -146,7 +146,7 @@ function renderSite(data, opts = {}) {
   const content = data.siteContent || {};
   const sections = (data.siteSections && data.siteSections.length)
     ? data.siteSections
-    : ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
+    : ['hero', 'portfolio', 'areacliente', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 
   // Definir o tema no elemento root para refletir o site-tokens.css instantaneamente
   const theme = data.siteTheme || 'elegante';
@@ -191,7 +191,7 @@ function renderSite(data, opts = {}) {
 
   const navLinks = document.getElementById('navLinks');
   if (navLinks) {
-    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
+    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', areacliente: 'Área do Cliente', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
     const standardLinks = sections.map(s => `<a href="#section-${s}">${labels[s] || s}</a>`);
     navLinks.innerHTML = standardLinks.join('');
   }
@@ -1031,7 +1031,7 @@ function renderSite(data, opts = {}) {
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'areacliente', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'contato'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el) {
@@ -1066,18 +1066,12 @@ function renderSite(data, opts = {}) {
     sectionElements.forEach(el => {
       el.style.display = '';
       anchor ? mainEl.insertBefore(el, anchor) : mainEl.appendChild(el);
-      if (el.id === 'section-portfolio' && sectionAreaCliente && (!cData || cData.isActive !== false)) {
-        anchor ? mainEl.insertBefore(sectionAreaCliente, anchor) : mainEl.appendChild(sectionAreaCliente);
-      }
     });
   } else {
     const anchor = getAnchor(document.body);
     sectionElements.forEach(el => {
       el.style.display = '';
       anchor ? document.body.insertBefore(el, anchor) : document.body.appendChild(el);
-      if (el.id === 'section-portfolio' && sectionAreaCliente && (!cData || cData.isActive !== false)) {
-        anchor ? document.body.insertBefore(sectionAreaCliente, anchor) : document.body.appendChild(sectionAreaCliente);
-      }
     });
   }
 

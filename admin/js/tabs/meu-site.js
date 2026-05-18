@@ -1059,10 +1059,11 @@ async function renderSiteContent(container, builderTabsEl) {
   // --- SEÇÕES (Ativar/Desativar) ---
   const renderSecoes = () => {
     const secoesContainer = container.querySelector('#config-secoes');
-    const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
+    const DEFAULT_SECTIONS = ['hero', 'portfolio', 'areacliente', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
     const allSectionDefs = [
       { id: 'hero', label: 'Capa' },
       { id: 'portfolio', label: 'Portfólio' },
+      { id: 'areacliente', label: 'Área do Cliente' },
       { id: 'albuns', label: 'Álbuns' },
       { id: 'servicos', label: 'Serviços' },
       { id: 'estudio', label: 'Estúdio' },
