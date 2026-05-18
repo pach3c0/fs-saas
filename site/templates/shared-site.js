@@ -146,7 +146,7 @@ function renderSite(data, opts = {}) {
   const content = data.siteContent || {};
   const sections = (data.siteSections && data.siteSections.length)
     ? data.siteSections
-    : ['hero', 'portfolio', 'areacliente', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
+    : ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'areacliente', 'faq'];
 
   // Definir o tema no elemento root para refletir o site-tokens.css instantaneamente
   const theme = data.siteTheme || 'elegante';
@@ -191,7 +191,7 @@ function renderSite(data, opts = {}) {
 
   const navLinks = document.getElementById('navLinks');
   if (navLinks) {
-    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', areacliente: 'Área do Cliente', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
+    const labels = {hero: 'Início', sobre: 'Sobre', portfolio: 'Portfólio', areacliente: 'Cliente', albuns: 'Álbuns', estudio: 'Estúdio', servicos: 'Serviços', depoimentos: 'Depoimentos', faq: 'FAQ', contato: 'Contato'};
     const standardLinks = sections.map(s => `<a href="#section-${s}">${labels[s] || s}</a>`);
     navLinks.innerHTML = standardLinks.join('');
   }
@@ -1031,7 +1031,7 @@ function renderSite(data, opts = {}) {
   }
 
   // Ocultar seções não ativadas
-  const allSections = ['hero', 'sobre', 'portfolio', 'areacliente', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'faq', 'contato'];
+  const allSections = ['hero', 'sobre', 'portfolio', 'albuns', 'estudio', 'servicos', 'depoimentos', 'depoimento-form', 'contato', 'areacliente', 'faq'];
   allSections.forEach(s => {
     const el = document.getElementById('section-' + s);
     if (el) {
