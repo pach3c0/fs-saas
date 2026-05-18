@@ -100,6 +100,10 @@ function applyCustomStyle(siteStyle) {
   }
 }
 
+function icon(name) {
+  return `<i data-lucide="${name}" style="width:1.15rem; height:1.15rem; vertical-align:middle; display:inline-block; margin-right:0.5rem; stroke-width:1.8px; opacity:0.85;"></i>`;
+}
+
 function renderSite(data, opts = {}) {
   const config = data.siteConfig || {};
   const content = data.siteContent || {};
@@ -879,9 +883,9 @@ function renderSite(data, opts = {}) {
     }
     if (studioInfo) {
       let html = '';
-      if (studio.address) html += `<div class="studio-info-item">📍 ${esc(studio.address)}</div>`;
-      if (studio.hours) html += `<div class="studio-info-item">🕐 ${studio.hours}</div>`;
-      if (studio.whatsapp) html += `<div class="studio-info-item">📱 <a href="https://wa.me/${studio.whatsapp.replace(/\D/g,'')}" target="_blank">${esc(studio.whatsapp)}</a></div>`;
+      if (studio.address) html += `<div class="studio-info-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('map-pin')}${esc(studio.address)}</div>`;
+      if (studio.hours) html += `<div class="studio-info-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('clock')}${studio.hours}</div>`;
+      if (studio.whatsapp) html += `<div class="studio-info-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('phone')}<a href="https://wa.me/${studio.whatsapp.replace(/\D/g,'')}" target="_blank">${esc(studio.whatsapp)}</a></div>`;
       studioInfo.innerHTML = html;
     }
 
@@ -927,9 +931,9 @@ function renderSite(data, opts = {}) {
   const contatoInfo = document.getElementById('contatoInfo');
   if (contatoInfo) {
     let html = '';
-    if (config.whatsapp) html += `<div class="contact-item">📱 WhatsApp: ${esc(config.whatsapp)}</div>`;
-    if (config.email) html += `<div class="contact-item">📧 Email: ${esc(config.email)}</div>`;
-    if (config.instagramUrl) html += `<div class="contact-item">📷 <a href="${esc(config.instagramUrl)}" target="_blank">Instagram</a></div>`;
+    if (config.whatsapp) html += `<div class="contact-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('phone')} WhatsApp: ${esc(config.whatsapp)}</div>`;
+    if (config.email) html += `<div class="contact-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('mail')} Email: ${esc(config.email)}</div>`;
+    if (config.instagramUrl) html += `<div class="contact-item" style="display:flex; align-items:center; gap:0.25rem;">${icon('instagram')} <a href="${esc(config.instagramUrl)}" target="_blank">Instagram</a></div>`;
     contatoInfo.innerHTML = html;
   }
 
@@ -1222,6 +1226,10 @@ function renderSite(data, opts = {}) {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
       }
     };
+  }
+
+  if (window.lucide) {
+    window.lucide.createIcons();
   }
 }
 
