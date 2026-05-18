@@ -1,0 +1,403 @@
+/* ============================================
+   CLIQUEZOOM DESIGN SYSTEM — TOKENS
+   Shared primitives + surface-specific palettes
+   ============================================ */
+
+/* ── Google Fonts (loaded once, reused everywhere) ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800;900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── SHARED PRIMITIVES ── */
+  /* Everything below is used by every surface. */
+
+  /* Spacing — 4px base, named by t-shirt size */
+  --sp-0: 0;
+  --sp-1: 0.25rem;   /* 4 */
+  --sp-2: 0.5rem;    /* 8 */
+  --sp-3: 0.75rem;   /* 12 */
+  --sp-4: 1rem;      /* 16 */
+  --sp-5: 1.5rem;    /* 24 */
+  --sp-6: 2rem;      /* 32 */
+  --sp-7: 3rem;      /* 48 */
+  --sp-8: 4rem;      /* 64 */
+  --sp-9: 6rem;      /* 96 */
+  --sp-10: 8rem;     /* 128 */
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-pill: 9999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 0.15s;
+  --dur-base: 0.25s;
+  --dur-slow: 0.4s;
+
+  /* Brand accents (shared across surfaces — photographer blue + approval green) */
+  --brand-blue: #2f81f7;
+  --brand-blue-dark: #1f6feb;
+  --brand-violet: #6e40c9;
+  --success: #16a34a;
+  --success-dim: #3fb950;
+  --danger: #f85149;
+  --warning: #d29922;
+}
+
+/* ── SURFACE A · MARKETING ──
+   Editorial, monochrome, serif display.
+   Used in: home/, any public-facing page of cliquezoom.com.br
+*/
+[data-surface='marketing'],
+.surface-marketing {
+  --mk-bg: #fafafa;
+  --mk-surface: #ffffff;
+  --mk-ink: #1a1a1a;
+  --mk-ink-2: #555555;
+  --mk-ink-3: #888888;
+  --mk-ink-muted: #bbbbbb;
+  --mk-border: #eeeeee;
+  --mk-border-strong: #dddddd;
+  --mk-accent: #1a1a1a;
+  --mk-accent-soft: #f0fdf4;
+  --mk-accent-soft-ink: #16a34a;
+  --mk-link: #2563eb;
+
+  --mk-font-body: 'Inter', -apple-system, sans-serif;
+  --mk-font-display: 'Playfair Display', Georgia, serif;
+
+  --mk-shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --mk-shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --mk-shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+/* ── SURFACE B · ADMIN ──
+   Dark, dense, tooling. GitHub + Linear + Stripe.
+   Used in: admin/
+*/
+[data-surface='admin'],
+.surface-admin {
+  --ad-bg-base: #0d1117;
+  --ad-bg-surface: #161b22;
+  --ad-bg-elevated: #1c2128;
+  --ad-bg-hover: #21262d;
+  --ad-border: #30363d;
+  --ad-border-muted: #21262d;
+  --ad-text: #e6edf3;
+  --ad-text-muted: #8b949e;
+  --ad-text-dim: #484f58;
+  --ad-accent: #2f81f7;
+  --ad-accent-hover: #1f6feb;
+  --ad-accent-soft: rgba(47,129,247,0.12);
+  --ad-green: #3fb950;
+  --ad-red: #f85149;
+  --ad-yellow: #d29922;
+  --ad-purple: #bc8cff;
+  --ad-orange: #ffa657;
+
+  --ad-font-body: 'Inter', -apple-system, sans-serif;
+  --ad-font-display: 'Playfair Display', Georgia, serif;
+  --ad-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ad-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --ad-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --ad-shadow-lg: 0 24px 80px rgba(0,0,0,0.8);
+}
+
+/* ── SURFACE C · PHOTOGRAPHER THEMES ──
+   Five opinionated looks for the photographer's public site.
+   These are MUTUALLY EXCLUSIVE — a site picks exactly one.
+   Tokens are prefixed by theme key.
+*/
+
+/* THEME 1 · Elegante — serif + gold on warm neutral */
+[data-theme='elegante'] {
+  --t-bg: #fafafa;
+  --t-bg-alt: #f3f4f6;
+  --t-ink: #111827;
+  --t-ink-muted: #6b7280;
+  --t-primary: #1a1a1a;
+  --t-accent: #c9a96e;
+  --t-accent-rgb: 201,169,110;
+  --t-border: rgba(0,0,0,0.08);
+  --t-font-body: 'Inter', sans-serif;
+  --t-font-display: 'Playfair Display', serif;
+}
+/* THEME 2 · Moderno — gradient + sans on cool neutral */
+[data-theme='moderno'] {
+  --t-bg: #f8fafc;
+  --t-bg-alt: #ffffff;
+  --t-ink: #1e293b;
+  --t-ink-muted: #64748b;
+  --t-primary: #3b82f6;
+  --t-accent: #60a5fa;
+  --t-accent-rgb: 96,165,250;
+  --t-border: #e2e8f0;
+  --t-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --t-font-body: 'Poppins', sans-serif;
+  --t-font-display: 'Poppins', sans-serif;
+}
+/* THEME 3 · Minimalista — black on white, very light type */
+[data-theme='minimalista'] {
+  --t-bg: #ffffff;
+  --t-bg-alt: #fafafa;
+  --t-ink: #000000;
+  --t-ink-muted: #666666;
+  --t-primary: #000000;
+  --t-accent: #666666;
+  --t-accent-rgb: 102,102,102;
+  --t-border: #e5e5e5;
+  --t-font-body: 'Inter', sans-serif;
+  --t-font-display: 'Inter', sans-serif;
+}
+/* THEME 4 · Escuro — dark + burnt-orange */
+[data-theme='escuro'] {
+  --t-bg: #0a0a0a;
+  --t-bg-alt: #1a1a1a;
+  --t-ink: #ffffff;
+  --t-ink-muted: #a0a0a0;
+  --t-primary: #000000;
+  --t-accent: #ff9500;
+  --t-accent-rgb: 255,149,0;
+  --t-border: #2a2a2a;
+  --t-font-body: 'Montserrat', sans-serif;
+  --t-font-display: 'Montserrat', sans-serif;
+}
+/* THEME 5 · Galeria — warm-neutral + serif, masonry-friendly */
+[data-theme='galeria'] {
+  --t-bg: #fafafa;
+  --t-bg-alt: #ffffff;
+  --t-ink: #2c2c2c;
+  --t-ink-muted: #757575;
+  --t-primary: #2c2c2c;
+  --t-accent: #8b7355;
+  --t-accent-rgb: 139,115,85;
+  --t-border: #e0e0e0;
+  --t-font-body: 'Roboto', sans-serif;
+  --t-font-display: 'Libre Baskerville', serif;
+}
+
+/* ============================================
+   DS PAGE CHROME — the docs themselves
+   ============================================ */
+html { scroll-behavior: smooth; }
+body.ds-page {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #fafafa;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+.ds-shell { max-width: 1180px; margin: 0 auto; padding: var(--sp-8) var(--sp-5); }
+
+.ds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-5);
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-7);
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+}
+.ds-crumb {
+  display: flex; gap: var(--sp-3);
+  font-size: 13px; color: #888;
+}
+.ds-crumb a { color: #888; text-decoration: none; }
+.ds-crumb a:hover { color: #1a1a1a; }
+.ds-crumb span { color: #1a1a1a; font-weight: 500; }
+
+.ds-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.75rem;
+  line-height: 1.1;
+  margin: 0 0 var(--sp-2);
+  letter-spacing: -0.02em;
+}
+.ds-title em { font-style: italic; color: #666; font-weight: 500; }
+.ds-lede {
+  font-size: 1.125rem;
+  color: #555;
+  max-width: 640px;
+  margin: 0 0 var(--sp-6);
+  line-height: 1.65;
+}
+
+.ds-section { margin: var(--sp-9) 0; scroll-margin-top: var(--sp-6); }
+.ds-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: var(--sp-2);
+}
+.ds-h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 var(--sp-3);
+  letter-spacing: -0.015em;
+}
+.ds-h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: var(--sp-6) 0 var(--sp-2);
+  color: #1a1a1a;
+}
+.ds-p { color: #555; margin: 0 0 var(--sp-4); max-width: 68ch; line-height: 1.7; }
+
+/* Card grid for examples */
+.ds-grid {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.ds-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.ds-demo {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  margin: var(--sp-4) 0;
+  overflow: hidden;
+}
+.ds-demo[data-surface='admin'],
+.ds-demo.on-dark {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+.ds-demo-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #999;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px dashed #eee;
+}
+.ds-demo[data-surface='admin'] .ds-demo-label,
+.ds-demo.on-dark .ds-demo-label {
+  color: #8b949e;
+  border-bottom-color: #21262d;
+}
+
+.ds-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  font-size: 13px;
+}
+.ds-kv dt { color: #888; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+.ds-kv dd { margin: 0; color: #1a1a1a; }
+
+.ds-token-row {
+  display: flex; gap: var(--sp-3); align-items: center;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+.ds-token-row:last-child { border-bottom: 0; }
+.ds-swatch {
+  width: 56px; height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+.ds-swatch-label { flex: 1; }
+.ds-swatch-name { font-weight: 600; }
+.ds-swatch-desc { color: #888; font-size: 12px; margin-top: 2px; }
+.ds-swatch-hex {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #555;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+}
+
+.ds-note {
+  border-left: 3px solid #1a1a1a;
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-4);
+  margin: var(--sp-4) 0;
+  color: #555;
+  font-size: 14px;
+}
+.ds-note strong { color: #1a1a1a; }
+
+.ds-do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin: var(--sp-4) 0; }
+@media (max-width: 640px) { .ds-do-dont { grid-template-columns: 1fr; } }
+.ds-do, .ds-dont {
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid;
+}
+.ds-do { background: #f0fdf4; border-color: #dcfce7; }
+.ds-dont { background: #fef2f2; border-color: #fee2e2; }
+.ds-do-label, .ds-dont-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: var(--sp-2);
+}
+.ds-do-label { color: #16a34a; }
+.ds-dont-label { color: #dc2626; }
+
+.ds-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-3);
+  list-style: none;
+  padding: 0;
+}
+.ds-nav a {
+  display: block;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #eee;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: #1a1a1a;
+  background: #fff;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ds-nav a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  border-color: #ddd;
+}
+.ds-nav h4 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin: 0 0 4px; font-weight: 600; }
+.ds-nav p { font-size: 13px; color: #777; margin: 0; line-height: 1.5; }
+.ds-nav .num {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: var(--sp-2);
+}
+
+code.inline {
+  background: #f5f5f5;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+}

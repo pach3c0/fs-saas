@@ -38,6 +38,13 @@ const SiteDataSchema = new mongoose.Schema({
   faq: {
     faqs: { type: Array, default: [] }
   },
+  areaCliente: {
+    isActive: { type: Boolean, default: true },
+    title: { type: String, default: 'Área do Cliente' },
+    subtitle: { type: String, default: 'Acompanhe seu ensaio e escolha suas fotos favoritas' },
+    description: { type: String, default: 'Em nossa área exclusiva, você poderá visualizar suas galerias privadas, selecionar as fotos que mais gostou e acompanhar o progresso das edições.' },
+    buttonText: { type: String, default: 'Acessar Minha Área' }
+  },
   maintenance: { type: mongoose.Schema.Types.Mixed, default: { enabled: false } },
   organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true }
 }, { 

@@ -11,6 +11,7 @@ import { renderSobre, destroySobreCanvas, getSobreCanvasState } from './sobre.js
 import { renderAlbuns } from './albuns.js';
 import { renderEstudio, getStudioState } from './estudio.js';
 import { renderFaq } from './faq.js';
+import { renderCliente } from './cliente.js';
 import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 
 
@@ -95,6 +96,7 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="sub-tab-btn builder-nav-item" data-target="config-contato"><span class="material-symbols-outlined">mail</span>Contato</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-faq"><span class="material-symbols-outlined">help</span>FAQ</button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-rodape"><span class="material-symbols-outlined">bottom_app_bar</span>Rodapé</button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-cliente"><span class="material-symbols-outlined">group</span>Área do Cliente</button>
           <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
           <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span>Personalizar</button>
           <div id="adminTemplateNavItem" style="display:none;">
@@ -161,6 +163,9 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- Rodapé -->
         <div id="config-rodape" class="sub-tab-content" style="display:none;"></div>
+
+        <!-- Área do Cliente -->
+        <div id="config-cliente" class="sub-tab-content" style="display:none;"></div>
 
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
@@ -457,6 +462,7 @@ async function renderSiteContent(container, builderTabsEl) {
         albums: configData.siteContent?.albums || [],
         studio: getStudioState() || configData.siteContent?.studio || {},
         footer: configData.siteContent?.footer || {},
+        areaCliente: configData.siteContent?.areaCliente || {},
       },
       integrations: configData.integrations || {},
     };
@@ -566,7 +572,8 @@ async function renderSiteContent(container, builderTabsEl) {
       'config-estudio': 'estudio',
       'config-contato': 'contato',
       'config-faq': 'faq',
-      'config-rodape': 'footer'
+      'config-rodape': 'footer',
+      'config-cliente': 'areacliente'
     };
     if (sectionMap[target]) scrollToSection(sectionMap[target]);
 
@@ -610,6 +617,8 @@ async function renderSiteContent(container, builderTabsEl) {
       await renderFaq(targetContainer);
     } else if (btn.dataset.target === 'config-rodape') {
       renderRodape();
+    } else if (btn.dataset.target === 'config-cliente') {
+      renderCliente(targetContainer);
     } else if (btn.dataset.target === 'config-personalizar') {
       renderPersonalizar();
     }

@@ -958,6 +958,25 @@ function renderSite(data, opts = {}) {
     }
   }
 
+  // Preencher Área do Cliente
+  const sectionAreaCliente = document.getElementById('section-areacliente');
+  const cData = content.areaCliente;
+  if (sectionAreaCliente) {
+    if (cData && cData.isActive) {
+      sectionAreaCliente.style.display = '';
+      const cTitle = document.getElementById('clienteTitle');
+      if (cTitle) cTitle.textContent = cData.title || 'Área do Cliente';
+      const cSub = document.getElementById('clienteSubtitle');
+      if (cSub) cSub.textContent = cData.subtitle || 'Acompanhe seu ensaio e escolha suas fotos favoritas';
+      const cDesc = document.getElementById('clienteDesc');
+      if (cDesc) cDesc.innerHTML = (cData.description || '').replace(/\n/g, '<br>');
+      const cBtn = document.getElementById('clienteBtn');
+      if (cBtn) cBtn.textContent = cData.buttonText || 'Acessar Minha Área';
+    } else {
+      sectionAreaCliente.style.display = 'none';
+    }
+  }
+
   // Preencher Contato
   const contatoTitle = document.getElementById('contatoTitle');
   if (contatoTitle) contatoTitle.textContent = content.contato?.title || 'Contato';
@@ -1047,12 +1066,18 @@ function renderSite(data, opts = {}) {
     sectionElements.forEach(el => {
       el.style.display = '';
       anchor ? mainEl.insertBefore(el, anchor) : mainEl.appendChild(el);
+      if (el.id === 'section-portfolio' && sectionAreaCliente && (!cData || cData.isActive !== false)) {
+        anchor ? mainEl.insertBefore(sectionAreaCliente, anchor) : mainEl.appendChild(sectionAreaCliente);
+      }
     });
   } else {
     const anchor = getAnchor(document.body);
     sectionElements.forEach(el => {
       el.style.display = '';
       anchor ? document.body.insertBefore(el, anchor) : document.body.appendChild(el);
+      if (el.id === 'section-portfolio' && sectionAreaCliente && (!cData || cData.isActive !== false)) {
+        anchor ? document.body.insertBefore(sectionAreaCliente, anchor) : document.body.appendChild(sectionAreaCliente);
+      }
     });
   }
 
