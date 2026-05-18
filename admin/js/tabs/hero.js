@@ -112,6 +112,10 @@ export async function renderHero(container) {
                 <div class="range-group"><label class="range-label" style="flex:1">Zoom</label><span id="scaleValue" class="range-val"></span></div>
                 <input type="range" id="heroScale" min="0.5" max="2" step="0.05" value="${_hero.heroScale}" style="width:100%;">
               </div>
+              <div>
+                <div class="range-group"><label class="range-label" style="flex:1">Escurecer Capa</label><span id="overlayVal" class="range-val"></span></div>
+                <input type="range" id="overlayOpacity" min="0" max="95" step="5" value="${_hero.overlayOpacity}" style="width:100%;">
+              </div>
               <input type="hidden" id="heroPosX" value="${_hero.heroPosX}">
               <input type="hidden" id="heroPosY" value="${_hero.heroPosY}">
             </div>
@@ -156,10 +160,6 @@ export async function renderHero(container) {
               <span style="font-size:0.75rem;">▼</span>
             </summary>
             <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
-              <div>
-                <div class="range-group"><label class="range-label" style="flex:1">Overlay</label><span id="overlayVal" class="range-val"></span></div>
-                <input type="range" id="overlayOpacity" min="0" max="80" step="5" value="${_hero.overlayOpacity}" style="width:100%;">
-              </div>
               <div>
                 <div class="range-group"><label class="range-label" style="flex:1">Barra Sup.</label><span id="topBarVal" class="range-val"></span></div>
                 <input type="range" id="topBarHeight" min="0" max="20" step="1" value="${_hero.topBarHeight}" style="width:100%;">
