@@ -19,6 +19,8 @@ let allTutorials = [];
 let currentCategory = 'all';
 let searchQuery = '';
 let activeTutorial = null;
+let ajudaView = 'tutorials'; // 'tutorials' | 'manual'
+let openSections = { dashboard: true };
 
 export async function renderAjuda(container) {
   container.innerHTML = `
@@ -39,7 +41,7 @@ export async function renderAjuda(container) {
       allTutorials = json.tutorials || [];
     }
   } catch (error) {
-    console.error('Erro ao buscar tutoriais:', error);
+    window.showToast?.('Erro ao carregar tutoriais', 'error');
   }
 
   // Renderizar layout principal
@@ -51,6 +53,43 @@ function renderLayout(container) {
 
   const root = document.createElement('div');
   root.style.cssText = 'display:flex; flex-direction:column; gap:2rem; max-width:1100px; margin:0 auto; width:100%;';
+
+  // Sub-navegação: Tutoriais em Vídeo | Manual do Usuário
+  const btnBase = 'display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1.125rem; border-radius:9999px; font-size:0.875rem; font-weight:600; cursor:pointer; border:1px solid; transition:all 0.2s; font-family:inherit;';
+  const btnActive = btnBase + 'background:var(--accent); color:#fff; border-color:var(--accent);';
+  const btnIdle   = btnBase + 'background:var(--bg-elevated); color:var(--text-secondary); border-color:var(--border);';
+  const subNav = document.createElement('div');
+  subNav.style.cssText = 'display:flex; gap:0.5rem;';
+  subNav.innerHTML = `
+    <button onclick="window._setAjudaView('tutorials')" style="${ajudaView === 'tutorials' ? btnActive : btnIdle}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      Tutoriais em Vídeo
+    </button>
+    <button onclick="window._setAjudaView('manual')" style="${ajudaView === 'manual' ? btnActive : btnIdle}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Manual do Usuário
+    </button>
+  `;
+  root.appendChild(subNav);
+
+  // Renderizar Manual do Usuário
+  if (ajudaView === 'manual') {
+    const manualEl = document.createElement('div');
+    manualEl.innerHTML = renderManualHTML();
+    root.appendChild(manualEl);
+    container.appendChild(root);
+    root.querySelectorAll('[data-manual-toggle]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.manualToggle;
+        openSections[id] = !openSections[id];
+        const body  = document.getElementById(`manual-body-${id}`);
+        const arrow = document.getElementById(`manual-arrow-${id}`);
+        if (body)  body.style.display = openSections[id] ? 'block' : 'none';
+        if (arrow) arrow.style.transform = openSections[id] ? 'rotate(90deg)' : 'rotate(0deg)';
+      });
+    });
+    return;
+  }
 
   // 1. Cabeçalho Principal
   const header = document.createElement('div');
@@ -341,6 +380,104 @@ function filterAndRenderGrid() {
     });
   });
 }
+
+// ─── Manual do Usuário ────────────────────────────────────────────────────────
+
+const MANUAL_MODULES = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+    content: `
+      <div style="display:flex; flex-direction:column; gap:1.5rem; padding-top:1.25rem;">
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0;">
+          O Dashboard é a tela inicial do painel. Exibe um resumo operacional do seu estúdio — KPIs atualizados, as sessões mais recentes e atalhos para as ações mais comuns.
+        </p>
+
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Indicadores (KPIs)</p>
+          <div style="display:flex; flex-direction:column; gap:0.4rem;">
+            ${[
+              { color: 'var(--accent)',  label: 'Total de Sessões', desc: 'Número total de sessões criadas na sua conta.' },
+              { color: 'var(--orange)', label: 'Fotos Upadas',      desc: 'Soma de todas as fotos enviadas em todas as sessões.' },
+              { color: 'var(--orange)', label: 'Espaço Usado',      desc: 'Armazenamento em MB consumido pelos seus uploads.' },
+              { color: 'var(--green)',  label: 'Entregues',         desc: 'Sessões finalizadas com status "Entregue".' },
+            ].map(k => `
+              <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:${k.color}; flex-shrink:0; margin-top:0.3rem;"></span>
+                <span style="font-size:0.875rem; color:var(--text-primary);"><strong>${k.label}</strong> — <span style="color:var(--text-secondary);">${k.desc}</span></span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Sessões Recentes</p>
+          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem; color:var(--text-secondary); line-height:1.7;">
+            Lista as últimas 5 sessões criadas. <strong style="color:var(--text-primary);">Clique em qualquer item</strong> para abrir a sessão diretamente e gerenciar fotos, status e entrega.
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Ações Rápidas</p>
+          <div style="display:flex; flex-direction:column; gap:0.4rem;">
+            ${[
+              { label: 'Nova Sessão',  desc: 'Abre o formulário de criação de sessão.' },
+              { label: 'Ver meu Site', desc: 'Abre o site público do seu estúdio em uma nova aba.' },
+            ].map(a => `
+              <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem;">
+                <span style="color:var(--text-primary);"><strong>${a.label}</strong> — <span style="color:var(--text-secondary);">${a.desc}</span></span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Checklist de Início</p>
+          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem; color:var(--text-secondary); line-height:1.7;">
+            Aparece para novos fotógrafos com 4 passos guiados (criar sessão, subir fotos, vincular cliente, enviar link). Some automaticamente após completar todos os passos ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.
+          </div>
+        </div>
+      </div>
+    `
+  },
+  { id: 'sessoes',   label: 'Sessões',   icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', content: null },
+  { id: 'clientes',  label: 'Clientes',  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', content: null },
+  { id: 'mensagens', label: 'Mensagens', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', content: null },
+  { id: 'meu-site',  label: 'Meu Site',  icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', content: null },
+];
+
+function renderManualHTML() {
+  return `
+    <div style="display:flex; flex-direction:column; gap:0; border-radius:12px; overflow:hidden; border:1px solid var(--border);">
+      ${MANUAL_MODULES.map((mod, i) => {
+        const isOpen = openSections[mod.id] || false;
+        const notLast = i < MANUAL_MODULES.length - 1;
+        return `
+          <div style="${notLast ? 'border-bottom:1px solid var(--border);' : ''}">
+            <button data-manual-toggle="${mod.id}" style="width:100%; display:flex; align-items:center; gap:0.875rem; padding:1rem 1.25rem; background:var(--bg-surface); border:none; cursor:pointer; text-align:left; font-family:inherit;">
+              <div style="width:30px; height:30px; border-radius:7px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${mod.icon}</svg>
+              </div>
+              <span style="font-size:0.9375rem; font-weight:700; color:var(--text-primary); flex:1;">${mod.label}</span>
+              ${!mod.content ? '<span style="font-size:0.6875rem; color:var(--text-muted); font-weight:600; margin-right:0.5rem;">Em breve</span>' : ''}
+              <svg id="manual-arrow-${mod.id}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s; transform:${isOpen ? 'rotate(90deg)' : 'rotate(0deg)'}; color:var(--text-muted); flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div id="manual-body-${mod.id}" style="display:${isOpen ? 'block' : 'none'}; padding:0 1.25rem 1.25rem; background:var(--bg-surface); border-top:1px solid var(--border);">
+              ${mod.content || '<p style="color:var(--text-muted); font-size:0.875rem; padding-top:1rem; margin:0; font-style:italic;">Conteúdo em breve.</p>'}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window._setAjudaView = function(view) {
+  ajudaView = view;
+  const container = document.getElementById('tabContent');
+  if (container) renderLayout(container);
+};
 
 window._ajudaLoaded = true;
 window._openTutorialHelpReal = function(category, queryText = '') {
