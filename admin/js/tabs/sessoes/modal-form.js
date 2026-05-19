@@ -158,15 +158,9 @@ function _setupNewSessionModal(container, state, renderSessoes) {
 
   // Validação cruzada de datas
   function validateDates() {
-    const createdVal = container.querySelector('#sessionCreatedAtDate').value;
     const eventVal = container.querySelector('#sessionDate').value;
     const deadlineVal = container.querySelector('#sessionDeadline').value;
     const msg = container.querySelector('#dateValidationMsg');
-    if (createdVal && eventVal && eventVal < createdVal) {
-      msg.textContent = '⚠ A Data do Evento não pode ser anterior ao "Criado em".';
-      msg.style.display = 'block';
-      return false;
-    }
     if (eventVal && deadlineVal) {
       const eventDate = new Date(eventVal + 'T00:00:00');
       const deadline = new Date(deadlineVal);

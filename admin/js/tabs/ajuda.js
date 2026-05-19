@@ -527,6 +527,215 @@ const MANUAL_MODULES = [
           O módulo Sessões é o coração do seu trabalho. Ao criar uma sessão você escolhe um <strong style="color:var(--text-primary);">modo de entrega</strong> — e é esse modo que define todo o fluxo, desde o upload das fotos até a experiência do cliente na galeria.
         </p>
 
+        <!-- ── NOVA SESSÃO — FORMULÁRIO DE CRIAÇÃO ─────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.5rem;">CRIANDO UMA NOVA SESSÃO — MODO SELEÇÃO</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1.5rem;">Clique em <strong style="color:var(--text-primary);">+ Nova Sessão</strong> para abrir o formulário. Os campos ficam bloqueados até você escolher o modo — essa é a primeira e mais importante decisão.</p>
+
+          <!-- 1. Modo -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">SELEÇÃO DO MODO</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; margin-bottom:0.5rem;">
+              <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Modo da Sessão <span style="color:var(--red);">*</span></div>
+              <div style="background:var(--bg-surface); border:1.5px solid var(--accent); border-radius:6px; padding:0.5rem 0.75rem; font-size:0.8125rem; color:var(--text-primary); font-weight:600; display:flex; align-items:center; justify-content:space-between;">
+                <span>Seleção — cliente escolhe suas favoritas</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">O modo define toda a experiência — de como as fotos aparecem para o cliente até quais campos do formulário ficam disponíveis. Para ensaios individuais, use <strong style="color:var(--text-primary);">Seleção</strong>. Ao selecionar, todos os outros campos são desbloqueados automaticamente.</p>
+          </div>
+
+          <!-- 2. Cliente -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">CLIENTE</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; margin-bottom:0.5rem;">
+              <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Cliente <span style="color:var(--red);">*</span></div>
+              <div style="background:var(--bg-surface); border:1.5px solid var(--accent); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.8125rem; color:var(--text-primary); margin-bottom:0.3rem;">Ana Paula</div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+                <div style="padding:0.45rem 0.75rem; background:color-mix(in srgb, var(--accent) 10%, transparent); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:0.375rem;">
+                  <strong style="font-size:0.8125rem; color:var(--text-primary);">Ana Paula Ribeiro</strong>
+                  <span style="font-size:0.75rem; color:var(--text-muted);">· ana@gmail.com</span>
+                </div>
+                <div style="padding:0.45rem 0.75rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:0.375rem;">
+                  <span style="font-size:0.8125rem; color:var(--text-primary);">Ana Paula Souza</span>
+                  <span style="font-size:0.75rem; color:var(--text-muted);">· souza.ap@outlook.com</span>
+                </div>
+                <div style="padding:0.45rem 0.75rem; color:var(--accent); font-size:0.8125rem; font-weight:600;">
+                  + Cadastrar "Ana Paula" como novo cliente
+                </div>
+              </div>
+            </div>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Digite o nome do cliente para buscar nos cadastros. Se ele ainda não existe, o dropdown exibe a opção <strong style="color:var(--text-primary);">Cadastrar como novo cliente</strong> — ao clicar, abre o formulário de cadastro sem sair da criação da sessão. Após concluir, você retorna automaticamente com o cliente já vinculado e a criação continua de onde parou.</p>
+          </div>
+
+          <!-- 3. Nome da Sessão -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">NOME DA SESSÃO</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; margin-bottom:0.5rem;">
+              <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Nome da Sessão <span style="color:var(--red);">*</span></div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.8125rem; color:var(--text-primary);">Ana Paula Ribeiro</div>
+              <div style="font-size:0.6875rem; color:var(--green); margin-top:0.3rem;">✓ preenchido automaticamente com o nome do cliente</div>
+            </div>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Ao vincular um cliente, o campo é preenchido automaticamente com o nome dele. Você pode renomear livremente — por exemplo: <em style="color:var(--text-primary);">"Ensaio Gestante — Ana Paula"</em> ou <em style="color:var(--text-primary);">"Casamento Ribeiro &amp; Marques"</em>. Este nome aparece na lista de sessões e no cabeçalho da galeria do cliente.</p>
+          </div>
+
+          <!-- 4. Datas -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">DATAS</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; margin-bottom:0.5rem;">
+              <div style="font-size:0.6875rem; font-weight:700; color:var(--text-muted); margin-bottom:0.5rem;">📅 Datas</div>
+              <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                <div>
+                  <div style="font-size:0.6875rem; color:var(--text-secondary); margin-bottom:0.2rem; font-weight:600;">Criado em</div>
+                  <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.4rem 0.625rem; font-size:0.8125rem; color:var(--text-primary);">19/05/2026</div>
+                </div>
+                <div>
+                  <div style="font-size:0.6875rem; color:var(--text-secondary); margin-bottom:0.2rem; font-weight:600;">Data do Evento</div>
+                  <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.4rem 0.625rem; font-size:0.8125rem; color:var(--text-primary);">15/05/2026</div>
+                </div>
+                <div>
+                  <div style="font-size:0.6875rem; color:var(--text-secondary); margin-bottom:0.2rem; font-weight:600;">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></div>
+                  <div style="background:var(--bg-surface); border:1.5px solid var(--accent); border-radius:6px; padding:0.4rem 0.625rem; font-size:0.8125rem; color:var(--text-primary);">26/05/2026 23:59</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem;">
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--text-secondary); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Criado em</strong> — Apenas para registro. Não interfere em nenhuma regra de validação — você pode criar uma sessão hoje para um ensaio que aconteceu há 2 semanas ou para um agendamento futuro sem problema.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--text-secondary); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Data do Evento</strong> — Quando o ensaio ou evento aconteceu. Opcional, mas recomendado para relatórios e para a reativação anual automática de clientes.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:7px; border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Prazo de Seleção</strong> — A única regra de validação: o prazo deve ser <strong style="color:var(--text-primary);">posterior à data do evento</strong>. Quando expira, o status muda para "Expirado" e a automação de escassez para de enviar e-mails ao cliente.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Foto de Capa -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">FOTO DE CAPA</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; align-items:center; gap:0.875rem; margin-bottom:0.5rem;">
+              <div style="width:80px; height:60px; background:var(--bg-base); border:1px dashed var(--border); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style="font-size:0.5625rem; color:var(--text-muted);">Sem capa</span>
+              </div>
+              <div style="background:var(--accent); color:white; border-radius:6px; padding:0.375rem 0.875rem; font-size:0.8125rem; font-weight:600;">Upload</div>
+            </div>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Aceita <strong style="color:var(--text-primary);">JPG ou PNG</strong>, tamanho máximo de <strong style="color:var(--text-primary);">10 MB</strong>. A capa aparece como thumbnail na lista de sessões e no cabeçalho da galeria do cliente. Opcional — sem capa, o sistema exibe um ícone padrão.</p>
+          </div>
+
+          <!-- 6. Resolução -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">RESOLUÇÃO DAS FOTOS DE SELEÇÃO</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; margin-bottom:0.5rem;">
+              <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Resolução das fotos de seleção</div>
+              <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                ${[
+                  { val:'960px',  desc:'menor armazenamento — ideal para quem tem muitos eventos', sel:false },
+                  { val:'1200px', desc:'padrão — equilíbrio entre qualidade e armazenamento',      sel:true  },
+                  { val:'1400px', desc:'alta qualidade',                                            sel:false },
+                  { val:'1600px', desc:'máxima qualidade — mais armazenamento',                     sel:false },
+                ].map(o => `
+                  <div style="background:${o.sel ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--bg-surface)'}; border:${o.sel ? '1.5px solid var(--accent)' : '1px solid var(--border)'}; border-radius:6px; padding:0.35rem 0.625rem; font-size:0.8rem; color:${o.sel ? 'var(--text-primary)' : 'var(--text-secondary)'}; font-weight:${o.sel ? '600' : '400'};">
+                    <strong>${o.val}</strong> — ${o.desc}
+                  </div>
+                `).join('')}
+              </div>
+              <div style="font-size:0.6875rem; color:var(--red); margin-top:0.4rem; font-weight:600;">⚠ Não pode ser alterado após a criação da sessão.</div>
+            </div>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Define em qual resolução as fotos aparecem <strong style="color:var(--text-primary);">na galeria de seleção do cliente</strong> (com marca d'água). Quanto maior a resolução, mais detalhes o cliente vê ao escolher — mas mais armazenamento é consumido na sua conta. As fotos editadas que você entrega são sempre os arquivos originais em alta resolução, independentemente desta configuração. <strong style="color:var(--red);">Não é possível alterar após criar a sessão.</strong></p>
+          </div>
+
+          <!-- 7. Pacote + Extra -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">FOTOS DO PACOTE E PREÇO DE EXTRAS</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; gap:0.75rem; margin-bottom:0.5rem;">
+              <div style="flex:1;">
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Fotos do pacote</div>
+                <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.875rem; color:var(--text-primary); font-weight:700; text-align:center;">30</div>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Preço foto extra (R$)</div>
+                <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.875rem; color:var(--text-primary); font-weight:700; text-align:center;">25,00</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem;">
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Fotos do pacote</strong> — Quantidade máxima que o cliente pode escolher sem custo adicional. O sistema conta em tempo real e bloqueia quando o limite é atingido.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Preço foto extra</strong> — Valor por foto além do pacote. Ex: cliente quer 35 fotos com pacote de 30 e preço R$ 25 → sistema calcula R$ 125 de extras. Só funciona com "Habilitar venda de extras" ativado.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 8. Checkboxes -->
+          <div style="margin-bottom:1.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">VENDA DE EXTRAS E REABERTURA</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.5rem;">
+              ${[
+                { checked:true, label:'Habilitar venda de fotos extras' },
+                { checked:true, label:'Permitir pedido de reabertura'   },
+              ].map(c => `
+                <div style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0.25rem;">
+                  <div style="width:16px; height:16px; border-radius:4px; border:2px solid ${c.checked ? 'var(--accent)' : 'var(--border)'}; background:${c.checked ? 'var(--accent)' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    ${c.checked ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                  </div>
+                  <span style="font-size:0.8125rem; color:var(--text-primary);">${c.label}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem;">
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Habilitar venda de fotos extras</strong> — Permite que o cliente solicite fotos além do limite do pacote. O valor total é calculado e exibido na tela de confirmação da seleção. Desative se seu contrato não prevê esse recurso.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Permitir pedido de reabertura</strong> — Após enviar a seleção, o cliente não pode alterar. Com essa opção ativada, ele pode solicitar reabertura e você decide se aceita. Evita arrependimentos sem perder flexibilidade.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 9. CRM e Vendas -->
+          <div style="margin-bottom:0.5rem;">
+            <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">CRM E VENDAS</p>
+            <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; flex-direction:column; gap:0.625rem; margin-bottom:0.5rem;">
+              <div>
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Tipo de Evento</div>
+                <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.8125rem; color:var(--text-primary); display:flex; justify-content:space-between; align-items:center;">
+                  <span>Ensaio</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem;">Categoria do evento. Usada para reativação anual e relatórios.</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0.25rem;">
+                <div style="width:16px; height:16px; border-radius:4px; border:2px solid var(--accent); background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span style="font-size:0.8125rem; color:var(--text-primary);">🤖 Automação de vendas (escassez)</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem;">
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Tipo de Evento</strong> — Classifica o ensaio (Casamento, Ensaio, Newborn, Formatura, etc.). Usado em dois momentos: (1) reativação anual — um ano depois, o sistema envia um e-mail comemorativo ao cliente; (2) relatórios de marketing com breakdown por categoria.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Automação de vendas</strong> — O robô monitora o prazo e envia e-mails de urgência automaticamente: 15 dias (aviso), 7 dias, 3 dias (com cupom para extras) e 1 dia antes de expirar. Requer que a automação esteja habilitada nas configurações da conta.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
         <!-- ── MODO SELEÇÃO ─────────────────────────────────────────────── -->
         <div style="border:1px solid color-mix(in srgb, var(--green) 20%, transparent); border-radius:12px; overflow:hidden;">
           <div style="background:color-mix(in srgb, var(--green) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--green) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
