@@ -210,6 +210,15 @@
 - Idempotência via `session.salesAutomation.sentTriggers`
 - Roda a cada 6h no worker 0
 
+### CRM — Reativação de Clientes (src/utils/anniversaryAutomator.js)
+- Data de próximo contato vive em `Client.nextContactDate` (não na Session)
+- `run(organizationId, options)`: disparo manual ignora flag `salesAutomator.enabled`; cron respeita
+- Envia `sendManualReactivationEmail` com até 3 fotos da última sessão entregue (capa + 2 fotos)
+- Após envio: limpa `nextContactDate`, registra em `Client.contactHistory`
+- Frontend: badge `📅 DD/MM/AAAA` na lista de clientes; date picker no modal de edição
+- Botão "📧 Disparar Reativações" pergunta se inclui fotos (toggle por disparo, não por padrão)
+- Datas salvas como `T12:00:00Z` (UTC noon) para evitar shift de fuso horário BRT (UTC-3)
+
 ---
 
 ## ESTADO ATUAL DO PROJETO (V1 — pré-lançamento)
@@ -220,7 +229,7 @@
 - Site público: 5 temas, builder visual, domínio customizado
 - Email: SMTP Hostinger funcionando, fix do bug de credenciais do PM2
 - Segurança: honey pot, rate limiting, logs anti-bot
-- CRM: automação de vendas, gatilhos de escassez, reativação anual
+- CRM: automação de vendas (escassez por prazo), reativação de clientes por `nextContactDate` com e-mail + fotos do último evento
 - Limpeza estrutural: removidos 7 arquivos de código morto
 - **Auditoria Dia 2** — todos os 126 endpoints auditados. Fix de bug deployado (commit `93631af`)
 - **Dashboard auditado e refatorado** — fixes de qualidade + sessões recentes clicáveis
@@ -229,6 +238,8 @@
 - **Manual Sessões — formulário de criação** — Seção "Criando uma Nova Sessão — Modo Seleção" documentada com 9 blocos e mini-previews (modo, cliente, nome, datas, capa, resolução, pacote, extras/reabertura, CRM). Fix: validação de data de criação removida de `modal-form.js` — apenas prazo ≥ evento é obrigatório. Commit `0a72be8`
 - **Dimensões reais pós-resize** — Após upload, cada foto exibe badge `1200×800px` no grid admin (lido do Sharp metadata). Modal de fotos exibe badge de resolução configurada com tooltip explicativo no cabeçalho. Schema `Session.photos` atualizado com `width`/`height`. Commits `ed49553`, `814b6f9`
 - **Filtro de tipo de arquivo** — Input de capa (modal de edição) corrigido para `accept=".jpg,.jpeg,.png"`. Manual atualizado (remoção de "10 MB", adição de nota sobre badge de dimensões).
+- **CRM — Reativação por cliente** — `nextContactDate` migrado para o model `Client`. `anniversaryAutomator` reescrito para consultar clientes (não sessões). Fix de timezone: datas salvas como `T12:00:00Z`. E-mail suporta grid de até 3 fotos do último evento (toggle por disparo). Commits `fe644e2`, `d4e0ee1`.
+- **Manual Clientes** — Seção de Clientes no Manual do Usuário documentada: cadastro, reativação automática (Próximo Contato), badge 📅, disparo manual com toggle de fotos. Commit `b27d9e5`.
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)

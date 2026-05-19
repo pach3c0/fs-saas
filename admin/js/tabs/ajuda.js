@@ -894,7 +894,75 @@ const MANUAL_MODULES = [
       </div>
     `
   },
-  { id: 'clientes',  label: 'Clientes',  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', content: null },
+  { id: 'clientes',  label: 'Clientes',  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', content: `
+    <div style="display:flex; flex-direction:column; gap:1.25rem; padding-top:1rem;">
+
+      <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">
+        A tab Clientes é o CRM da sua base — registra o histórico de cada cliente, o valor gerado e permite agendar e-mails de reativação automáticos para manter o relacionamento ativo.
+      </p>
+
+      <!-- Cadastro de clientes -->
+      <div style="margin-bottom:0.5rem;">
+        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">CADASTRO</p>
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Nome, e-mail, telefone e CPF</strong> são obrigatórios. Os demais campos (tags, data de nascimento, tipo de evento) são opcionais e servem para segmentação futura.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);">Ao vincular um cliente a uma sessão (campo Cliente no modal de criação), o histórico de sessões aparece automaticamente no perfil do cliente — sem nenhuma ação extra.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Próximo Contato / Reativação -->
+      <div style="margin-bottom:0.5rem;">
+        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">REATIVAÇÃO AUTOMÁTICA</p>
+        <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; flex-direction:column; gap:0.625rem; margin-bottom:0.5rem;">
+          <div>
+            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Próximo Contato</div>
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.8125rem; color:var(--text-primary);">19/09/2026</div>
+            <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem;">O sistema envia um e-mail automático nesta data convidando para um novo trabalho.</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Como agendar</strong> — Abra o modal de edição do cliente (botão ✏️), role até a seção <em>Próximo Contato</em> e escolha a data. Salve. O sistema envia o e-mail automaticamente na data escolhida e limpa o campo após o envio.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Badge 📅 na lista</strong> — Clientes com data agendada exibem um badge com a data. Clientes já contactados exibem "✓ Último: DD/MM" indicando o envio mais recente.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Fotos no e-mail</strong> — O sistema inclui automaticamente a capa e até 2 fotos da última sessão entregue do cliente para tornar o e-mail mais pessoal e difícil de ignorar.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disparo manual -->
+      <div style="margin-bottom:0.5rem;">
+        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">DISPARO MANUAL</p>
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);">O botão <strong style="color:var(--text-primary);">📧 Disparar Reativações</strong> (topo da listagem) processa imediatamente todos os clientes cuja data de próximo contato já chegou. Útil para testar ou adiantar um envio planejado.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);">Ao clicar, o sistema pergunta se você quer incluir fotos do último evento nos e-mails. Escolha <em>Sim, incluir fotos</em> para um e-mail mais visual, ou <em>Não, só texto</em> para um envio mais simples.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);">O disparo automático (sem clicar nada) acontece uma vez por dia. O manual é apenas um atalho — não envia duplicado se o automático já rodou.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  ` },
   { id: 'mensagens', label: 'Mensagens', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', content: null },
   { id: 'meu-site',  label: 'Meu Site',  icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', content: null },
 ];
