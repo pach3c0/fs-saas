@@ -227,6 +227,8 @@
 - **Manual do Usuário** — seção na tab Ajuda com sub-nav, accordion por módulo e mini-previews visuais. Dashboard e Sessões documentados. Ver `skills/00_manual-usuario.md`
 - **Auditoria Sessões** — 7 fixes de tokens CSS aplicados (hexcodes, RGBA, prefixo `--ad-*`, tokens inexistentes). Ver `skills/02_sessoes.md`
 - **Manual Sessões — formulário de criação** — Seção "Criando uma Nova Sessão — Modo Seleção" documentada com 9 blocos e mini-previews (modo, cliente, nome, datas, capa, resolução, pacote, extras/reabertura, CRM). Fix: validação de data de criação removida de `modal-form.js` — apenas prazo ≥ evento é obrigatório. Commit `0a72be8`
+- **Dimensões reais pós-resize** — Após upload, cada foto exibe badge `1200×800px` no grid admin (lido do Sharp metadata). Modal de fotos exibe badge de resolução configurada com tooltip explicativo no cabeçalho. Schema `Session.photos` atualizado com `width`/`height`. Commits `ed49553`, `814b6f9`
+- **Filtro de tipo de arquivo** — Input de capa (modal de edição) corrigido para `accept=".jpg,.jpeg,.png"`. Manual atualizado (remoção de "10 MB", adição de nota sobre badge de dimensões).
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)

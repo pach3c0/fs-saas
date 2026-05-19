@@ -54,12 +54,15 @@ Estado compartilhado entre todos os arquivos do módulo:
 - `setupModalForm(container, state, renderSessoes)` — lógica do modal Nova Sessão e Editar Sessão
 - Habilita/desabilita campos dinamicamente conforme o modo escolhido
 - **Validação de datas:** única regra — prazo de seleção deve ser posterior à data do evento. "Criado em" é só registro, sem validação (fotógrafo pode criar sessão retroativa ou futura sem bloqueio). Fix aplicado em 2026-05-19 (commit `0a72be8`).
+- **Input de capa:** `accept=".jpg,.jpeg,.png"` em ambos os modais (criação e edição). Validação MIME também no servidor via `multerConfig.js` (whitelist: `image/jpeg`, `image/png`).
 - Busca de cliente com autocomplete (`GET /api/clients/search?q=`) + criação de novo cliente inline via `abrirModalClienteNovo()`
 - Criação: `POST /api/sessions` · Edição: `PUT /api/sessions/:id`
 
 ### modal-detail.js
 - `setupModalDetail(container, state)` — define `window.viewSessionPhotos(sessionId)`
+- **Cabeçalho do modal:** exibe badge `1200px` (resolução configurada na sessão) com tooltip ao hover — mostra a descrição da escolha (ex: "padrão — equilíbrio entre qualidade e armazenamento") e aviso de que não pode ser alterada. Usa `session.photoResolution`.
 - Renderiza grid de fotos com: checkbox bulk-delete, badge "Selecionada", badge "CAPA", badge 💬 (comentários), overlay hover com ações (ocultar, comentar, definir capa)
+- **Badge de dimensões reais** no canto inferior direito de cada thumbnail (ex: `1200×800`) — presente apenas em fotos subidas após 2026-05-19. Lido de `photo.width` / `photo.height`.
 - Aba "Entrega Final" mostra fotos com `urlOriginal` e botão "Exportar Lightroom"
 - `window.switchPhotoTab(tab)` — alterna entre aba Geral e Entrega Final
 - Deletes em massa: `DELETE /api/sessions/:id/photos/bulk`
@@ -177,7 +180,21 @@ Ações do usuário:
 
 ---
 
-## 6. Padrões e Cuidados
+## 6. Backend — Notas Relevantes
+
+### Upload de fotos (`src/routes/sessions.js`)
+- Após o Sharp processar o thumb (`resize → jpeg quality 85`), o código lê `sharp(thumbPath).metadata()` para obter `{width, height}` e salva no documento MongoDB junto com a foto.
+- Campos `width` e `height` adicionados ao subdocumento de foto em `src/models/Session.js`.
+- Fotos subidas antes de 2026-05-19 não têm esses campos — o badge no admin é omitido automaticamente (`photo.width && photo.height ? ...`).
+
+### Resolução (`photoResolution`)
+- Valor padrão: `1200` (se não configurado na sessão).
+- Valores válidos: `960`, `1200`, `1400`, `1600`.
+- **Não pode ser alterado após criação** — validado na lógica de edição.
+
+---
+
+## 7. Padrões e Cuidados
 
 - **Cores de modo (cartão):** sempre via `color-mix(in srgb, var(--TOKEN) N%, transparent)` — não usar RGBA hardcoded
 - **Cores de status (badges):** usar `var(--green)`, `var(--yellow)`, `var(--accent)`, `var(--red)`, `var(--text-muted)` — mapeados em `STATUS_LABELS` em list.js e modal-participantes.js

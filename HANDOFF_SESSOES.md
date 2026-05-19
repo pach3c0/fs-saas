@@ -26,6 +26,13 @@ O próximo passo é **Clientes** (`admin/js/tabs/clientes.js`) e **Mensagens** (
 - `admin/js/tabs/ajuda.js` — seção "CRIANDO UMA NOVA SESSÃO — MODO SELEÇÃO" inserida no manual com 9 blocos documentados e mini-previews visuais
 - `admin/js/tabs/sessoes/modal-form.js` — **fix de validação de datas**: removida a regra que bloqueava `data do evento < data de criação`. Única regra mantida: prazo de seleção ≥ data do evento
 
+### Melhorias de UX e qualidade (2026-05-19 — commits `ed49553`, `814b6f9`)
+- `admin/js/tabs/ajuda.js` — manual atualizado: removido "10 MB" da seção de capa; adicionada nota sobre badge de dimensões e tooltip de resolução
+- `admin/js/tabs/sessoes/index.js` — input de capa do modal de **edição** corrigido para `accept=".jpg,.jpeg,.png"` (criação já estava correto)
+- `admin/js/tabs/sessoes/modal-detail.js` — badge `1200×800px` no canto inferior de cada thumbnail (prova visual do resize); badge `1200px` com tooltip no cabeçalho do modal (explica a resolução configurada)
+- `src/routes/sessions.js` — após Sharp processar o thumb, lê `metadata()` e inclui `width`/`height` no objeto salvo
+- `src/models/Session.js` — adicionados campos `width: Number` e `height: Number` no subdocumento de foto
+
 ### Documentação de referência criada
 - `skills/02_sessoes.md` — skill completo do módulo
 - `skills/00_manual-usuario.md` — sessoes marcado como `✅ Documentado`

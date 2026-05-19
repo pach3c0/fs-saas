@@ -647,7 +647,7 @@ const MANUAL_MODULES = [
               </div>
               <div style="font-size:0.6875rem; color:var(--red); margin-top:0.4rem; font-weight:600;">⚠ Não pode ser alterado após a criação da sessão.</div>
             </div>
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Define em qual resolução as fotos aparecem <strong style="color:var(--text-primary);">na galeria de seleção do cliente</strong> (com marca d'água). Quanto maior a resolução, mais detalhes o cliente vê ao escolher — mas mais armazenamento é consumido na sua conta. As fotos editadas que você entrega são sempre os arquivos originais em alta resolução, independentemente desta configuração. <strong style="color:var(--red);">Não é possível alterar após criar a sessão.</strong></p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Define em qual resolução as fotos aparecem <strong style="color:var(--text-primary);">na galeria de seleção do cliente</strong> (com marca d'água). Quanto maior a resolução, mais detalhes o cliente vê ao escolher — mas mais armazenamento é consumido na sua conta. As fotos editadas que você entrega são sempre os arquivos originais em alta resolução, independentemente desta configuração. <strong style="color:var(--red);">Não é possível alterar após criar a sessão.</strong> Após subir as fotos, o painel exibe as dimensões reais de cada imagem processada (ex: <strong style="color:var(--text-primary);">1200×800px</strong>) e o cabeçalho do modal de fotos mostra a resolução configurada — passe o mouse sobre o badge para ver a explicação da escolha.</p>
           </div>
 
           <!-- 7. Pacote + Extra -->
