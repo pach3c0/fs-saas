@@ -3,7 +3,7 @@
  * Gerencia a base de clientes do fotografo
  */
 
-import { apiGet, apiDelete } from '../utils/api.js';
+import { apiGet, apiDelete, apiPost } from '../utils/api.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { setupClientModal, abrirModalClienteNovo, abrirModalClienteEditar } from '../utils/client-modal.js';
 
@@ -45,9 +45,14 @@ export async function renderClientes(container) {
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
         <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Clientes</h2>
-        <button id="btnNovoCliente" class="btn btn-success">
-          + Adicionar Cliente
-        </button>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button id="btnDispararReativacao" class="btn btn-sm" style="background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); color:var(--accent);">
+            📧 Disparar Reativações
+          </button>
+          <button id="btnNovoCliente" class="btn btn-success">
+            + Adicionar Cliente
+          </button>
+        </div>
       </div>
 
       <!-- Filtros avancados CRM -->
@@ -317,6 +322,27 @@ function setupEventos(container) {
   container.querySelector('#filtroTipoEvento').onchange = (e) => {
     filterEventType = e.target.value;
     renderLista(container);
+  };
+
+  // Disparo manual de reativações agendadas
+  container.querySelector('#btnDispararReativacao').onclick = async () => {
+    const btn = container.querySelector('#btnDispararReativacao');
+    btn.disabled = true;
+    btn.textContent = '⏳ Disparando...';
+    try {
+      const result = await apiPost('/api/sales/trigger-reactivation', {});
+      if (result.sent === 0) {
+        window.showToast?.('Nenhum cliente com reativação agendada para hoje.', 'info');
+      } else {
+        window.showToast?.(`${result.sent} e-mail${result.sent !== 1 ? 's' : ''} de reativação enviado${result.sent !== 1 ? 's' : ''}.`, 'success');
+        await carregarClientes(container);
+      }
+    } catch (error) {
+      window.showToast?.('Erro ao disparar reativações: ' + error.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📧 Disparar Reativações';
+    }
   };
 
   // Botao novo cliente

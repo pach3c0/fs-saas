@@ -235,9 +235,19 @@ function startDeadlineScheduler() {
   safeInterval(() => salesAutomator.run(), SIX_HOURS);
   console.log('[scheduler] Sales automator iniciado (a cada 6h)');
 
-  // CRM Fase 2 (Fatia E): reativacao anual de eventos recorrentes
-  safeInterval(() => anniversaryAutomator.run(), ONE_DAY);
-  console.log('[scheduler] Anniversary automator iniciado (a cada 24h)');
+  // CRM reativacao de clientes: roda todo dia às 8h horario de Brasilia (11h UTC)
+  function agendarProximaReativacao() {
+    const now = new Date();
+    const proximas8h = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 11, 0, 0, 0));
+    if (proximas8h <= now) proximas8h.setUTCDate(proximas8h.getUTCDate() + 1);
+    const delay = proximas8h - now;
+    setTimeout(async () => {
+      try { await anniversaryAutomator.run(); } catch (e) { console.error('[anniversaryAutomator]', e.message); }
+      agendarProximaReativacao();
+    }, delay);
+    console.log(`[scheduler] Anniversary automator agendado para ${proximas8h.toISOString()} (8h Brasília)`);
+  }
+  agendarProximaReativacao();
 }
 
 connectWithRetry();
