@@ -37,7 +37,7 @@ export function setupModalDetail(container, state) {
     if (session.redeliveryMode) {
       const banner = document.createElement('div');
       banner.id = 'redeliveryBanner';
-      banner.style.cssText = 'background:rgba(255,166,87,0.12); border:1px solid rgba(255,166,87,0.4); color:var(--orange); padding:0.625rem 1rem; border-radius:0.5rem; font-size:0.8125rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;';
+      banner.style.cssText = 'background:color-mix(in srgb, var(--orange) 12%, transparent); border:1px solid color-mix(in srgb, var(--orange) 40%, transparent); color:var(--orange); padding:0.625rem 1rem; border-radius:0.5rem; font-size:0.8125rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;';
       banner.innerHTML = `<span style="font-size:1rem;">⚠️</span> <span><strong>Modo re-entrega ativo</strong> — suba as fotos editadas faltantes e clique em "Confirmar entrega" na lista da sessão.</span>`;
       modal.querySelector('#photosModalTitle').insertAdjacentElement('afterend', banner);
     }
@@ -243,7 +243,7 @@ export function setupModalDetail(container, state) {
       const deliveredCount = (session.photos?.filter(p => p.urlOriginal) || []).length;
       if (deliveredCount === 0) {
         selectedGrid.innerHTML = `
-          <div style="background:rgba(255,166,87,0.05); border:1px solid rgba(255,166,87,0.15); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
+          <div style="background:color-mix(in srgb, var(--orange) 5%, transparent); border:1px solid color-mix(in srgb, var(--orange) 15%, transparent); color:var(--orange); padding:2.5rem; border-radius:0.75rem; text-align:center; grid-column:1/-1; font-size:0.875rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:2rem;">
             <span style="font-size:1.5rem;">⚠️ Aguardando Finalização</span>
             <p style="color:var(--text-secondary); max-width:400px; margin:0 auto;">Aguardando o cliente finalizar a seleção das imagens (${selectedCount}/${limit}) para poder habilitar o envio das fotos editadas.</p>
           </div>

@@ -26,7 +26,7 @@ export function setupComments(container, state) {
       const isAdmin = c.author === 'admin';
       const date = new Date(c.createdAt).toLocaleString('pt-BR');
       return `
-        <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? 'rgba(47,129,247,0.2)' : 'var(--bg-elevated)'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
+        <div style="align-self:${isAdmin ? 'flex-end' : 'flex-start'}; max-width:80%; background:${isAdmin ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'var(--bg-elevated)'}; padding:0.5rem 0.75rem; border-radius:0.5rem;">
           <div style="font-size:0.75rem; color:${isAdmin ? 'var(--accent)' : 'var(--text-secondary)'}; margin-bottom:0.25rem; font-weight:bold;">
             ${isAdmin ? 'Você' : 'Cliente'} <span style="font-weight:normal; opacity:0.7;">${date}</span>
           </div>

@@ -101,14 +101,14 @@ function renderList(container, items) {
     let cardBg = 'var(--bg-surface)';
     let cardBorder = 'var(--border)';
     if (mode === 'selection') {
-      cardBg = 'rgba(63, 185, 80, 0.04)';
-      cardBorder = 'rgba(63, 185, 80, 0.15)';
+      cardBg = 'color-mix(in srgb, var(--green) 4%, transparent)';
+      cardBorder = 'color-mix(in srgb, var(--green) 15%, transparent)';
     } else if (mode === 'multi_selection') {
-      cardBg = 'rgba(255, 166, 87, 0.04)';
-      cardBorder = 'rgba(255, 166, 87, 0.15)';
+      cardBg = 'color-mix(in srgb, var(--orange) 4%, transparent)';
+      cardBorder = 'color-mix(in srgb, var(--orange) 15%, transparent)';
     } else if (mode === 'gallery') {
-      cardBg = 'rgba(188, 140, 255, 0.04)';
-      cardBorder = 'rgba(188, 140, 255, 0.15)';
+      cardBg = 'color-mix(in srgb, var(--purple) 4%, transparent)';
+      cardBorder = 'color-mix(in srgb, var(--purple) 15%, transparent)';
     }
 
     return `

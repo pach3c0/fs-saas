@@ -129,20 +129,20 @@ export function setupActions(container, state, renderSessoes) {
     // Criação de Modal Customizado seguindo o Design System e usando inline styles
     const modalHtml = `
         <div id="rejectExtraModal" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75);">
-            <div style="background:#1f2937; padding:1.5rem; border-radius:0.5rem; width:100%; max-width:400px; border:1px solid #374151; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);">
-                <h3 style="color:#f3f4f6; font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
-                <p style="color:#d1d5db; font-size:0.875rem; margin-bottom:0.5rem;">Informe ao cliente o motivo da recusa (obrigatório):</p>
-                <textarea id="rejectReasonInput" rows="3" style="width:100%; padding:0.5rem; background:#111827; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
-                
-                <div style="background:rgba(255,166,87,0.1); border:1px solid rgba(255,166,87,0.2); padding:0.75rem; border-radius:0.375rem; margin-bottom:1rem;">
+            <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.5rem; width:100%; max-width:400px; border:1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);">
+                <h3 style="color:var(--text-primary); font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
+                <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.5rem;">Informe ao cliente o motivo da recusa (obrigatório):</p>
+                <textarea id="rejectReasonInput" rows="3" style="width:100%; padding:0.5rem; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); border-radius:0.375rem; margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
+
+                <div style="background:color-mix(in srgb, var(--orange) 10%, transparent); border:1px solid color-mix(in srgb, var(--orange) 20%, transparent); padding:0.75rem; border-radius:0.375rem; margin-bottom:1rem;">
                     <p style="color:var(--orange); font-size:0.75rem; margin:0; line-height:1.4;">
                         💡 <strong>Dica:</strong> Se não deseja mais receber pedidos de extras nesta sessão, vá em <strong>Config (Editar Sessão)</strong> e desmarque a opção <em>"Venda de fotos extras habilitada"</em>.
                     </p>
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                    <button onclick="document.getElementById('rejectExtraModal').remove()" style="padding:0.5rem 1rem; background:transparent; border:1px solid #4b5563; color:#d1d5db; border-radius:0.375rem; cursor:pointer;">Cancelar</button>
-                    <button id="confirmRejectBtn" style="padding:0.5rem 1rem; background:#ef4444; border:none; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600;">Recusar Pedido</button>
+                    <button onclick="document.getElementById('rejectExtraModal').remove()" style="padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:0.375rem; cursor:pointer;">Cancelar</button>
+                    <button id="confirmRejectBtn" style="padding:0.5rem 1rem; background:var(--red); border:none; color:white; border-radius:0.375rem; cursor:pointer; font-weight:600;">Recusar Pedido</button>
                 </div>
             </div>
         </div>
@@ -244,7 +244,7 @@ export function setupActions(container, state, renderSessoes) {
       <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
                   width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-weight:600;font-size:1rem;color:var(--text);">Histórico da sessão</span>
+          <span style="font-weight:600;font-size:1rem;color:var(--text-primary);">Histórico da sessão</span>
           <button id="hist-close" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--text-muted);line-height:1;">&times;</button>
         </div>
         <div id="hist-body" style="overflow-y:auto;padding:20px;">
@@ -331,9 +331,9 @@ export function setupActions(container, state, renderSessoes) {
             ${i < events.length - 1 ? `<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin:4px 0;"></div>` : ''}
           </div>
           <div style="padding-bottom:${i < events.length - 1 ? '4px' : '0'};min-width:0;">
-            <div style="font-weight:500;font-size:0.875rem;color:var(--text);">${ev.label}</div>
+            <div style="font-weight:500;font-size:0.875rem;color:var(--text-primary);">${ev.label}</div>
             ${ev.date ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:1px;">${fmt(ev.date)}</div>` : ''}
-            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">${ev.detail}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${ev.detail}</div>
           </div>
         </div>
       `).join('');

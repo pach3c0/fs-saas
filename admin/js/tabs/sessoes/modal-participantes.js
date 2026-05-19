@@ -27,10 +27,10 @@ export function setupParticipantes(container, state, renderSessoes) {
     }
     clients.forEach(c => {
       const item = document.createElement('div');
-      item.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--ad-text); font-size:0.875rem; border-top:1px solid var(--ad-border); background:var(--ad-bg-surface);';
-      item.innerHTML = `<strong>${escapeHtml(c.name)}</strong>${c.email ? `<span style="color:var(--ad-text-muted); font-size:0.75rem;"> · ${escapeHtml(c.email)}</span>` : ''}`;
-      item.onmouseenter = () => item.style.background = 'var(--ad-bg-hover)';
-      item.onmouseleave = () => item.style.background = 'var(--ad-bg-surface)';
+      item.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--text-primary); font-size:0.875rem; border-top:1px solid var(--border); background:var(--bg-surface);';
+      item.innerHTML = `<strong>${escapeHtml(c.name)}</strong>${c.email ? `<span style="color:var(--text-muted); font-size:0.75rem;"> · ${escapeHtml(c.email)}</span>` : ''}`;
+      item.onmouseenter = () => item.style.background = 'var(--bg-hover)';
+      item.onmouseleave = () => item.style.background = 'var(--bg-surface)';
       item.onclick = () => {
         partNameInput.value = c.name;
         partEmailInput.value = c.email || '';
@@ -63,7 +63,7 @@ export function setupParticipantes(container, state, renderSessoes) {
 
   function renderParticipantsList(participants) {
     if (!participants || participants.length === 0) {
-      participantsList.innerHTML = '<p style="color:var(--ad-text-muted); text-align:center;">Nenhum participante adicionado.</p>';
+      participantsList.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Nenhum participante adicionado.</p>';
       return;
     }
     participantsList.innerHTML = participants.map(p => {
@@ -71,11 +71,11 @@ export function setupParticipantes(container, state, renderSessoes) {
       const count = (p.selectedPhotos || []).length;
       const phoneInfo = p.phone ? ` · ${escapeHtml(p.phone)}` : '';
       return `
-        <div style="background:var(--ad-bg-surface); border:1px solid var(--ad-border); border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+        <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
           <div style="min-width:0; flex:1;">
-            <div style="color:var(--ad-text); font-weight:600; margin-bottom:0.25rem;">${escapeHtml(p.name)}</div>
-            <div style="color:var(--ad-text-muted); font-size:0.75rem; display:flex; flex-wrap:wrap; gap:0.375rem; align-items:center;">
-              <span>Código: <span style="font-family:monospace; color:var(--ad-accent); cursor:pointer;" onclick="copySessionCode('${p.accessCode}')" title="Copiar">${p.accessCode}</span></span>
+            <div style="color:var(--text-primary); font-weight:600; margin-bottom:0.25rem;">${escapeHtml(p.name)}</div>
+            <div style="color:var(--text-muted); font-size:0.75rem; display:flex; flex-wrap:wrap; gap:0.375rem; align-items:center;">
+              <span>Código: <span style="font-family:monospace; color:var(--accent); cursor:pointer;" onclick="copySessionCode('${p.accessCode}')" title="Copiar">${p.accessCode}</span></span>
               <span>·</span>
               <span>${count}/${p.packageLimit} fotos</span>
               ${phoneInfo ? `<span>·</span><span>${phoneInfo}</span>` : ''}

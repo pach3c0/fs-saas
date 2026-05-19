@@ -103,7 +103,7 @@
   **CONTA**
   - `perfil.js` — identidade visual, marca d'água
   - `plano.js` — assinatura, barras de uso, billing
-  - `ajuda.js` — tutoriais em vídeo (YouTube)
+  - `ajuda.js` — tutoriais em vídeo (YouTube) + **Manual do Usuário** (sub-navegação interna)
 
   **TABS OCULTAS (V2 — código preservado, comentado no index.html):**
   - `albuns-prova.js` — proofing de álbuns. Aguarda redesign completo do fluxo.
@@ -221,21 +221,33 @@
 - Email: SMTP Hostinger funcionando, fix do bug de credenciais do PM2
 - Segurança: honey pot, rate limiting, logs anti-bot
 - CRM: automação de vendas, gatilhos de escassez, reativação anual
-- Limpeza estrutural: removidos 7 arquivos de código morto (gallery.js, perfil.js, Organization.js, test-email.js, scratch/, tokens 2.css, utils/notifications.js, utils/features.js)
+- Limpeza estrutural: removidos 7 arquivos de código morto
+- **Auditoria Dia 2** — todos os 126 endpoints auditados. Fix de bug deployado (commit `93631af`)
+- **Dashboard auditado e refatorado** — fixes de qualidade + sessões recentes clicáveis
+- **Manual do Usuário** — seção na tab Ajuda com sub-nav, accordion por módulo e mini-previews visuais. Dashboard e Sessões documentados. Ver `skills/00_manual-usuario.md`
+- **Auditoria Sessões** — 7 fixes de tokens CSS aplicados (hexcodes, RGBA, prefixo `--ad-*`, tokens inexistentes). Ver `skills/02_sessoes.md`
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)
-**Dia 2** — Auditoria backend: auth + sessões (endpoints, erros, emails)
-**Dia 3** — Auditoria frontend: dashboard, sessões, clientes, mensagens
+**Dia 2 ✅ — Auditoria backend** (concluído — ver achados abaixo)
+**Dia 3 🔄 — Auditoria frontend** (em andamento — Dashboard ✅, Sessões ✅, próximo: Clientes/Mensagens)
 **Dia 4** — Auditoria site builder: hero, sobre, portfólio, estúdio, FAQ
 **Dia 5** — Funcionalidades avançadas: CRM, marketing, integrações, plano
 **Dia 6** — Domínio, segurança, testes Playwright E2E
 **Dia 7** — Correções, polimento, deploy final
 
+### Achados do Dia 2 — Notas para manutenção futura
+- **Route names não óbvios:** `GET /api/organization/profile` (não `/api/organization`), `GET /api/billing/subscription` (não `/api/billing/plan`), login em `POST /api/login` (não `/api/auth/login`)
+- **resolveTenant em produção:** Lê tenant SOMENTE por subdomínio ou campo `customDomain`. O header `x-tenant` é ignorado pelo middleware. O parâmetro `_tenant` só funciona em localhost/preview. Rotas de cliente precisam de subdomínio válido em produção (ex: `audit-cz-2025.cliquezoom.com.br`)
+- **DELETE idempotente:** `DELETE /api/sessions/:id` retorna `{success:true}` mesmo se a sessão não existe — comportamento intencional
+- **Inconsistência de campo:** `POST /site/contact` usa campos PT-BR (`nome`, `mensagem`); `POST /site/depoimento` usa campos EN (`name`, `text`) — menor, mas deve ser uniformizado no futuro
+- **Limite de upload:** Express JSON capped em 5MB. Multer (multipart) permite até 10MB por arquivo — são middlewares diferentes
+
 ### Pendências antes do lançamento ⚠️
 - [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
 - [ ] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
-- [ ] Completar auditoria dos dias 2–7
+- [ ] **Inconsistência de campos:** Uniformizar `nome`/`mensagem` (contato) vs `name`/`text` (depoimento) — não crítico
+- [ ] Completar auditoria dos dias 3–7
 
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento
 - **Prova de Álbuns:** fluxo completo de proofing (páginas, layouts, revisões, aprovação)

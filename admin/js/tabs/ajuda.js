@@ -516,7 +516,187 @@ const MANUAL_MODULES = [
       </div>
     `
   },
-  { id: 'sessoes',   label: 'Sessões',   icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', content: null },
+  {
+    id: 'sessoes',
+    label: 'Sessões',
+    icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+    content: `
+      <div style="display:flex; flex-direction:column; gap:1.75rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0;">
+          O módulo Sessões é o coração do seu trabalho. Aqui você cria, gerencia e entrega cada trabalho fotográfico — do upload das fotos até a liberação para o cliente baixar.
+        </p>
+
+        <!-- Modos de Sessão -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Modos de Sessão</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Ao criar uma sessão, você escolhe o modo de entrega. Cada modo serve para um tipo diferente de trabalho:</p>
+          <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.875rem; pointer-events:none;">
+            ${[
+              { color:'var(--green)',  label:'Seleção',        desc:'O cliente visualiza todas as fotos e escolhe as favoritas dentro do pacote. Ideal para ensaios individuais e famílias.' },
+              { color:'var(--orange)', label:'Multi-Seleção',  desc:'Cada participante recebe seu próprio código e faz a seleção individualmente. Ideal para formaturas, shows e eventos.' },
+              { color:'var(--purple)', label:'Galeria',        desc:'O cliente visualiza e baixa as fotos diretamente, sem precisar selecionar. Ideal para entregas rápidas e eventos corporativos.' },
+            ].map(m => `
+              <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.75rem 1rem; background:var(--bg-surface); border:1px solid var(--border); border-left:3px solid ${m.color}; border-radius:8px;">
+                <div>
+                  <div style="font-size:0.8125rem; font-weight:700; color:var(--text-primary); margin-bottom:0.2rem;">${m.label}</div>
+                  <div style="font-size:0.75rem; color:var(--text-secondary);">${m.desc}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Lista de Sessões -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Lista de Sessões</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Cada sessão aparece como um cartão na lista. Use os filtros de busca, status e período para encontrar sessões rapidamente.</p>
+          <div style="border:1px solid color-mix(in srgb, var(--green) 15%, transparent); border-radius:10px; padding:0.875rem; background:color-mix(in srgb, var(--green) 4%, transparent); pointer-events:none; margin-bottom:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+              <div style="display:flex; gap:0.75rem;">
+                <div style="width:52px; height:52px; border-radius:6px; background:var(--bg-elevated); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
+                    <strong style="color:var(--text-primary); font-size:0.9375rem;">Casamento Silva &amp; Ana</strong>
+                    <span style="font-size:0.6875rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:20px; background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green);">Entregue</span>
+                  </div>
+                  <div style="font-size:0.75rem; color:var(--text-secondary);">15 Mai 2025 · 142 fotos · 30/30 selecionadas · Prazo: 22 Mai</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.375rem; flex-shrink:0;">
+                <div style="padding:0.3rem 0.6rem; background:var(--accent); color:white; border-radius:5px; font-size:0.6875rem; font-weight:600;">Fotos</div>
+                <div style="padding:0.3rem 0.6rem; background:var(--orange); color:white; border-radius:5px; font-size:0.6875rem; font-weight:600;">Config</div>
+              </div>
+            </div>
+            <div style="margin-top:0.625rem; background:var(--bg-base); border-radius:5px; padding:0.3rem 0.625rem; font-family:monospace; font-size:0.6875rem; color:var(--accent); border:1px solid var(--border); display:flex; justify-content:space-between;">
+              <span>Código: CZ-7X9K2</span>
+              <span style="color:var(--text-secondary);">Copiar</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status da Sessão -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Status da Sessão</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">O badge no cartão mostra em que fase a sessão está. Entenda cada status:</p>
+          <div style="display:flex; flex-direction:column; gap:0.35rem; pointer-events:none;">
+            ${[
+              { color:'var(--text-muted)', label:'Pendente',         desc:'Sessão criada, aguardando upload das fotos ou envio do código.' },
+              { color:'var(--yellow)',     label:'Em seleção',       desc:'O cliente acessou a galeria e está escolhendo as fotos.' },
+              { color:'var(--accent)',     label:'Seleção enviada',  desc:'O cliente finalizou a seleção. Hora de fazer upload das fotos editadas.' },
+              { color:'var(--green)',      label:'Entregue',         desc:'Sessão finalizada. O cliente pode baixar as fotos sem marca d\'água.' },
+              { color:'var(--red)',        label:'Expirado',         desc:'O prazo de seleção passou sem o cliente enviar. Ação necessária.' },
+            ].map(s => `
+              <div style="display:flex; align-items:center; gap:0.625rem; padding:0.45rem 0.75rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:7px; height:7px; border-radius:50%; background:${s.color}; flex-shrink:0;"></span>
+                <span style="font-size:0.8125rem; color:var(--text-primary); font-weight:600; min-width:130px;">${s.label}</span>
+                <span style="font-size:0.75rem; color:var(--text-secondary);">${s.desc}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Upload de Fotos -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Upload de Fotos</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Clique em <strong style="color:var(--text-primary);">Fotos</strong> no cartão da sessão para abrir a galeria e gerenciar os arquivos.</p>
+          <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; pointer-events:none; margin-bottom:0.75rem;">
+            <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:0.625rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">Fotos — Casamento Silva &amp; Ana</span>
+              <div style="display:flex; gap:0.5rem;">
+                <div style="padding:0.35rem 0.75rem; background:var(--accent); color:white; border-radius:6px; font-size:0.75rem; font-weight:600;">+ Upload</div>
+                <div style="padding:0.35rem 0.75rem; background:var(--purple); color:white; border-radius:6px; font-size:0.75rem; font-weight:600;">Subir Editadas</div>
+              </div>
+            </div>
+            <div style="padding:0.75rem 1rem; background:var(--bg-base); display:flex; flex-direction:column; gap:0.4rem;">
+              ${[
+                { label:'Fotos de seleção (originais)', desc:'JPG/PNG, até 10 MB por arquivo. O sistema redimensiona automaticamente para a resolução configurada na sessão. O cliente verá estas fotos com marca d\'água.' },
+                { label:'Fotos editadas (entrega final)', desc:'Suba os arquivos editados com o mesmo nome das originais. O sistema faz a correspondência automática e verifica se batem com a seleção do cliente.' },
+              ].map(u => `
+                <div style="display:flex; align-items:flex-start; gap:0.5rem;">
+                  <span style="color:var(--accent); margin-top:0.1rem;">▸</span>
+                  <span style="font-size:0.8125rem; color:var(--text-primary);"><strong>${u.label}</strong> — <span style="color:var(--text-secondary);">${u.desc}</span></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Enviar Código de Acesso -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Enviar Código de Acesso</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Cada sessão tem um código único. Use o botão <strong style="color:var(--text-primary);">📧 Enviar</strong> para mandar o link de acesso por e-mail ao cliente, ou copie o código para enviar pelo WhatsApp.</p>
+          <div style="background:var(--bg-base); border-radius:8px; padding:0.5rem 0.875rem; font-family:monospace; font-size:0.75rem; color:var(--accent); border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; pointer-events:none; margin-bottom:0.5rem;">
+            <span>Código: CZ-7X9K2</span>
+            <span style="background:var(--bg-elevated); color:var(--text-secondary); padding:0.2rem 0.5rem; border-radius:4px; font-family:sans-serif; font-size:0.625rem; border:1px solid var(--border);">Copiar</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">O cliente acessa em <strong>app.cliquezoom.com.br</strong> e insere o código para visualizar a galeria.</p>
+        </div>
+
+        <!-- Ações Disponíveis -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Ações Disponíveis</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Os botões no cartão da sessão mudam conforme o status. As principais ações:</p>
+          <div style="display:flex; flex-direction:column; gap:0.35rem; pointer-events:none;">
+            ${[
+              { btn:'Entregar',   color:'var(--green)',  desc:'Marca a sessão como entregue e libera o download sem marca d\'água.' },
+              { btn:'Re-entregar',color:'var(--orange)', desc:'Notifica o cliente que novas fotos foram adicionadas após a entrega.' },
+              { btn:'Reabrir',    color:'var(--yellow)', desc:'Permite ao cliente alterar a seleção (disponível após "Seleção enviada").' },
+              { btn:'Histórico',  color:'var(--accent)', desc:'Exibe a linha do tempo completa: criação, acesso do cliente, seleção, entregas.' },
+              { btn:'Config',     color:'var(--orange)', desc:'Edita nome, prazo, modo, pacote e configurações de CRM da sessão.' },
+            ].map(a => `
+              <div style="display:flex; align-items:center; gap:0.75rem; padding:0.45rem 0.75rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="padding:0.2rem 0.5rem; border-radius:5px; background:${a.color}; color:white; font-size:0.6875rem; font-weight:700; min-width:72px; text-align:center;">${a.btn}</span>
+                <span style="font-size:0.8125rem; color:var(--text-secondary);">${a.desc}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Comentários em Fotos -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Comentários em Fotos</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Quando habilitado (Config → Comentários), o cliente pode deixar observações em fotos específicas e você pode responder. O ícone 💬 aparece nas fotos com comentários.</p>
+          <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; pointer-events:none; background:var(--bg-surface);">
+            <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); font-size:0.8125rem; font-weight:700; color:var(--text-primary);">Comentários da Foto</div>
+            <div style="padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem; background:var(--bg-base); min-height:80px;">
+              <div style="align-self:flex-start; max-width:80%; background:var(--bg-elevated); padding:0.4rem 0.625rem; border-radius:7px;">
+                <div style="font-size:0.6875rem; color:var(--text-secondary); font-weight:700; margin-bottom:0.15rem;">Cliente <span style="font-weight:normal; opacity:0.7;">14/05 09:32</span></div>
+                <div style="font-size:0.8125rem; color:var(--text-primary);">Pode deixar essa com o sorriso mais aberto?</div>
+              </div>
+              <div style="align-self:flex-end; max-width:80%; background:color-mix(in srgb, var(--accent) 20%, transparent); padding:0.4rem 0.625rem; border-radius:7px;">
+                <div style="font-size:0.6875rem; color:var(--accent); font-weight:700; margin-bottom:0.15rem;">Você <span style="font-weight:normal; opacity:0.7;">14/05 10:15</span></div>
+                <div style="font-size:0.8125rem; color:var(--text-primary);">Claro! Vou ajustar e reenviar.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Participantes (Multi-Seleção) -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Participantes — Multi-Seleção</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">No modo Multi-Seleção, cada participante recebe um código individual e um limite de fotos próprio. Use o botão <strong style="color:var(--text-primary);">Participantes</strong> para adicionar e gerenciar. O botão <strong style="color:var(--text-primary);">Exportar Seleções</strong> gera um arquivo com todas as escolhas para importar no Lightroom.</p>
+          <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; pointer-events:none;">
+            ${[
+              { name:'Ana Lima',     code:'CZ-ANA01', count:'28/30', status:'Em seleção',    statusColor:'var(--yellow)' },
+              { name:'Bruno Souza', code:'CZ-BRU02', count:'30/30', status:'Seleção enviada', statusColor:'var(--accent)' },
+            ].map((p, i) => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:0.625rem 0.875rem; background:var(--bg-surface); ${i === 0 ? 'border-bottom:1px solid var(--border);' : ''}">
+                <div>
+                  <div style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${p.name}</div>
+                  <div style="font-size:0.6875rem; color:var(--text-secondary);">Código: <span style="font-family:monospace; color:var(--accent);">${p.code}</span> · ${p.count} fotos</div>
+                </div>
+                <span style="font-size:0.6875rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:20px; background:color-mix(in srgb, ${p.statusColor} 15%, transparent); color:${p.statusColor};">${p.status}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+      </div>
+    `
+  },
   { id: 'clientes',  label: 'Clientes',  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', content: null },
   { id: 'mensagens', label: 'Mensagens', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', content: null },
   { id: 'meu-site',  label: 'Meu Site',  icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', content: null },

@@ -406,7 +406,7 @@ export async function renderSessoes(container) {
             <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:end;">
                 <div style="flex:2; min-width:200px; position:relative;">
                     <input type="text" id="newPartName" class="input" placeholder="Buscar cliente ou digitar nome">
-                    <div id="partClientDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--ad-bg-elevated); border:1px solid var(--ad-border); border-radius:0.375rem; z-index:200; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+                    <div id="partClientDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; z-index:200; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
                     <input type="hidden" id="newPartClientId">
                 </div>
                 <div style="flex:1; min-width:150px;">
