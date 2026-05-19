@@ -4,7 +4,7 @@
  */
 
 import { appState } from '../state.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { formatDate } from '../utils/helpers.js';
 
 export async function renderDashboard(container) {
@@ -66,20 +66,8 @@ export async function renderDashboard(container) {
             await apiPost('/api/onboarding/dismiss');
             const el = document.getElementById('onboarding-section');
             if (el) el.style.display = 'none';
-        } catch (e) { console.error(e); }
+        } catch (e) { window.showToast?.('Erro ao ocultar guia', 'error'); }
     };
-}
-
-async function apiPost(url, body = {}) {
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${appState.authToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-    });
-    return res.json();
 }
 
 async function loadDashboardData(container) {
@@ -96,12 +84,11 @@ async function loadDashboardData(container) {
 
         // Processar métricas
         const total = sessions.length;
-        const pending = sessions.filter(s => s.selectionStatus === 'submitted').length;
         const delivered = sessions.filter(s => s.selectionStatus === 'delivered').length;
 
         metricsGrid.innerHTML = `
             ${renderMetricCard('Total de Sessões', total, 'var(--accent)', 'layers')}
-            ${renderMetricCard('Fotos Upadas', sessions.reduce((s, p) => s + (p.photos?.length || 0), 0), 'var(--purple)', 'image')}
+            ${renderMetricCard('Fotos Upadas', sessions.reduce((s, p) => s + (p.photos?.length || 0), 0), 'var(--orange)', 'image')}
             ${renderMetricCard('Espaço Usado', `${storageMB} MB`, 'var(--orange)', 'hard-drive')}
             ${renderMetricCard('Entregues', delivered, 'var(--green)', 'check-circle')}
         `;
@@ -111,7 +98,7 @@ async function loadDashboardData(container) {
             sessionsList.innerHTML = `<p style="padding:3rem; text-align:center; color:var(--text-muted);">Você ainda não tem sessões. Crie a primeira para começar.</p>`;
         } else {
             sessionsList.innerHTML = sessions.slice(0, 5).map(session => `
-                <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem;">
+                <div onclick="switchTab('sessoes').then(() => window.viewSessionPhotos('${session._id}'))" style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-elevated)'" onmouseleave="this.style.background='transparent'">
                     <div style="width:40px; height:40px; border-radius:8px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; overflow:hidden;">
                         ${session.coverPhoto ? `<img src="${session.coverPhoto}" style="width:100%; height:100%; object-fit:cover;">` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
                     </div>
@@ -135,7 +122,6 @@ async function loadDashboardData(container) {
         }
 
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
         window.showToast?.('Erro ao carregar dados do dashboard', 'error');
     }
 }
