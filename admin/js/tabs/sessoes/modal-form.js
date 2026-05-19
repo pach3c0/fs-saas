@@ -194,6 +194,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const allowExtraPurchase = container.querySelector('#sessionAllowExtraPurchase')?.checked || false;
     const allowReopen = container.querySelector('#sessionAllowReopen')?.checked || false;
     const eventType = container.querySelector('#sessionEventType')?.value || 'outro';
+    const photoResolution = parseInt(container.querySelector('#sessionResolution')?.value) || 1200;
     const salesAutomationEnabled = container.querySelector('#sessionSalesAutomation')?.checked !== false;
     const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
@@ -239,7 +240,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     try {
       const payload = {
         name, date, selectionDeadline, mode, packageLimit,
-        extraPhotoPrice, coverPhoto,
+        extraPhotoPrice, coverPhoto, photoResolution,
         allowExtraPurchasePostSubmit: allowExtraPurchase, allowReopen,
         eventType,
         eventDate: date || null,

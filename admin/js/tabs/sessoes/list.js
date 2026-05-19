@@ -1,6 +1,13 @@
 import { formatDate, resolveImagePath } from '../../utils/helpers.js';
 import { apiGet } from '../../utils/api.js';
 
+const EVENT_LABELS = {
+  aniversario: 'Aniversário', casamento: 'Casamento', formatura: 'Formatura',
+  corporativo: 'Corporativo', show: 'Show', ensaio: 'Ensaio',
+  gestante: 'Gestante', newborn: 'Newborn', debutante: 'Debutante',
+  batizado: 'Batizado'
+};
+
 const STATUS_LABELS = {
   pending: { text: 'Pendente', class: 'badge-neutral' },
   in_progress: { text: 'Em seleção', class: 'badge-warning' },
@@ -34,6 +41,7 @@ export function filterAndRender(container, state) {
   const searchTerm = container.querySelector('#filterSearch').value.toLowerCase();
   const sortValue = container.querySelector('#filterSort').value;
   const modeValue = container.querySelector('#filterMode').value;
+  const eventTypeValue = container.querySelector('#filterEventType')?.value || 'all';
   const checkedStatuses = Array.from(container.querySelectorAll('#statusFilters input:checked')).map(cb => cb.value);
   const dateFromVal = container.querySelector('#filterDateFrom').value;
   const dateToVal = container.querySelector('#filterDateTo').value;
@@ -43,6 +51,7 @@ export function filterAndRender(container, state) {
   let filtered = state.sessionsData.filter(session => {
     if (searchTerm && !session.name.toLowerCase().includes(searchTerm)) return false;
     if (modeValue !== 'all' && session.mode !== modeValue) return false;
+    if (eventTypeValue !== 'all' && session.eventType !== eventTypeValue) return false;
 
     const now = new Date();
     const deadline = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
@@ -123,10 +132,11 @@ function renderList(container, items) {
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
               <strong style="color:var(--text-primary); font-size:1.125rem;">${session.name}</strong>
-              ${session.clientId ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente vinculado"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</span>` : ''}
+              ${session.clientId ? `<button onclick="window._pendingOpenClientId='${session.clientId._id}'; window.switchTab?.('clientes');" style="background:none; border:none; cursor:pointer; color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; padding:0; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px;" title="Ir para o cadastro do cliente"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</button>` : ''}
               <span class="badge ${status.class}">
                 ${status.text}
               </span>
+              ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
               ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
             </div>
             <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
@@ -233,6 +243,7 @@ export function setupListFilters(container, state) {
   container.querySelector('#filterSearch').addEventListener('input', refilter);
   container.querySelector('#filterSort').addEventListener('change', refilter);
   container.querySelector('#filterMode').addEventListener('change', refilter);
+  container.querySelector('#filterEventType')?.addEventListener('change', refilter);
   container.querySelectorAll('#statusFilters input').forEach(cb => cb.addEventListener('change', refilter));
   container.querySelector('#filterDateFrom').addEventListener('change', refilter);
   container.querySelector('#filterDateTo').addEventListener('change', refilter);

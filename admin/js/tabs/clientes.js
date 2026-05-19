@@ -120,6 +120,12 @@ async function carregarClientes(container) {
     clientesData = data.clients || [];
     popularFiltroEventos(container);
     renderLista(container);
+    // Navegação direta de sessões: abrir modal do cliente pendente
+    if (window._pendingOpenClientId) {
+      const id = window._pendingOpenClientId;
+      window._pendingOpenClientId = null;
+      abrirModalEditar(container, id);
+    }
   } catch (error) {
     document.getElementById('clientesLista').innerHTML =
       `<p style="color:var(--red);">Erro ao carregar clientes: ${error.message}</p>`;

@@ -39,6 +39,22 @@ export async function renderSessoes(container) {
                 <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="delivered" checked> Entregue</label>
                 <label style="color:var(--text-secondary); font-size:0.875rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer;"><input type="checkbox" class="check" value="expired" checked> Expirado</label>
             </div>
+            <div class="select-wrap">
+              <select id="filterEventType" class="select input">
+                  <option value="all">Todos os tipos</option>
+                  <option value="aniversario">Aniversário</option>
+                  <option value="casamento">Casamento</option>
+                  <option value="formatura">Formatura</option>
+                  <option value="corporativo">Corporativo</option>
+                  <option value="show">Show</option>
+                  <option value="ensaio">Ensaio</option>
+                  <option value="gestante">Gestante</option>
+                  <option value="newborn">Newborn</option>
+                  <option value="debutante">Debutante</option>
+                  <option value="batizado">Batizado</option>
+                  <option value="outro">Outro</option>
+              </select>
+            </div>
             <div class="select-wrap" style="margin-left:auto;">
               <select id="filterMode" class="select input">
                   <option value="all">Todos os modos</option>
