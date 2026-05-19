@@ -13,7 +13,19 @@ export function setupModalDetail(container, state) {
     const grid = container.querySelector('#sessionPhotosGrid');
 
     const modeLabels = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-Seleção', multi_instant: 'Multi-Imediata' };
-    title.textContent = `Fotos - ${session.name} (${modeLabels[session.mode] || 'Galeria'})`;
+    const resDescMap = { 960: 'menor armazenamento — ideal para muitos eventos', 1200: 'padrão — equilíbrio entre qualidade e armazenamento', 1400: 'alta qualidade', 1600: 'máxima qualidade — mais armazenamento' };
+    const res = session.photoResolution || 1200;
+    const resDesc = resDescMap[res] || '';
+    title.innerHTML = `Fotos — ${session.name} (${modeLabels[session.mode] || 'Galeria'})
+      <span style="position:relative; display:inline-block; margin-left:0.5rem; vertical-align:middle;"
+        onmouseenter="this.querySelector('.res-tip').style.display='block'"
+        onmouseleave="this.querySelector('.res-tip').style.display='none'">
+        <span style="background:color-mix(in srgb, var(--accent) 15%, transparent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); color:var(--accent); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:600; cursor:default; white-space:nowrap;">${res}px</span>
+        <div class="res-tip" style="display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); font-size:0.75rem; padding:0.5rem 0.875rem; border-radius:0.5rem; white-space:nowrap; z-index:200; box-shadow:0 4px 16px rgba(0,0,0,0.25); line-height:1.5; pointer-events:none;">
+          <strong>${res}px</strong> — ${resDesc}<br>
+          <span style="color:var(--text-secondary); font-size:0.6875rem;">Resolução das fotos na galeria do cliente. Não pode ser alterada.</span>
+        </div>
+      </span>`;
 
     const mainBtn = container.querySelector('#mainUploadBtn');
     const secondaryBtn = container.querySelector('#secondaryUploadBtn');
