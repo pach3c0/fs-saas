@@ -242,6 +242,7 @@
 - **Manual Clientes** — Seção de Clientes no Manual do Usuário documentada: cadastro, reativação automática (Próximo Contato), badge 📅, disparo manual com toggle de fotos. Commit `b27d9e5`.
 - **UX da lista de sessões** — (1) fix crítico: `photoResolution` nunca era enviado no payload de criação — sessões com 1600px ficavam salvas como 1200px; (2) badge de tipo de evento (roxo) nos cards + filtro `#filterEventType`; (3) nome do cliente clicável navega direto ao cadastro; (4) timeline de progresso visual em cada card (5 passos: Criada→Fotos→Link→Seleção→Entregue) com chip de próximo passo colorido. Commits `e76e931`, `5df4e0d`
 - **Pedido de reabertura no card** — campo `session.reopenRequested` registra o pedido no documento. Card exibe badge ⚠ laranja, passo "Reabertura" (laranja) no stepper, botões "✓ Reabrir" / "✗ Recusar pedido", botão Entregar bloqueado até decisão. Novo endpoint `PUT /sessions/:id/dismiss-reopen`. Commit `55b8321`
+- **Testes manuais Sessões (modo seleção)** — ciclo completo testado em 2026-05-20: criação, edição, upload, resolução, pacote, preço extra, comentários, tipo de evento, fluxo do cliente (seleção, finalização, reabertura). Automação de escassez pendente de teste (leva dias para disparar).
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)
@@ -264,6 +265,10 @@
 - [ ] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
 - [ ] **Inconsistência de campos:** Uniformizar `nome`/`mensagem` (contato) vs `name`/`text` (depoimento) — não crítico
 - [ ] Completar auditoria dos dias 3–7
+- [ ] **Notificações clicáveis:** clicar no sino deve navegar para o conteúdo (foto/sessão específica). `admin/js/utils/notifications.js`
+- [ ] **Link completo da sessão copiável:** exibir URL completo (não só código) no card/modal para envio por WhatsApp. `sessoes/list.js` / `modal-detail.js`
+- [ ] **Arquivamento de fotos com link externo:** campo `externalStorageUrl` + `archivedAt` no model Session para liberar storage sem perder histórico.
+- [ ] **Ícone robô:** substituir 🤖 na seção Automação do `modal-form.js` por ícone Lucide.
 
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento
 - **Prova de Álbuns:** fluxo completo de proofing (páginas, layouts, revisões, aprovação)
@@ -271,3 +276,4 @@
 - **Marca D'água Híbrida:** modo `both` (texto + imagem), posições tile/sequência/repetição
 - **Monetização Direta:** payment gateway para liberar download pós-upsell
 - **Slideshow Viral:** geração de vídeo com ffmpeg + Bull queue
+- **Limites de e-mail por plano:** definir se SMTP é da plataforma ou do fotógrafo; avaliar quotas por plano

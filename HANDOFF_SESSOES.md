@@ -151,6 +151,55 @@ feat(manual): auditar e documentar módulos Clientes e Mensagens
 
 ---
 
+## Testes realizados — Dia 3 (2026-05-20)
+
+Módulo Sessões, modo seleção, ciclo completo.
+
+| Item testado | Resultado |
+|---|---|
+| Criar sessão + vincular cliente | ✅ |
+| Editar nome da sessão | ✅ |
+| Alterar datas (validação: prazo ≥ evento) | ✅ |
+| Upload de foto de capa | ✅ |
+| Resolução da galeria (1600px → exibiu 1600px) | ✅ |
+| Fotos por pacote (limite + simulação cliente) | ✅ |
+| Preço extra + fotos extras (habilitado/desabilitado) | ✅ |
+| Comentários (habilitado/desabilitado) | ✅ |
+| Tipo de evento (casamento/aniversário/debutante) → filtro + badge | ✅ |
+| Cliente: seleção, finalização, reabertura, comentários | ✅ |
+| Automação de escassez | ⏳ não testada — leva dias para disparar |
+
+---
+
+## Pendências de backlog identificadas
+
+### 1. Notificações clicáveis (prioridade alta)
+Clicar em uma notificação no sino não navega para o conteúdo. Deveria:
+- "Cliente comentou na foto X" → abrir aquela foto no modal
+- "Cliente acessou a sessão Y" → abrir a sessão Y na lista
+
+**Arquivo:** `admin/js/utils/notifications.js` + integração com `sessoes/`
+
+### 2. Link completo copiável da sessão (prioridade alta)
+O card exibe o código de acesso mas não o URL completo. Se o e-mail falhar, o fotógrafo não tem link para enviar por WhatsApp.
+Solução: ao lado do código de acesso, exibir `https://<slug>.cliquezoom.com.br/galeria?code=<code>` com botão de copiar.
+
+**Arquivo:** `admin/js/tabs/sessoes/list.js` ou `modal-detail.js`
+
+### 3. Arquivamento de fotos com link externo (prioridade média)
+Após sessão finalizada, fotos continuam ocupando storage. Fotógrafo precisa poder: (a) remover fotos da plataforma, (b) manter registro da sessão, (c) vincular link externo (Google Drive / OneDrive) como referência.
+Novos campos: `Session.archivedAt: Date`, `Session.externalStorageUrl: String`.
+
+**Arquivos:** `src/models/Session.js`, nova rota em `src/routes/sessions.js`, UI em `modal-detail.js`
+
+### 4. Limites de e-mail por plano (prioridade baixa — V2)
+Com 1000 fotógrafos, cada disparo automático usa o SMTP do CliqueZoom. Definir: quota por plano? SMTP próprio do fotógrafo como opção?
+
+### 5. Ícone robô no modal de nova sessão (prioridade baixa)
+Na seção "Automação" do `admin/js/tabs/sessoes/modal-form.js`, emoji 🤖 antigo deve ser substituído por ícone Lucide.
+
+---
+
 ## Arquivos de referência
 
 | Arquivo | Propósito |
