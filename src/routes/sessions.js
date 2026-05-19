@@ -824,6 +824,8 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
       generatedThumbs.push(thumbPath);
 
+      const { width, height } = await sharp(thumbPath).metadata();
+
       // No modo galeria (entrega direta), o fotografo ja sobe as fotos em alta resolucao prontas, entao preservamos a original.
       // No multi_instant (real-time), também preservamos.
       const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_instant';
@@ -836,6 +838,8 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         filename: file.originalname, // Nome original preservado para exportação e Lightroom
         url: `/uploads/${orgId}/sessions/${thumbFilename}`,
         urlOriginal: isGalleryMode ? `/uploads/${orgId}/sessions/${file.filename}` : '',
+        width,
+        height,
         uploadedAt: new Date()
       });
     }

@@ -625,7 +625,7 @@ const MANUAL_MODULES = [
               </div>
               <div style="background:var(--accent); color:white; border-radius:6px; padding:0.375rem 0.875rem; font-size:0.8125rem; font-weight:600;">Upload</div>
             </div>
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Aceita <strong style="color:var(--text-primary);">JPG ou PNG</strong>, tamanho máximo de <strong style="color:var(--text-primary);">10 MB</strong>. A capa aparece como thumbnail na lista de sessões e no cabeçalho da galeria do cliente. Opcional — sem capa, o sistema exibe um ícone padrão.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">Aceita <strong style="color:var(--text-primary);">JPG ou PNG</strong>. A capa aparece como thumbnail na lista de sessões e no cabeçalho da galeria do cliente. Opcional — sem capa, o sistema exibe um ícone padrão.</p>
           </div>
 
           <!-- 6. Resolução -->

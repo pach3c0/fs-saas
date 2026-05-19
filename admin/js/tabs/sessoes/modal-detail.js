@@ -89,6 +89,7 @@ export function setupModalDetail(container, state) {
               </button>
             </div>
             <div style="position:absolute; bottom:0.25rem; left:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">${idx + 1}</div>
+            ${photo.width && photo.height ? `<div style="position:absolute; bottom:0.25rem; right:0.25rem; background:rgba(0,0,0,0.7); color:white; font-size:0.5625rem; padding:0.125rem 0.375rem; border-radius:0.25rem; z-index:2;">${photo.width}×${photo.height}</div>` : ''}
           </div>
         `;
       }).join('');

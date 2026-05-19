@@ -335,7 +335,7 @@ export async function renderSessoes(container) {
               <label for="editCoverInput" class="btn btn-sm" style="cursor:pointer; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.375rem; width:fit-content;">
                 🖼️ Alterar capa
               </label>
-              <input type="file" id="editCoverInput" accept="image/*" style="display:none;">
+              <input type="file" id="editCoverInput" accept=".jpg,.jpeg,.png" style="display:none;">
               <input type="hidden" id="editCoverPhoto">
               <button id="editCoverRemoveBtn" type="button" style="display:none; background:none; border:none; color:var(--red); font-size:0.75rem; cursor:pointer; text-align:left; padding:0; width:fit-content;">✕ Remover capa</button>
               <div id="editCoverProgress" style="display:none; font-size:0.75rem; color:var(--text-muted);">Enviando...</div>
