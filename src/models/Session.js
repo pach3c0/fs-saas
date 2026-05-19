@@ -51,6 +51,7 @@ const sessionSchema = new mongoose.Schema({
     canShare: { type: Boolean, default: false },
     allowExtraPurchasePostSubmit: { type: Boolean, default: true },
     allowReopen: { type: Boolean, default: true },
+    reopenRequested: { type: Boolean, default: false }, // cliente solicitou reabertura — aguardando decisão do admin
     // Re-entrega: ativado pelo admin para subir fotos faltantes sem fechar o download do cliente
     redeliveryMode: { type: Boolean, default: false },
     // Histórico de ciclos de entrega (audit trail)

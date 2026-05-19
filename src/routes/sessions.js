@@ -458,6 +458,9 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
 
     if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
 
+    session.reopenRequested = true;
+    await session.save();
+
     try {
       await Notification.create({
         type: 'reopen_requested',
@@ -468,6 +471,18 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
       });
     } catch (e) { }
 
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) => {
+  try {
+    await Session.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { reopenRequested: false }
+    );
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1106,7 +1121,7 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
   try {
     await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
-      { selectionStatus: 'in_progress' }
+      { selectionStatus: 'in_progress', reopenRequested: false }
     );
     res.json({ success: true });
   } catch (error) {

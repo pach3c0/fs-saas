@@ -48,6 +48,17 @@ export function setupActions(container, state, renderSessoes) {
     }
   };
 
+  window.dismissReopenRequest = async (sessionId) => {
+    const ok = await window.showConfirm?.('Recusar pedido de reabertura? O cliente não será notificado automaticamente.');
+    if (!ok) return;
+    try {
+      await apiPut(`/api/sessions/${sessionId}/dismiss-reopen`);
+      await renderSessoes(container);
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
   window.deliverSession = async (sessionId) => {
     const session = state.sessionsData.find(s => s._id === sessionId);
     if (!session) return;

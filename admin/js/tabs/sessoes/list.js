@@ -94,12 +94,23 @@ function getSessionProgress(session) {
     return dl && new Date() > dl && !selectionDone;
   })();
 
+  const reopenPending = !isGallery && !!session.reopenRequested;
+
   const steps = isGallery
     ? [
         { label: 'Criada',   done: true },
         { label: 'Fotos',    done: hasPhotos },
         { label: 'Link',     done: linkSent },
         { label: 'Entregue', done: delivered },
+      ]
+    : reopenPending
+    ? [
+        { label: 'Criada',     done: true },
+        { label: 'Fotos',      done: hasPhotos },
+        { label: 'Link',       done: linkSent },
+        { label: 'Seleção',    done: true },
+        { label: 'Reabertura', done: false, active: true, warn: true },
+        { label: 'Entregue',   done: false },
       ]
     : [
         { label: 'Criada',   done: true },
@@ -109,11 +120,15 @@ function getSessionProgress(session) {
         { label: 'Entregue', done: delivered },
       ];
 
-  const activeIdx = steps.findIndex(s => !s.done);
-  if (activeIdx !== -1) steps[activeIdx].active = true;
+  if (!reopenPending) {
+    const activeIdx = steps.findIndex(s => !s.done);
+    if (activeIdx !== -1) steps[activeIdx].active = true;
+  }
 
   let nextAction, nextType;
-  if (delivered) {
+  if (reopenPending) {
+    nextAction = 'Cliente pediu reabertura — reabrir ou recusar?'; nextType = 'warn';
+  } else if (delivered) {
     nextAction = 'Sessão concluída'; nextType = 'done';
   } else if (isExpired) {
     nextAction = 'Prazo vencido — considere reabrir'; nextType = 'warn';
@@ -139,8 +154,8 @@ function renderProgressStepper(session) {
 
   const parts = [];
   steps.forEach((step, i) => {
-    const color = step.done ? 'var(--green)' : (step.active ? 'var(--accent)' : 'var(--border)');
-    const icon = step.done ? '✓' : (step.active ? '›' : '');
+    const color = step.done ? 'var(--green)' : (step.warn ? 'var(--orange)' : (step.active ? 'var(--accent)' : 'var(--border)'));
+    const icon = step.done ? '✓' : (step.warn ? '!' : (step.active ? '›' : ''));
     parts.push(`<div style="display:flex;flex-direction:column;align-items:center;gap:0.125rem;"><div style="width:1.1rem;height:1.1rem;border-radius:50%;background:${color};color:#fff;font-size:0.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;">${icon}</div><span style="font-size:0.5rem;color:${step.done || step.active ? 'var(--text-primary)' : 'var(--text-muted)'};white-space:nowrap;">${step.label}</span></div>`);
     if (i < steps.length - 1) {
       parts.push(`<div style="flex:1;height:1px;background:${step.done ? 'var(--green)' : 'var(--border)'};margin-top:0.5rem;"></div>`);
@@ -214,6 +229,7 @@ function renderList(container, items) {
               </span>
               ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
               ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
+              ${session.reopenRequested ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
             </div>
             <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
               ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
@@ -268,6 +284,16 @@ function renderList(container, items) {
               title="${(session.photos?.length || 0) >= limit ? 'Enviar código por e-mail ao cliente' : `Suba pelo menos ${limit} fotos para habilitar o envio`}">
               📧 Enviar
             </button>
+            ${session.reopenRequested ? `
+            <button onclick="reopenSelection('${session._id}')" class="btn btn-sm"
+              style="background:var(--green);border-color:var(--green);color:white;"
+              title="Reabrir seleção para o cliente alterar as fotos">
+              ✓ Reabrir
+            </button>
+            <button onclick="dismissReopenRequest('${session._id}')" class="btn btn-sm btn-danger"
+              title="Recusar pedido — manter seleção atual">
+              ✗ Recusar pedido
+            </button>` : `
             <button onclick="${!isMulti && isSubmitted ? `reopenSelection('${session._id}')` : ''}"
               class="btn btn-sm"
               style="background:${!isMulti && isSubmitted ? 'var(--yellow)' : 'rgba(255,255,255,0.05)'};
@@ -277,15 +303,15 @@ function renderList(container, items) {
               ${!isMulti && isSubmitted ? '' : 'disabled'}
               title="${isMulti ? 'Não disponível em multi-seleção' : (!isSubmitted ? 'Aguardando cliente enviar seleção' : 'Reabrir seleção do cliente')}">
               Reabrir
-            </button>
-            <button onclick="deliverSession('${session._id}')"
-              style="background:${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? (isDelivered ? 'var(--orange)' : 'var(--green)') : 'rgba(255,255,255,0.05)'};
-                     color:${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)'};
+            </button>`}
+            <button onclick="${session.reopenRequested ? '' : `deliverSession('${session._id}')`}"
+              style="background:${session.reopenRequested ? 'rgba(255,255,255,0.05)' : ((isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? (isDelivered ? 'var(--orange)' : 'var(--green)') : 'rgba(255,255,255,0.05)')};
+                     color:${session.reopenRequested ? 'var(--text-muted)' : ((isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'white' : 'var(--text-muted)')};
                      padding:0.375rem 0.75rem; border-radius:0.375rem;
-                     border:${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'none' : '1px solid var(--border)'};
-                     cursor:${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'pointer' : 'not-allowed'}; font-size:0.75rem; font-weight:500;"
-              ${(isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? '' : 'disabled'}
-              title="${!(isSubmitted || isDelivered) ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : (isDelivered ? 'Notificar re-entrega de fotos extras' : 'Entregar sessão')))}">
+                     border:${!session.reopenRequested && (isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'none' : '1px solid var(--border)'};
+                     cursor:${session.reopenRequested ? 'not-allowed' : ((isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0 ? 'pointer' : 'not-allowed')}; font-size:0.75rem; font-weight:500;"
+              ${session.reopenRequested || !((isSubmitted || isDelivered) && deliveredPhotosCount >= selectedCount && selectedCount > 0) ? 'disabled' : ''}
+              title="${session.reopenRequested ? 'Decida sobre o pedido de reabertura antes de entregar' : (!(isSubmitted || isDelivered) ? 'Aguardando cliente finalizar seleção' : (selectedCount === 0 ? 'Nenhuma foto selecionada' : (deliveredPhotosCount < selectedCount ? `Faltam fotos editadas (${deliveredPhotosCount}/${selectedCount})` : (isDelivered ? 'Notificar re-entrega de fotos extras' : 'Entregar sessão'))))}">
               ${isDelivered ? 'Re-entregar' : 'Entregar'}
             </button>`}
             <button onclick="viewSessionHistory('${session._id}')" class="btn btn-sm" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-secondary);" title="Ver linha do tempo e atividades da sessão">
