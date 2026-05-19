@@ -789,11 +789,25 @@ async function sendScarcity24hEmail(clientEmail, clientName, sessionName, orgNam
  * Helper: monta corpo HTML padrao de e-mail de reativacao anual com foto-memoria.
  * Usado pelos 3 niveis (90d, 30d, 7d antes do proximo aniversario do evento).
  */
-function _buildReactivationHtml({ orgName, headline, body, clientName, sessionName, eventDateStr, memoryPhotoUrl, ctaLabel, contactUrl }) {
-  const memoryBlock = memoryPhotoUrl ? `
-    <div style="text-align:center; margin: 1.25rem 0;">
-      <img src="${memoryPhotoUrl}" alt="${sessionName}" style="max-width:100%; border-radius:0.5rem; border:1px solid #e5e5e5;">
-      <p style="color:#999; font-size:0.75rem; margin:0.5rem 0 0;">Foto de ${sessionName}${eventDateStr ? ` — ${eventDateStr}` : ''}</p>
+function _buildReactivationHtml({ orgName, headline, body, clientName, sessionName, eventDateStr, memoryPhotoUrl, photoUrls, ctaLabel, contactUrl }) {
+  // photoUrls (array) tem prioridade; fallback para memoryPhotoUrl (string) para compat. retroativa
+  const photos = Array.isArray(photoUrls) && photoUrls.length > 0
+    ? photoUrls
+    : (memoryPhotoUrl ? [memoryPhotoUrl] : []);
+
+  const colWidth = photos.length > 0 ? Math.floor(100 / photos.length) : 100;
+  const memoryBlock = photos.length > 0 ? `
+    <div style="margin: 1.25rem 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          ${photos.map(url => `
+            <td style="width:${colWidth}%; padding: 0 0.2rem; vertical-align:top;">
+              <img src="${url}" alt="${sessionName || 'Foto do evento'}" style="width:100%; border-radius:0.375rem; border:1px solid #e5e5e5; display:block;">
+            </td>
+          `).join('')}
+        </tr>
+      </table>
+      ${sessionName ? `<p style="color:#999; font-size:0.75rem; margin:0.5rem 0 0; text-align:center;">Foto de ${sessionName}${eventDateStr ? ` — ${eventDateStr}` : ''}</p>` : ''}
     </div>
   ` : '';
 
@@ -877,10 +891,10 @@ async function sendReactivation7dEmail(clientEmail, clientName, sessionName, eve
 /**
  * E-mail de reativacao manual: fotografo agendou um contato especifico para este cliente.
  */
-async function sendManualReactivationEmail(clientEmail, clientName, orgName, orgSlug, memoryPhotoUrl) {
+async function sendManualReactivationEmail(clientEmail, clientName, orgName, orgSlug, photoUrls = []) {
   const subject = `${orgName} está com saudades — vamos marcar algo novo?`;
   const html = _buildReactivationHtml({
-    orgName, clientName, sessionName: '', eventDateStr: '', memoryPhotoUrl,
+    orgName, clientName, sessionName: '', eventDateStr: '', photoUrls,
     headline: '📸 Novos momentos esperam por você',
     body: `Passando para saber se você toparia registrar um novo momento. Quando quiser, é só chamar — minhas agendas estão abertas.`,
     ctaLabel: 'Entrar em contato',

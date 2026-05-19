@@ -11,7 +11,7 @@ const { sendManualReactivationEmail } = require('./email');
  * Apos o envio, limpa nextContactDate e registra em contactHistory.
  */
 
-async function run(organizationId = null) {
+async function run(organizationId = null, options = {}) {
   const now = new Date();
   const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
 
@@ -44,23 +44,41 @@ async function run(organizationId = null) {
       const org = orgMap[String(cliente.organizationId)];
       if (!org) { skipped++; continue; }
 
-      // Foto de memoria: capa ou primeira foto da sessao mais recente entregue
-      const sessaoRecente = await Session.findOne(
-        { organizationId: cliente.organizationId, clientId: cliente._id, selectionStatus: 'delivered' },
-        'coverPhoto photos'
-      ).sort({ updatedAt: -1 }).lean();
+      // Fotos de memoria: capa + ate 2 fotos da sessao mais recente entregue
+      // options.includePhotos === false desativa o bloco de imagens no e-mail
+      const includePhotos = options.includePhotos !== false;
+      let photoUrls = [];
 
-      const memoryUrl = sessaoRecente?.coverPhoto || sessaoRecente?.photos?.[0]?.url || '';
-      const memoryFull = memoryUrl
-        ? (memoryUrl.startsWith('http') ? memoryUrl : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}${memoryUrl}`)
-        : '';
+      if (includePhotos) {
+        const sessaoRecente = await Session.findOne(
+          { organizationId: cliente.organizationId, clientId: cliente._id, selectionStatus: 'delivered' },
+          'coverPhoto photos'
+        ).sort({ updatedAt: -1 }).lean();
+
+        if (sessaoRecente) {
+          const base = process.env.BASE_URL || 'https://app.cliquezoom.com.br';
+          const toFull = url => url ? (url.startsWith('http') ? url : `${base}${url}`) : null;
+
+          const candidatos = [
+            toFull(sessaoRecente.coverPhoto),
+            ...(sessaoRecente.photos || []).slice(0, 2).map(p => toFull(p.url))
+          ].filter(Boolean);
+
+          // Deduplica (capa pode coincidir com photos[0]) e limita a 3
+          const seen = new Set();
+          for (const u of candidatos) {
+            if (!seen.has(u)) { seen.add(u); photoUrls.push(u); }
+            if (photoUrls.length === 3) break;
+          }
+        }
+      }
 
       await sendManualReactivationEmail(
         cliente.email,
         cliente.name,
         org.name,
         org.slug,
-        memoryFull
+        photoUrls
       );
 
       // Limpar nextContactDate e registrar no historico

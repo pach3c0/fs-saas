@@ -127,8 +127,9 @@ router.post('/sales/coupons/:code/redeem', authenticateToken, async (req, res) =
 // POST /api/sales/trigger-reactivation — disparo manual da reativacao de clientes
 router.post('/sales/trigger-reactivation', authenticateToken, async (req, res) => {
   try {
-    const result = await anniversaryAutomator.run(req.user.organizationId);
-    req.logger.info('Reativação manual disparada', { orgId: req.user.organizationId, ...result });
+    const includePhotos = req.body?.includePhotos !== false;
+    const result = await anniversaryAutomator.run(req.user.organizationId, { includePhotos });
+    req.logger.info('Reativação manual disparada', { orgId: req.user.organizationId, includePhotos, ...result });
     res.json({ success: true, ...result });
   } catch (error) {
     req.logger.error('Erro no disparo manual de reativação', { error: error.message });

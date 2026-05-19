@@ -334,11 +334,16 @@ function setupEventos(container) {
 
   // Disparo manual de reativações agendadas
   container.querySelector('#btnDispararReativacao').onclick = async () => {
+    const includePhotos = await window.showConfirm(
+      'Deseja incluir fotos do último evento nos e-mails de reativação?',
+      { confirmText: 'Sim, incluir fotos', cancelText: 'Não, só texto' }
+    );
+
     const btn = container.querySelector('#btnDispararReativacao');
     btn.disabled = true;
     btn.textContent = '⏳ Disparando...';
     try {
-      const result = await apiPost('/api/sales/trigger-reactivation', {});
+      const result = await apiPost('/api/sales/trigger-reactivation', { includePhotos });
       if (result.sent === 0) {
         window.showToast?.('Nenhum cliente com reativação agendada para hoje.', 'info');
       } else {
