@@ -481,8 +481,35 @@ const MANUAL_MODULES = [
         <!-- Checklist de Início -->
         <div>
           <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Checklist de Início</p>
-          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.8125rem; color:var(--text-secondary); line-height:1.7;">
-            Aparece para novos usuários com 4 passos guiados (criar sessão, subir fotos, vincular cliente, enviar link). Some automaticamente após completar todos os passos ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Aparece para novos usuários com 4 passos guiados. Some após completar tudo ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.</p>
+          <div style="background:var(--bg-surface); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; padding:0.875rem 1rem; pointer-events:none; margin-bottom:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.625rem;">
+              <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">Comece por aqui</span>
+              <span style="font-size:0.6875rem; color:var(--text-muted); text-decoration:underline;">Ocultar guia</span>
+            </div>
+            <div style="margin-bottom:0.75rem;">
+              <div style="display:flex; justify-content:space-between; font-size:0.6875rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">
+                <span>Progresso do Setup</span><span>50%</span>
+              </div>
+              <div style="height:5px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
+                <div style="height:100%; width:50%; background:var(--accent);"></div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem;">
+              ${[
+                { label: 'Criar sua primeira sessão', done: true  },
+                { label: 'Subir as primeiras fotos',  done: true  },
+                { label: 'Vincular um cliente',       done: false },
+                { label: 'Enviar link de acesso',     done: false },
+              ].map(step => `
+                <div style="display:flex; align-items:center; gap:0.5rem; padding:0.35rem 0.5rem; background:var(--bg-elevated); border-radius:6px; opacity:${step.done ? '0.55' : '1'};">
+                  <div style="width:16px; height:16px; border-radius:50%; border:2px solid ${step.done ? 'var(--green)' : 'var(--border)'}; background:${step.done ? 'var(--green)' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    ${step.done ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                  </div>
+                  <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary); text-decoration:${step.done ? 'line-through' : 'none'};">${step.label}</span>
+                </div>
+              `).join('')}
+            </div>
           </div>
         </div>
 
