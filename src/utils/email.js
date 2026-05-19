@@ -875,6 +875,21 @@ async function sendReactivation7dEmail(clientEmail, clientName, sessionName, eve
 }
 
 /**
+ * E-mail de reativacao manual: fotografo agendou um contato especifico para este cliente.
+ */
+async function sendManualReactivationEmail(clientEmail, clientName, orgName, orgSlug, memoryPhotoUrl) {
+  const subject = `${orgName} está com saudades — vamos marcar algo novo?`;
+  const html = _buildReactivationHtml({
+    orgName, clientName, sessionName: '', eventDateStr: '', memoryPhotoUrl,
+    headline: '📸 Novos momentos esperam por você',
+    body: `Passando para saber se você toparia registrar um novo momento. Quando quiser, é só chamar — minhas agendas estão abertas.`,
+    ctaLabel: 'Entrar em contato',
+    contactUrl: _contactUrl(orgSlug)
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
  * Notifica o dono da plataforma sobre novo fotografo cadastrado
  */
 async function sendNewPhotographerNotificationEmail(photographerName, photographerEmail, slug) {
@@ -938,5 +953,6 @@ module.exports = {
   sendReactivation90dEmail,
   sendReactivation30dEmail,
   sendReactivation7dEmail,
+  sendManualReactivationEmail,
   sendNewPhotographerNotificationEmail
 };

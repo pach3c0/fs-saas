@@ -172,6 +172,13 @@ function renderLista(container) {
       ? `<span class="badge badge-neutral">${escapeHtml(c.lastEventType)}</span>`
       : '';
 
+    const nextContact = c.nextContactDate
+      ? `<span style="background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); color:var(--accent); font-size:0.75rem; padding:0.1rem 0.5rem; border-radius:0.25rem; white-space:nowrap;" title="Reativação agendada — e-mail será enviado automaticamente nesta data">📅 ${new Date(c.nextContactDate).toLocaleDateString('pt-BR')}</span>`
+      : '';
+    const lastContact = (!c.nextContactDate && c.contactHistory && c.contactHistory.length > 0)
+      ? `<span style="color:var(--text-muted); font-size:0.75rem;" title="Último e-mail de reativação enviado">✓ Último contato: ${new Date(c.contactHistory[c.contactHistory.length - 1].sentAt).toLocaleDateString('pt-BR')}</span>`
+      : '';
+
     const isSelected = selectedClientIds.includes(c._id);
 
     return `
@@ -194,6 +201,8 @@ function renderLista(container) {
             ${birthBlock}
             <span style="color:var(--text-muted); font-size:0.8rem;">📁 ${c.sessionCount || 0} sessão${c.sessionCount !== 1 ? 's' : ''}</span>
             ${ltvBlock}
+            ${nextContact}
+            ${lastContact}
           </div>
           ${c.notes ? `<p style="color:var(--text-muted); font-size:0.8rem; margin:0.375rem 0 0; font-style:italic;">${escapeHtml(c.notes.substring(0, 100))}${c.notes.length > 100 ? '...' : ''}</p>` : ''}
         </div>

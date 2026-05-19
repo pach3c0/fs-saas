@@ -106,7 +106,7 @@ router.post('/clients', authenticateToken, async (req, res) => {
 router.put('/clients/:id', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType } = req.body;
+    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType, nextContactDate } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
@@ -121,18 +121,25 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'CPF é obrigatório' });
     }
 
+    const update = {
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      cpf: cpf.trim(),
+      notes: notes ? notes.trim() : '',
+      tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : [],
+      birthDate: birthDate ? new Date(birthDate) : null,
+      lastEventType: lastEventType ? String(lastEventType).trim() : ''
+    };
+
+    // nextContactDate: null limpa o agendamento; string vazia é ignorada
+    if (nextContactDate !== undefined) {
+      update.nextContactDate = nextContactDate ? new Date(nextContactDate) : null;
+    }
+
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, organizationId: orgId },
-      {
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        cpf: cpf.trim(),
-        notes: notes ? notes.trim() : '',
-        tags: Array.isArray(tags) ? tags.filter(t => t.trim()) : [],
-        birthDate: birthDate ? new Date(birthDate) : null,
-        lastEventType: lastEventType ? String(lastEventType).trim() : ''
-      },
+      update,
       { returnDocument: 'after', runValidators: true }
     );
 

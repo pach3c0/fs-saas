@@ -606,7 +606,7 @@ const MANUAL_MODULES = [
               </div>
               <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
                 <span style="width:6px; height:6px; border-radius:50%; background:var(--text-secondary); flex-shrink:0; margin-top:0.35rem;"></span>
-                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Data do Evento</strong> — Quando o ensaio ou evento aconteceu. Opcional, mas recomendado para relatórios e para a reativação anual automática de clientes.</span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Data do Evento</strong> — Quando o ensaio ou evento aconteceu. Opcional, mas recomendado para relatórios de marketing.</span>
               </div>
               <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:7px; border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);">
                 <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
@@ -713,7 +713,7 @@ const MANUAL_MODULES = [
                   <span>Ensaio</span>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
-                <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem;">Categoria do evento. Usada para reativação anual e relatórios.</div>
+                <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem;">Categoria do evento para relatórios e filtros.</div>
               </div>
               <div style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0.25rem;">
                 <div style="width:16px; height:16px; border-radius:4px; border:2px solid var(--accent); background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -725,7 +725,7 @@ const MANUAL_MODULES = [
             <div style="display:flex; flex-direction:column; gap:0.3rem;">
               <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
                 <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Tipo de Evento</strong> — Classifica o ensaio (Casamento, Ensaio, Newborn, Formatura, etc.). Usado em dois momentos: (1) reativação anual — um ano depois, o sistema envia um e-mail comemorativo ao cliente; (2) relatórios de marketing com breakdown por categoria.</span>
+                <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Tipo de Evento</strong> — Classifica o ensaio (Casamento, Ensaio, Newborn, Formatura, etc.) para relatórios de marketing e filtros. Para agendar um e-mail de reativação para este cliente, acesse a tab <strong style="color:var(--text-primary);">Clientes</strong> e edite o campo "Próximo Contato".</span>
               </div>
               <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
                 <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>

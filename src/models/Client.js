@@ -17,7 +17,13 @@ const ClientSchema = new mongoose.Schema({
   birthDate: { type: Date, default: null },
   lastEventType: { type: String, default: '' },
   lastEventDate: { type: Date, default: null },
-  lifetimeValue: { type: Number, default: 0 }
+  lifetimeValue: { type: Number, default: 0 },
+  // CRM reativacao: data configurada pelo fotografo para envio automatico de e-mail
+  nextContactDate: { type: Date, default: null },
+  contactHistory: [{
+    sentAt: { type: Date },
+    note: { type: String, default: '' }
+  }]
 }, { timestamps: true });
 
 // Email unico por organizacao (sparse para permitir email vazio)

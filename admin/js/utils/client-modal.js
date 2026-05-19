@@ -8,14 +8,19 @@ let _onSuccessCallback = null;
 export function setupClientModal() {
   const btnCancelar = document.getElementById('btnCancelarCliente');
   const btnSalvar = document.getElementById('btnSalvarCliente');
+  const btnLimpar = document.getElementById('btnLimparNextContact');
 
   if (btnCancelar) btnCancelar.onclick = fecharModal;
   if (btnSalvar) btnSalvar.onclick = salvarCliente;
+  if (btnLimpar) btnLimpar.onclick = () => {
+    const input = document.getElementById('clienteNextContactDate');
+    if (input) input.value = '';
+  };
 }
 
 export function abrirModalClienteNovo(initialName = '', callback = null) {
   _onSuccessCallback = callback;
-  
+
   document.getElementById('modalClienteTitulo').textContent = 'Novo Cliente';
   document.getElementById('clienteNome').value = initialName;
   document.getElementById('clienteEmail').value = '';
@@ -25,16 +30,19 @@ export function abrirModalClienteNovo(initialName = '', callback = null) {
   document.getElementById('clienteLastEventType').value = '';
   document.getElementById('clienteTags').value = '';
   document.getElementById('clienteNotas').value = '';
+  document.getElementById('clienteNextContactDate').value = '';
+  const hist = document.getElementById('clienteContactHistory');
+  if (hist) { hist.style.display = 'none'; hist.innerHTML = ''; }
   document.getElementById('modalClienteErro').style.display = 'none';
   document.getElementById('btnSalvarCliente').dataset.editandoId = '';
-  
+
   document.getElementById('modalCliente').style.display = 'flex';
   setTimeout(() => document.getElementById('clienteNome').focus(), 50);
 }
 
 export function abrirModalClienteEditar(cliente, callback = null) {
   _onSuccessCallback = callback;
-  
+
   document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
   document.getElementById('clienteNome').value = cliente.name || '';
   document.getElementById('clienteEmail').value = cliente.email || '';
@@ -44,9 +52,27 @@ export function abrirModalClienteEditar(cliente, callback = null) {
   document.getElementById('clienteLastEventType').value = cliente.lastEventType || '';
   document.getElementById('clienteTags').value = (cliente.tags || []).join(', ');
   document.getElementById('clienteNotas').value = cliente.notes || '';
+  document.getElementById('clienteNextContactDate').value = cliente.nextContactDate ? String(cliente.nextContactDate).slice(0, 10) : '';
   document.getElementById('modalClienteErro').style.display = 'none';
   document.getElementById('btnSalvarCliente').dataset.editandoId = cliente._id;
-  
+
+  // Histórico de contatos enviados
+  const hist = document.getElementById('clienteContactHistory');
+  if (hist) {
+    const history = Array.isArray(cliente.contactHistory) ? cliente.contactHistory : [];
+    if (history.length > 0) {
+      const items = history.slice(-3).reverse().map(h => {
+        const d = h.sentAt ? new Date(h.sentAt).toLocaleDateString('pt-BR') : '—';
+        return `<span>📧 Enviado em ${d}</span>`;
+      });
+      hist.innerHTML = `<div style="display:flex; flex-direction:column; gap:0.2rem;">${items.join('')}</div>`;
+      hist.style.display = 'block';
+    } else {
+      hist.style.display = 'none';
+      hist.innerHTML = '';
+    }
+  }
+
   document.getElementById('modalCliente').style.display = 'flex';
 }
 
@@ -64,6 +90,7 @@ async function salvarCliente() {
   const lastEventType = document.getElementById('clienteLastEventType').value;
   const tagsRaw = document.getElementById('clienteTags').value;
   const notas = document.getElementById('clienteNotas').value.trim();
+  const nextContactDate = document.getElementById('clienteNextContactDate').value || null;
   const btnSalvar = document.getElementById('btnSalvarCliente');
   const editandoId = btnSalvar.dataset.editandoId;
   const erroEl = document.getElementById('modalClienteErro');
@@ -78,7 +105,8 @@ async function salvarCliente() {
   const payload = {
     name: nome, email, phone: telefone, cpf, notes: notas, tags,
     birthDate: birthDate || null,
-    lastEventType: lastEventType || ''
+    lastEventType: lastEventType || '',
+    nextContactDate
   };
 
   btnSalvar.disabled = true;

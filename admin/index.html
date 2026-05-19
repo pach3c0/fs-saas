@@ -1334,9 +1334,19 @@
                     <span class="input-hint">Separe as tags por vírgula</span>
                 </div>
 
-                <div class="input-group" style="margin-bottom:0;">
+                <div class="input-group">
                     <label>Notas</label>
                     <textarea id="clienteNotas" class="input" rows="3" placeholder="Observações sobre o cliente..." style="resize:vertical;"></textarea>
+                </div>
+
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>📅 Próximo Contato</label>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="date" id="clienteNextContactDate" class="input" style="flex:1;">
+                        <button type="button" id="btnLimparNextContact" class="btn btn-sm">Limpar</button>
+                    </div>
+                    <span class="input-hint">O sistema enviará um e-mail de reativação nesta data. Salvo no cadastro do cliente — mantido mesmo se a sessão for excluída.</span>
+                    <div id="clienteContactHistory" style="display:none; margin-top:0.5rem; font-size:0.8125rem; color:var(--text-muted);"></div>
                 </div>
             </div>
 
