@@ -389,55 +389,103 @@ const MANUAL_MODULES = [
     label: 'Dashboard',
     icon: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
     content: `
-      <div style="display:flex; flex-direction:column; gap:1.5rem; padding-top:1.25rem;">
+      <div style="display:flex; flex-direction:column; gap:1.75rem; padding-top:1.25rem;">
+
         <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0;">
-          O Dashboard é a tela inicial do painel. Exibe um resumo operacional do seu estúdio — KPIs atualizados, as sessões mais recentes e atalhos para as ações mais comuns.
+          O Dashboard é a tela inicial do painel. Exibe um resumo do seu negócio — KPIs atualizados, as sessões mais recentes e atalhos para as ações mais comuns.
         </p>
 
+        <!-- KPI Cards -->
         <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Indicadores (KPIs)</p>
-          <div style="display:flex; flex-direction:column; gap:0.4rem;">
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Indicadores (KPIs)</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Quatro cartões no topo da tela mostram os números-chave do seu negócio em tempo real:</p>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.4rem; margin-bottom:0.875rem; pointer-events:none; border:1px solid var(--border); border-radius:10px; padding:0.625rem; background:var(--bg-elevated);">
             ${[
-              { color: 'var(--accent)',  label: 'Total de Sessões', desc: 'Número total de sessões criadas na sua conta.' },
-              { color: 'var(--orange)', label: 'Fotos Upadas',      desc: 'Soma de todas as fotos enviadas em todas as sessões.' },
-              { color: 'var(--orange)', label: 'Espaço Usado',      desc: 'Armazenamento em MB consumido pelos seus uploads.' },
-              { color: 'var(--green)',  label: 'Entregues',         desc: 'Sessões finalizadas com status "Entregue".' },
+              { color:'var(--accent)',  icon:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',        label:'Total de Sessões', value:'12'     },
+              { color:'var(--orange)', icon:'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',label:'Fotos Upadas',      value:'486'    },
+              { color:'var(--orange)', icon:'<line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',label:'Espaço Usado','value':'230 MB' },
+              { color:'var(--green)',  icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',                                          label:'Entregues',          value:'8'      },
             ].map(k => `
-              <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px;">
-                <span style="width:8px; height:8px; border-radius:50%; background:${k.color}; flex-shrink:0; margin-top:0.3rem;"></span>
-                <span style="font-size:0.875rem; color:var(--text-primary);"><strong>${k.label}</strong> — <span style="color:var(--text-secondary);">${k.desc}</span></span>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.625rem 0.75rem; display:flex; align-items:center; gap:0.5rem;">
+                <div style="width:28px; height:28px; border-radius:6px; background:var(--bg-elevated); color:${k.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border);">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${k.icon}</svg>
+                </div>
+                <div>
+                  <div style="font-size:0.6rem; color:var(--text-secondary); line-height:1.2;">${k.label}</div>
+                  <div style="font-size:1rem; font-weight:700; color:var(--text-primary); line-height:1.2;">${k.value}</div>
+                </div>
               </div>
             `).join('')}
           </div>
-        </div>
-
-        <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Sessões Recentes</p>
-          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem; color:var(--text-secondary); line-height:1.7;">
-            Lista as últimas 5 sessões criadas. <strong style="color:var(--text-primary);">Clique em qualquer item</strong> para abrir a sessão diretamente e gerenciar fotos, status e entrega.
-          </div>
-        </div>
-
-        <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Ações Rápidas</p>
-          <div style="display:flex; flex-direction:column; gap:0.4rem;">
+          <div style="display:flex; flex-direction:column; gap:0.35rem;">
             ${[
-              { label: 'Nova Sessão',  desc: 'Abre o formulário de criação de sessão.' },
-              { label: 'Ver meu Site', desc: 'Abre o site público do seu estúdio em uma nova aba.' },
-            ].map(a => `
-              <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem;">
-                <span style="color:var(--text-primary);"><strong>${a.label}</strong> — <span style="color:var(--text-secondary);">${a.desc}</span></span>
+              { color:'var(--accent)',  label:'Total de Sessões', desc:'Número total de sessões criadas na sua conta.' },
+              { color:'var(--orange)', label:'Fotos Upadas',      desc:'Soma de todas as fotos enviadas em todas as sessões.' },
+              { color:'var(--orange)', label:'Espaço Usado',      desc:'Armazenamento em MB consumido pelos seus uploads.' },
+              { color:'var(--green)',  label:'Entregues',         desc:'Sessões finalizadas com status "Entregue".' },
+            ].map(k => `
+              <div style="display:flex; align-items:flex-start; gap:0.625rem; padding:0.5rem 0.75rem; background:var(--bg-elevated); border-radius:7px;">
+                <span style="width:7px; height:7px; border-radius:50%; background:${k.color}; flex-shrink:0; margin-top:0.3rem;"></span>
+                <span style="font-size:0.8125rem; color:var(--text-primary);"><strong>${k.label}</strong> — <span style="color:var(--text-secondary);">${k.desc}</span></span>
               </div>
             `).join('')}
           </div>
         </div>
 
+        <!-- Sessões Recentes -->
         <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.75rem;">Checklist de Início</p>
-          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.875rem; color:var(--text-secondary); line-height:1.7;">
-            Aparece para novos fotógrafos com 4 passos guiados (criar sessão, subir fotos, vincular cliente, enviar link). Some automaticamente após completar todos os passos ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Sessões Recentes</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Lista as últimas 5 sessões. <strong style="color:var(--text-primary);">Clique em qualquer item</strong> para abrir a sessão e gerenciar fotos, status e entrega.</p>
+          <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; pointer-events:none; background:var(--bg-surface); margin-bottom:0.5rem;">
+            ${[
+              { name:'Casamento Silva & Ana', date:'12 Mai 2025', status:'Entregue',   statusColor:'var(--green)',  statusBg:'rgba(63,185,80,0.12)'  },
+              { name:'Ensaio Newborn — Lara', date:'08 Mai 2025', status:'Revisar',    statusColor:'var(--accent)', statusBg:'rgba(47,129,247,0.12)' },
+              { name:'Book Profissional — João', date:'02 Mai 2025', status:'Pendente', statusColor:'var(--yellow)', statusBg:'rgba(210,153,34,0.12)' },
+            ].map((s, i) => `
+              <div style="padding:0.625rem 0.875rem; ${i < 2 ? 'border-bottom:1px solid var(--border);' : ''} display:flex; align-items:center; gap:0.75rem;">
+                <div style="width:32px; height:32px; border-radius:7px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:0.8125rem; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                  <div style="font-size:0.6875rem; color:var(--text-secondary);">${s.date}</div>
+                </div>
+                <div style="padding:0.2rem 0.5rem; border-radius:20px; font-size:0.6875rem; font-weight:600; background:${s.statusBg}; color:${s.statusColor}; flex-shrink:0;">${s.status}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
+
+        <!-- Ações Rápidas -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Ações Rápidas</p>
+          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Dois atalhos para as tarefas mais frequentes:</p>
+          <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem; pointer-events:none;">
+            ${[
+              { label:'Nova Sessão',  icon:'<path d="M12 5v14M5 12h14"/>',                                                                                desc:'Abre o formulário de criação de sessão.' },
+              { label:'Ver meu Site', icon:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',                    desc:'Abre o site público do seu negócio em nova aba.' },
+            ].map(a => `
+              <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:9px;">
+                <div style="width:28px; height:28px; border-radius:7px; background:rgba(47,129,247,0.1); color:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${a.icon}</svg>
+                </div>
+                <div>
+                  <div style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">${a.label}</div>
+                  <div style="font-size:0.75rem; color:var(--text-secondary);">${a.desc}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Checklist de Início -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Checklist de Início</p>
+          <div style="padding:0.6rem 0.875rem; background:var(--bg-elevated); border-radius:8px; font-size:0.8125rem; color:var(--text-secondary); line-height:1.7;">
+            Aparece para novos usuários com 4 passos guiados (criar sessão, subir fotos, vincular cliente, enviar link). Some automaticamente após completar todos os passos ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.
+          </div>
+        </div>
+
       </div>
     `
   },
