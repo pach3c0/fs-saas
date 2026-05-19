@@ -21,6 +21,14 @@ function formatBirthShort(d) {
   return `${String(dt.getUTCDate()).padStart(2,'0')}/${meses[dt.getUTCMonth()]}`;
 }
 
+// Formata Date como DD/MM/AAAA lendo partes UTC — evita que fuso BRT (UTC-3)
+// desloque datas armazenadas como T00:00:00Z um dia para trás.
+function fmtDateUTC(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return `${String(dt.getUTCDate()).padStart(2,'0')}/${String(dt.getUTCMonth()+1).padStart(2,'0')}/${dt.getUTCFullYear()}`;
+}
+
 // Retorna numero de dias ate o proximo aniversario (ignorando ano)
 function diasAteAniversario(d) {
   if (!d) return null;
@@ -178,10 +186,10 @@ function renderLista(container) {
       : '';
 
     const nextContact = c.nextContactDate
-      ? `<span style="background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); color:var(--accent); font-size:0.75rem; padding:0.1rem 0.5rem; border-radius:0.25rem; white-space:nowrap;" title="Reativação agendada — e-mail será enviado automaticamente nesta data">📅 ${new Date(c.nextContactDate).toLocaleDateString('pt-BR')}</span>`
+      ? `<span style="background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); color:var(--accent); font-size:0.75rem; padding:0.1rem 0.5rem; border-radius:0.25rem; white-space:nowrap;" title="Reativação agendada — e-mail será enviado automaticamente nesta data">📅 ${fmtDateUTC(c.nextContactDate)}</span>`
       : '';
     const lastContact = (!c.nextContactDate && c.contactHistory && c.contactHistory.length > 0)
-      ? `<span style="color:var(--text-muted); font-size:0.75rem;" title="Último e-mail de reativação enviado">✓ Último contato: ${new Date(c.contactHistory[c.contactHistory.length - 1].sentAt).toLocaleDateString('pt-BR')}</span>`
+      ? `<span style="color:var(--text-muted); font-size:0.75rem;" title="Último e-mail de reativação enviado">✓ Último contato: ${fmtDateUTC(c.contactHistory[c.contactHistory.length - 1].sentAt)}</span>`
       : '';
 
     const isSelected = selectedClientIds.includes(c._id);

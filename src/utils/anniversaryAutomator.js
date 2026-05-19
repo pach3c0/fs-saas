@@ -19,9 +19,11 @@ async function run(organizationId = null) {
   const orgQuery = organizationId ? { _id: organizationId } : { isActive: true };
   const orgs = await Organization.find(orgQuery).select('_id name slug integrations').lean();
 
-  const enabledOrgIds = orgs
-    .filter(o => o?.integrations?.salesAutomator?.enabled)
-    .map(o => o._id);
+  // Disparo manual (organizationId passado): ignora o flag enabled — o fotógrafo
+  // está acionando explicitamente. Disparo automático (cron): respeita o flag.
+  const enabledOrgIds = organizationId
+    ? orgs.map(o => o._id)
+    : orgs.filter(o => o?.integrations?.salesAutomator?.enabled).map(o => o._id);
 
   if (enabledOrgIds.length === 0) return { sent: 0, skipped: 0 };
 

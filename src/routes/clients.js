@@ -132,9 +132,17 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
       lastEventType: lastEventType ? String(lastEventType).trim() : ''
     };
 
-    // nextContactDate: null limpa o agendamento; string vazia é ignorada
+    // nextContactDate: null limpa o agendamento; string vazia é ignorada.
+    // Strings no formato YYYY-MM-DD são parseadas como UTC noon para evitar
+    // que o fuso BRT (UTC-3) mova a data um dia para trás.
     if (nextContactDate !== undefined) {
-      update.nextContactDate = nextContactDate ? new Date(nextContactDate) : null;
+      if (!nextContactDate) {
+        update.nextContactDate = null;
+      } else {
+        update.nextContactDate = /^\d{4}-\d{2}-\d{2}$/.test(nextContactDate)
+          ? new Date(`${nextContactDate}T12:00:00Z`)
+          : new Date(nextContactDate);
+      }
     }
 
     const client = await Client.findOneAndUpdate(
