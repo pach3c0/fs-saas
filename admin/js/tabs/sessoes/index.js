@@ -204,7 +204,7 @@ export async function renderSessoes(container) {
                   <option value="batizado">Batizado</option>
                 </select>
               </div>
-              <p class="input-hint">Categoria do evento. Usada para reativação anual e relatórios.</p>
+              <p class="input-hint">Categoria do evento para relatórios e filtros.</p>
             </div>
             <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
               <input type="checkbox" id="sessionSalesAutomation" checked class="check" disabled>
