@@ -226,6 +226,7 @@
 - **Dashboard auditado e refatorado** — fixes de qualidade + sessões recentes clicáveis
 - **Manual do Usuário** — seção na tab Ajuda com sub-nav, accordion por módulo e mini-previews visuais. Dashboard e Sessões documentados. Ver `skills/00_manual-usuario.md`
 - **Auditoria Sessões** — 7 fixes de tokens CSS aplicados (hexcodes, RGBA, prefixo `--ad-*`, tokens inexistentes). Ver `skills/02_sessoes.md`
+- **Manual Sessões — formulário de criação** — Seção "Criando uma Nova Sessão — Modo Seleção" documentada com 9 blocos e mini-previews (modo, cliente, nome, datas, capa, resolução, pacote, extras/reabertura, CRM). Fix: validação de data de criação removida de `modal-form.js` — apenas prazo ≥ evento é obrigatório. Commit `0a72be8`
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)

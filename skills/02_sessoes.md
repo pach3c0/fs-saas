@@ -53,8 +53,8 @@ Estado compartilhado entre todos os arquivos do módulo:
 ### modal-form.js
 - `setupModalForm(container, state, renderSessoes)` — lógica do modal Nova Sessão e Editar Sessão
 - Habilita/desabilita campos dinamicamente conforme o modo escolhido
-- Valida datas (prazo deve ser após o evento)
-- Busca de cliente com autocomplete (`GET /api/clients/search?q=`)
+- **Validação de datas:** única regra — prazo de seleção deve ser posterior à data do evento. "Criado em" é só registro, sem validação (fotógrafo pode criar sessão retroativa ou futura sem bloqueio). Fix aplicado em 2026-05-19 (commit `0a72be8`).
+- Busca de cliente com autocomplete (`GET /api/clients/search?q=`) + criação de novo cliente inline via `abrirModalClienteNovo()`
 - Criação: `POST /api/sessions` · Edição: `PUT /api/sessions/:id`
 
 ### modal-detail.js
