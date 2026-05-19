@@ -37,6 +37,29 @@ O próximo passo é **Clientes** (`admin/js/tabs/clientes.js`) e **Mensagens** (
 - `skills/02_sessoes.md` — skill completo do módulo
 - `skills/00_manual-usuario.md` — sessoes marcado como `✅ Documentado`
 
+### UX da lista de sessões (2026-05-20 — commits `e76e931`, `5df4e0d`, `55b8321`)
+
+**Fix crítico — `photoResolution` não enviado na criação:**
+- `admin/js/tabs/sessoes/modal-form.js` — `#sessionResolution` existia no HTML mas nunca era lido no payload. Sessões criadas com 1600px eram salvas com 1200px (default do schema). Corrigido lendo e enviando `photoResolution` em `#confirmNewSession`.
+
+**Badge de tipo de evento + filtro:**
+- `admin/js/tabs/sessoes/list.js` — badge roxo com nome do tipo de evento (ex: "Casamento") nos cards, omitido para 'outro'
+- `admin/js/tabs/sessoes/index.js` — `<select id="filterEventType">` adicionado à segunda linha de filtros
+- `admin/js/tabs/sessoes/list.js` — `filterAndRender` e `setupListFilters` atualizados para o novo filtro
+
+**Cliente clicável:**
+- `admin/js/tabs/sessoes/list.js` — nome do cliente virou `<button>` que seta `window._pendingOpenClientId` e chama `window.switchTab('clientes')`
+- `admin/js/tabs/clientes.js` — hook no final de `carregarClientes` verifica `window._pendingOpenClientId` e abre o modal de edição
+
+**Timeline de progresso nos cards:**
+- `admin/js/tabs/sessoes/list.js` — funções `getSessionProgress(session)` e `renderProgressStepper(session)`. Stepper com 5 passos (seleção/multi) ou 4 (gallery). Chip colorido: → ação do fotógrafo, ⏳ aguardando cliente, ✓ concluído, ⚠ alerta.
+
+**Pedido de reabertura no card:**
+- `src/models/Session.js` — campo `reopenRequested: { type: Boolean, default: false }`
+- `src/routes/sessions.js` — `POST /client/request-reopen` salva `reopenRequested = true`; `PUT /sessions/:id/reopen` limpa o campo; novo `PUT /sessions/:id/dismiss-reopen` recusa sem reabrir
+- `admin/js/tabs/sessoes/actions.js` — `window.dismissReopenRequest(sessionId)` → `PUT /sessions/:id/dismiss-reopen`
+- `admin/js/tabs/sessoes/list.js` — quando `reopenRequested`: badge ⚠ laranja no header do card, 6º passo "Reabertura" (laranja/warn) no stepper, botões "✓ Reabrir" + "✗ Recusar pedido", botão Entregar bloqueado
+
 ---
 
 ## Regras obrigatórias antes de tocar em qualquer código

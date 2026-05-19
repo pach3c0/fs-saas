@@ -240,6 +240,8 @@
 - **Filtro de tipo de arquivo** — Input de capa (modal de edição) corrigido para `accept=".jpg,.jpeg,.png"`. Manual atualizado (remoção de "10 MB", adição de nota sobre badge de dimensões).
 - **CRM — Reativação por cliente** — `nextContactDate` migrado para o model `Client`. `anniversaryAutomator` reescrito para consultar clientes (não sessões). Fix de timezone: datas salvas como `T12:00:00Z`. E-mail suporta grid de até 3 fotos do último evento (toggle por disparo). Commits `fe644e2`, `d4e0ee1`.
 - **Manual Clientes** — Seção de Clientes no Manual do Usuário documentada: cadastro, reativação automática (Próximo Contato), badge 📅, disparo manual com toggle de fotos. Commit `b27d9e5`.
+- **UX da lista de sessões** — (1) fix crítico: `photoResolution` nunca era enviado no payload de criação — sessões com 1600px ficavam salvas como 1200px; (2) badge de tipo de evento (roxo) nos cards + filtro `#filterEventType`; (3) nome do cliente clicável navega direto ao cadastro; (4) timeline de progresso visual em cada card (5 passos: Criada→Fotos→Link→Seleção→Entregue) com chip de próximo passo colorido. Commits `e76e931`, `5df4e0d`
+- **Pedido de reabertura no card** — campo `session.reopenRequested` registra o pedido no documento. Card exibe badge ⚠ laranja, passo "Reabertura" (laranja) no stepper, botões "✓ Reabrir" / "✗ Recusar pedido", botão Entregar bloqueado até decisão. Novo endpoint `PUT /sessions/:id/dismiss-reopen`. Commit `55b8321`
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)

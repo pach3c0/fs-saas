@@ -45,9 +45,13 @@ Estado compartilhado entre todos os arquivos do módulo:
 
 ### list.js
 - `loadSessions(container, state)` — `GET /api/sessions`, popula `state.sessionsData`, chama `filterAndRender()`
-- `filterAndRender(container, state)` — aplica filtros (busca, modo, status, data) e chama `renderList()`
-- `renderList(container, items)` — renderiza os cartões de sessão com badges de status, botões de ação e barra de código
-- `setupListFilters(container, state)` — registra listeners nos inputs de filtro
+- `filterAndRender(container, state)` — aplica filtros (busca, modo, tipo de evento `#filterEventType`, status, data) e chama `renderList()`
+- `renderList(container, items)` — renderiza os cartões de sessão com badges de status, botões de ação, timeline de progresso e barra de código
+- `setupListFilters(container, state)` — registra listeners nos inputs de filtro (inclui `#filterEventType`)
+- `getSessionProgress(session)` — calcula o estado de cada passo do workflow (Criada/Fotos/Link/Seleção/Entregue) a partir dos campos `photos`, `codeSentAt`, `firstAccessAt`, `selectionStatus`, `selectionDeadline`, `reopenRequested`. Retorna `{steps, nextAction, nextType}`.
+- `renderProgressStepper(session)` — gera HTML do stepper visual com dots coloridos e chip de próximo passo (`action`/`wait`/`done`/`warn`). Modo gallery usa 4 passos; seleção/multi usa 5 (+ 6º "Reabertura" se `reopenRequested`).
+- **Badge de tipo de evento:** span roxo com nome legível (ex: "Casamento"), omitido para `eventType === 'outro'`
+- **Cliente clicável:** botão transparente com `window._pendingOpenClientId = id; window.switchTab('clientes')` — navega para o cadastro do cliente
 - **Cores dos cartões por modo:** `color-mix(in srgb, var(--green) 4%, transparent)` (seleção), `--orange` (multi), `--purple` (galeria)
 
 ### modal-form.js
@@ -71,8 +75,9 @@ Estado compartilhado entre todos os arquivos do módulo:
 - `setupActions(container, state, renderSessoes)` — define funções globais de ação
 - `window.copySessionCode(code, btn)` — copia para clipboard com feedback visual
 - `window.sendSessionCode(sessionId, accessCode)` — `POST /api/sessions/:id/send-code`
-- `window.reopenSelection(sessionId)` — `PUT /api/sessions/:id/reopen`
-- `window.deliverSession(sessionId)` — `PUT /api/sessions/:id/deliver` (lógica diferente por modo: gallery vs selection)
+- `window.reopenSelection(sessionId)` — `PUT /api/sessions/:id/reopen` (limpa `reopenRequested`)
+- `window.dismissReopenRequest(sessionId)` — `PUT /api/sessions/:id/dismiss-reopen` (recusa pedido sem reabrir seleção)
+- `window.deliverSession(sessionId)` — `PUT /api/sessions/:id/deliver` (lógica diferente por modo: gallery vs selection; bloqueado se `reopenRequested`)
 - `window.acceptExtraRequest(sessionId)` — `PUT /api/sessions/:id/extra-request/accept`
 - `window.rejectExtraRequest(sessionId)` — `PUT /api/sessions/:id/extra-request/reject` (modal customizado com campo de motivo)
 - `window.deleteSession(sessionId)` — `DELETE /api/sessions/:id`
@@ -115,7 +120,12 @@ Estado compartilhado entre todos os arquivos do módulo:
 | Botão Participantes | list.js (multi_selection) | Gerencia participantes |
 | Botão 📧 Enviar | list.js | Envia código por e-mail |
 | Botão Entregar / Re-entregar | list.js | Libera download ao cliente |
-| Botão Reabrir | list.js | Reabre seleção do cliente |
+| Filtro tipo de evento | list.js + index.js | Filtrar sessões por tipo (Casamento, Formatura…) |
+| Badge tipo de evento | list.js | Span roxo com tipo do trabalho no card |
+| Timeline de progresso | list.js | Stepper visual Criada→Fotos→Link→Seleção→Entregue + chip próximo passo |
+| Badge ⚠ Reabertura solicitada | list.js | Alerta laranja quando cliente pediu reabertura |
+| Botão ✓ Reabrir / ✗ Recusar pedido | list.js | Decisão sobre pedido de reabertura (substitui "Reabrir" quando `reopenRequested`) |
+| Botão Reabrir | list.js | Reabre seleção manualmente (sem pedido pendente) |
 | Botão Histórico | list.js | Timeline de eventos da sessão |
 | Modal de fotos (grid) | modal-detail.js | Upload, visualização, bulk delete |
 | Aba Entrega Final | modal-detail.js | Fotos editadas prontas p/ entrega |
@@ -164,7 +174,8 @@ Ações do usuário:
 | `window.deliverSession(id)` | função | actions.js | Entregar sessão |
 | `window.sendSessionCode(id, code)` | função | actions.js | Enviar código por e-mail |
 | `window.copySessionCode(code, btn)` | função | actions.js | Copiar código com feedback visual |
-| `window.reopenSelection(id)` | função | actions.js | Reabrir seleção |
+| `window.reopenSelection(id)` | função | actions.js | Reabrir seleção (limpa `reopenRequested`) |
+| `window.dismissReopenRequest(id)` | função | actions.js | Recusar pedido de reabertura sem reabrir |
 | `window.deleteSession(id)` | função | actions.js | Deletar sessão |
 | `window.setSessionCover(id, url)` | função | actions.js | Definir foto de capa |
 | `window.togglePhotoHidden(id, photoId)` | função | actions.js | Ocultar/mostrar foto |
@@ -191,6 +202,13 @@ Ações do usuário:
 - Valor padrão: `1200` (se não configurado na sessão).
 - Valores válidos: `960`, `1200`, `1400`, `1600`.
 - **Não pode ser alterado após criação** — validado na lógica de edição.
+- **Fix (2026-05-20):** `modal-form.js` agora lê e envia `photoResolution` no payload de criação. Antes, o campo `#sessionResolution` existia no HTML mas nunca era lido — todas as sessões eram criadas com 1200px independente da escolha.
+
+### Pedido de reabertura (`reopenRequested`)
+- Campo `reopenRequested: Boolean` (default `false`) no model `Session`.
+- Setado para `true` pelo endpoint `POST /client/request-reopen` quando o cliente pede reabertura.
+- Limpo (`false`) pelo `PUT /sessions/:id/reopen` (admin reabre) ou `PUT /sessions/:id/dismiss-reopen` (admin recusa sem reabrir).
+- Enquanto `true`: botão Entregar bloqueado no card; stepper exibe 6º passo "Reabertura" em laranja; dois botões de decisão aparecem no lugar do "Reabrir" padrão.
 
 ---
 
