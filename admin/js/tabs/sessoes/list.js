@@ -82,6 +82,82 @@ export function filterAndRender(container, state) {
   renderList(container, filtered);
 }
 
+function getSessionProgress(session) {
+  const isGallery = session.mode === 'gallery';
+  const hasPhotos = (session.photos?.length || 0) > 0;
+  const linkSent = !!session.codeSentAt;
+  const clientAccessed = !!session.firstAccessAt;
+  const selectionDone = ['submitted', 'delivered'].includes(session.selectionStatus);
+  const delivered = session.selectionStatus === 'delivered';
+  const isExpired = (() => {
+    const dl = session.selectionDeadline ? new Date(session.selectionDeadline) : null;
+    return dl && new Date() > dl && !selectionDone;
+  })();
+
+  const steps = isGallery
+    ? [
+        { label: 'Criada',   done: true },
+        { label: 'Fotos',    done: hasPhotos },
+        { label: 'Link',     done: linkSent },
+        { label: 'Entregue', done: delivered },
+      ]
+    : [
+        { label: 'Criada',   done: true },
+        { label: 'Fotos',    done: hasPhotos },
+        { label: 'Link',     done: linkSent },
+        { label: 'Seleção',  done: selectionDone },
+        { label: 'Entregue', done: delivered },
+      ];
+
+  const activeIdx = steps.findIndex(s => !s.done);
+  if (activeIdx !== -1) steps[activeIdx].active = true;
+
+  let nextAction, nextType;
+  if (delivered) {
+    nextAction = 'Sessão concluída'; nextType = 'done';
+  } else if (isExpired) {
+    nextAction = 'Prazo vencido — considere reabrir'; nextType = 'warn';
+  } else if (!hasPhotos) {
+    nextAction = 'Faça upload das fotos'; nextType = 'action';
+  } else if (!linkSent) {
+    nextAction = 'Envie o link ao cliente'; nextType = 'action';
+  } else if (isGallery) {
+    nextAction = 'Libere o download ao cliente'; nextType = 'action';
+  } else if (!clientAccessed) {
+    nextAction = 'Aguardando o cliente acessar'; nextType = 'wait';
+  } else if (!selectionDone) {
+    nextAction = 'Aguardando seleção do cliente'; nextType = 'wait';
+  } else {
+    nextAction = 'Entregue as fotos selecionadas'; nextType = 'action';
+  }
+
+  return { steps, nextAction, nextType };
+}
+
+function renderProgressStepper(session) {
+  const { steps, nextAction, nextType } = getSessionProgress(session);
+
+  const parts = [];
+  steps.forEach((step, i) => {
+    const color = step.done ? 'var(--green)' : (step.active ? 'var(--accent)' : 'var(--border)');
+    const icon = step.done ? '✓' : (step.active ? '›' : '');
+    parts.push(`<div style="display:flex;flex-direction:column;align-items:center;gap:0.125rem;"><div style="width:1.1rem;height:1.1rem;border-radius:50%;background:${color};color:#fff;font-size:0.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;">${icon}</div><span style="font-size:0.5rem;color:${step.done || step.active ? 'var(--text-primary)' : 'var(--text-muted)'};white-space:nowrap;">${step.label}</span></div>`);
+    if (i < steps.length - 1) {
+      parts.push(`<div style="flex:1;height:1px;background:${step.done ? 'var(--green)' : 'var(--border)'};margin-top:0.5rem;"></div>`);
+    }
+  });
+
+  const chips = {
+    action: { bg: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: 'color-mix(in srgb, var(--accent) 30%, transparent)', color: 'var(--text-primary)', icon: '→' },
+    wait:   { bg: 'color-mix(in srgb, var(--yellow) 12%, transparent)', border: 'color-mix(in srgb, var(--yellow) 30%, transparent)', color: 'var(--yellow)',       icon: '⏳' },
+    done:   { bg: 'color-mix(in srgb, var(--green) 12%, transparent)',  border: 'color-mix(in srgb, var(--green) 30%, transparent)',  color: 'var(--green)',        icon: '✓' },
+    warn:   { bg: 'color-mix(in srgb, var(--red) 12%, transparent)',    border: 'color-mix(in srgb, var(--red) 30%, transparent)',    color: 'var(--red)',          icon: '⚠' },
+  };
+  const c = chips[nextType] || chips.action;
+
+  return `<div style="border-top:1px solid var(--border);margin-top:0.625rem;padding-top:0.5rem;"><div style="display:flex;align-items:flex-start;margin-bottom:0.4rem;">${parts.join('')}</div><span style="font-size:0.6875rem;background:${c.bg};border:1px solid ${c.border};color:${c.color};padding:0.15rem 0.5rem;border-radius:0.25rem;font-weight:500;">${c.icon} ${nextAction}</span></div>`;
+}
+
 function renderList(container, items) {
   const list = container.querySelector('#sessionsList');
   if (items.length === 0) {
@@ -227,6 +303,7 @@ function renderList(container, items) {
             </button>
           </div>
         </div>
+        ${renderProgressStepper(session)}
         <div style="font-size:0.75rem; background:var(--bg-base); border-radius:0.25rem; padding:0.375rem 0.75rem; font-family:monospace; color:var(--accent); margin-top:0.5rem; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
           <span>Codigo: ${session.accessCode}</span>
           <button onclick="copySessionCode('${session.accessCode}', this)" style="background:var(--bg-hover); color:var(--text-secondary); padding:0.2rem 0.5rem; border-radius:0.25rem; border:1px solid var(--border); cursor:pointer; font-size:0.625rem; font-family:sans-serif; transition: all 0.2s;" title="Copiar codigo">
