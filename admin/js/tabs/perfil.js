@@ -291,6 +291,90 @@ function applyPreset(container, preset) {
   updateWatermarkPreview(container);
 }
 
+// Resetar formatação da watermark (mantém texto e tipo/logo)
+function resetWatermark(container) {
+  const defaults = {
+    watermarkFontColor: '#ffffff',
+    watermarkFontFamily: 'Arial',
+    watermarkFontWeight: 'bold',
+    watermarkFontStyle: 'normal',
+    watermarkLetterSpacing: 0,
+    watermarkRotation: -30,
+    watermarkCustomSize: 24,
+    watermarkShadow: true,
+    watermarkImageFilter: 'none',
+    watermarkImageOpacity: 80,
+    watermarkOpacity: 15,
+    watermarkPosition: 'center',
+  };
+
+  // Cor
+  const colorInput = container.querySelector('#watermarkFontColor');
+  if (colorInput) colorInput.value = defaults.watermarkFontColor;
+
+  // Fonte
+  const familyInput = container.querySelector('#watermarkFontFamily');
+  if (familyInput) familyInput.value = defaults.watermarkFontFamily;
+
+  // Peso
+  container.querySelectorAll('input[name="watermarkFontWeight"]').forEach(r => {
+    r.checked = r.value === defaults.watermarkFontWeight;
+    const label = r.closest('label');
+    if (label) {
+      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
+      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
+    }
+  });
+
+  // Itálico
+  const styleInput = container.querySelector('#watermarkFontStyle');
+  if (styleInput) {
+    styleInput.checked = false;
+    const label = styleInput.closest('label');
+    if (label) { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
+  }
+
+  // Sliders
+  const sliders = {
+    '#watermarkCustomSize': defaults.watermarkCustomSize,
+    '#watermarkLetterSpacing': defaults.watermarkLetterSpacing,
+    '#watermarkRotation': defaults.watermarkRotation,
+    '#watermarkOpacity': defaults.watermarkOpacity,
+    '#watermarkImageOpacity': defaults.watermarkImageOpacity,
+  };
+  for (const [sel, val] of Object.entries(sliders)) {
+    const el = container.querySelector(sel);
+    if (el) el.value = val;
+  }
+
+  // Sombra
+  const shadowInput = container.querySelector('#watermarkShadow');
+  if (shadowInput) shadowInput.checked = defaults.watermarkShadow;
+
+  // Posição
+  container.querySelectorAll('input[name="watermarkPosition"]').forEach(r => {
+    r.checked = r.value === defaults.watermarkPosition;
+    const label = r.closest('label');
+    if (label) {
+      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
+      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
+    }
+  });
+
+  // Filtro de imagem
+  container.querySelectorAll('input[name="watermarkImageFilter"]').forEach(r => {
+    r.checked = r.value === defaults.watermarkImageFilter;
+    const label = r.closest('label');
+    if (label) {
+      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
+      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
+    }
+  });
+
+  updateWatermarkPreview(container);
+  window.showToast?.('Formatação resetada para o padrão', 'info');
+}
+
 // ===== RENDER PRINCIPAL =====
 
 export async function renderPerfil(container) {
@@ -374,6 +458,8 @@ export async function renderPerfil(container) {
             <button class="preset-btn" data-preset="dark-bg" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Otimizado para fotos com fundo escuro">🌙 Fundo Escuro</button>
             <button class="preset-btn" data-preset="professional" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Estilo elegante e profissional">✨ Profissional</button>
             <button class="preset-btn" data-preset="minimalist" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Estilo minimalista e discreto">🔲 Minimalista</button>
+            <span style="width:1px; height:16px; background:var(--border); margin:0 0.125rem;"></span>
+            <button id="resetWatermarkBtn" style="background:transparent; color:var(--ad-red, #f85149); border:1px solid var(--ad-red, #f85149); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Voltar todas as configurações para o padrão">🔄 Resetar</button>
           </div>
         </div>
 
@@ -594,6 +680,12 @@ export async function renderPerfil(container) {
       applyPreset(container, btn.dataset.preset);
     });
   });
+
+  // Reset
+  const resetBtn = container.querySelector('#resetWatermarkBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => resetWatermark(container));
+  }
 
   // Mostrar/ocultar seção de filtro de imagem baseado no tipo
   container.querySelectorAll('input[name="watermarkType"]').forEach(radio => {
