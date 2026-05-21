@@ -119,7 +119,17 @@ router.post('/client/verify-code', async (req, res) => {
           watermarkText: session.organizationId.watermarkText,
           watermarkOpacity: session.organizationId.watermarkOpacity,
           watermarkPosition: session.organizationId.watermarkPosition,
-          watermarkSize: session.organizationId.watermarkSize
+          watermarkSize: session.organizationId.watermarkSize,
+          watermarkFontColor: session.organizationId.watermarkFontColor,
+          watermarkFontFamily: session.organizationId.watermarkFontFamily,
+          watermarkFontWeight: session.organizationId.watermarkFontWeight,
+          watermarkFontStyle: session.organizationId.watermarkFontStyle,
+          watermarkLetterSpacing: session.organizationId.watermarkLetterSpacing,
+          watermarkRotation: session.organizationId.watermarkRotation,
+          watermarkCustomSize: session.organizationId.watermarkCustomSize,
+          watermarkShadow: session.organizationId.watermarkShadow,
+          watermarkImageFilter: session.organizationId.watermarkImageFilter,
+          watermarkImageOpacity: session.organizationId.watermarkImageOpacity
         } : null
       } : null
     });
@@ -226,7 +236,17 @@ router.get('/client/photos/:sessionId', async (req, res) => {
           watermarkText: session.organizationId.watermarkText,
           watermarkOpacity: session.organizationId.watermarkOpacity,
           watermarkPosition: session.organizationId.watermarkPosition,
-          watermarkSize: session.organizationId.watermarkSize
+          watermarkSize: session.organizationId.watermarkSize,
+          watermarkFontColor: session.organizationId.watermarkFontColor,
+          watermarkFontFamily: session.organizationId.watermarkFontFamily,
+          watermarkFontWeight: session.organizationId.watermarkFontWeight,
+          watermarkFontStyle: session.organizationId.watermarkFontStyle,
+          watermarkLetterSpacing: session.organizationId.watermarkLetterSpacing,
+          watermarkRotation: session.organizationId.watermarkRotation,
+          watermarkCustomSize: session.organizationId.watermarkCustomSize,
+          watermarkShadow: session.organizationId.watermarkShadow,
+          watermarkImageFilter: session.organizationId.watermarkImageFilter,
+          watermarkImageOpacity: session.organizationId.watermarkImageOpacity
         } : null
       } : null
     });

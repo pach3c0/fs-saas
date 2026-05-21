@@ -40,6 +40,22 @@ const OrganizationSchema = new mongoose.Schema({
     enum: ['small', 'medium', 'large'],
     default: 'medium'
   },
+  // Watermark avançado — Tipografia
+  watermarkFontColor: { type: String, default: '#ffffff' },
+  watermarkFontFamily: {
+    type: String,
+    enum: ['Arial', 'Playfair Display', 'Georgia', 'Inter', 'Montserrat', 'Dancing Script', 'Oswald', 'Roboto Slab'],
+    default: 'Arial'
+  },
+  watermarkFontWeight: { type: String, enum: ['light', 'normal', 'bold'], default: 'bold' },
+  watermarkFontStyle: { type: String, enum: ['normal', 'italic'], default: 'normal' },
+  watermarkLetterSpacing: { type: Number, min: 0, max: 20, default: 0 },
+  watermarkRotation: { type: Number, min: -180, max: 180, default: -30 },
+  watermarkCustomSize: { type: Number, min: 8, max: 120, default: 24 },
+  watermarkShadow: { type: Boolean, default: true },
+  // Watermark avançado — Imagem/Logo
+  watermarkImageFilter: { type: String, enum: ['none', 'grayscale', 'invert', 'white'], default: 'none' },
+  watermarkImageOpacity: { type: Number, min: 5, max: 100, default: 80 },
   // Site público do fotógrafo
   siteEnabled: { type: Boolean, default: true },
   siteTheme: {

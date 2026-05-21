@@ -173,15 +173,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Lógica da Marca D'água Avançada ---
 
-    function createTiledWatermarkSvg(text, opacity, size) {
-        const fontSize = { small: 14, medium: 20, large: 28 }[size] || 20;
+    function getImageFilterCSS(filter) {
+        switch (filter) {
+            case 'grayscale': return 'grayscale(1)';
+            case 'invert': return 'invert(1)';
+            case 'white': return 'brightness(0) invert(1)';
+            default: return 'none';
+        }
+    }
+
+    function isLightColor(hex) {
+        if (!hex || hex.length < 4) return false;
+        const c = hex.replace('#', '');
+        const r = parseInt(c.substr(0, 2), 16);
+        const g = parseInt(c.substr(2, 2), 16);
+        const b = parseInt(c.substr(4, 2), 16);
+        return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+    }
+
+    function createTiledWatermarkSvg(text, wm) {
+        const fontColor = wm.watermarkFontColor || '#ffffff';
+        const fontFamily = wm.watermarkFontFamily || 'Arial';
+        const fontWeight = wm.watermarkFontWeight === 'light' ? '300' : wm.watermarkFontWeight === 'bold' ? '700' : '400';
+        const fontStyle = wm.watermarkFontStyle || 'normal';
+        const fontSize = wm.watermarkCustomSize || 20;
+        const letterSpacing = wm.watermarkLetterSpacing || 0;
+        const rotation = wm.watermarkRotation ?? -30;
         const safeText = escapeHtml(text);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+        const safeFontFamily = fontFamily.includes(' ') ? `'${fontFamily}', sans-serif` : `${fontFamily}, sans-serif`;
+
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="250">
             <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-                font-family="Arial, sans-serif" font-weight="bold" font-size="${fontSize}"
-                fill="rgba(255,255,255,${opacity / 150})" transform="rotate(-30 125 100)">
-                ${safeText}
-            </text>
+                font-family="${safeFontFamily}" font-weight="${fontWeight}" font-style="${fontStyle}" font-size="${fontSize}"
+                fill="${fontColor}" letter-spacing="${letterSpacing}" transform="rotate(${rotation} 150 125)"
+                opacity="0.7">${safeText}</text>
         </svg>`;
         return `url("data:image/svg+xml;base64,${btoa(svg)}")`;
     }
@@ -199,27 +224,50 @@ document.addEventListener('DOMContentLoaded', async () => {
             watermarkText: text = '',
             watermarkOpacity: opacity = 15,
             watermarkPosition: position = 'center',
-            watermarkSize: size = 'medium'
+            watermarkSize: size = 'medium',
+            watermarkFontColor: fontColor = '#ffffff',
+            watermarkFontFamily: fontFamily = 'Arial',
+            watermarkFontWeight: fontWeightRaw = 'bold',
+            watermarkFontStyle: fontStyle = 'normal',
+            watermarkLetterSpacing: letterSpacing = 0,
+            watermarkRotation: rotation = -30,
+            watermarkCustomSize: customSize = 0,
+            watermarkShadow: shadow = true,
+            watermarkImageFilter: imageFilter = 'none',
+            watermarkImageOpacity: imageOpacity = 80,
         } = watermark;
 
         const orgName = (state.session.organization && state.session.organization.name) || '';
-        // logo já é uma URL relativa como /uploads/{orgId}/filename.jpg
         const logoUrl = (state.session.organization && state.session.organization.logo) || '';
+        const displayText = text || orgName;
+
+        // Calcular estilos de texto
+        const fontWeight = fontWeightRaw === 'light' ? '300' : fontWeightRaw === 'bold' ? '700' : '400';
+        const effectiveFontSize = customSize > 0 ? `${customSize}px` : ({ small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem');
+        const safeFontFamily = `'${fontFamily}', sans-serif`;
+
+        const textShadowCSS = shadow
+            ? (isLightColor(fontColor)
+                ? '0 0 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.6)'
+                : '0 0 4px rgba(255,255,255,0.8), 0 0 2px rgba(255,255,255,0.6)')
+            : 'none';
+
+        const imgFilterCSS = getImageFilterCSS(imageFilter);
 
         const baseStyle = `position:absolute; inset:0; pointer-events:none; opacity:${opacity / 100};`;
 
         if (position === 'tiled') {
             if (type === 'logo' && logoUrl) {
-                const bgStyle = `background-image:url(${logoUrl}); background-size:${{ small: '100px', medium: '150px', large: '200px' }[size] || '150px'}; background-repeat:repeat; background-position:center;`;
-                return { style: baseStyle + bgStyle, innerHTML: '' };
+                const sizeValue = customSize > 0 ? `${Math.max(60, customSize * 4)}px` : ({ small: '100px', medium: '150px', large: '200px' }[size] || '150px');
+                const filterStyle = imageFilter !== 'none' ? `filter:${imgFilterCSS};` : '';
+                const bgStyle = `background-image:url(${logoUrl}); background-size:${sizeValue}; background-repeat:repeat; background-position:center; ${filterStyle} opacity:${(imageOpacity / 100) * (opacity / 100)};`;
+                return { style: `position:absolute; inset:0; pointer-events:none; ${bgStyle}`, innerHTML: '' };
             } else if (type === 'both' && logoUrl) {
-                // Texto repete sobre toda a imagem; logo aparece como marca unica
-                // no canto inferior direito para evitar clash entre tiles.
-                const logoSize = { small: '60px', medium: '90px', large: '120px' }[size] || '90px';
-                const hybridStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)}, url(${logoUrl}); background-size: 250px 200px, ${logoSize}; background-repeat: repeat, no-repeat; background-position: center, bottom 1rem right 1rem;`;
+                const logoSize = customSize > 0 ? `${Math.max(40, customSize * 3)}px` : ({ small: '60px', medium: '90px', large: '120px' }[size] || '90px');
+                const hybridStyle = `background-image:${createTiledWatermarkSvg(displayText, watermark)}, url(${logoUrl}); background-size: 300px 250px, ${logoSize}; background-repeat: repeat, no-repeat; background-position: center, bottom 1rem right 1rem;`;
                 return { style: baseStyle + hybridStyle, innerHTML: '' };
             } else {
-                const bgStyle = `background-image:${createTiledWatermarkSvg(text || orgName, opacity, size)};`;
+                const bgStyle = `background-image:${createTiledWatermarkSvg(displayText, watermark)};`;
                 return { style: baseStyle + bgStyle, innerHTML: '' };
             }
         }
@@ -229,24 +277,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const flexStyle = `display:flex; justify-content:${justifyContent}; align-items:${alignItems}; padding:1rem;`;
 
         if (type === 'logo' && logoUrl) {
-            const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
+            const imgSize = customSize > 0 ? `${Math.max(40, customSize * 3)}px` : ({ small: '10%', medium: '20%', large: '30%' }[size] || '20%');
             return {
                 style: baseStyle + flexStyle,
-                innerHTML: `<img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%;" alt="Watermark">`
+                innerHTML: `<img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%; filter:${imgFilterCSS}; opacity:${imageOpacity / 100};" alt="Watermark">`
             };
         } else if (type === 'both' && logoUrl) {
-            const imgSize = { small: '10%', medium: '20%', large: '30%' }[size] || '20%';
-            const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
+            const imgSize = customSize > 0 ? `${Math.max(40, customSize * 3)}px` : ({ small: '10%', medium: '20%', large: '30%' }[size] || '20%');
             return {
                 style: baseStyle + flexStyle,
-                innerHTML: `<div style="position:relative; display:inline-flex; align-items:center; justify-content:center;"><img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%; opacity:0.8;"><span style="position:absolute; font-family:Arial,sans-serif; font-weight:bold; color:white; font-size:${fontSize}; text-shadow:0 0 4px black, 0 0 2px black, 0 0 8px rgba(0,0,0,0.8); text-align:center; white-space:nowrap;">${escapeHtml(text || orgName)}</span></div>`
+                innerHTML: `<div style="display:inline-flex; flex-direction:column; align-items:center; gap:0.25rem;"><img src="${logoUrl}" style="width:${imgSize}; height:auto; max-width:100%; max-height:100%; filter:${imgFilterCSS}; opacity:${imageOpacity / 100};"><span style="font-family:${safeFontFamily}; font-weight:${fontWeight}; font-style:${fontStyle}; color:${fontColor}; font-size:${effectiveFontSize}; letter-spacing:${letterSpacing}px; text-shadow:${textShadowCSS}; transform:rotate(${rotation}deg); display:inline-block; white-space:nowrap;">${escapeHtml(displayText)}</span></div>`
             };
         }
 
-        const fontSize = { small: '1rem', medium: '1.5rem', large: '2.2rem' }[size] || '1.5rem';
         return {
             style: baseStyle + flexStyle,
-            innerHTML: `<span style="font-family:Arial,sans-serif; font-weight:bold; color:white; font-size:${fontSize}; text-shadow:0 0 2px black;">${escapeHtml(text || orgName)}</span>`
+            innerHTML: `<span style="font-family:${safeFontFamily}; font-weight:${fontWeight}; font-style:${fontStyle}; color:${fontColor}; font-size:${effectiveFontSize}; letter-spacing:${letterSpacing}px; text-shadow:${textShadowCSS}; transform:rotate(${rotation}deg); display:inline-block; white-space:nowrap;">${escapeHtml(displayText)}</span>`
         };
     }
 

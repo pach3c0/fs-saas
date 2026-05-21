@@ -31,6 +31,16 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         watermarkOpacity: org.watermarkOpacity,
         watermarkPosition: org.watermarkPosition,
         watermarkSize: org.watermarkSize,
+        watermarkFontColor: org.watermarkFontColor,
+        watermarkFontFamily: org.watermarkFontFamily,
+        watermarkFontWeight: org.watermarkFontWeight,
+        watermarkFontStyle: org.watermarkFontStyle,
+        watermarkLetterSpacing: org.watermarkLetterSpacing,
+        watermarkRotation: org.watermarkRotation,
+        watermarkCustomSize: org.watermarkCustomSize,
+        watermarkShadow: org.watermarkShadow,
+        watermarkImageFilter: org.watermarkImageFilter,
+        watermarkImageOpacity: org.watermarkImageOpacity,
         plan: org.plan,
         integrations: org.integrations || {}
       }
@@ -47,7 +57,10 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
     const allowedFields = [
       'name', 'logo', 'phone', 'whatsapp', 'email', 'website',
       'bio', 'address', 'city', 'state', 'primaryColor',
-      'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize'
+      'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize',
+      'watermarkFontColor', 'watermarkFontFamily', 'watermarkFontWeight', 'watermarkFontStyle',
+      'watermarkLetterSpacing', 'watermarkRotation', 'watermarkCustomSize', 'watermarkShadow',
+      'watermarkImageFilter', 'watermarkImageOpacity'
     ];
 
     const updates = {};
@@ -95,7 +108,19 @@ router.get('/organization/public', async (req, res) => {
         primaryColor: org.primaryColor,
         watermarkType: org.watermarkType,
         watermarkText: org.watermarkText,
-        watermarkOpacity: org.watermarkOpacity
+        watermarkOpacity: org.watermarkOpacity,
+        watermarkPosition: org.watermarkPosition,
+        watermarkSize: org.watermarkSize,
+        watermarkFontColor: org.watermarkFontColor,
+        watermarkFontFamily: org.watermarkFontFamily,
+        watermarkFontWeight: org.watermarkFontWeight,
+        watermarkFontStyle: org.watermarkFontStyle,
+        watermarkLetterSpacing: org.watermarkLetterSpacing,
+        watermarkRotation: org.watermarkRotation,
+        watermarkCustomSize: org.watermarkCustomSize,
+        watermarkShadow: org.watermarkShadow,
+        watermarkImageFilter: org.watermarkImageFilter,
+        watermarkImageOpacity: org.watermarkImageOpacity
       }
     });
   } catch (error) {
