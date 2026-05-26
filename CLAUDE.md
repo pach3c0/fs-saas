@@ -210,6 +210,60 @@
 - Idempotência via `session.salesAutomation.sentTriggers`
 - Roda a cada 6h no worker 0
 
+### Sessões — Wizard Guiado (admin/js/tabs/sessoes/wizard/)
+Refatorado em 2026-05-23 e consolidado em **5 passos** após a fusão dos antigos Código (2) + Enviar (3) num único passo **Compartilhar** (2). Cards da lista são clicáveis inteiros e abrem um modal fullscreen:
+
+| # | Passo | Pré-requisito | Conclusão |
+|---|-------|---------------|-----------|
+| 1 | Upload | sessão criada | `uploadsCompletedAt`. Em **selection**, "Concluí upload" só libera com `photos.length >= packageLimit` (front + back) |
+| 2 | Compartilhar | passo 1 | `codeSentAt` (ou ≥ 1 participante em multi). Ao abrir, marca `codeViewedAt` automaticamente |
+| 4 | Acompanhar | passo 2 | `selectionSubmittedAt` — pulado em gallery |
+| 5 | Editadas | passo 4 | todas as selecionadas têm `urlOriginal` — pulado em gallery |
+| 6 | Entregar | passo 5 | `deliveredAt` (ou todos participantes em multi) |
+
+> IDs 1, 2, 4, 5, 6 preservados (não existe mais passo 3).
+
+**Adaptação por modo:** `gallery` → `[1, 2, 6]`; `selection` / `multi_selection` → `[1, 2, 4, 5, 6]`.
+
+**Arquivos:**
+- `wizard/index.js` — entry `openSessionWizard(id)`, modal fullscreen, header com 🔔/⚙️/🗑️/✕
+- `wizard/stepper.js` — sidebar vertical, `computeWizardSteps`, `stepIdsForMode`, `nextStepIdAfter`
+- `wizard/state.js` — `wizardState` global + `stopWizardPolling()` (limpa timer e listener `visibilitychange`)
+- `wizard/utils.js` — `buildGalleryUrl`, `buildWhatsAppLink` (envio), `buildWhatsAppDeliveryLink` (entrega), `openOverlayModal`
+- `wizard/notifications-bell.js` — sininho próprio do wizard (o global do topbar fica atrás do modal fullscreen)
+- `wizard/steps/1-upload.js`, `2-share.js`, `4-tracking.js`, `5-edited.js`, `6-deliver.js`
+
+**Compatibilidade com modais antigos:** ⚙️ Editar (editSessionModal), 🗑️ Deletar (showConfirm), 💬 Chat por foto (commentsModal), Gerenciar participantes (participantsModal) usam `openOverlayModal` — esconde o wizard (display:none), abre o modal antigo, polling detecta fechamento e restaura o wizard. Evita problema de stacking context.
+
+**Novos campos no Session model:**
+- `uploadsCompletedAt: Date` — fotógrafo marcou "concluí upload"
+- `codeViewedAt: Date` — fotógrafo abriu o passo Compartilhar
+- `showDeliveryQueuePosition: Boolean` (default false) — multi-seleção: cliente vê posição na fila
+
+**Endpoints (src/routes/sessions.js):**
+- `PUT /api/sessions/:id/complete-uploads` body `{completed: bool}`. Em `mode === 'selection'`, retorna 400 se `visiblePhotos < packageLimit`.
+- `PUT /api/sessions/:id/view-code` (idempotente)
+- `POST /api/sessions/:id/send-code` aceita `{channel: 'email'|'whatsapp'|'both'}` — WhatsApp não envia, retorna `{whatsappUrl}` pro front abrir
+- `GET /api/sessions/:id/export?token=<JWT>` — exporta `.txt` para Lightroom (JWT em query porque `window.open` não envia headers)
+
+**Polling adaptativo (passo Acompanhar — 4-tracking.js):**
+- `30s` default → `10s` por 2 min após mudança → `8s` com modal de comentário aberto
+- Pausa quando aba sem foco (Page Visibility API), refresh imediato ao voltar
+- Botão "🔄 Atualizar" manual no header do passo
+
+**WhatsApp templates (wizard/utils.js):**
+- `WA_OPENINGS` (envio de código): "Olá X! As fotos do seu casamento já estão prontas para você visualizar e escolher…"
+- `WA_DELIVERY_OPENINGS` (entrega): "Olá X! As fotos editadas do seu casamento estão prontas para download em alta resolução…"
+- 11 tipos de evento cobertos: casamento, aniversario, formatura, corporativo, show, ensaio, gestante, newborn, debutante, batizado, outro
+
+**Utilitário backend:** `buildWhatsAppGalleryLink(phone, name, code, orgName, slug, eventType)` em `src/utils/email.js`. A versão de entrega vive só no front (cliente abre `wa.me` direto).
+
+**Modais de comentários (admin e cliente) com thumb da foto:** ambos exibem thumbnail + filename da foto referenciada — o fotógrafo e o cliente sabem imediatamente sobre qual foto a conversa é. `comments.js` busca a sessão por fallback (`wizardState.session` → `state.sessionsData` → `apiGet`).
+
+**Cortesia:** foto sem `selectedPhotos` mas com `urlOriginal` é tratada como agrado do fotógrafo. Admin (passo 5): badge roxa `★ Cortesia`. Cliente (PWA `renderDeliveredScreen`): entra no grid principal com badge "Cortesia" e sai do upsell em `renderSubmittedScreen`.
+
+**Lista de sessões (cards):** zero botões. Card inteiro tem `onclick → openSessionWizard`. **Código de acesso não aparece mais no card** — só dentro do wizard, passo Compartilhar. Toast pós-criação também não exibe código (só "Sessão criada!").
+
 ### CRM — Reativação de Clientes (src/utils/anniversaryAutomator.js)
 - Data de próximo contato vive em `Client.nextContactDate` (não na Session)
 - `run(organizationId, options)`: disparo manual ignora flag `salesAutomator.enabled`; cron respeita
@@ -243,15 +297,34 @@
 - **UX da lista de sessões** — (1) fix crítico: `photoResolution` nunca era enviado no payload de criação — sessões com 1600px ficavam salvas como 1200px; (2) badge de tipo de evento (roxo) nos cards + filtro `#filterEventType`; (3) nome do cliente clicável navega direto ao cadastro; (4) timeline de progresso visual em cada card (5 passos: Criada→Fotos→Link→Seleção→Entregue) com chip de próximo passo colorido. Commits `e76e931`, `5df4e0d`
 - **Pedido de reabertura no card** — campo `session.reopenRequested` registra o pedido no documento. Card exibe badge ⚠ laranja, passo "Reabertura" (laranja) no stepper, botões "✓ Reabrir" / "✗ Recusar pedido", botão Entregar bloqueado até decisão. Novo endpoint `PUT /sessions/:id/dismiss-reopen`. Commit `55b8321`
 - **Testes manuais Sessões (modo seleção)** — ciclo completo testado em 2026-05-20: criação, edição, upload, resolução, pacote, preço extra, comentários, tipo de evento, fluxo do cliente (seleção, finalização, reabertura). Automação de escassez pendente de teste (leva dias para disparar).
+- **Sessões — Wizard Guiado (Ondas 1+2+3 em 2026-05-23)** — Refatoração UX completa. Cards sem botões, clique abre wizard fullscreen com 6 passos guiados. Adaptação por modo (gallery=4 passos, multi=5 sem código geral). Backend: 2 campos novos (`uploadsCompletedAt`, `codeViewedAt`), 1 toggle multi (`showDeliveryQueuePosition`), 2 endpoints (`/complete-uploads`, `/view-code`), `send-code` aceita `channel`. WhatsApp via `wa.me` com templates por tipo de evento. Modais antigos preservados — wizard usa `openOverlayModal` (hide+show) pra evitar stacking context. Ver `skills/02_sessoes.md`.
+- **Sessões — Polimento e consolidação (2026-05-23)** — Bloco de melhorias dividido em 4 ondas, foco em **modo seleção** (gallery e multi ficaram para validação posterior):
+  - **Pré-ondas:** removido código do card e do toast pós-criação (só aparece no passo Compartilhar); regra do mínimo no upload em `selection` (front + back validam `photos.length >= packageLimit`); **fusão dos passos 2 (Código) + 3 (Enviar) num único passo "Compartilhar"** — wizard agora tem 5 passos (IDs 1,2,4,5,6 preservados).
+  - **Onda 1 — Bugs:** (1) "Enviar Seleção"/"Salvo" no PWA persistia após submit (`isSelectionMode` não considerava `submitted`, bottomBar vive fora da gallerySection); (2) Download `.txt` Lightroom não disparava (faltava `?token=` na query — `window.open` não envia headers); (3) Foto cortesia (não selecionada + `urlOriginal`) sumia após upload — agora aparece com badge `★ Cortesia` no admin (passo 5) e cliente (`renderDeliveredScreen`), saindo do upsell em `renderSubmittedScreen`.
+  - **Onda 2 — Polling adaptativo:** passo Acompanhar com `setTimeout` recursivo: 30s default → 10s por 2 min após mudança → 8s com modal de comentário aberto. Pausa via Page Visibility API quando aba sem foco, refresh imediato ao voltar. Botão "🔄 Atualizar" manual. `stopWizardPolling()` limpa timer + listener em `switchStep` e `closeWizard`.
+  - **Sub-bugs entre Onda 2 e 3:** (a) clique no 💬 não abria modal — `comments.js` agora resolve sessão por fallback `wizardState.session → state.sessionsData → apiGet`; (b) sininho dentro do wizard (novo `wizard/notifications-bell.js`) — antes o sininho global do topbar ficava atrás do modal fullscreen.
+  - **Onda 3 — Modal de comentário "sabe" a foto:** admin e cliente exibem thumb 64-84px + filename + meta (✓ Selecionada / Não selecionada). Cliente vê a thumb ao clicar no sininho.
+  - **Onda 4 — WhatsApp na entrega:** `buildWhatsAppDeliveryLink` no `wizard/utils.js` com `WA_DELIVERY_OPENINGS` (11 templates por `eventType`, tom de "fotos editadas prontas pra download"). Card "Compartilhar entrega" no passo 6 com botões 💬 WhatsApp + 🔗 Copiar link, visível antes e depois da entrega. Em multi: cada participante na tabela ganha 💬 WhatsApp + 🔗 Link individual com seu `accessCode`.
 
 ### Em andamento — Auditoria de 7 dias 🔄
 **Dia 1 ✅ — Limpeza estrutural** (concluído)
 **Dia 2 ✅ — Auditoria backend** (concluído — ver achados abaixo)
-**Dia 3 🔄 — Auditoria frontend** (em andamento — Dashboard ✅, Sessões ✅, próximo: Clientes/Mensagens)
+**Dia 3 🔄 — Auditoria frontend** (em andamento — Dashboard ✅, Sessões ✅ wizard + Ondas 1-4, próximo: Clientes/Mensagens)
 **Dia 4** — Auditoria site builder: hero, sobre, portfólio, estúdio, FAQ
 **Dia 5** — Funcionalidades avançadas: CRM, marketing, integrações, plano
 **Dia 6** — Domínio, segurança, testes Playwright E2E
 **Dia 7** — Correções, polimento, deploy final
+
+### Foco imediato (Onda 5 — próxima sessão)
+**Retenção de storage** — feature grande, planejada com o usuário em 2026-05-23:
+- Campo "Guardar fotos no storage até DD/MM/AAAA" na criação/edição da sessão (default vazio = sem expiração).
+- Notificação no sininho ao chegar a data — **nunca deletar automaticamente sem ação do fotógrafo**.
+- Checkbox "Deletar automaticamente nesta data" (opt-in).
+- Checkbox "Exportar metadados + baixar imagens para backup" (gera ZIP).
+- Modo backup: manter só a capa local + campo `externalStorageUrl` (Drive/Dropbox) — sessão continua no painel, imagens vivem fora.
+- Drive externo como storage dinâmico (substituir uploads/): **usuário ainda em decisão** (provável V2 — OAuth, quotas, custo de banda).
+
+Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pendentes.
 
 ### Achados do Dia 2 — Notas para manutenção futura
 - **Route names não óbvios:** `GET /api/organization/profile` (não `/api/organization`), `GET /api/billing/subscription` (não `/api/billing/plan`), login em `POST /api/login` (não `/api/auth/login`)
@@ -261,14 +334,21 @@
 - **Limite de upload:** Express JSON capped em 5MB. Multer (multipart) permite até 10MB por arquivo — são middlewares diferentes
 
 ### Pendências antes do lançamento ⚠️
+- [ ] **Validar Onda 4 em produção/local** — usuário ainda não confirmou o teste do WhatsApp na entrega (passo 6) — ver `skills/8_0_handoff-2026-05-23.md` para o checklist.
+- [ ] **Validar Onda 1–4 em modo `gallery`** — todas as ondas foram focadas em `selection`. Confirmar fluxo da galeria após a fusão (Upload → Compartilhar → Entregar, 3 passos).
+- [ ] **Regra do mínimo de upload em multi-seleção** — modelar como tratar o `packageLimit` por participante. Hoje a validação só vale para `selection`.
 - [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
 - [ ] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
 - [ ] **Inconsistência de campos:** Uniformizar `nome`/`mensagem` (contato) vs `name`/`text` (depoimento) — não crítico
 - [ ] Completar auditoria dos dias 3–7
-- [ ] **Notificações clicáveis:** clicar no sino deve navegar para o conteúdo (foto/sessão específica). `admin/js/utils/notifications.js`
-- [ ] **Link completo da sessão copiável:** exibir URL completo (não só código) no card/modal para envio por WhatsApp. `sessoes/list.js` / `modal-detail.js`
-- [ ] **Arquivamento de fotos com link externo:** campo `externalStorageUrl` + `archivedAt` no model Session para liberar storage sem perder histórico.
+- [ ] **Notificações globais clicáveis:** o sininho do wizard já roteia corretamente (`comment_added` abre o modal certo); o global do topbar ainda precisa do mesmo polish. `admin/js/utils/notifications.js`
+- [ ] **Sininho do cliente sem dropdown:** se há múltiplas respostas de fotos diferentes, ele só abre a primeira. Tratar caso surja demanda.
+- [ ] **Arquivamento de fotos com link externo:** parte da Onda 5 (retenção de storage). Campo `externalStorageUrl` + `archivedAt` no model Session.
 - [ ] **Ícone robô:** substituir 🤖 na seção Automação do `modal-form.js` por ícone Lucide.
+- [ ] **Manual do Usuário desatualizado para Sessões** — `MANUAL_MODULES[1]` em `admin/js/tabs/ajuda.js` ainda descreve fluxo antigo de botões (precisa refletir wizard de 5 passos).
+- [ ] **Testes Playwright** (`tests/3_0_sessoes.spec.js`) — clicam nos botões antigos, precisam ser reescritos para o wizard.
+- [ ] **modal-detail.js standalone** — pode ser removido, o wizard já tem o grid embutido nos passos 1/4/5.
+- [ ] **Cortesia como diferencial de marketing** — incluir como bullet em "Por que CliqueZoom" quando auditar a landing (Dia 4).
 
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento
 - **Prova de Álbuns:** fluxo completo de proofing (páginas, layouts, revisões, aprovação)

@@ -6,6 +6,8 @@ import { setupComments } from './comments.js';
 import { setupParticipantes } from './modal-participantes.js';
 import { setupUpload } from './upload.js';
 import { setupActions } from './actions.js';
+// Wizard de sessões (Onda 2): registra window.openSessionWizard como side-effect do import.
+import './wizard/index.js';
 
 export async function renderSessoes(container) {
   container.innerHTML = `
@@ -197,6 +199,20 @@ export async function renderSessoes(container) {
                 <span style="color:var(--text-primary); font-size:0.875rem;">Permitir pedido de reabertura</span>
               </label>
             </div>
+            <div id="commentsConfigField" style="display:none; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionCommentsEnabled" class="check" disabled>
+                <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar mensagens por foto</span>
+              </label>
+              <p class="input-hint" style="margin:0 0 0 1.5rem;">O cliente poderá comentar em cada foto durante a seleção. Você responde diretamente no painel.</p>
+            </div>
+            <div id="multiOptionsField" style="display:none; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionShowQueuePosition" class="check" disabled>
+                <span style="color:var(--text-primary); font-size:0.875rem;">Mostrar posição na fila de entrega</span>
+              </label>
+              <p class="input-hint" style="margin:0 0 0 1.5rem;">Cada participante vê quantos estão à sua frente. Gatilho de urgência: incentiva o cliente a finalizar logo para ser entregue antes.</p>
+            </div>
             <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
           </div>
 
@@ -227,6 +243,28 @@ export async function renderSessoes(container) {
               <span style="color:var(--text-primary); font-size:0.875rem;">🤖 Automação de vendas (escassez)</span>
             </label>
             <p class="input-hint" style="margin:0;">O robô envia e-mails de urgência ao cliente conforme o prazo se aproxima. Requer ativar a automação na configuração da organização.</p>
+          </div>
+
+          <!-- Retenção de storage -->
+          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Armazenamento</h4>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Guardar fotos no storage até</label>
+              <input type="date" id="sessionStorageRetentionUntil" class="input" disabled>
+              <p class="input-hint">Deixe em branco para guardar sem prazo. Quando a data chegar, você receberá uma notificação para decidir o que fazer.</p>
+            </div>
+            <div id="storageAutoDeleteField" style="display:none; flex-direction:column; gap:0.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionStorageAutoDelete" class="check">
+                <span style="color:var(--text-primary); font-size:0.875rem;">Deletar automaticamente nesta data</span>
+              </label>
+              <p class="input-hint" style="margin:0 0 0 1.5rem;">As fotos (exceto a capa) serão excluídas do servidor automaticamente. Use somente se tiver certeza de que não precisará das originais.</p>
+              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="sessionStorageBackupOnExpire" class="check">
+                <span style="color:var(--text-primary); font-size:0.875rem;">Gerar backup ZIP antes de deletar</span>
+              </label>
+              <p class="input-hint" style="margin:0 0 0 1.5rem;">Gera um arquivo .zip com todas as fotos no servidor antes da exclusão. Útil para ter uma cópia local de segurança.</p>
+            </div>
           </div>
 
         </div>
@@ -307,7 +345,7 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Editar Sessao -->
-    <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
+    <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1200; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
       <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Editar Sessao</h3>
         <div class="input-group" style="margin-bottom:0;">
@@ -397,6 +435,27 @@ export async function renderSessoes(container) {
             <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">🤖 Automação de vendas (escassez)</span>
           </label>
         </div>
+        <!-- Retenção de storage (edição) -->
+        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Armazenamento</h4>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Guardar fotos no storage até</label>
+            <input type="date" id="editStorageRetentionUntil" class="input">
+            <p class="input-hint">Deixe em branco para guardar sem prazo. Quando a data chegar, você receberá uma notificação para decidir o que fazer.</p>
+          </div>
+          <div id="editStorageAutoDeleteField" style="display:none; flex-direction:column; gap:0.5rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="editStorageAutoDelete" class="check">
+              <span style="color:var(--text-primary); font-size:0.875rem;">Deletar automaticamente nesta data</span>
+            </label>
+            <p class="input-hint" style="margin:0 0 0 1.5rem;">As fotos (exceto a capa) serão excluídas do servidor automaticamente.</p>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="editStorageBackupOnExpire" class="check">
+              <span style="color:var(--text-primary); font-size:0.875rem;">Gerar backup ZIP antes de deletar</span>
+            </label>
+            <p class="input-hint" style="margin:0 0 0 1.5rem;">Gera um arquivo .zip com todas as fotos no servidor antes da exclusão.</p>
+          </div>
+        </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
           <button id="cancelEditSession" class="btn">Cancelar</button>
           <button id="confirmEditSession" class="btn btn-primary">Salvar</button>
@@ -405,7 +464,7 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Participantes (Multi-Seleção) -->
-    <div id="participantsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
+    <div id="participantsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1200; flex-direction:column;">
       <div style="background:var(--bg-surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center;">
         <div>
             <h3 id="participantsModalTitle" style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Participantes</h3>
@@ -439,11 +498,20 @@ export async function renderSessoes(container) {
     </div>
 
     <!-- Modal Comentarios -->
-    <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
+    <div id="commentsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1200; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
       <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Comentários da Foto</h3>
             <button id="closeCommentsModal" style="color:var(--text-secondary); background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
+        </div>
+        <!-- Preview da foto que está sendo comentada -->
+        <div id="commentsPhotoPreview" style="display:flex; gap:0.75rem; align-items:center; padding:0.625rem; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem;">
+          <img id="commentsPhotoThumb" alt="Foto" style="width:84px; height:84px; object-fit:cover; border-radius:0.375rem; flex-shrink:0; background:var(--bg-elevated);">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.125rem;">Conversa sobre a foto</div>
+            <div id="commentsPhotoFilename" style="font-size:0.8125rem; color:var(--text-primary); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+            <div id="commentsPhotoMeta" style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.125rem;"></div>
+          </div>
         </div>
         <div id="commentsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.75rem; min-height:200px; max-height:400px; background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);"></div>
         <div style="display:flex; gap:0.5rem;">

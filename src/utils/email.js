@@ -184,6 +184,53 @@ async function sendApprovalEmail(email, name, slug) {
 }
 
 /**
+ * Builder de link wa.me para envio da galeria via WhatsApp.
+ * Não envia mensagem — retorna URL que o front abre em nova aba.
+ * O fotógrafo revisa o texto pré-preenchido antes de enviar pelo próprio WhatsApp.
+ */
+function buildWhatsAppGalleryLink(clientPhone, clientName, accessCode, orgName, orgSlug, eventType) {
+  const galleryUrl = orgSlug
+    ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
+    : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
+
+  // Normaliza telefone para formato wa.me (apenas dígitos, prefixo BR se faltar)
+  let phone = String(clientPhone || '').replace(/\D/g, '');
+  if (phone && (phone.length === 10 || phone.length === 11)) phone = '55' + phone;
+
+  const firstName = String(clientName || '').split(' ')[0] || 'Olá';
+
+  // Saudação adaptada ao tipo de evento (CRM Fase 2 — eventType do Session)
+  const openings = {
+    casamento:   `Olá ${firstName}! 💍 As fotos do seu casamento já estão prontas para você visualizar e escolher suas favoritas.`,
+    aniversario: `Olá ${firstName}! 🎉 As fotos do seu aniversário já estão disponíveis na sua galeria.`,
+    formatura:   `Olá ${firstName}! 🎓 As fotos da sua formatura já estão prontas. Bora celebrar essa conquista!`,
+    corporativo: `Olá ${firstName}! As fotos do evento já estão disponíveis para visualização.`,
+    show:        `Olá ${firstName}! 🎤 As fotos do show já estão na sua galeria.`,
+    ensaio:      `Olá ${firstName}! 📸 As fotos do seu ensaio já estão prontas — vem ver!`,
+    gestante:    `Olá ${firstName}! 🤰 As fotos do seu ensaio gestante já estão disponíveis.`,
+    newborn:     `Olá ${firstName}! 👶 As fotos do ensaio newborn já estão prontas.`,
+    debutante:   `Olá ${firstName}! 👑 As fotos dos seus 15 anos já estão na sua galeria.`,
+    batizado:    `Olá ${firstName}! ⛪ As fotos do batizado já estão disponíveis.`,
+    outro:       `Olá ${firstName}! 📸 Suas fotos já estão prontas para você visualizar.`
+  };
+
+  const opening = openings[eventType] || openings.outro;
+
+  const message = [
+    opening,
+    '',
+    `Acesse sua galeria: ${galleryUrl}`,
+    '',
+    `Código de acesso: ${accessCode}`,
+    '',
+    `— ${orgName}`
+  ].join('\n');
+
+  const base = phone ? `https://wa.me/${phone}` : 'https://wa.me/';
+  return `${base}?text=${encodeURIComponent(message)}`;
+}
+
+/**
  * E-mail para o cliente: galeria disponivel (enviado ao criar sessao)
  */
 async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, orgName, orgSlug) {
@@ -941,6 +988,98 @@ async function sendNewPhotographerNotificationEmail(photographerName, photograph
   return sendEmail(ownerEmail, subject, html);
 }
 
+/**
+ * E-mail para o fotógrafo: aviso de retenção de storage chegando/expirado
+ * action: 'expiring' (prazo chegou, decide o que fazer) | 'deleted' (fotos já removidas automaticamente)
+ */
+async function sendStorageRetentionEmail(email, orgName, sessionName, dateStr, action) {
+  const panelUrl = `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/admin`;
+  const isDeleted = action === 'deleted';
+
+  const subject = isDeleted
+    ? `Fotos de "${sessionName}" excluídas automaticamente — CliqueZoom`
+    : `Prazo de armazenamento chegando: "${sessionName}" — CliqueZoom`;
+
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">
+        ${isDeleted ? 'Fotos excluídas automaticamente' : 'Prazo de armazenamento chegando'}
+      </h2>
+
+      ${isDeleted ? `
+        <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+          As fotos da sessão <strong>${sessionName}</strong> foram excluídas automaticamente do servidor na data configurada (${dateStr}).
+          A capa e os dados da sessão foram preservados.
+        </p>
+      ` : `
+        <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+          As fotos da sessão <strong>${sessionName}</strong> estão configuradas para permanecer no armazenamento até <strong>${dateStr}</strong>.
+        </p>
+        <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+          Acesse o painel e abra a sessão para decidir o que fazer: <strong>Estender o prazo</strong>, <strong>Arquivar com link externo</strong> ou <strong>Excluir as fotos</strong>.
+        </p>
+      `}
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${panelUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Abrir Painel
+        </a>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(email, subject, html);
+}
+
+async function sendPendingDownloadEmail(email, clientName, sessionName, galleryUrl, orgName) {
+  const subject = `⚠️ Suas fotos de "${sessionName}" serão removidas em breve — baixe agora!`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">${orgName || 'CliqueZoom'}</h1>
+      </div>
+
+      <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">
+        Olá, ${clientName}! Suas fotos vão sair do ar em breve.
+      </h2>
+
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        As fotos da sessão <strong>${sessionName}</strong> estão prestes a ser removidas do servidor.
+        Se você ainda não fez o download de todas as imagens, acesse a galeria agora e salve as suas fotos em alta resolução.
+      </p>
+
+      <div style="background: #fff8e1; border-left: 4px solid #f59e0b; padding: 1rem 1.25rem; border-radius: 0 0.375rem 0.375rem 0; margin: 1.5rem 0;">
+        <p style="margin: 0; color: #92400e; font-size: 0.9rem; font-weight: 600;">
+          ⏰ Após a remoção, as imagens não poderão mais ser recuperadas.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${galleryUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Acessar minha galeria e baixar as fotos
+        </a>
+      </div>
+
+      <p style="color: #999; font-size: 0.8125rem; line-height: 1.6; text-align: center;">
+        Use o mesmo código de acesso que você utilizou antes para entrar na galeria.<br>
+        Em caso de dúvidas, entre em contato com o fotógrafo.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom — Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(email, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -968,5 +1107,8 @@ module.exports = {
   sendReactivation30dEmail,
   sendReactivation7dEmail,
   sendManualReactivationEmail,
-  sendNewPhotographerNotificationEmail
+  sendNewPhotographerNotificationEmail,
+  buildWhatsAppGalleryLink,
+  sendStorageRetentionEmail,
+  sendPendingDownloadEmail
 };

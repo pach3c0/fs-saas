@@ -86,8 +86,8 @@ Marcar o módulo como documentado na lista de estado do projeto.
 | Módulo | id | Status | Skill |
 |---|---|---|---|
 | Dashboard | `dashboard` | ✅ Documentado | `skills/01_dasboard.md` |
-| Sessões | `sessoes` | ✅ Documentado | `skills/02_sessoes.md` |
-| Clientes | `clientes` | 🔲 Placeholder | — |
+| Sessões | `sessoes` | ⚠️ **Desatualizado** — manual descreve o fluxo de botões antigos. Após a refatoração para Wizard Guiado (2026-05-23), precisa ser reescrito para refletir os 6 passos. | `skills/02_sessoes.md` |
+| Clientes | `clientes` | ✅ Documentado | `skills/03_0_clientes.md` |
 | Mensagens | `mensagens` | 🔲 Placeholder | — |
 | Meu Site | `meu-site` | 🔲 Placeholder | — |
 

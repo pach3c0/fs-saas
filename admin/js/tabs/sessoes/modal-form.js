@@ -18,7 +18,11 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   const clientRowWrapper = container.querySelector('#clientRowWrapper');
   const selectionFields = container.querySelector('#selectionFields');
   const extraConfigFields = container.querySelector('#extraConfigFields');
+  const commentsConfigField = container.querySelector('#commentsConfigField');
+  const multiOptionsField = container.querySelector('#multiOptionsField');
   const crmFields = container.querySelector('#crmFields');
+  const storageRetentionInput = container.querySelector('#sessionStorageRetentionUntil');
+  const storageAutoDeleteField = container.querySelector('#storageAutoDeleteField');
   const multiHint = container.querySelector('#multiSelectionHint');
   const deadlineLabel = container.querySelector('#deadlineLabel');
   const allDisabledInputs = fieldsWrapper.querySelectorAll('input, select');
@@ -43,9 +47,12 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     // Ajusta campos condicionais
     selectionFields.style.display = (isSelection || isMulti) ? 'flex' : 'none';
     extraConfigFields.style.display = isSelection ? 'flex' : 'none';
+    if (commentsConfigField) commentsConfigField.style.display = (isSelection || isMulti) ? 'flex' : 'none';
+    if (multiOptionsField) multiOptionsField.style.display = isMulti ? 'flex' : 'none';
     if (crmFields) crmFields.style.display = isGallery ? 'none' : 'flex';
     multiHint.style.display = isMulti ? 'block' : 'none';
     if (deadlineLabel) deadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
+    if (storageRetentionInput) storageRetentionInput.disabled = !hasMode;
   };
 
   // Upload de foto de capa
@@ -82,6 +89,16 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     if (evtSel) evtSel.value = 'outro';
     const autoChk = container.querySelector('#sessionSalesAutomation');
     if (autoChk) autoChk.checked = true;
+    const commentsChk = container.querySelector('#sessionCommentsEnabled');
+    if (commentsChk) commentsChk.checked = false;
+    const queueChk = container.querySelector('#sessionShowQueuePosition');
+    if (queueChk) queueChk.checked = false;
+    if (storageRetentionInput) storageRetentionInput.value = '';
+    if (storageAutoDeleteField) storageAutoDeleteField.style.display = 'none';
+    const autoDelChk = container.querySelector('#sessionStorageAutoDelete');
+    if (autoDelChk) autoDelChk.checked = false;
+    const backupChk = container.querySelector('#sessionStorageBackupOnExpire');
+    if (backupChk) backupChk.checked = false;
     newSessionModal.style.display = 'flex';
   };
 
@@ -180,6 +197,16 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   container.querySelector('#sessionDate').oninput = validateDates;
   container.querySelector('#sessionDeadline').oninput = validateDates;
 
+  if (storageRetentionInput && storageAutoDeleteField) {
+    storageRetentionInput.oninput = () => {
+      storageAutoDeleteField.style.display = storageRetentionInput.value ? 'flex' : 'none';
+      if (!storageRetentionInput.value) {
+        const chk = container.querySelector('#sessionStorageAutoDelete');
+        if (chk) chk.checked = false;
+      }
+    };
+  }
+
   container.querySelector('#cancelNewSession').onclick = () => { newSessionModal.style.display = 'none'; };
 
   container.querySelector('#confirmNewSession').onclick = async () => {
@@ -196,6 +223,11 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     const eventType = container.querySelector('#sessionEventType')?.value || 'outro';
     const photoResolution = parseInt(container.querySelector('#sessionResolution')?.value) || 1200;
     const salesAutomationEnabled = container.querySelector('#sessionSalesAutomation')?.checked !== false;
+    const commentsEnabled = container.querySelector('#sessionCommentsEnabled')?.checked || false;
+    const showDeliveryQueuePosition = container.querySelector('#sessionShowQueuePosition')?.checked || false;
+    const storageRetentionUntil = container.querySelector('#sessionStorageRetentionUntil')?.value || null;
+    const storageAutoDelete = container.querySelector('#sessionStorageAutoDelete')?.checked || false;
+    const storageBackupOnExpire = container.querySelector('#sessionStorageBackupOnExpire')?.checked || false;
     const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
     let hasError = false;
@@ -242,6 +274,11 @@ function _setupNewSessionModal(container, state, renderSessoes) {
         name, date, selectionDeadline, mode, packageLimit,
         extraPhotoPrice, coverPhoto, photoResolution,
         allowExtraPurchasePostSubmit: allowExtraPurchase, allowReopen,
+        commentsEnabled,
+        showDeliveryQueuePosition: isMulti ? showDeliveryQueuePosition : false,
+        storageRetentionUntil: storageRetentionUntil || null,
+        storageAutoDelete,
+        storageBackupOnExpire,
         eventType,
         eventDate: date || null,
         salesAutomation: { enabled: salesAutomationEnabled, sentTriggers: [] }
@@ -253,9 +290,9 @@ function _setupNewSessionModal(container, state, renderSessoes) {
         payload.clientEmail = clientEmail;
       }
 
-      const result = await apiPost('/api/sessions', payload);
+      await apiPost('/api/sessions', payload);
       newSessionModal.style.display = 'none';
-      window.showToast?.(`Sessão criada! Código: ${result.accessCode || result.session?.accessCode}`, 'success', 6000);
+      window.showToast?.('Sessão criada!', 'success');
       await renderSessoes(container);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
@@ -349,6 +386,23 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     const editAutoChk = container.querySelector('#editSalesAutomation');
     if (editAutoChk) editAutoChk.checked = session.salesAutomation?.enabled !== false;
 
+    const editRetention = container.querySelector('#editStorageRetentionUntil');
+    const editAutoDelField = container.querySelector('#editStorageAutoDeleteField');
+    const editAutoDelChk = container.querySelector('#editStorageAutoDelete');
+    if (editRetention) {
+      editRetention.value = session.storageRetentionUntil
+        ? new Date(session.storageRetentionUntil).toISOString().split('T')[0]
+        : '';
+      if (editAutoDelField) editAutoDelField.style.display = editRetention.value ? 'flex' : 'none';
+      editRetention.oninput = () => {
+        if (editAutoDelField) editAutoDelField.style.display = editRetention.value ? 'flex' : 'none';
+        if (!editRetention.value && editAutoDelChk) editAutoDelChk.checked = false;
+      };
+    }
+    if (editAutoDelChk) editAutoDelChk.checked = Boolean(session.storageAutoDelete);
+    const editBackupChk = container.querySelector('#editStorageBackupOnExpire');
+    if (editBackupChk) editBackupChk.checked = Boolean(session.storageBackupOnExpire);
+
     editModal.style.display = 'flex';
   };
 
@@ -370,13 +424,19 @@ function _setupEditSessionModal(container, state, renderSessoes) {
     const coverPhoto = container.querySelector('#editCoverPhoto').value;
     const eventType = container.querySelector('#editEventType')?.value || 'outro';
     const salesAutomationEnabled = container.querySelector('#editSalesAutomation')?.checked !== false;
+    const editRetentionVal = container.querySelector('#editStorageRetentionUntil')?.value || null;
+    const editAutoDelete = container.querySelector('#editStorageAutoDelete')?.checked || false;
+    const editBackupOnExpire = container.querySelector('#editStorageBackupOnExpire')?.checked || false;
 
     try {
       await apiPut(`/api/sessions/${state.editingSessionId}`, {
         name, mode, selectionDeadline, packageLimit,
         extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen, coverPhoto,
         eventType,
-        'salesAutomation.enabled': salesAutomationEnabled
+        'salesAutomation.enabled': salesAutomationEnabled,
+        storageRetentionUntil: editRetentionVal || null,
+        storageAutoDelete: editAutoDelete,
+        storageBackupOnExpire: editBackupOnExpire
       });
       editModal.style.display = 'none';
       state.editingSessionId = null;

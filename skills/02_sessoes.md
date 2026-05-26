@@ -1,224 +1,346 @@
 # Sessões — Módulo de Gestão de Trabalhos (CliqueZoom Admin)
 
-> Documentação gerada em 2026-05-19.
+> Documentação atualizada em 2026-05-23. Wizard Guiado consolidado em **5 passos** após a fusão dos antigos "Código" e "Enviar" no novo passo **Compartilhar**.
 > Pasta: `admin/js/tabs/sessoes/`
-> Backend: `src/routes/sessions.js`
-> **Manual do usuário:** `admin/js/tabs/ajuda.js` → `MANUAL_MODULES[1]` (id: `sessoes`). Ver padrão em `skills/00_manual-usuario.md`.
+> Backend: `src/routes/sessions.js`, `src/models/Session.js`, `src/utils/email.js`
+> **Manual do usuário:** `admin/js/tabs/ajuda.js` → `MANUAL_MODULES[1]` (id: `sessoes`). **OBS:** Manual ainda descreve o fluxo antigo de botões — atualização pendente. Ver `skills/00_manual-usuario.md`.
 
 ---
 
 ## 1. Visão Geral
 
-O módulo Sessões gerencia o ciclo completo de um trabalho fotográfico: criação, upload de fotos, envio do código de acesso ao cliente, seleção pelo cliente, upload das editadas e entrega final. É o módulo com maior volume de código da aplicação admin.
+O módulo Sessões gerencia o ciclo completo de um trabalho fotográfico. Em 2026-05-23 foi refatorado: **cards da lista perderam todos os botões** e abrem um **wizard fullscreen** com sidebar de 6 passos guiados.
 
-**Entry point:** `admin/js/tabs/sessoes/index.js` — função `renderSessoes(container)`.
+**Filosofia:** o fotógrafo só vê a ação **da etapa atual**. Passos travados aparecem com cadeado e tooltip explicando o pré-requisito. Reduz erros operacionais (ex: tentar entregar antes da seleção).
 
-**Estrutura de pasta** (> 600 linhas — segue padrão modular):
+**Entry points:**
+- `renderSessoes(container)` em `admin/js/tabs/sessoes/index.js` — monta lista + modais legados (preservados)
+- `window.openSessionWizard(sessionId)` em `wizard/index.js` — abre o wizard sobre a página
+
+---
+
+## 2. Estrutura de Pasta
+
 ```
 admin/js/tabs/sessoes/
-  index.js             — entry point, HTML do container, orquestra todos os módulos
-  state.js             — estado global do módulo (sessionsData, currentSessionId, etc.)
-  list.js              — carregamento, filtros e renderização da lista de sessões
-  modal-form.js        — formulário de criação e edição de sessão
-  modal-detail.js      — modal de fotos (galeria geral + aba de entrega final)
-  actions.js           — ações globais (entregar, reabrir, enviar código, histórico, etc.)
-  upload.js            — lógica de upload (fotos originais e editadas) + modal de validação
-  comments.js          — modal de comentários por foto
-  modal-participantes.js — gestão de participantes (modo multi_selection)
+  index.js                 — HTML do container, monta lista e modais legados, importa wizard
+  state.js                 — estado global (sessionsData, currentSessionId, etc.)
+  list.js                  — cards limpos (sem botões), clique abre wizard
+  modal-form.js            — formulário Nova/Editar Sessão (modal legado, ainda usado pelo ⚙️)
+  modal-detail.js          — modal de fotos (legado, ainda existe mas não chamado pelo wizard)
+  actions.js               — funções window.* (entregar, reabrir, etc.) — usadas pelos passos do wizard
+  upload.js                — fila e painel global de upload — reutilizado no passo 1 e 5 do wizard
+  comments.js              — modal de comentários por foto — aberto pelo wizard via openOverlayModal
+  modal-participantes.js   — modal de participantes (multi) — aberto pelo wizard via openOverlayModal
+
+  wizard/                  — NOVA PASTA (2026-05-23)
+    index.js               — openSessionWizard(id), buildModal, header, switchStep, refresh, mount/unmount do sininho
+    state.js               — wizardState + stopWizardPolling() (limpa timer + listener visibilitychange)
+    stepper.js             — sidebar vertical, computeWizardSteps, stepIdsForMode, nextStepIdAfter, injectWizardStyles
+    utils.js               — buildGalleryUrl, buildWhatsAppLink (envio de código), buildWhatsAppDeliveryLink (entrega), openOverlayModal
+    notifications-bell.js  — sininho próprio do wizard (mountWizardBell / unmountWizardBell)
+    steps/
+      1-upload.js          — upload de fotos + botão "Concluí upload" (bloqueado em selection se photos < pacote)
+      2-share.js           — código de acesso, link, canais email/WhatsApp/copiar; em multi mostra lista de participantes
+      4-tracking.js        — grid com película + polling adaptativo + botão atualizar + chat por foto
+      5-edited.js          — upload de editadas + grid com fotos cortesia (★ Cortesia) + export Lightroom (com token JWT)
+      6-deliver.js         — botão entregar + card "Compartilhar entrega" (WhatsApp+Copiar) + histórico + entrega por participante (multi)
 ```
 
 ---
 
-## 2. Arquivos e Responsabilidades
+## 3. Wizard — Os 5 Passos
 
-### index.js
-- Renderiza o HTML completo (filtros, lista, todos os modais em um único container)
-- Chama `loadSessions()`, `setupListFilters()`, `setupModalForm()`, `setupModalDetail()`, `setupComments()`, `setupParticipantes()`, `setupUpload()`, `setupActions()` em sequência
-- Exporta apenas `renderSessoes(container)` — sem estado próprio (usa `state.js`)
+| # | Passo | Done quando | Locked até |
+|---|-------|-------------|------------|
+| 1 | Upload | `uploadsCompletedAt` setado. Em **selection** o botão "Concluí upload" só libera quando `photos.length >= packageLimit` (espelha a regra do cliente, que não consegue submeter abaixo do mínimo) | sempre disponível |
+| 2 | Compartilhar | `codeSentAt` setado (e-mail/WhatsApp), ou ≥ 1 participante em multi. Side-effect: ao abrir, marca `codeViewedAt` automaticamente | passo 1 done |
+| 4 | Acompanhar | `selectionStatus === 'submitted'` (ou todos participantes em multi) | passo 2 done |
+| 5 | Editadas | todas selecionadas têm `urlOriginal` | passo 4 done |
+| 6 | Entregar | `selectionStatus === 'delivered'` (ou todos participantes entregues) | passo 5 done |
 
-### state.js
-Estado compartilhado entre todos os arquivos do módulo:
-- `sessionsData` — array de sessões carregadas da API
-- `currentSessionId` — ID da sessão aberta no modal de fotos
-- `currentParticipantsSessionId` — ID da sessão aberta no modal de participantes
-- `currentCommentSessionId` / `currentCommentPhotoId` — contexto do modal de comentários
+> Os IDs 1, 2, 4, 5, 6 são preservados para não invalidar referências históricas. **Não existe mais passo 3.**
 
-### list.js
-- `loadSessions(container, state)` — `GET /api/sessions`, popula `state.sessionsData`, chama `filterAndRender()`
-- `filterAndRender(container, state)` — aplica filtros (busca, modo, tipo de evento `#filterEventType`, status, data) e chama `renderList()`
-- `renderList(container, items)` — renderiza os cartões de sessão com badges de status, botões de ação, timeline de progresso e barra de código
-- `setupListFilters(container, state)` — registra listeners nos inputs de filtro (inclui `#filterEventType`)
-- `getSessionProgress(session)` — calcula o estado de cada passo do workflow (Criada/Fotos/Link/Seleção/Entregue) a partir dos campos `photos`, `codeSentAt`, `firstAccessAt`, `selectionStatus`, `selectionDeadline`, `reopenRequested`. Retorna `{steps, nextAction, nextType}`.
-- `renderProgressStepper(session)` — gera HTML do stepper visual com dots coloridos e chip de próximo passo (`action`/`wait`/`done`/`warn`). Modo gallery usa 4 passos; seleção/multi usa 5 (+ 6º "Reabertura" se `reopenRequested`).
-- **Badge de tipo de evento:** span roxo com nome legível (ex: "Casamento"), omitido para `eventType === 'outro'`
-- **Cliente clicável:** botão transparente com `window._pendingOpenClientId = id; window.switchTab('clientes')` — navega para o cadastro do cliente
-- **Cores dos cartões por modo:** `color-mix(in srgb, var(--green) 4%, transparent)` (seleção), `--orange` (multi), `--purple` (galeria)
+**Adaptação por modo** (`stepIdsForMode` em `stepper.js`):
+- `gallery` → `[1, 2, 6]` (sem seleção/edição)
+- `multi_selection` / `multi_instant` → `[1, 2, 4, 5, 6]` (passo 2 só mostra lista de participantes — sem código geral)
+- `selection` (default) → `[1, 2, 4, 5, 6]`
 
-### modal-form.js
-- `setupModalForm(container, state, renderSessoes)` — lógica do modal Nova Sessão e Editar Sessão
-- Habilita/desabilita campos dinamicamente conforme o modo escolhido
-- **Validação de datas:** única regra — prazo de seleção deve ser posterior à data do evento. "Criado em" é só registro, sem validação (fotógrafo pode criar sessão retroativa ou futura sem bloqueio). Fix aplicado em 2026-05-19 (commit `0a72be8`).
-- **Input de capa:** `accept=".jpg,.jpeg,.png"` em ambos os modais (criação e edição). Validação MIME também no servidor via `multerConfig.js` (whitelist: `image/jpeg`, `image/png`).
-- Busca de cliente com autocomplete (`GET /api/clients/search?q=`) + criação de novo cliente inline via `abrirModalClienteNovo()`
-- Criação: `POST /api/sessions` · Edição: `PUT /api/sessions/:id`
+`nextStepIdAfter(mode, currentId)` calcula o próximo passo respeitando a ordem do modo.
 
-### modal-detail.js
-- `setupModalDetail(container, state)` — define `window.viewSessionPhotos(sessionId)`
-- **Cabeçalho do modal:** exibe badge `1200px` (resolução configurada na sessão) com tooltip ao hover — mostra a descrição da escolha (ex: "padrão — equilíbrio entre qualidade e armazenamento") e aviso de que não pode ser alterada. Usa `session.photoResolution`.
-- Renderiza grid de fotos com: checkbox bulk-delete, badge "Selecionada", badge "CAPA", badge 💬 (comentários), overlay hover com ações (ocultar, comentar, definir capa)
-- **Badge de dimensões reais** no canto inferior direito de cada thumbnail (ex: `1200×800`) — presente apenas em fotos subidas após 2026-05-19. Lido de `photo.width` / `photo.height`.
-- Aba "Entrega Final" mostra fotos com `urlOriginal` e botão "Exportar Lightroom"
-- `window.switchPhotoTab(tab)` — alterna entre aba Geral e Entrega Final
-- Deletes em massa: `DELETE /api/sessions/:id/photos/bulk`
-
-### actions.js
-- `setupActions(container, state, renderSessoes)` — define funções globais de ação
-- `window.copySessionCode(code, btn)` — copia para clipboard com feedback visual
-- `window.sendSessionCode(sessionId, accessCode)` — `POST /api/sessions/:id/send-code`
-- `window.reopenSelection(sessionId)` — `PUT /api/sessions/:id/reopen` (limpa `reopenRequested`)
-- `window.dismissReopenRequest(sessionId)` — `PUT /api/sessions/:id/dismiss-reopen` (recusa pedido sem reabrir seleção)
-- `window.deliverSession(sessionId)` — `PUT /api/sessions/:id/deliver` (lógica diferente por modo: gallery vs selection; bloqueado se `reopenRequested`)
-- `window.acceptExtraRequest(sessionId)` — `PUT /api/sessions/:id/extra-request/accept`
-- `window.rejectExtraRequest(sessionId)` — `PUT /api/sessions/:id/extra-request/reject` (modal customizado com campo de motivo)
-- `window.deleteSession(sessionId)` — `DELETE /api/sessions/:id`
-- `window.setSessionCover(sessionId, photoUrl)` — `PUT /api/sessions/:id` com `{coverPhoto}`
-- `window.togglePhotoHidden(sessionId, photoId)` — `PUT /api/sessions/:id/photos/:photoId/toggle-hidden`
-- `window.viewSessionHistory(sessionId)` — `GET /api/sessions/:id`, renderiza timeline de eventos
-
-### upload.js
-- `showUploadValidationModal(container, report, onConfirm)` — modal de validação antes do upload de editadas (4 caixas coloridas: não encontradas/vermelho, não selecionadas/amarelo, extras/accent, tudo certo/verde)
-- `setupUpload(container, state, renderSessoes)` — lógica de upload via `UploadQueue` (concorrência 3)
-  - `#sessionUploadInput` → `POST /api/sessions/:id/photos` (fotos originais)
-  - `#sessionEditedInput` → `POST /api/sessions/:id/photos/upload-edited` (fotos editadas, com validação prévia)
-- `window.globalUploadPanel` / `window.globalUploadQueue` — singletons reutilizados entre uploads
-
-### comments.js
-- `setupComments(container, state)` — define `window.openComments(sessionId, photoId)`
-- Renderiza chat bidirecional: mensagens do cliente (esquerda, fundo `var(--bg-elevated)`) e do admin (direita, fundo `color-mix(in srgb, var(--accent) 20%, transparent)`)
-- Envio: `POST /api/sessions/:id/photos/:photoId/comments`
-
-### modal-participantes.js
-- `setupParticipantes(container, state, renderSessoes)` — define `window.viewParticipants(sessionId)`
-- Autocomplete de clientes na busca de participantes (`GET /api/clients/search?q=`)
-- Adicionar participante: `POST /api/sessions/:id/participants`
-- Remover: `DELETE /api/sessions/:id/participants/:pid`
-- Entregar individual: `PUT /api/sessions/:id/participants/:pid/deliver`
-- Exportar seleções: `GET /api/sessions/:id/participants/export?token=`
+**Backend reforça a regra do passo 1**: `PUT /api/sessions/:id/complete-uploads` retorna 400 se `mode === 'selection'` e `visiblePhotos < packageLimit`.
 
 ---
 
-## 3. Ferramentas e Componentes Visíveis ao Usuário
+## 4. Compatibilidade com Modais Antigos — `openOverlayModal`
 
-| Elemento | Localização | Função |
-|---|---|---|
-| Filtros (busca, modo, status, data) | topo da lista | Filtrar sessões em tempo real |
-| Cartão de sessão | list.js | Visão geral de cada trabalho |
-| Badge de status | list.js | Cor indica fase do trabalho |
-| Barra de código + Copiar | list.js | Compartilhar acesso com cliente |
-| Botão Fotos | list.js | Abre modal de galeria |
-| Botão Config | list.js | Abre modal de edição |
-| Botão Participantes | list.js (multi_selection) | Gerencia participantes |
-| Botão 📧 Enviar | list.js | Envia código por e-mail |
-| Botão Entregar / Re-entregar | list.js | Libera download ao cliente |
-| Filtro tipo de evento | list.js + index.js | Filtrar sessões por tipo (Casamento, Formatura…) |
-| Badge tipo de evento | list.js | Span roxo com tipo do trabalho no card |
-| Timeline de progresso | list.js | Stepper visual Criada→Fotos→Link→Seleção→Entregue + chip próximo passo |
-| Badge ⚠ Reabertura solicitada | list.js | Alerta laranja quando cliente pediu reabertura |
-| Botão ✓ Reabrir / ✗ Recusar pedido | list.js | Decisão sobre pedido de reabertura (substitui "Reabrir" quando `reopenRequested`) |
-| Botão Reabrir | list.js | Reabre seleção manualmente (sem pedido pendente) |
-| Botão Histórico | list.js | Timeline de eventos da sessão |
-| Modal de fotos (grid) | modal-detail.js | Upload, visualização, bulk delete |
-| Aba Entrega Final | modal-detail.js | Fotos editadas prontas p/ entrega |
-| Banner modo re-entrega | modal-detail.js | Alerta visual quando ativo |
-| Modal de participantes | modal-participantes.js | Gestão de multi-seleção |
-| Modal de validação de upload | upload.js | Verificação antes de subir editadas |
-| Painel de upload global | upload-panel.js | Progresso de uploads em andamento |
-| Modal de comentários | comments.js | Chat admin↔cliente por foto |
-| Modal de histórico | actions.js | Timeline de eventos da sessão |
-| Modal de recusa de extras | actions.js | Motivo de recusa com campo de texto |
+Os modais legados (`editSessionModal`, `participantsModal`, `commentsModal`) ficam dentro do container da tab e sofrem com **stacking context** quando o wizard (que está em `document.body`) tenta ficar atrás. Solução: o wizard **se esconde** (`display:none`) enquanto o modal antigo está aberto, depois reaparece.
 
----
-
-## 4. Fluxo de Dados
-
-```
-renderSessoes(container)
-  ├── Renderiza HTML estático (filtros + lista vazia + todos os modais)
-  ├── loadSessions() → GET /api/sessions → state.sessionsData → renderList()
-  ├── setupListFilters() → listeners nos inputs de filtro
-  ├── setupModalForm() → define editSession(), newSessionModal handlers
-  ├── setupModalDetail() → define window.viewSessionPhotos()
-  ├── setupComments() → define window.openComments()
-  ├── setupParticipantes() → define window.viewParticipants()
-  ├── setupUpload() → define handlers nos inputs de arquivo
-  └── setupActions() → define window.deliverSession(), sendSessionCode(), etc.
-
-Ações do usuário:
-  Criar sessão: POST /api/sessions → renderSessoes()
-  Editar sessão: PUT /api/sessions/:id → renderSessoes()
-  Deletar sessão: DELETE /api/sessions/:id → renderSessoes()
-  Upload originais: POST /api/sessions/:id/photos → renderSessoes() + viewSessionPhotos()
-  Upload editadas: POST /api/sessions/:id/photos/upload-edited → renderSessoes() + viewSessionPhotos()
-  Entregar: PUT /api/sessions/:id/deliver → renderSessoes()
-  Enviar código: POST /api/sessions/:id/send-code (sem re-render)
-  Comentar: POST /api/sessions/:id/photos/:photoId/comments (atualiza state local)
+```js
+// wizard/utils.js
+openOverlayModal({
+  modalSelector: '#participantsModal',
+  opener: () => window.viewParticipants(session._id),
+  onClose: refresh   // opcional
+});
 ```
 
+Como funciona:
+1. Localiza `#sessionWizardModal`, salva display atual, seta `display:none`
+2. Chama `opener()` (que abre o modal antigo)
+3. Inicia polling 400ms detectando `display:none` ou remoção do modal alvo
+4. Quando fecha: restaura display do wizard, chama `onClose` se fornecido
+5. Failsafe: aborta em 5min
+
+**Usado em 3 lugares:**
+- `wizard/index.js` — botão ⚙️ → `#editSessionModal` (onClose = refreshWizardFromServer)
+- `wizard/steps/2-share.js` — "Gerenciar participantes" → `#participantsModal` (onClose = refresh)
+- `wizard/steps/4-tracking.js` — 💬 chat por foto → `#commentsModal`
+
 ---
 
-## 5. Globals Usados / Expostos
+## 5. Arquivos e Responsabilidades
+
+### list.js — cards sem botões
+
+- Card inteiro é clicável (`onclick → openSessionWizard`). Hover: shadow + 1px up.
+- Mantém: capa 80×80, nome (sublinhado pontilhado), cliente (botão verde com `stopPropagation`), badges (status, eventType, extras, reabertura), data/fotos/prazo, stepper de progresso.
+- **Código de acesso não aparece mais no card** (decisão 2026-05-23). Ele só é exibido dentro do wizard, no passo Compartilhar. O toast pós-criação também não exibe mais o código — apenas "Sessão criada!".
+- Botões removidos: Fotos, Participantes, Config, Enviar, Reabrir, Recusar, Entregar, Re-entregar, Historico, Aceitar/Recusar extras, Deletar.
+- `event.stopPropagation()` em botões internos (cliente) para não disparar o wizard.
+
+### wizard/index.js
+- `openSessionWizard(sessionId)` — busca sessão fresca, monta modal fullscreen, escolhe passo inicial via `pickInitialStep` (primeiro não-concluído e não-locked, ou último se tudo done).
+- `buildModal()` — modal `position:fixed` z-index 1100, header + sidebar + content.
+- `refreshWizard()` — re-renderiza header + sidebar + content sem buscar do servidor. Chama `unmountWizardBell()` antes de limpar o header (evita vazamento de polling do sininho).
+- `refreshWizardFromServer()` — busca `GET /api/sessions/:id` e re-renderiza.
+- `switchStep(stepId)` — troca passo. Side-effects: (a) se sai do passo 4, chama `stopWizardPolling()` para encerrar o polling adaptativo; (b) se vai para o passo 2 e `!codeViewedAt`, dispara `PUT /api/sessions/:id/view-code`.
+- Header: nome da sessão + cliente, 🔔 (sininho próprio do wizard via `mountWizardBell`), ⚙️ (editar via openOverlayModal), 🗑️ (deletar via showConfirm + window.deleteSession), ✕ (closeWizard).
+- `closeWizard` também chama `unmountWizardBell()`.
+
+### wizard/stepper.js
+- `computeWizardSteps(session, currentStepId)` retorna array `[{id, label, icon, done, locked, active, warn}]`.
+- Lógica de done/locked considera o modo da sessão.
+- `renderStepper(steps, onClick)` — sidebar 220px com indicador pulse no passo ativo, cadeado nos travados, check nos done.
+- `injectWizardStyles()` — `@keyframes pulse` (idempotente, injeta uma vez).
+
+### wizard/state.js
+```js
+export const wizardState = {
+  modalEl: null,                       // ref ao modal DOM
+  session: null,                       // sessão carregada
+  currentStepId: 1,
+  pollingTimer: null,                  // setTimeout adaptativo do passo 4
+  pollingLastChangeAt: 0,              // timestamp da última mudança detectada (janela quente de 2 min)
+  pollingVisibilityHandler: null,      // handler do visibilitychange (pausa quando aba some)
+  lastSelectionSnapshot: null          // diff de seleção pro toast
+};
+```
+- `stopWizardPolling()` — limpa `pollingTimer` + remove o `visibilitychange`. Usado em `switchStep` (saindo do passo 4) e em `resetWizardState`.
+- `resetWizardState()` zera tudo (chamado em `closeWizard`).
+
+### wizard/utils.js
+- `buildGalleryUrlForCode(session, code)` — localhost usa `?_tenant=slug`, produção usa subdomínio.
+- `buildGalleryUrl(session)` — atalho com `session.accessCode`.
+- `buildWhatsAppLink({session, accessCode, recipientName, recipientPhone, orgName})` — mensagem **de envio inicial** por `eventType` (11 templates em `WA_OPENINGS`: casamento, aniversario, formatura, corporativo, show, ensaio, gestante, newborn, debutante, batizado, outro). Tom: "fotos prontas pra visualizar e escolher". Telefone normalizado (DDI 55 prefixado se 10/11 dígitos).
+- `buildWhatsAppDeliveryLink({...})` — mesma assinatura, mas usa `WA_DELIVERY_OPENINGS` (tom de "fotos editadas prontas para download"). Usado no passo 6.
+- `openOverlayModal(...)` — descrito na seção 4.
+
+### wizard/notifications-bell.js (novo, 2026-05-23)
+Sininho próprio do wizard porque o sininho global do topbar fica atrás do modal fullscreen (z-index 1100).
+- `mountWizardBell(rootEl, currentSessionId)` — anexa botão+badge+dropdown ao header e inicia polling de 30s em `/api/notifications/unread-count`.
+- `unmountWizardBell()` — limpa timer e listener de outside click. Chamado em `refreshWizard` (antes de limpar header) e em `closeWizard`.
+- Click no item:
+  - `contact` / `depoimento_pendente` → `closeSessionWizard` + `switchTab('mensagens')`.
+  - Notificação da sessão atual + `comment_added` + `photoId` → abre `commentsModal` direto via `openOverlayModal` (sem fechar o wizard).
+  - Notificação de outra sessão → `closeSessionWizard` + `openSessionWizard(otherId)` + (se for comment) abre o modal de comentário da foto certa após 400ms.
+- "Marcar lidas" zera tanto o badge do wizard quanto o `#notifBadge` global do topbar.
+
+### wizard/steps/1-upload.js
+Reusa `window.globalUploadQueue` + `globalUploadPanel`. Botão "Concluí upload" chama `PUT /api/sessions/:id/complete-uploads`. Grid mostra fotos com bulk delete.
+
+**Regra do mínimo (selection):** quando `mode === 'selection'` e `packageLimit > 0`, o botão "Concluí upload" fica desabilitado até `photos.length >= packageLimit`. A barra de status mostra "Faltam N fotos para atingir o mínimo do pacote (X/Y)" em laranja. Em `gallery` e `multi_selection` a regra não se aplica (gallery não tem seleção; multi tem pacote por participante e precisa de discussão à parte). O backend (`PUT /complete-uploads`) também valida e retorna 400 se a condição falhar.
+
+### wizard/steps/2-share.js
+Combina código + envio (antiga fusão dos passos 2 e 3).
+
+**Não-multi:**
+- Bloco superior: card com `session.accessCode` em monospace grande + botão copiar código + linha com link completo (`buildGalleryUrl`) e botão copiar link.
+- Bloco inferior: 3 cards de canal — Email (`POST /api/sessions/:id/send-code` com channel='email'), WhatsApp (abre `buildWhatsAppLink` em nova aba), Copiar link (clipboard).
+- Botão "👁️ Ver como cliente" abre a galeria em nova aba.
+- Botão "Próximo: ..." aparece quando `codeSentAt` está setado.
+
+**Multi:** sem bloco de código geral. Painel com botão "+ Gerenciar participantes" (abre via `openOverlayModal`) e lista cada participante com nome/telefone/código + botões copiar/WhatsApp individuais. Botão "Próximo" aparece quando há ≥ 1 participante.
+
+### wizard/steps/4-tracking.js
+- Grid de fotos com película preta (`rgba(0,0,0,0.55)`) durante seleção.
+- Fotos selecionadas pelo cliente perdem a película.
+- Fotos com comentário recente ganham borda pulsante verde + 💬 que abre `commentsModal` via `openOverlayModal`.
+- **Polling adaptativo** (substitui o `setInterval` antigo):
+  - `POLL_DEFAULT_MS = 30000` — sem atividade recente
+  - `POLL_FAST_MS = 10000` — após detectar mudança (janela quente)
+  - `POLL_CHAT_OPEN_MS = 8000` — modal de comentário aberto
+  - `FAST_WINDOW_MS = 120000` — 2 min de polling rápido a cada mudança
+  - **Visibility API**: quando `document.visibilityState === 'hidden'`, pausa (não reagenda). Listener `visibilitychange` dispara tick imediato ao voltar.
+  - **Botão "🔄 Atualizar"** no header do passo (visível enquanto não submetido) chama `refresh()` direto.
+  - `console.warn` no catch (antes silencioso) facilita debug.
+- **Multi:** mostra nomes dos selecionadores nas chips (`buildPhotoSelectorsMap` → `renderSelectorChips` com até 3 + "+N"). Tabela de progresso por participante (`renderParticipantsProgress`).
+- Polling vive em `wizardState.pollingTimer`, limpo em `closeWizard` (via `resetWizardState`) e ao sair do passo 4 (via `switchStep`).
+
+### wizard/steps/5-edited.js
+Upload de editadas com validação prévia. Botão "Exportar Lightroom" abre `/api/sessions/:id/export?token=${appState.authToken}` (o token JWT vai na query string porque `window.open` não envia headers — bug corrigido em 2026-05-23). Em multi: `renderParticipantsExportPanel` com export individual por participante.
+
+**Grid com 3 tipos de foto:**
+- `delivered` (borda + badge verde "✓ Editada") — selecionada pelo cliente e com `urlOriginal`.
+- `pending` (borda + badge amarelo "Pendente") — selecionada, sem editada ainda.
+- `courtesy` (borda + badge roxo "★ Cortesia") — **não selecionada** pelo cliente, mas o fotógrafo subiu a editada como agrado. Nota explicativa abaixo do grid: "O cliente verá com a badge 'Cortesia' na entrega".
+
+### wizard/steps/6-deliver.js
+**Não-multi:** botão Entregar + card "**Compartilhar entrega**" (sempre visível, antes e depois) com:
+- 💬 Enviar WhatsApp — `buildWhatsAppDeliveryLink` com mensagem de download por `eventType`. Botão verde `#25D366`.
+- 🔗 Copiar link da galeria.
+- O botão original "✅ Entregar e notificar cliente" segue como gatilho oficial (marca `deliveredAt`, dispara e-mail). O card de compartilhar é só atalho de notificação.
+- Histórico de entregas + cards de pedido de reabertura e fotos extras (preservados).
+
+**Multi:** header com contadores + tabela `renderParticipantsDeliveryTable`. Cada linha tem:
+- Badge de status do participante
+- Botão `✅ Entregar` (se `submitted`)
+- 💬 **WhatsApp** + 🔗 **Link** individual (se `submitted` ou `delivered`), usando `p.accessCode` e `p.name` — link único por participante.
+- Botão "Entregar todos" para os `submitted` em lote.
+
+### Arquivos legados (preservados)
+
+- **modal-form.js** — usado pelo botão ⚙️ do wizard via `window.editSession`. Toggle "Habilitar mensagens por foto" (default desmarcado, único campo realmente novo). Toggle "Mostrar posição na fila" (multi, default desmarcado).
+- **modal-detail.js** — `viewSessionPhotos` ainda existe globalmente mas não é chamado pelo wizard (substituído pelo grid embutido nos passos 1/4/5).
+- **actions.js** — todas as funções `window.*` preservadas; wizard chama várias delas.
+- **upload.js** — `globalUploadQueue` / `globalUploadPanel` singletons, reutilizados pelos passos 1 e 5.
+- **comments.js** — `window.openComments` ainda usado, aberto via `openOverlayModal`.
+- **modal-participantes.js** — `window.viewParticipants` ainda usado, aberto via `openOverlayModal`.
+
+---
+
+## 6. Backend
+
+### Novos campos (src/models/Session.js)
+```js
+uploadsCompletedAt: Date,           // passo 1 done
+codeViewedAt: Date,                 // passo 2 done (auto)
+showDeliveryQueuePosition: Boolean  // multi: cliente vê posição na fila (default false)
+```
+
+### Novos endpoints (src/routes/sessions.js)
+- `PUT /api/sessions/:id/complete-uploads` — body `{completed: true|false}` — seta/limpa `uploadsCompletedAt`. Em `mode === 'selection'`, retorna 400 se `visiblePhotos < packageLimit`.
+- `PUT /api/sessions/:id/view-code` — idempotente, seta `codeViewedAt = now` se ainda não setado
+
+### Endpoint estendido
+- `POST /api/sessions/:id/send-code` — agora aceita `{channel: 'email'|'whatsapp'|'both'}` (default `email`)
+  - `'email'` (ou ausente): comportamento original
+  - `'whatsapp'`: **não envia nada**, retorna `{whatsappUrl: 'https://wa.me/55…?text=…'}` para o front abrir em nova aba
+  - `'both'`: envia email + retorna whatsappUrl
+
+### Utilitário (src/utils/email.js)
+- `buildWhatsAppGalleryLink(phone, name, code, orgName, slug, eventType)` — espelha os 11 templates do front (`wizard/utils.js`). Exportado no `module.exports`.
+
+> **Nota (2026-05-23):** o `buildWhatsAppDeliveryLink` da Onda 4 vive apenas no front (`wizard/utils.js`). O backend não precisa porque o link é montado client-side e abre em nova aba via `window.open`. Se precisar usar em e-mails/automações no futuro, criar a versão backend espelhando `WA_DELIVERY_OPENINGS`.
+
+---
+
+## 7. Globals — adições e alterações
 
 | Identificador | Tipo | Origem | Uso |
 |---|---|---|---|
-| `window.viewSessionPhotos(id)` | função | modal-detail.js | Abre modal de fotos — usado em dashboard e outros módulos |
-| `window.deliverSession(id)` | função | actions.js | Entregar sessão |
-| `window.sendSessionCode(id, code)` | função | actions.js | Enviar código por e-mail |
-| `window.copySessionCode(code, btn)` | função | actions.js | Copiar código com feedback visual |
-| `window.reopenSelection(id)` | função | actions.js | Reabrir seleção (limpa `reopenRequested`) |
-| `window.dismissReopenRequest(id)` | função | actions.js | Recusar pedido de reabertura sem reabrir |
-| `window.deleteSession(id)` | função | actions.js | Deletar sessão |
-| `window.setSessionCover(id, url)` | função | actions.js | Definir foto de capa |
-| `window.togglePhotoHidden(id, photoId)` | função | actions.js | Ocultar/mostrar foto |
-| `window.viewSessionHistory(id)` | função | actions.js | Abrir timeline |
-| `window.acceptExtraRequest(id)` | função | actions.js | Aceitar fotos extras |
-| `window.rejectExtraRequest(id)` | função | actions.js | Recusar extras com motivo |
-| `window.viewParticipants(id)` | função | modal-participantes.js | Abrir modal de participantes |
-| `window.openComments(id, photoId)` | função | comments.js | Abrir comentários de uma foto |
-| `window.switchPhotoTab(tab)` | função | modal-detail.js | Alternar aba no modal de fotos |
-| `window.globalUploadPanel` | objeto | upload.js | Singleton do painel de upload |
-| `window.globalUploadQueue` | objeto | upload.js | Singleton da fila de upload |
-| `window.loadSidebarStorage?.()` | função | app.js | Atualizar barra de armazenamento após uploads/deletes |
+| `window.openSessionWizard(id)` | função | wizard/index.js | Abre o wizard. Chamado pelo `onclick` do card |
+| `window.closeSessionWizard()` | função | wizard/index.js | Fecha o wizard manualmente |
+
+Globals antigos (preservados): `viewSessionPhotos`, `deliverSession`, `sendSessionCode`, `copySessionCode`, `reopenSelection`, `dismissReopenRequest`, `deleteSession`, `setSessionCover`, `togglePhotoHidden`, `viewSessionHistory`, `acceptExtraRequest`, `rejectExtraRequest`, `viewParticipants`, `deleteParticipant`, `deliverParticipant`, `openComments`, `switchPhotoTab`, `editSession`, `globalUploadPanel`, `globalUploadQueue`.
 
 ---
 
-## 6. Backend — Notas Relevantes
+## 8. Fluxo de Dados
 
-### Upload de fotos (`src/routes/sessions.js`)
-- Após o Sharp processar o thumb (`resize → jpeg quality 85`), o código lê `sharp(thumbPath).metadata()` para obter `{width, height}` e salva no documento MongoDB junto com a foto.
-- Campos `width` e `height` adicionados ao subdocumento de foto em `src/models/Session.js`.
-- Fotos subidas antes de 2026-05-19 não têm esses campos — o badge no admin é omitido automaticamente (`photo.width && photo.height ? ...`).
+```
+Card clicado → openSessionWizard(id)
+  ├── GET /api/sessions/:id → wizardState.session
+  ├── pickInitialStep → currentStepId
+  ├── buildModal → document.body, document.body.style.overflow='hidden'
+  └── refreshWizard
+       ├── buildHeader (nome, cliente, ⚙️, 🗑️, ✕)
+       ├── renderStepper (sidebar)
+       └── STEP_RENDERERS[currentStepId]({session, refresh: refreshWizardFromServer, switchStep})
 
-### Resolução (`photoResolution`)
-- Valor padrão: `1200` (se não configurado na sessão).
-- Valores válidos: `960`, `1200`, `1400`, `1600`.
-- **Não pode ser alterado após criação** — validado na lógica de edição.
-- **Fix (2026-05-20):** `modal-form.js` agora lê e envia `photoResolution` no payload de criação. Antes, o campo `#sessionResolution` existia no HTML mas nunca era lido — todas as sessões eram criadas com 1200px independente da escolha.
+Trocar passo → switchStep(id)
+  ├── wizardState.currentStepId = id
+  ├── refreshWizard
+  └── se id===2 && !codeViewedAt: PUT /view-code → refreshWizard
 
-### Pedido de reabertura (`reopenRequested`)
-- Campo `reopenRequested: Boolean` (default `false`) no model `Session`.
-- Setado para `true` pelo endpoint `POST /client/request-reopen` quando o cliente pede reabertura.
-- Limpo (`false`) pelo `PUT /sessions/:id/reopen` (admin reabre) ou `PUT /sessions/:id/dismiss-reopen` (admin recusa sem reabrir).
-- Enquanto `true`: botão Entregar bloqueado no card; stepper exibe 6º passo "Reabertura" em laranja; dois botões de decisão aparecem no lugar do "Reabrir" padrão.
+Abrir modal antigo (⚙️ / participantes / chat) → openOverlayModal
+  ├── #sessionWizardModal.style.display = 'none'
+  ├── opener()
+  ├── polling 400ms até modal sumir
+  └── restaura display do wizard; onClose?.()
+
+Fechar wizard → closeWizard
+  ├── wizardState.modalEl.remove()
+  ├── document.body.style.overflow = ''
+  └── resetWizardState (limpa pollingTimer, snapshot, etc.)
+```
 
 ---
 
-## 7. Padrões e Cuidados
+## 9. Padrões e Cuidados
 
-- **Cores de modo (cartão):** sempre via `color-mix(in srgb, var(--TOKEN) N%, transparent)` — não usar RGBA hardcoded
-- **Cores de status (badges):** usar `var(--green)`, `var(--yellow)`, `var(--accent)`, `var(--red)`, `var(--text-muted)` — mapeados em `STATUS_LABELS` em list.js e modal-participantes.js
-- **Tokens válidos:** sem prefixo `--ad-`. Usar `var(--text-primary)`, `var(--text-secondary)`, `var(--text-muted)`, `var(--bg-base)`, `var(--bg-surface)`, `var(--bg-elevated)`, `var(--border)`, `var(--accent)`, etc.
-- **`window.globalUploadPanel` / `window.globalUploadQueue`:** singletons — criados uma vez em upload.js. Resetar `window.globalUploadQueue = null` se precisar reinicializar.
-- **`renderSessoes(container)` recarrega tudo** — não há atualização parcial. Após qualquer ação destrutiva (entregar, deletar, etc.), a função é re-chamada para recarregar o estado do servidor.
-- **Modo gallery oculta aba "Entrega Final"** e o fluxo de seleção — não exibir `#tabEntrega` nem `#secondaryUploadBtn` para esse modo.
-- **Extras (fotos além do pacote):** lógica de aceitação/rejeição com modal customizado. O campo de motivo é obrigatório na recusa.
-- **Comentários:** lógica de scroll automático para o final (`scrollTop = scrollHeight`) após enviar.
+- **Stacking context:** wizard fica em `document.body` (z-index 1100). Modais legados estão dentro do container da tab — z-index 1200 deles **não vence** o wizard por causa de contexto pai. Solução: `openOverlayModal` esconde o wizard temporariamente. Não tentar mexer com z-index para "resolver" — não resolve.
+- **Polling do passo 4** vive em `wizardState.pollingTimer` (`setTimeout` recursivo, não `setInterval`). `stopWizardPolling()` é a forma canônica de encerrar — limpa o timer **e** o listener `visibilitychange`. Sempre limpar ao trocar de passo e em `closeWizard`. O renderer do passo 4 chama `stopWizardPolling` antes de iniciar.
+- **Sininho do wizard:** `mountWizardBell` é chamado a cada `refreshWizard` — por isso `unmountWizardBell` precisa vir **antes** do `header.innerHTML = ''` (senão o `setInterval` interno fica órfão e duplica). Já está garantido em `wizard/index.js`.
+- **`window.openComments` busca a sessão em 3 fontes** (fallback chain): `wizardState.session` → `state.sessionsData` → `GET /api/sessions/:id`. Necessário porque a lista da página pode estar fria quando o usuário entra direto no wizard.
+- **Modo gallery pula passos 4 e 5.** Verificar `session.mode === 'gallery'` antes de assumir presença de selectionStatus, urlOriginal, etc.
+- **Multi-seleção:** o passo 2 (Compartilhar) mostra apenas a lista de participantes (sem código geral). Cada participante tem `accessCode` próprio em `session.participants[].accessCode`.
+- **`openOverlayModal` precisa de `modalSelector` que exista** no DOM no momento da chamada. Se passar um seletor inválido, o helper restaura o wizard imediatamente sem erro.
+- **`event.stopPropagation()`** obrigatório em qualquer botão interno do card (cliente, copiar) — sem isso o card inteiro disparará `openSessionWizard`.
+- **Singletons de upload:** `window.globalUploadQueue` e `globalUploadPanel` são criados em upload.js. Passos 1 e 5 reutilizam. Não recriar — vazaria callbacks.
+- **Tokens CSS:** sem prefixo `--ad-` (esse é só na landing). Usar `var(--text-primary)`, `var(--bg-base)`, `var(--accent)`, `var(--green)`, `var(--orange)`, `var(--purple)`, etc.
+- **Cores de modo (cartão):** `color-mix(in srgb, var(--TOKEN) 4%, transparent)` para fundo, 15% para borda. Selection=green, multi=orange, gallery=purple.
+- **Cortesia:** foto sem `selectedPhotos` mas com `urlOriginal` é tratada como agrado do fotógrafo. No admin (passo 5) aparece com badge roxo `★ Cortesia`. No cliente (PWA), entra no grid principal da `renderDeliveredScreen` com a mesma badge e sai do upsell em `renderSubmittedScreen` (não está mais à venda).
+- **Export Lightroom:** rota `/api/sessions/:id/export` exige JWT em `?token=` (ou `Authorization` header). Como `window.open` não envia headers, o front sempre passa `?token=${encodeURIComponent(appState.authToken)}`.
+
+---
+
+## 10. Modal de comentários — admin e cliente (2026-05-23)
+
+### Admin (`admin/js/tabs/sessoes/comments.js` + `index.js`)
+- Modal `#commentsModal` ganhou novo bloco `#commentsPhotoPreview` com:
+  - `<img id="commentsPhotoThumb">` 84×84
+  - `#commentsPhotoFilename` (nome do arquivo)
+  - `#commentsPhotoMeta` (dimensões + "✓ Selecionada pelo cliente" / "Não selecionada")
+- `comments.js`: nova função `renderPhotoPreview(photo, session)` chamada no `window.openComments` para popular o preview.
+- `comments.js` agora resolve a sessão por **fallback** (`findSession`): `wizardState.session` → `state.sessionsData` → `apiGet('/api/sessions/:id')`. Bug histórico: o modal nem abria quando o usuário entrava direto no wizard sem ter a lista carregada.
+- O `sendAdminCommentBtn` aplica o novo comentário **em ambas as fontes** (lista + wizard) para a UI ficar coerente.
+
+### Cliente (`cliente/js/gallery.js`)
+- Modal `#commentModal` ganhou `#commentPhotoPreview` (thumb 64×64 + nome do arquivo). Populado em `openCommentModal`.
+- O sininho do cliente já chama `openCommentModal(first.photoId)` — agora o modal mostra a thumb, então o cliente vê imediatamente de qual foto a conversa é.
+
+---
+
+## 11. Pendências conhecidas
+
+### Pequenas
+- **Regra do mínimo em multi-seleção** — em multi cada participante pode ter `packageLimit` próprio (ex.: cliente A com pacote 3, cliente B com pacote 6). A regra do passo 1 (bloquear "Concluí upload" se fotos < pacote) ainda não foi modelada para multi. Decisão pendente: bloquear pelo `max(participant.packageLimit)` ou exigir manualmente por participante?
+- **Validação em galeria** — confirmar fluxo após a fusão para 3 passos (Upload → Compartilhar → Entregar). Usuário disse "vou testar galeria depois de selection".
+- **Sininho do cliente sem dropdown** — hoje o badge mostra contagem, mas o click só abre a primeira foto pendente. Se houver várias respostas de fotos diferentes, ele só vê uma. Vira ticket separado se necessário.
+
+### Grandes — backlog priorizado pelo usuário em 2026-05-23
+**Onda 5 (próxima sessão) — Retenção de storage:**
+- Campo "Guardar fotos no storage até DD/MM/AAAA" na criação/edição da sessão (default vazio = sem expiração).
+- Notificação no sininho quando chegar a data — **nunca deletar automaticamente sem ação do fotógrafo**.
+- Checkbox "Deletar automaticamente nesta data" (auto-delete sem perguntar).
+- Checkbox "Exportar metadados + baixar imagens para backup".
+- Modo backup: manter só a capa local + campo `externalStorageUrl` (link Drive/Dropbox) — sessão continua acessível no painel, imagens vivem fora.
+- Drive externo como storage dinâmico (substituir uploads/): **ainda em decisão** pelo usuário. Provavelmente V2 (OAuth, quotas, custo de banda).
+
+### Pendências menores acumuladas
+- **Manual do Usuário (ajuda.js) ainda descreve o fluxo antigo de botões.** Reescrever a seção `MANUAL_MODULES[1]` para refletir wizard.
+- **Backend: posição na fila** — campo `showDeliveryQueuePosition` salvo mas a lógica de exibir ao cliente ainda não foi implementada na PWA.
+- **Testes Playwright** (`tests/3_0_sessoes.spec.js`) ainda clicam nos botões antigos. Atualizar para abrir o wizard via clique no card e percorrer passos.
+- **modal-detail.js standalone** pode ser removido — o wizard já tem o grid embutido nos passos 1/4/5.
+- **Cortesia como diferencial de marketing** — quando auditar a landing, incluir como bullet em "Por que CliqueZoom".

@@ -203,6 +203,7 @@ const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
 const salesAutomator = require('./utils/salesAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
+const storageRetentionChecker = require('./utils/storageRetentionChecker');
 
 // Evita execuções sobrepostas: se a rodada anterior ainda está em curso, pula o tick
 function safeInterval(fn, ms) {
@@ -234,6 +235,10 @@ function startDeadlineScheduler() {
   // CRM Fase 2 (Fatia A): motor de vendas automaticas — escassez 7d
   safeInterval(() => salesAutomator.run(), SIX_HOURS);
   console.log('[scheduler] Sales automator iniciado (a cada 6h)');
+
+  // Retenção de storage: roda 1× por dia às 9h Brasília (12h UTC)
+  safeInterval(() => storageRetentionChecker.run(), ONE_DAY);
+  console.log('[scheduler] Storage retention checker iniciado (a cada 24h)');
 
   // CRM reativacao de clientes: roda todo dia às 8h horario de Brasilia (11h UTC)
   function agendarProximaReativacao() {

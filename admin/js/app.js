@@ -5,7 +5,7 @@
 import { appState, loadAppData, saveAppData } from './state.js';
 import { resolveImagePath, copyToClipboard } from './utils/helpers.js';
 import { uploadImage, showUploadProgress } from './utils/upload.js';
-import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, onNotifClick } from './utils/notifications.js';
+import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
 import { apiGet } from './utils/api.js';
 
@@ -870,7 +870,7 @@ window.uploadImage = uploadImage;
 window.showUploadProgress = showUploadProgress;
 window.toggleNotifications = toggleNotifications;
 window.markAllNotificationsRead = markAllNotificationsRead;
-window.onNotifClick = onNotifClick;
+window.deleteAllNotifications = deleteAllNotifications;
 window.showToast = showToast;
 window.showConfirm = showConfirm;
 

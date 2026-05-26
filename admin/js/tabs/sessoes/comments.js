@@ -1,21 +1,61 @@
-import { escapeHtml } from '../../utils/helpers.js';
-import { apiPost } from '../../utils/api.js';
+import { escapeHtml, resolveImagePath } from '../../utils/helpers.js';
+import { apiGet, apiPost } from '../../utils/api.js';
+import { wizardState } from './wizard/state.js';
 
 export function setupComments(container, state) {
   const commentsModal = container.querySelector('#commentsModal');
   const commentsList = container.querySelector('#commentsList');
   const commentInput = container.querySelector('#adminCommentInput');
 
-  window.openComments = (sessionId, photoId) => {
+  // Busca a sessão na fonte mais fresca: wizard primeiro (snapshot recém-carregado),
+  // depois sessionsData (lista da página). Em último caso, faz GET sob demanda
+  // — evita que clique no 💬 falhe silenciosamente quando a lista está fria.
+  async function findSession(sessionId) {
+    if (wizardState.session && wizardState.session._id === sessionId) return wizardState.session;
+    const fromList = (state.sessionsData || []).find(s => s._id === sessionId);
+    if (fromList) return fromList;
+    try {
+      const data = await apiGet(`/api/sessions/${sessionId}`);
+      return data.session || data;
+    } catch {
+      return null;
+    }
+  }
+
+  window.openComments = async (sessionId, photoId) => {
     state.currentCommentSessionId = sessionId;
     state.currentCommentPhotoId = photoId;
-    const session = state.sessionsData.find(s => s._id === sessionId);
-    if (!session) return;
-    const photo = session.photos.find(p => p.id === photoId);
-    if (!photo) return;
+    const session = await findSession(sessionId);
+    if (!session) {
+      window.showToast?.('Sessão não encontrada', 'error');
+      return;
+    }
+    const photo = (session.photos || []).find(p => p.id === photoId);
+    if (!photo) {
+      window.showToast?.('Foto não encontrada', 'error');
+      return;
+    }
+    renderPhotoPreview(photo, session);
     renderCommentsList(photo.comments || []);
     commentsModal.style.display = 'flex';
   };
+
+  function renderPhotoPreview(photo, session) {
+    const thumb = container.querySelector('#commentsPhotoThumb');
+    const filenameEl = container.querySelector('#commentsPhotoFilename');
+    const metaEl = container.querySelector('#commentsPhotoMeta');
+    if (!thumb) return;
+    thumb.src = resolveImagePath(photo.url || '');
+    thumb.alt = photo.filename || 'Foto';
+    if (filenameEl) filenameEl.textContent = photo.filename || '(sem nome)';
+    if (metaEl) {
+      const isSelected = (session.selectedPhotos || []).includes(photo.id);
+      const parts = [];
+      if (photo.width && photo.height) parts.push(`${photo.width}×${photo.height}`);
+      parts.push(isSelected ? '✓ Selecionada pelo cliente' : 'Não selecionada');
+      metaEl.textContent = parts.join(' · ');
+    }
+  }
 
   function renderCommentsList(comments) {
     if (!comments || comments.length === 0) {
@@ -51,14 +91,18 @@ export function setupComments(container, state) {
 
     try {
       const result = await apiPost(`/api/sessions/${state.currentCommentSessionId}/photos/${state.currentCommentPhotoId}/comments`, { text });
-      const session = state.sessionsData.find(s => s._id === state.currentCommentSessionId);
-      if (session) {
-        const photo = session.photos.find(p => p.id === state.currentCommentPhotoId);
-        if (photo) {
-          if (!photo.comments) photo.comments = [];
-          photo.comments.push(result.comment);
-          renderCommentsList(photo.comments);
-        }
+      // Aplica em ambas as fontes (lista da página e wizard) para manter UI coerente
+      const targets = [
+        (state.sessionsData || []).find(s => s._id === state.currentCommentSessionId),
+        (wizardState.session && wizardState.session._id === state.currentCommentSessionId) ? wizardState.session : null
+      ].filter(Boolean);
+      let rendered = false;
+      for (const sess of targets) {
+        const photo = (sess.photos || []).find(p => p.id === state.currentCommentPhotoId);
+        if (!photo) continue;
+        if (!photo.comments) photo.comments = [];
+        photo.comments.push(result.comment);
+        if (!rendered) { renderCommentsList(photo.comments); rendered = true; }
       }
       commentInput.value = '';
     } catch (error) {

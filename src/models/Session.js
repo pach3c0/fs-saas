@@ -38,6 +38,8 @@ const sessionSchema = new mongoose.Schema({
     codeSentAt: Date,        // quando admin enviou o código/link por e-mail ao cliente
     firstAccessAt: Date,     // quando o cliente acessou a galeria pela primeira vez
     lastEditedUploadAt: Date, // quando admin fez o último upload de fotos editadas
+    uploadsCompletedAt: Date, // fotógrafo marcou "concluí upload" — destrava passo de envio do código (wizard)
+    codeViewedAt: Date,       // fotógrafo abriu o passo do código no wizard — habilita o passo de envio
     selectionDeadline: Date,
     deadlineWarningSent: { type: Boolean, default: false }, // Aviso de 3 dias enviado?
     deadlineExpiredSent: { type: Boolean, default: false }, // Aviso de expirado enviado?
@@ -52,6 +54,8 @@ const sessionSchema = new mongoose.Schema({
     allowExtraPurchasePostSubmit: { type: Boolean, default: true },
     allowReopen: { type: Boolean, default: true },
     reopenRequested: { type: Boolean, default: false }, // cliente solicitou reabertura — aguardando decisão do admin
+    // Multi-Seleção: se true, cada participante vê sua posição na fila de entrega (gatilho de urgência).
+    showDeliveryQueuePosition: { type: Boolean, default: false },
     // Re-entrega: ativado pelo admin para subir fotos faltantes sem fechar o download do cliente
     redeliveryMode: { type: Boolean, default: false },
     // Histórico de ciclos de entrega (audit trail)
@@ -109,7 +113,20 @@ const sessionSchema = new mongoose.Schema({
             couponCode: { type: String, default: '' },
             redeemedAt: { type: Date, default: null } // marcacao manual de cupom usado
         }]
-    }
+    },
+    // Retenção de storage: fotógrafo define até quando as fotos ficam no servidor
+    storageRetentionUntil: { type: Date, default: null },
+    storageAutoDelete: { type: Boolean, default: false },         // fotógrafo autorizou exclusão automática na data
+    storageBackupOnExpire: { type: Boolean, default: false },     // gera ZIP de backup antes de deletar/arquivar
+    storageNotificationSent: { type: Boolean, default: false },   // evita notificação duplicada
+    archivedAt: { type: Date, default: null },                    // quando as fotos foram removidas do disco
+    externalStorageUrl: { type: String, default: '' },            // link Drive/Dropbox após arquivamento
+    // Histórico de eventos da sessão (timeline)
+    events: [{
+        type: { type: String, required: true },
+        ts:   { type: Date, default: Date.now },
+        meta: { type: mongoose.Schema.Types.Mixed, default: {} }
+    }]
 }, { timestamps: true });
 
 // Index composto para busca rápida de sessão por org + código

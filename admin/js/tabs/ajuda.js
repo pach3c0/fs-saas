@@ -523,9 +523,297 @@ const MANUAL_MODULES = [
     content: `
       <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
 
-        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0;">
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
           O módulo Sessões é o coração do seu trabalho. Ao criar uma sessão você escolhe um <strong style="color:var(--text-primary);">modo de entrega</strong> — e é esse modo que define todo o fluxo, desde o upload das fotos até a experiência do cliente na galeria.
         </p>
+        <div style="background:color-mix(in srgb, var(--accent) 7%, transparent); border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:8px; padding:0.75rem 1rem; font-size:0.8125rem; color:var(--text-secondary); line-height:1.6;">
+          <strong style="color:var(--text-primary);">Como funciona o wizard:</strong> cada sessão aparece como um card na lista. <strong style="color:var(--text-primary);">Clique em qualquer parte do card</strong> para abrir o wizard — um painel fullscreen com uma barra lateral de passos à esquerda e o conteúdo do passo ativo à direita. Você avança passo a passo: o sistema bloqueia os próximos até você concluir o atual. No topo do wizard: 🔔 notificações da sessão · 📋 histórico completo · ⚙️ editar configurações · 🗑️ excluir · ✕ fechar.
+        </div>
+
+        <!-- ── VISUALIZAÇÃO DAS TELAS ───────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização das Telas</p>
+
+          <!-- ─ CARDS DA LISTA ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">LISTA DE SESSÕES — 3 MODOS</p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem; pointer-events:none;">
+
+              <!-- Card Seleção — em seleção -->
+              <div style="border:1px solid color-mix(in srgb, var(--green) 15%, transparent); border-radius:0.75rem; padding:1rem; background:color-mix(in srgb, var(--green) 4%, transparent); cursor:pointer;">
+                <div style="display:flex; gap:1rem; align-items:flex-start;">
+                  <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; background:var(--bg-base); border:1px solid var(--border); display:flex; align-items:center; justify-content:center;">
+                    <span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+                      <span style="color:var(--text-primary); font-size:1.125rem; font-weight:700; text-decoration:underline dotted; text-underline-offset:4px;">Casamento Ribeiro</span>
+                      <span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.2rem; text-decoration:underline dotted;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>Ana Ribeiro
+                      </span>
+                      <span style="background:color-mix(in srgb, var(--yellow) 18%, transparent); border:1px solid color-mix(in srgb, var(--yellow) 35%, transparent); color:var(--yellow); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:600;">Em seleção</span>
+                      <span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">Casamento</span>
+                    </div>
+                    <div style="color:var(--text-secondary); font-size:0.75rem;">15/05/2026 · 48 fotos · 22/30 selecionadas · Prazo: 30/05/2026</div>
+                  </div>
+                </div>
+                <!-- Stepper -->
+                <div style="border-top:1px solid var(--border); margin-top:0.625rem; padding-top:0.5rem;">
+                  <div style="display:flex; align-items:flex-start; margin-bottom:0.4rem;">
+                    ${['Criada','Fotos','Link','Seleção','Entregue'].map((l, i) => {
+                      const done = i < 3;
+                      const active = i === 3;
+                      const color = done ? 'var(--green)' : (active ? 'var(--accent)' : 'var(--border)');
+                      const icon = done ? '✓' : (active ? '›' : '');
+                      const parts = [`<div style="display:flex;flex-direction:column;align-items:center;gap:0.125rem;"><div style="width:1.1rem;height:1.1rem;border-radius:50%;background:${color};color:#fff;font-size:0.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;">${icon}</div><span style="font-size:0.5rem;color:${done||active?'var(--text-primary)':'var(--text-muted)'};white-space:nowrap;">${l}</span></div>`];
+                      if (i < 4) parts.push(`<div style="flex:1;height:1px;background:${done?'var(--green)':'var(--border)'};margin-top:0.5rem;"></div>`);
+                      return parts.join('');
+                    }).join('')}
+                  </div>
+                  <span style="font-size:0.6875rem; background:color-mix(in srgb, var(--yellow) 12%, transparent); border:1px solid color-mix(in srgb, var(--yellow) 30%, transparent); color:var(--yellow); padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:500;">⏳ Aguardando seleção do cliente</span>
+                </div>
+              </div>
+
+              <!-- Card Galeria — entregue -->
+              <div style="border:1px solid color-mix(in srgb, var(--purple) 15%, transparent); border-radius:0.75rem; padding:1rem; background:color-mix(in srgb, var(--purple) 4%, transparent); cursor:pointer;">
+                <div style="display:flex; gap:1rem; align-items:flex-start;">
+                  <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; background:var(--bg-base); border:1px solid var(--border); display:flex; align-items:center; justify-content:center;">
+                    <span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+                      <span style="color:var(--text-primary); font-size:1.125rem; font-weight:700; text-decoration:underline dotted; text-underline-offset:4px;">Evento Corporativo XYZ</span>
+                      <span style="background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); color:var(--text-primary); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:600;">Entregue</span>
+                      <span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">Corporativo</span>
+                    </div>
+                    <div style="color:var(--text-secondary); font-size:0.75rem;">20/05/2026 · 45 fotos</div>
+                  </div>
+                </div>
+                <div style="border-top:1px solid var(--border); margin-top:0.625rem; padding-top:0.5rem;">
+                  <div style="display:flex; align-items:flex-start; margin-bottom:0.4rem;">
+                    ${['Criada','Fotos','Link','Entregue'].map((l, i) => {
+                      const done = true;
+                      const color = 'var(--green)';
+                      const parts = [`<div style="display:flex;flex-direction:column;align-items:center;gap:0.125rem;"><div style="width:1.1rem;height:1.1rem;border-radius:50%;background:${color};color:#fff;font-size:0.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div><span style="font-size:0.5rem;color:var(--text-primary);white-space:nowrap;">${l}</span></div>`];
+                      if (i < 3) parts.push(`<div style="flex:1;height:1px;background:var(--green);margin-top:0.5rem;"></div>`);
+                      return parts.join('');
+                    }).join('')}
+                  </div>
+                  <span style="font-size:0.6875rem; background:color-mix(in srgb, var(--green) 12%, transparent); border:1px solid color-mix(in srgb, var(--green) 30%, transparent); color:var(--green); padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:500;">✓ Sessão concluída</span>
+                </div>
+              </div>
+
+              <!-- Card Multi-Seleção — com reabertura e participantes -->
+              <div style="border:1px solid color-mix(in srgb, var(--orange) 15%, transparent); border-radius:0.75rem; padding:1rem; background:color-mix(in srgb, var(--orange) 4%, transparent); cursor:pointer;">
+                <div style="display:flex; gap:1rem; align-items:flex-start;">
+                  <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; background:var(--bg-base); border:1px solid var(--border); display:flex; align-items:center; justify-content:center;">
+                    <span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+                      <span style="color:var(--text-primary); font-size:1.125rem; font-weight:700; text-decoration:underline dotted; text-underline-offset:4px;">Formatura Turma 2026</span>
+                      <span style="background:color-mix(in srgb, var(--yellow) 18%, transparent); border:1px solid color-mix(in srgb, var(--yellow) 35%, transparent); color:var(--yellow); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:600;">Em seleção</span>
+                      <span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">Formatura</span>
+                    </div>
+                    <div style="color:var(--text-secondary); font-size:0.75rem;">18/05/2026 · 120 fotos · 8 participantes · Prazo: 10/06/2026</div>
+                  </div>
+                </div>
+                <div style="border-top:1px solid var(--border); margin-top:0.625rem; padding-top:0.5rem;">
+                  <div style="display:flex; align-items:flex-start; margin-bottom:0.4rem;">
+                    ${['Criada','Fotos','Link','Seleção','Entregue'].map((l, i) => {
+                      const done = i < 2;
+                      const active = i === 2;
+                      const color = done ? 'var(--green)' : (active ? 'var(--accent)' : 'var(--border)');
+                      const icon = done ? '✓' : (active ? '›' : '');
+                      const parts = [`<div style="display:flex;flex-direction:column;align-items:center;gap:0.125rem;"><div style="width:1.1rem;height:1.1rem;border-radius:50%;background:${color};color:#fff;font-size:0.5rem;display:flex;align-items:center;justify-content:center;font-weight:700;">${icon}</div><span style="font-size:0.5rem;color:${done||active?'var(--text-primary)':'var(--text-muted)'};white-space:nowrap;">${l}</span></div>`];
+                      if (i < 4) parts.push(`<div style="flex:1;height:1px;background:${done?'var(--green)':'var(--border)'};margin-top:0.5rem;"></div>`);
+                      return parts.join('');
+                    }).join('')}
+                  </div>
+                  <span style="font-size:0.6875rem; background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); color:var(--text-primary); padding:0.15rem 0.5rem; border-radius:0.25rem; font-weight:500;">→ Envie o link ao cliente</span>
+                </div>
+              </div>
+
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Clique em qualquer parte do card para abrir o wizard. A borda e o fundo do card mudam de cor por modo: <strong style="color:var(--green);">verde = Seleção</strong>, <strong style="color:var(--purple);">roxo = Galeria</strong>, <strong style="color:var(--orange);">laranja = Multi-Seleção</strong>.</p>
+          </div>
+
+          <!-- ─ WIZARD SELEÇÃO ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">WIZARD — MODO SELEÇÃO (PASSO 1 ATIVO)</p>
+            <div style="border:1px solid var(--border); border-radius:0.75rem; overflow:hidden; background:var(--bg-base); pointer-events:none;">
+              <!-- Header do wizard -->
+              <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); background:var(--bg-surface); display:flex; align-items:center; gap:0.75rem;">
+                <div style="flex:1; display:flex; align-items:center; gap:0.5rem; min-width:0;">
+                  <strong style="font-size:1rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Casamento Ribeiro</strong>
+                  <span style="color:var(--text-muted);">·</span>
+                  <span style="color:var(--text-secondary); font-size:0.875rem;">Ana Ribeiro</span>
+                </div>
+                <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+                  ${['🔔','📋','⚙️','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
+                </div>
+              </div>
+              <!-- Body: sidebar + conteúdo -->
+              <div style="display:flex; min-height:280px;">
+                <!-- Sidebar -->
+                <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
+                  ${[
+                    { id:1, label:'Upload',       desc:'Suba as fotos brutas',       done:false, current:true,  locked:false },
+                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente',  done:false, current:false, locked:true  },
+                    { id:4, label:'Acompanhar',   desc:'Monitore a seleção',         done:false, current:false, locked:true  },
+                    { id:5, label:'Editadas',     desc:'Suba as fotos finais',       done:false, current:false, locked:true  },
+                    { id:6, label:'Entregar',     desc:'Libere o download',          done:false, current:false, locked:true  }
+                  ].map((s,idx) => {
+                    const circleBg = s.done ? 'var(--green)' : (s.current ? 'var(--accent)' : 'var(--bg-base)');
+                    const circleColor = (s.done || s.current) ? 'white' : 'var(--text-muted)';
+                    const circleBorder = (s.done || s.current) ? 'none' : '1px solid var(--border)';
+                    const circleContent = s.done ? '✓' : (s.locked && !s.current ? '🔒' : String(idx+1));
+                    const bg = s.current ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
+                    const border = s.current ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent';
+                    const textColor = s.locked && !s.current ? 'var(--text-muted)' : 'var(--text-primary)';
+                    return `<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; border-radius:0.5rem; background:${bg}; border:${border}; opacity:${s.locked && !s.current ? '0.6' : '1'};">
+                      <div style="width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:${circleBg}; color:${circleColor}; border:${circleBorder}; font-size:0.75rem; font-weight:600;">${circleContent}</div>
+                      <div style="display:flex; flex-direction:column; gap:0.125rem;">
+                        <div style="font-size:0.875rem; font-weight:500; color:${textColor};">${s.label}</div>
+                        <div style="font-size:0.6875rem; color:var(--text-muted);">${s.desc}</div>
+                      </div>
+                    </div>`;
+                  }).join('')}
+                  <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">0 de 5 concluído(s)</div>
+                </div>
+                <!-- Conteúdo Passo 1 -->
+                <div style="flex:1; padding:1.5rem 2rem; overflow-y:auto;">
+                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.5rem;">Upload das Fotos</h3>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Envie as fotos brutas do ensaio. O sistema processa e armazena na resolução configurada (1200px).</p>
+                  <div style="border:2px dashed var(--border); border-radius:0.5rem; padding:2rem; text-align:center; background:var(--bg-surface); margin-bottom:1rem;">
+                    <div style="font-size:1.5rem; margin-bottom:0.5rem;">☁️</div>
+                    <div style="font-size:0.875rem; color:var(--text-muted);">Arraste fotos aqui ou clique para selecionar</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">JPG · PNG · até 10 MB cada</div>
+                  </div>
+                  <div style="background:color-mix(in srgb, var(--text-muted) 8%, transparent); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem 1rem; font-size:0.8125rem; color:var(--text-muted);">
+                    Botão "Concluí o upload" disponível quando atingir <strong>30 fotos</strong> (tamanho do pacote). Atualmente: <strong>0 / 30</strong>.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ WIZARD GALERIA ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">WIZARD — MODO GALERIA (PASSO 3 DE 3 — ENTREGAR)</p>
+            <div style="border:1px solid var(--border); border-radius:0.75rem; overflow:hidden; background:var(--bg-base); pointer-events:none;">
+              <!-- Header -->
+              <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); background:var(--bg-surface); display:flex; align-items:center; gap:0.75rem;">
+                <div style="flex:1; display:flex; align-items:center; gap:0.5rem;">
+                  <strong style="font-size:1rem; color:var(--text-primary);">Evento Corporativo XYZ</strong>
+                </div>
+                <div style="display:flex; gap:0.5rem;">
+                  ${['🔔','📋','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
+                </div>
+              </div>
+              <div style="display:flex; min-height:220px;">
+                <!-- Sidebar 3 passos — todos concluídos -->
+                <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
+                  ${[
+                    { id:1, label:'Upload',       desc:'Suba as fotos brutas',      done:true,  current:false },
+                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente', done:true,  current:false },
+                    { id:6, label:'Entregar',     desc:'Libere o download',         done:false, current:true  }
+                  ].map((s,idx) => {
+                    const circleBg = s.done ? 'var(--green)' : 'var(--accent)';
+                    const bg = s.current ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
+                    const border = s.current ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent';
+                    return `<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; border-radius:0.5rem; background:${bg}; border:${border};">
+                      <div style="width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:${circleBg}; color:white; font-size:0.75rem; font-weight:600;">${s.done ? '✓' : String(idx+1)}</div>
+                      <div style="display:flex; flex-direction:column; gap:0.125rem;">
+                        <div style="font-size:0.875rem; font-weight:500; color:var(--text-primary);">${s.label}</div>
+                        <div style="font-size:0.6875rem; color:var(--text-muted);">${s.desc}</div>
+                      </div>
+                    </div>`;
+                  }).join('')}
+                  <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">2 de 3 concluído(s)</div>
+                </div>
+                <!-- Conteúdo Passo 6 -->
+                <div style="flex:1; padding:1.5rem 2rem;">
+                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Entregar Sessão</h3>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Confirme a entrega para liberar o download da galeria ao cliente.</p>
+                  <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; display:flex; flex-direction:column; gap:0.75rem;">
+                    <button style="background:var(--green); color:white; border:none; padding:0.75rem 1.5rem; border-radius:0.5rem; font-weight:600; font-size:0.9375rem; cursor:pointer; width:fit-content;">✅ Entregar e notificar cliente</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ WIZARD MULTI-SELEÇÃO ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">WIZARD — MODO MULTI-SELEÇÃO (PASSO 4 — ACOMPANHAR)</p>
+            <div style="border:1px solid var(--border); border-radius:0.75rem; overflow:hidden; background:var(--bg-base); pointer-events:none;">
+              <!-- Header -->
+              <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); background:var(--bg-surface); display:flex; align-items:center; gap:0.75rem;">
+                <div style="flex:1; display:flex; align-items:center; gap:0.5rem;">
+                  <strong style="font-size:1rem; color:var(--text-primary);">Formatura Turma 2026</strong>
+                </div>
+                <div style="display:flex; gap:0.5rem;">
+                  ${['🔔','📋','⚙️','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
+                </div>
+              </div>
+              <div style="display:flex; min-height:300px;">
+                <!-- Sidebar 5 passos -->
+                <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
+                  ${[
+                    { id:1, label:'Upload',       desc:'Suba as fotos brutas',       done:true,  current:false, locked:false },
+                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente',  done:true,  current:false, locked:false },
+                    { id:4, label:'Acompanhar',   desc:'Monitore a seleção',         done:false, current:true,  locked:false },
+                    { id:5, label:'Editadas',     desc:'Suba as fotos finais',       done:false, current:false, locked:true  },
+                    { id:6, label:'Entregar',     desc:'Libere o download',          done:false, current:false, locked:true  }
+                  ].map((s,idx) => {
+                    const circleBg = s.done ? 'var(--green)' : (s.current ? 'var(--accent)' : 'var(--bg-base)');
+                    const circleColor = (s.done || s.current) ? 'white' : 'var(--text-muted)';
+                    const circleBorder = (s.done || s.current) ? 'none' : '1px solid var(--border)';
+                    const circleContent = s.done ? '✓' : (s.locked ? '🔒' : String(idx+1));
+                    const bg = s.current ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
+                    const border = s.current ? '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' : '1px solid transparent';
+                    const textColor = s.locked ? 'var(--text-muted)' : 'var(--text-primary)';
+                    return `<div style="display:flex; align-items:center; gap:0.75rem; padding:0.625rem 0.75rem; border-radius:0.5rem; background:${bg}; border:${border}; opacity:${s.locked ? '0.6' : '1'};">
+                      <div style="width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:${circleBg}; color:${circleColor}; border:${circleBorder}; font-size:0.75rem; font-weight:600;">${circleContent}</div>
+                      <div style="display:flex; flex-direction:column; gap:0.125rem;">
+                        <div style="font-size:0.875rem; font-weight:500; color:${textColor};">${s.label}</div>
+                        <div style="font-size:0.6875rem; color:var(--text-muted);">${s.desc}</div>
+                      </div>
+                    </div>`;
+                  }).join('')}
+                  <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">2 de 5 concluído(s)</div>
+                </div>
+                <!-- Conteúdo Passo 4 Multi -->
+                <div style="flex:1; padding:1.5rem 2rem; overflow-y:auto;">
+                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Acompanhar Seleções</h3>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Status de cada participante em tempo real. Atualização automática a cada 30 segundos.</p>
+                  <div style="border:1px solid var(--border); border-radius:0.5rem; overflow:hidden;">
+                    <div style="background:var(--bg-surface); padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); font-size:0.6875rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Participantes</div>
+                    ${[
+                      { name:'João Silva',    sel:'15/15', status:'Pronto para entrega', color:'var(--green)'      },
+                      { name:'Maria Santos',  sel:'10/15', status:'Selecionando',         color:'var(--yellow)'     },
+                      { name:'Pedro Costa',   sel:'0/15',  status:'Não iniciou',          color:'var(--text-muted)' }
+                    ].map((p, i) => `
+                      <div style="padding:0.625rem 0.875rem; display:flex; align-items:center; gap:0.75rem; ${i > 0 ? 'border-top:1px solid var(--border);' : ''}">
+                        <div style="flex:1;">
+                          <div style="font-weight:500; color:var(--text-primary); font-size:0.875rem;">${p.name}</div>
+                          <div style="font-size:0.6875rem; color:var(--text-muted);">${p.sel} fotos selecionadas</div>
+                        </div>
+                        <div style="font-size:0.75rem; color:${p.color}; font-weight:500;">${p.status}</div>
+                        ${p.status === 'Pronto para entrega' ? `<button style="background:var(--green); color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:500; cursor:pointer; white-space:nowrap;">✅ Entregar</button>` : `<div style="width:84px;"></div>`}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
 
         <!-- ── NOVA SESSÃO — FORMULÁRIO DE CRIAÇÃO ─────────────────────── -->
         <div>
@@ -744,20 +1032,20 @@ const MANUAL_MODULES = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Ensaios, newborn, famílias, casamentos</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza todas as fotos com marca d'água e escolhe as favoritas dentro do limite do pacote contratado. Você só edita e entrega o que ele escolheu. Cada card na lista exibe uma <strong style="color:var(--text-primary);">barra de progresso visual</strong> (Criada → Fotos → Link → Seleção → Entregue) com um indicador do próximo passo para você saber exatamente em qual etapa está cada sessão.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza todas as fotos com marca d'água e escolhe as favoritas dentro do limite do pacote contratado. Você só edita e entrega o que ele escolheu. O wizard guia você em <strong style="color:var(--text-primary);">5 passos</strong>: Upload → Compartilhar → Acompanhar → Editadas → Entregar. Cada card exibe uma <strong style="color:var(--text-primary);">barra de progresso</strong> (Criada → Fotos → Link → Seleção → Entregue) com o próximo passo em destaque.</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
-                { n:1,  who:'fotógrafo', color:'var(--accent)',      title:'Criar a sessão',           desc:'Escolha o modo Seleção. Defina o nome, vincule o cliente, configure o pacote (ex: 30 fotos), o preço de extras (R$/foto adicional), o prazo de seleção e a resolução das fotos.' },
-                { n:2,  who:'fotógrafo', color:'var(--accent)',      title:'Fazer upload das fotos',   desc:'Clique em Fotos → + Upload. Suba as fotos originais do ensaio (JPG/PNG, até 10 MB cada). O sistema redimensiona para a resolução escolhida. As fotos ficam com marca d\'água.' },
-                { n:3,  who:'fotógrafo', color:'var(--accent)',      title:'Enviar o código de acesso',desc:'Use o botão 📧 Enviar para mandar o link por e-mail, ou copie o código e envie pelo WhatsApp/mensagem. O cliente recebe um link direto para a galeria.' },
-                { n:4,  who:'cliente',   color:'var(--green)',       title:'Acessar a galeria',        desc:'O cliente entra em app.cliquezoom.com.br, insere o código e visualiza todas as fotos com marca d\'água. Pode navegar, fazer zoom e comparar.' },
-                { n:5,  who:'cliente',   color:'var(--green)',       title:'Selecionar as favoritas',  desc:'O cliente clica nas fotos que quer receber. O sistema conta quantas foram escolhidas e avisa quando o limite for atingido. Se o pacote permite extras, ele pode solicitar fotos adicionais.' },
-                { n:6,  who:'cliente',   color:'var(--green)',       title:'Enviar a seleção',             desc:'Quando satisfeito, o cliente confirma e envia. O status da sessão muda para Seleção enviada e você recebe uma notificação.' },
-                { n:7,  who:'cliente',   color:'var(--orange)',      title:'Pedido de reabertura (opcional)', desc:'Se a sessão foi configurada com "Permitir reabertura", o cliente pode solicitar uma nova chance de alterar as fotos — caso tenha se arrependido de alguma escolha. No card da sessão aparece um badge laranja ⚠ Reabertura solicitada. O botão Entregar fica bloqueado até você decidir. Clique em ✓ Reabrir para permitir ou ✗ Recusar pedido para manter a seleção atual.' },
-                { n:8,  who:'fotógrafo', color:'var(--accent)',      title:'Verificar as escolhas',        desc:'Abra a sessão → Fotos → aba Entrega Final. Você vê exatamente quais fotos foram selecionadas e pode exportar a lista para o Lightroom (botão Exportar Lightroom).' },
-                { n:9,  who:'fotógrafo', color:'var(--accent)',      title:'Editar e subir as editadas',   desc:'Edite as fotos selecionadas no seu software. Exporte com o mesmo nome dos originais. Clique em Subir Editadas — o sistema confere automaticamente se os arquivos batem com a seleção.' },
-                { n:10, who:'fotógrafo', color:'var(--accent)',      title:'Entregar',                     desc:'Clique no botão Entregar na lista da sessão. A marca d\'água é removida, o cliente recebe um e-mail de entrega e pode baixar as fotos em alta resolução.' },
-                { n:11, who:'cliente',   color:'var(--green)',       title:'Baixar as fotos',              desc:'O cliente acessa a galeria com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez.' },
+                { n:1,  who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',                   desc:'Clique em + Nova Sessão. Escolha o modo Seleção. Defina o nome, vincule o cliente, configure o pacote (ex: 30 fotos), o preço de extras (R$/foto adicional), o prazo de seleção e a resolução das fotos. O wizard abre automaticamente após a criação.' },
+                { n:2,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 1 — Upload',                 desc:'Arraste as fotos originais do ensaio (JPG/PNG, até 10 MB cada) ou clique para selecionar. O sistema redimensiona para a resolução configurada. O botão "Concluí o upload" só fica disponível quando o número de fotos atinge o tamanho do pacote. As fotos ficam com marca d\'água.' },
+                { n:3,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 2 — Compartilhar',           desc:'O código de acesso gerado aparece com botões para enviar via WhatsApp (com mensagem personalizada por tipo de evento) ou e-mail direto. Ao abrir este passo, o sistema registra automaticamente que você visualizou o código.' },
+                { n:4,  who:'cliente',   color:'var(--green)',   title:'Acessar a galeria',                desc:'O cliente entra em app.cliquezoom.com.br, insere o código e visualiza todas as fotos com marca d\'água. Pode navegar, fazer zoom e comparar.' },
+                { n:5,  who:'cliente',   color:'var(--green)',   title:'Selecionar as favoritas',          desc:'O cliente clica nas fotos que quer receber. O sistema conta quantas foram escolhidas e avisa quando o limite for atingido. Se o pacote permite extras, ele pode solicitar fotos adicionais com o valor calculado na tela.' },
+                { n:6,  who:'cliente',   color:'var(--green)',   title:'Enviar a seleção',                 desc:'Quando satisfeito, o cliente confirma e envia. O status da sessão muda para Seleção enviada e você recebe uma notificação no sininho.' },
+                { n:7,  who:'cliente',   color:'var(--orange)',  title:'Pedido de reabertura (opcional)',  desc:'Se a sessão foi configurada com "Permitir reabertura", o cliente pode solicitar uma nova chance de alterar as fotos. O card exibe badge laranja ⚠ e o Passo 6 fica bloqueado até você decidir. No Passo 6 do wizard: ✓ Reabrir para permitir ou ✗ Recusar pedido para manter a seleção atual.' },
+                { n:8,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 4 — Acompanhar',            desc:'Veja em tempo real quais fotos o cliente escolheu. A tela atualiza automaticamente a cada 30 segundos (mais rápido quando há mudanças). Use o botão "Exportar Lightroom" para baixar um arquivo .txt com os nomes das fotos selecionadas para o seu editor.' },
+                { n:9,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 5 — Editadas',              desc:'Faça upload das fotos editadas. O sistema vincula automaticamente cada editada ao original selecionado pelo cliente. Fotos que você adicionou sem que o cliente tenha selecionado aparecem como ★ Cortesia — o cliente recebe sem custo adicional.' },
+                { n:10, who:'fotógrafo', color:'var(--accent)',  title:'Passo 6 — Entregar',              desc:'Confirme a entrega. O cliente recebe um e-mail e o download é liberado sem marca d\'água. Use os botões 💬 WhatsApp ou 🔗 Copiar link para reforçar o aviso pelo canal preferido. Se precisar, clique em "Re-entregar" para notificar novamente.' },
+                { n:11, who:'cliente',   color:'var(--green)',   title:'Baixar as fotos',                 desc:'O cliente acessa a galeria com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez em ZIP. O sistema registra cada download — o fotógrafo pode ver o status antes de arquivar ou excluir as fotos.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem; ${i < arr.length - 1 ? 'padding-bottom:0;' : ''}">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
@@ -785,15 +1073,15 @@ const MANUAL_MODULES = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Entregas rápidas, eventos corporativos, imprensa</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza e baixa as fotos diretamente, sem precisar fazer nenhuma seleção. Você entrega quando quiser liberar o acesso. Ideal quando você já decidiu quais fotos entregar.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza e baixa as fotos diretamente, sem precisar fazer nenhuma seleção. Você entrega quando quiser liberar o acesso. Ideal quando você já decidiu quais fotos entregar. O wizard tem <strong style="color:var(--text-primary);">3 passos</strong>: Upload → Compartilhar → Entregar.</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
-                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Criar a sessão',             desc:'Escolha o modo Galeria. Defina o nome do trabalho e, se quiser, um prazo de acesso (data em que a galeria expira). Não há configuração de pacote — o cliente baixa tudo.' },
-                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Editar e fazer upload',       desc:'Edite as fotos no seu software antes de subir. Clique em Fotos → + Upload. As fotos aparecem na galeria com marca d\'água até você clicar em Entregar.' },
-                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Enviar o código de acesso',   desc:'Opcional: envie o código antes de entregar para o cliente já ver a prévia com marca d\'água. Ou envie só após a entrega — como preferir.' },
-                { n:4, who:'cliente',   color:'var(--purple)', title:'Visualizar a prévia',         desc:'Se o código foi enviado antes da entrega, o cliente entra na galeria e visualiza as fotos com marca d\'água. Ele não consegue baixar ainda.' },
-                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Entregar a galeria',          desc:'Quando estiver pronto, clique em Entregar na lista da sessão. A marca d\'água é removida instantaneamente e o cliente recebe um e-mail avisando que o material está disponível.' },
-                { n:6, who:'cliente',   color:'var(--purple)', title:'Baixar as fotos',             desc:'O cliente entra com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez. Se você precisar adicionar ou trocar fotos, clique em Re-entregar.' },
+                { n:1, who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',             desc:'Clique em + Nova Sessão e escolha o modo Galeria. Defina o nome do trabalho e, se quiser, um prazo de acesso. Não há configuração de pacote — o cliente baixa tudo.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)',  title:'Passo 1 — Upload',           desc:'Edite as fotos no seu software antes de subir. Arraste os arquivos no wizard ou clique para selecionar. As fotos aparecem na galeria com marca d\'água até você entregar.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)',  title:'Passo 2 — Compartilhar',     desc:'Opcional: envie o código antes de entregar para o cliente já ver a prévia com marca d\'água. Ou envie só após a entrega — como preferir. Use WhatsApp ou e-mail direto.' },
+                { n:4, who:'cliente',   color:'var(--purple)',  title:'Visualizar a prévia',        desc:'Se o código foi enviado antes da entrega, o cliente entra na galeria e visualiza as fotos com marca d\'água. Ele não consegue baixar ainda.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)',  title:'Passo 6 — Entregar',         desc:'Confirme a entrega no wizard. A marca d\'água é removida e o cliente recebe um e-mail. Use 💬 WhatsApp ou 🔗 Copiar link para reforçar. Se precisar trocar fotos, clique em Re-entregar.' },
+                { n:6, who:'cliente',   color:'var(--purple)',  title:'Baixar as fotos',            desc:'O cliente entra com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez em ZIP. O sistema registra cada download.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
@@ -821,19 +1109,18 @@ const MANUAL_MODULES = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Formaturas, shows, eventos com muitos participantes</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">Cada participante recebe um código próprio e seleciona suas fotos de forma independente — sem interferir nos outros. Você gerencia tudo em um só lugar e entrega individualmente conforme cada um finaliza.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">Cada participante recebe um código próprio e seleciona suas fotos de forma independente — sem interferir nos outros. Você gerencia tudo em um só lugar e entrega individualmente conforme cada um finaliza. O wizard tem <strong style="color:var(--text-primary);">5 passos</strong> (igual ao Seleção, mas com tabela de participantes no Passo 6).</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
-                { n:1,  who:'fotógrafo',     color:'var(--accent)',  title:'Criar a sessão',                desc:'Escolha o modo Multi-Seleção. Defina o nome do evento e um prazo compartilhado (todos os participantes têm o mesmo deadline). A resolução também é configurada aqui.' },
-                { n:2,  who:'fotógrafo',     color:'var(--accent)',  title:'Fazer upload de todas as fotos', desc:'Suba TODAS as fotos do evento (Fotos → + Upload). Na Multi-Seleção não há separação por participante no upload — todos veem a galeria completa e cada um encontra as suas.' },
-                { n:3,  who:'fotógrafo',     color:'var(--accent)',  title:'Adicionar os participantes',    desc:'Clique em Participantes na sessão. Para cada pessoa: informe o nome, o e-mail e o limite de fotos individual (ex: 15 fotos por formando). O sistema gera um código único para cada um.' },
-                { n:4,  who:'fotógrafo',     color:'var(--accent)',  title:'Distribuir os códigos',         desc:'Envie cada código individualmente pelo e-mail cadastrado, copie manualmente, ou exporte a lista de participantes com todos os códigos de uma vez.' },
-                { n:5,  who:'participante',  color:'var(--orange)', title:'Acessar com código individual', desc:'Cada participante entra em app.cliquezoom.com.br e insere SEU código. Ele vê todas as fotos do evento com marca d\'água e seleciona as suas favoritas.' },
-                { n:6,  who:'participante',  color:'var(--orange)', title:'Fazer a seleção',               desc:'O participante clica nas fotos que quer e acompanha o contador (ex: 12/15). Quando termina, confirma e envia. O status individual muda para Seleção enviada.' },
-                { n:7,  who:'fotógrafo',     color:'var(--accent)',  title:'Acompanhar o progresso',        desc:'No botão Participantes você vê em tempo real o status de cada pessoa: Pendente, Em seleção, Seleção enviada. Não precisa esperar todos para começar a editar.' },
-                { n:8,  who:'fotógrafo',     color:'var(--accent)',  title:'Exportar para edição',          desc:'Use Exportar Seleções para baixar um arquivo com as escolhas de todos os participantes em formato compatível com Lightroom. Fica fácil criar coleções por pessoa.' },
-                { n:9,  who:'fotógrafo',     color:'var(--accent)',  title:'Entregar por participante',     desc:'Após editar as fotos de um participante, suba as editadas e clique em Entregar ao lado do nome dele (dentro do modal Participantes). A entrega é individual — cada um recebe no seu ritmo.' },
-                { n:10, who:'participante',  color:'var(--orange)', title:'Baixar as fotos',               desc:'O participante acessa com seu código e encontra as fotos entregues sem marca d\'água. Os outros participantes não veem o que ele escolheu nem o que você entregou para ele.' },
+                { n:1,  who:'fotógrafo',    color:'var(--accent)',  title:'Criar a sessão',                desc:'Escolha o modo Multi-Seleção. Defina o nome do evento e um prazo compartilhado (todos os participantes têm o mesmo deadline). A resolução também é configurada aqui.' },
+                { n:2,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 1 — Upload',              desc:'Suba TODAS as fotos do evento. Na Multi-Seleção não há separação por participante no upload — todos veem a galeria completa e cada um encontra as suas.' },
+                { n:3,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 2 — Compartilhar',        desc:'Gerencie participantes: clique em "Gerenciar participantes" para adicionar cada pessoa com nome, e-mail e limite individual (ex: 15 fotos por formando). O sistema gera um código único para cada um. Envie os códigos pelo e-mail cadastrado, pelo WhatsApp individual ou exporte a lista completa.' },
+                { n:4,  who:'participante', color:'var(--orange)',  title:'Acessar com código individual', desc:'Cada participante entra em app.cliquezoom.com.br e insere SEU código. Ele vê todas as fotos do evento com marca d\'água e seleciona as suas favoritas.' },
+                { n:5,  who:'participante', color:'var(--orange)',  title:'Fazer a seleção',               desc:'O participante clica nas fotos que quer e acompanha o contador (ex: 12/15). Quando termina, confirma e envia. O status individual muda para Seleção enviada.' },
+                { n:6,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 4 — Acompanhar',          desc:'Veja o status de cada participante em tempo real: Pendente, Em seleção, Pronto para entrega. Não precisa esperar todos para começar a editar. Use Exportar Lightroom para criar coleções por pessoa.' },
+                { n:7,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 5 — Editadas',            desc:'Faça upload das fotos editadas de cada participante. O sistema vincula automaticamente cada editada ao original selecionado.' },
+                { n:8,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 6 — Entregar por participante', desc:'No Passo 6 aparece a tabela de participantes. Clique em ✅ Entregar ao lado de cada um quando estiver pronto — ou use "Entregar todos" para processar de uma vez. A entrega é individual: cada participante recebe no seu ritmo.' },
+                { n:9,  who:'participante', color:'var(--orange)',  title:'Baixar as fotos',               desc:'O participante acessa com seu código e encontra as fotos entregues sem marca d\'água. Os outros participantes não veem o que ele escolheu nem o que você entregou para ele.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">

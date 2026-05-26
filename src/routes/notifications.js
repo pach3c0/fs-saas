@@ -50,9 +50,32 @@ router.delete('/notifications/:id', authenticateToken, async (req, res) => {
 router.put('/notifications/read-all', authenticateToken, async (req, res) => {
   try {
     await Notification.updateMany(
-      { organizationId: req.user.organizationId, read: false }, 
+      { organizationId: req.user.organizationId, read: false },
       { read: true }
     );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Marcar notificação individual como não lida
+router.put('/notifications/:id/unread', authenticateToken, async (req, res) => {
+  try {
+    await Notification.updateOne(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { read: false }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Excluir todas as notificações da organização
+router.delete('/notifications', authenticateToken, async (req, res) => {
+  try {
+    await Notification.deleteMany({ organizationId: req.user.organizationId });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

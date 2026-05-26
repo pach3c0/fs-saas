@@ -14,11 +14,21 @@ const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
-const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendUpsellEmail } = require('../utils/email');
+const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendUpsellEmail, buildWhatsAppGalleryLink, sendPendingDownloadEmail } = require('../utils/email');
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 
 const uploadSession = createUploader('sessions');
+
+// Registra evento no array events[] da sessão sem bloquear a resposta principal
+async function _logEvent(sessionId, type, meta = {}) {
+  try {
+    await Session.updateOne(
+      { _id: sessionId },
+      { $push: { events: { type, ts: new Date(), meta } } }
+    );
+  } catch (_) {}
+}
 
 // ============================================================================
 // ROTAS DO CLIENTE
@@ -407,6 +417,11 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     const selectedCount = participant ? participant.selectedPhotos.length : session.selectedPhotos.length;
 
+    _logEvent(session._id, 'selection_submitted', {
+      count: selectedCount,
+      participantName: participant ? participant.name : null
+    });
+
     try {
       await Notification.create({
         type: isInstant ? 'selection_delivered' : 'selection_submitted',
@@ -481,6 +496,8 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
     session.reopenRequested = true;
     await session.save();
 
+    _logEvent(session._id, 'reopen_requested', {});
+
     try {
       await Notification.create({
         type: 'reopen_requested',
@@ -503,7 +520,69 @@ router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) =
       { _id: req.params.id, organizationId: req.user.organizationId },
       { reopenRequested: false }
     );
+    _logEvent(req.params.id, 'reopen_dismissed', {});
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Marcar/desmarcar "upload concluído" (wizard passo 1)
+// body: { completed: true } trava o upload (uploadsCompletedAt = now)
+// body: { completed: false } reabre o upload (uploadsCompletedAt = null)
+router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res) => {
+  try {
+    const completed = req.body?.completed !== false;
+    const current = await Session.findOne(
+      { _id: req.params.id, organizationId: req.user.organizationId }
+    ).select('mode packageLimit photos').lean();
+    if (!current) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Em modo seleção, exige que o pool de fotos atenda ao mínimo do pacote —
+    // espelha a regra do cliente, que não consegue submeter seleção abaixo do limite.
+    if (completed && current.mode === 'selection') {
+      const visiblePhotos = (current.photos || []).filter(p => !p.hidden).length;
+      const limit = current.packageLimit || 0;
+      if (limit > 0 && visiblePhotos < limit) {
+        return res.status(400).json({
+          error: `Suba pelo menos ${limit} fotos antes de concluir. Atualmente: ${visiblePhotos}.`
+        });
+      }
+    }
+
+    const update = completed ? { uploadsCompletedAt: new Date() } : { uploadsCompletedAt: null };
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      update,
+      { new: true }
+    ).select('uploadsCompletedAt photos').lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    if (completed) {
+      _logEvent(req.params.id, 'uploads_completed', {
+        totalPhotos: (session.photos || []).filter(p => !p.hidden).length
+      });
+    }
+
+    res.json({ success: true, uploadsCompletedAt: session.uploadsCompletedAt });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Marcar visualização do passo de código (wizard passo 2)
+// Idempotente: só seta codeViewedAt se ainda não estiver setado.
+router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne(
+      { _id: req.params.id, organizationId: req.user.organizationId }
+    ).select('codeViewedAt');
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!session.codeViewedAt) {
+      session.codeViewedAt = new Date();
+      await session.save();
+    }
+    res.json({ success: true, codeViewedAt: session.codeViewedAt });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -672,6 +751,12 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
 
     // E-mail NAO é enviado aqui. O fotografo envia manualmente via POST /sessions/:id/send-code
 
+    _logEvent(session._id, 'session_created', {
+      mode: session.mode,
+      packageLimit: session.packageLimit,
+      eventType: session.eventType
+    });
+
     res.json({ success: true, session });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -706,29 +791,80 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 });
 
 // ADMIN: Enviar codigo de acesso manualmente ao cliente
+// body opcional: { channel: 'email' | 'whatsapp' | 'both' } — default 'email'
+// Para 'whatsapp': não envia mensagem; retorna whatsappUrl (wa.me) que o front abre em nova aba.
 router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
   try {
+    const channel = req.body?.channel || 'email';
+    if (!['email', 'whatsapp', 'both'].includes(channel)) {
+      return res.status(400).json({ error: 'Canal inválido (use email, whatsapp ou both)' });
+    }
+
     const session = await Session.findOne({
       _id: req.params.id,
       organizationId: req.user.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
-    const email = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
-    if (!email) return res.status(400).json({ error: 'Nenhum e-mail cadastrado para este cliente' });
+    // Resolve cliente uma única vez para email e telefone
+    let clientName = session.name;
+    let clientEmail = session.clientEmail || '';
+    let clientPhone = '';
+    if (session.clientId) {
+      const client = await Client.findById(session.clientId).select('email phone name').lean();
+      if (client) {
+        if (!clientEmail) clientEmail = client.email || '';
+        clientPhone = client.phone || '';
+        if (client.name) clientName = client.name;
+      }
+    }
 
     const org = await Organization.findById(req.user.organizationId).select('name slug');
-    await sendGalleryAvailableEmail(email, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug);
+    const orgName = org?.name || 'Fotógrafo';
+
+    const wantsEmail = channel === 'email' || channel === 'both';
+    const wantsWhatsApp = channel === 'whatsapp' || channel === 'both';
+
+    if (wantsEmail && !clientEmail) {
+      return res.status(400).json({ error: 'Nenhum e-mail cadastrado para este cliente' });
+    }
+
+    const result = { success: true };
+
+    if (wantsEmail) {
+      await sendGalleryAvailableEmail(clientEmail, clientName, session.accessCode, orgName, org?.slug);
+      result.emailSentTo = clientEmail;
+    }
+
+    if (wantsWhatsApp) {
+      result.whatsappUrl = buildWhatsAppGalleryLink(
+        clientPhone,
+        clientName,
+        session.accessCode,
+        orgName,
+        org?.slug,
+        session.eventType
+      );
+      result.hasPhone = Boolean(clientPhone);
+    }
 
     session.codeSentAt = new Date();
     await session.save();
+
+    _logEvent(session._id, 'code_sent', {
+      channel,
+      recipient: wantsEmail ? clientEmail : clientPhone || ''
+    });
 
     // Update onboarding step
     await Organization.findByIdAndUpdate(req.user.organizationId, {
       'onboarding.steps.linkSent': true
     });
 
-    res.json({ success: true, message: `E-mail enviado para ${email}` });
+    if (wantsEmail && !wantsWhatsApp) result.message = `E-mail enviado para ${clientEmail}`;
+    else if (wantsWhatsApp && !wantsEmail) result.message = clientPhone ? 'Link de WhatsApp gerado' : 'Link de WhatsApp gerado (cliente sem telefone — você precisará digitar)';
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -882,6 +1018,11 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     session.photos.push(...newPhotos);
     await session.save();
 
+    _logEvent(session._id, 'photos_uploaded', {
+      count: newPhotos.length,
+      filenames: newPhotos.map(p => p.filename)
+    });
+
     // Incrementar contador de fotos
     await Subscription.findOneAndUpdate(
       { organizationId: req.user.organizationId },
@@ -1001,6 +1142,11 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
     session.markModified('photos');
     session.lastEditedUploadAt = new Date();
     await session.save();
+
+    _logEvent(session._id, 'edited_uploaded', {
+      count: matched.length,
+      filenames: matched
+    });
 
     res.json({ success: true, matched, unmatched, newCount: newPhotos.length });
   } catch (error) {
@@ -1143,6 +1289,7 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
       { _id: req.params.id, organizationId: req.user.organizationId },
       { selectionStatus: 'in_progress', reopenRequested: false }
     );
+    _logEvent(req.params.id, 'reopen_accepted', {});
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1188,6 +1335,11 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     session.redeliveryMode = false;
 
     await session.save();
+
+    _logEvent(session._id, 'delivered', {
+      selectedCount: session.selectedPhotos.length,
+      extrasCount: extrasDelivered.length
+    });
 
     // Notificar cliente por e-mail
     if (session.clientEmail) {
@@ -1273,13 +1425,15 @@ router.get('/sessions/:sessionId/export', (req, res) => {
       if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
       const selectedIds = session.selectedPhotos || [];
-      const filenames = session.photos
+      // Formato Lightroom: "NOME. NOME. NOME." — sem extensão, sem quebra de linha
+      const conteudo = session.photos
         .filter(p => selectedIds.includes(p.id))
-        .map(p => p.filename);
+        .map(p => p.filename.replace(/\.[^.]+$/, '') + '.')
+        .join(' ');
 
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Content-Disposition', `attachment; filename="selecao-${session.name.replace(/\s+/g, '-')}.txt"`);
-      res.send(filenames.join('\n'));
+      res.send(conteudo);
     })
     .catch(error => {
       res.status(500).json({ error: error.message });
@@ -1517,6 +1671,189 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     });
 
     await archive.finalize();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// RETENÇÃO DE STORAGE
+// ============================================================================
+
+// Salva/atualiza configuração de retenção de storage da sessão
+router.put('/sessions/:id/storage-retention', authenticateToken, async (req, res) => {
+  try {
+    const { storageRetentionUntil, storageAutoDelete, storageBackupOnExpire } = req.body;
+
+    const update = {
+      storageAutoDelete: Boolean(storageAutoDelete),
+      storageBackupOnExpire: Boolean(storageBackupOnExpire),
+      storageNotificationSent: false // reset: nova data => nova notificação
+    };
+
+    if (storageRetentionUntil) {
+      update.storageRetentionUntil = new Date(storageRetentionUntil);
+    } else {
+      update.storageRetentionUntil = null;
+    }
+
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      update,
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    req.logger.info(`[storage-retention] Sessão ${session._id} — retentionUntil: ${update.storageRetentionUntil}`);
+    res.json({ success: true, session });
+  } catch (error) {
+    req.logger.error('[storage-retention]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Arquiva sessão: remove fotos do disco (exceto capa), salva link externo opcional
+router.post('/sessions/:id/archive', authenticateToken, async (req, res) => {
+  try {
+    const { externalStorageUrl } = req.body;
+
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.archivedAt) return res.status(400).json({ error: 'Sessão já arquivada' });
+
+    const uploadsBase = path.join(__dirname, '../../uploads/sessions', String(session._id));
+    const coverFile = session.coverPhoto ? path.basename(session.coverPhoto) : null;
+
+    if (fs.existsSync(uploadsBase)) {
+      const entries = await fs.promises.readdir(uploadsBase);
+      for (const entry of entries) {
+        if (coverFile && entry === coverFile) continue;
+        try {
+          const full = path.join(uploadsBase, entry);
+          const stat = await fs.promises.stat(full);
+          if (stat.isFile()) await fs.promises.unlink(full);
+        } catch (_) {}
+      }
+    }
+
+    // Mantém apenas a capa no array de fotos — remove as demais
+    const photosToKeep = coverFile
+      ? session.photos.filter(p => path.basename(p.url || '') === coverFile || path.basename(p.urlOriginal || '') === coverFile)
+      : [];
+
+    session.archivedAt = new Date();
+    session.externalStorageUrl = externalStorageUrl || '';
+    session.storageNotificationSent = true;
+    session.photos = photosToKeep;
+    await session.save();
+
+    _logEvent(session._id, 'archived', { externalStorageUrl: externalStorageUrl || '' });
+    req.logger.info(`[archive] Sessão ${session._id} arquivada. Fotos removidas do disco.`);
+    res.json({ success: true });
+  } catch (error) {
+    req.logger.error('[archive]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Deleta todas as fotos do disco de uma sessão (ação manual do fotógrafo via wizard)
+router.post('/sessions/:id/delete-photos', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const uploadsBase = path.join(__dirname, '../../uploads/sessions', String(session._id));
+    if (fs.existsSync(uploadsBase)) {
+      const entries = await fs.promises.readdir(uploadsBase);
+      for (const entry of entries) {
+        try {
+          const full = path.join(uploadsBase, entry);
+          const stat = await fs.promises.stat(full);
+          if (stat.isFile()) await fs.promises.unlink(full);
+        } catch (_) {}
+      }
+    }
+
+    session.archivedAt = new Date();
+    session.storageNotificationSent = true;
+    session.photos = [];
+    session.coverPhoto = '';
+    await session.save();
+
+    _logEvent(session._id, 'photos_deleted', {});
+    req.logger.info(`[delete-photos] Sessão ${session._id} — todas as fotos excluídas.`);
+    res.json({ success: true });
+  } catch (error) {
+    req.logger.error('[delete-photos]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
+// HISTÓRICO DE DOWNLOADS DO CLIENTE
+// ============================================================================
+
+// Notificar cliente que as fotos serão removidas em breve (ação do fotógrafo)
+router.post('/sessions/:id/notify-pending-download', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
+      .populate('clientId', 'name email')
+      .lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!session.deliveredAt) return res.status(400).json({ error: 'Sessão ainda não foi entregue' });
+
+    const clientEmail = session.clientId?.email || session.clientEmail;
+    if (!clientEmail) return res.status(400).json({ error: 'Cliente sem e-mail cadastrado' });
+
+    const org = await Organization.findById(req.user.organizationId).select('slug name').lean();
+    const baseUrl = process.env.BASE_DOMAIN
+      ? `https://${org.slug}.${process.env.BASE_DOMAIN}`
+      : `https://${org.slug}.cliquezoom.com.br`;
+    const galleryUrl = `${baseUrl}/galeria?code=${session.accessCode}`;
+
+    await sendPendingDownloadEmail(
+      clientEmail,
+      session.clientId?.name || 'Cliente',
+      session.name,
+      galleryUrl,
+      org.name
+    );
+
+    _logEvent(session._id, 'pending_download_notified', { clientEmail });
+    req.logger.info(`[notify-pending-download] Sessão ${session._id} — cliente ${clientEmail} notificado`);
+    res.json({ success: true });
+  } catch (error) {
+    req.logger.error('[notify-pending-download]', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CLIENTE: Registrar evento de download (individual ou ZIP)
+// Público — autenticado pelo accessCode (PWA não tem JWT)
+router.post('/sessions/:id/track-download', async (req, res) => {
+  try {
+    const { accessCode, type, count, filenames, participantName } = req.body;
+    if (!accessCode) return res.status(400).json({ error: 'accessCode obrigatório' });
+
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.organizationId,
+      $or: [
+        { accessCode },
+        { 'participants.accessCode': accessCode }
+      ]
+    }).select('_id').lean();
+
+    if (!session) return res.status(403).json({ error: 'Acesso não autorizado' });
+
+    await _logEvent(req.params.id, 'client_downloaded', {
+      type: type || 'individual',
+      count: count || 1,
+      filenames: filenames || [],
+      participantName: participantName || null
+    });
+
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

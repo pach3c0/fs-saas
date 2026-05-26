@@ -1,4 +1,25 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Em localhost o backend não consegue resolver o tenant pelo subdomínio.
+    // Lê _tenant da URL e injeta em toda chamada /api/ via wrapper de fetch.
+    (function injectTenantInLocalhost() {
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        if (!isLocalhost) return;
+        const tenant = new URLSearchParams(window.location.search).get('_tenant');
+        if (!tenant) return;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+            try {
+                const url = typeof input === 'string' ? input : (input?.url || '');
+                if (url.startsWith('/api/') && !url.includes('_tenant=')) {
+                    const newUrl = url + (url.includes('?') ? '&' : '?') + '_tenant=' + encodeURIComponent(tenant);
+                    if (typeof input === 'string') return originalFetch(newUrl, init);
+                    return originalFetch(new Request(newUrl, input), init);
+                }
+            } catch (e) { /* segue padrão */ }
+            return originalFetch(input, init);
+        };
+    })();
+
     const state = {
         accessCode: null,
         sessionId: null,
@@ -402,13 +423,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const dlBtn = document.getElementById('downloadAllBtn');
-        if (dlBtn && pendingCount > 0) {
+        if (dlBtn) {
             dlBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                showGalleryConfirm(`Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição e não estarão em alta qualidade neste arquivo ZIP. Deseja baixar mesmo assim?`)
-                    .then(ok => { if (ok) window.location.href = dlBtn.href; });
+                // Rastreia o download ZIP antes de navegar
+                _trackDownload('zip', state.photos ? state.photos.length : 0, []);
+
+                if (pendingCount > 0) {
+                    e.preventDefault();
+                    showGalleryConfirm(`Atenção: ${pendingCount} foto(s) extra(s) ainda estão na fila de edição e não estarão em alta qualidade neste arquivo ZIP. Deseja baixar mesmo assim?`)
+                        .then(ok => { if (ok) window.location.href = dlBtn.href; });
+                }
             });
         }
+    }
+
+    // Registra evento de download no histórico da sessão (fire-and-forget)
+    function _trackDownload(type, count, filenames) {
+        if (!state.sessionId || !state.accessCode) return;
+        const body = {
+            accessCode: state.accessCode,
+            type,
+            count,
+            filenames,
+            participantName: state.isParticipant ? state.clientName : null
+        };
+        fetch(`/api/sessions/${state.sessionId}/track-download`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }).catch(() => {});
     }
 
     function renderPhotos() {
@@ -543,7 +586,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const extraRequest = state.session.extraRequest || { status: 'none', photos: [] };
         const extraPrice = state.session.extraPhotoPrice || 25;
         const selectedSet = new Set(state.selectedPhotos);
-        const unselectedPhotos = (state.photos || []).filter(p => !selectedSet.has(p.id));
+        // Tira cortesias do upsell: foto com urlOriginal já é presente do fotógrafo, não está à venda.
+        const unselectedPhotos = (state.photos || []).filter(p => !selectedSet.has(p.id) && !p.urlOriginal);
 
         // Banner de status da solicitação de extras
         let extraStatusBanner = '';
@@ -733,7 +777,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div style="position:absolute; inset:0; background:rgba(0,0,0,0.75);"></div>
                 <div style="position:relative; background:white; border-radius:0.5rem; width:100%; max-width:32rem; margin:1rem; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
                     <div style="padding:1.5rem;">
-                        <h3 style="font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Comentários da Foto</h3>
+                        <h3 style="font-size:1.125rem; font-weight:600; margin-bottom:0.75rem;">Comentários da Foto</h3>
+                        <div id="commentPhotoPreview" style="display:flex; gap:0.75rem; align-items:center; padding:0.5rem; background:#f9fafb; border:1px solid #e5e7eb; border-radius:0.375rem; margin-bottom:0.875rem;">
+                            <img id="commentPhotoThumb" alt="Foto" style="width:64px; height:64px; object-fit:cover; border-radius:0.25rem; flex-shrink:0; background:#e5e7eb;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:0.6875rem; color:#6b7280; margin-bottom:0.125rem;">Conversa sobre a foto</div>
+                                <div id="commentPhotoFilename" style="font-size:0.8125rem; color:#1f2937; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                            </div>
+                        </div>
                         <div id="commentsList" style="max-height:15rem; overflow-y:auto; margin-bottom:1rem;"></div>
                         <textarea id="newCommentText" rows="3" style="width:100%; border:1px solid #d1d5db; border-radius:0.375rem; padding:0.5rem; font-family:inherit;" placeholder="Escreva seu comentário..."></textarea>
                     </div>
@@ -758,6 +809,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const photo = state.photos.find(p => p.id === photoId);
         const commentsList = document.getElementById('commentsList');
         const textarea = document.getElementById('newCommentText');
+
+        // Preview da foto referenciada — deixa claro de qual foto a conversa é
+        const thumb = document.getElementById('commentPhotoThumb');
+        const fnameEl = document.getElementById('commentPhotoFilename');
+        if (photo && thumb) thumb.src = photo.url || '';
+        if (photo && fnameEl) fnameEl.textContent = photo.filename || '(sem nome)';
 
         textarea.value = '';
         commentsList.innerHTML = '';
@@ -934,13 +991,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isGalleryMode = state.session.mode === 'gallery';
         const selectedSet = new Set(state.selectedPhotos);
 
+        // Cortesia: foto fora da seleção mas com urlOriginal (fotógrafo subiu editada).
+        // Vai pro grid principal com badge "Cortesia"; sai do upsell de extras (já é grátis).
+        const courtesySet = new Set();
         let selectedPhotos, unselectedPhotos;
         if (isGalleryMode) {
             selectedPhotos = state.photos;
             unselectedPhotos = [];
         } else {
-            selectedPhotos = state.photos.filter(p => selectedSet.has(p.id));
-            unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id));
+            const selectedCore = state.photos.filter(p => selectedSet.has(p.id));
+            const courtesyPhotos = state.photos.filter(p => !selectedSet.has(p.id) && p.urlOriginal);
+            courtesyPhotos.forEach(p => courtesySet.add(p.id));
+            selectedPhotos = [...selectedCore, ...courtesyPhotos];
+            unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id) && !p.urlOriginal);
         }
 
         const deliveredAt = state.session.deliveredAt ? new Date(state.session.deliveredAt) : null;
@@ -972,10 +1035,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span style="background:rgba(217, 119, 6, 0.9); color:white; font-size:0.625rem; padding:0.25rem 0.625rem; border-radius:0.25rem;">⏳ Em edição</span>
                 </div>`;
 
+            const courtesyBadge = courtesySet.has(photo.id)
+                ? `<div style="position:absolute; top:0.375rem; left:0.375rem; background:#7c3aed; color:#fff; font-size:0.625rem; font-weight:600; padding:2px 6px; border-radius:3px; letter-spacing:0.02em; box-shadow:0 1px 4px rgba(0,0,0,0.25);">★ Cortesia</div>`
+                : '';
+
             return `
             <div class="photo-item" data-photo-id="${photo.id}">
                 <img src="${photo.url}" alt="Foto" class="object-cover w-full h-full rounded-md" loading="lazy" style="${!isReady ? 'opacity: 0.8;' : ''}">
                 <div style="${itemWm.style}">${itemWm.innerHTML}</div>
+                ${courtesyBadge}
                 ${overlay}
             </div>
             `;
@@ -1057,8 +1125,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         photoGrid.innerHTML = infoBanner + extraStatusBanner + selectedPhotos.map(buildPhotoItem).join('') + extrasSection;
 
-        // Hover para mostrar botão de download individual
+        // Hover + tracking para downloads individuais
         photoGrid.querySelectorAll('.photo-download-overlay').forEach(overlay => {
+            if (overlay.tagName === 'A') {
+                overlay.addEventListener('click', () => {
+                    const filename = overlay.getAttribute('download') || '';
+                    _trackDownload('individual', 1, filename ? [filename] : []);
+                });
+            }
             const parent = overlay.parentElement;
             parent.addEventListener('mouseenter', () => { overlay.style.opacity = '1'; });
             parent.addEventListener('mouseleave', () => { overlay.style.opacity = '0'; });
@@ -1159,7 +1233,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
-            state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection' || result.mode === 'multi_instant') && result.selectionStatus !== 'delivered';
+            state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection' || result.mode === 'multi_instant')
+                && result.selectionStatus !== 'delivered'
+                && result.selectionStatus !== 'submitted';
 
             // Atualiza texto do botão selecionar tudo
             const selectAllBtn = document.getElementById('selectAllBtn');
@@ -1335,6 +1411,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!result.success) throw new Error(result.error);
 
             state.session.selectionStatus = 'submitted';
+            state.isSelectionMode = false;
+            updateSelectionBar(); // esconde a bottomBar (vive fora da gallerySection)
             renderStatusScreen();
 
         } catch (error) {
@@ -1615,8 +1693,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (codeFromUrl && accessCodeInput) {
         accessCodeInput.value = codeFromUrl;
-        // Limpar da URL sem recarregar (UX mais limpa)
-        const cleanUrl = window.location.pathname + (codeFromUrl ? `?code=${codeFromUrl}` : '');
+        // Limpar da URL sem recarregar (UX mais limpa), preservando _tenant em localhost
+        const tenantParam = urlParams.get('_tenant');
+        const params = new URLSearchParams();
+        params.set('code', codeFromUrl);
+        if (tenantParam) params.set('_tenant', tenantParam);
+        const cleanUrl = window.location.pathname + '?' + params.toString();
         window.history.replaceState(null, '', cleanUrl);
     }
 

@@ -1011,7 +1011,10 @@
             <div id="notifDropdown">
                 <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-elevated); z-index:10;">
                     <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
-                    <button onclick="markAllNotificationsRead()" class="btn btn-ghost btn-sm" style="color:var(--accent);">Marcar lidas</button>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button onclick="markAllNotificationsRead()" class="btn btn-ghost btn-sm" style="color:var(--accent); font-size:0.75rem;">Marcar lidas</button>
+                        <button onclick="deleteAllNotifications()" class="btn btn-ghost btn-sm" style="color:var(--red); font-size:0.75rem;">Excluir todas</button>
+                    </div>
                 </div>
                 <div id="notifList" style="padding:var(--sp-1) var(--sp-0); min-height:80px;">
                     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--sp-6) var(--sp-4); color:var(--text-muted); gap:var(--sp-2);">
