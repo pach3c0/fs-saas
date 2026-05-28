@@ -1644,7 +1644,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     } else {
       selectedIds = session.selectedPhotos || [];
       photosToZip = session.mode === 'selection'
-        ? session.photos.filter(p => selectedIds.includes(p.id))
+        ? session.photos.filter(p => selectedIds.includes(p.id) || p.urlOriginal)
         : session.photos;
     }
 
@@ -1658,10 +1658,19 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     archive.pipe(res);
 
     for (const photo of photosToZip) {
-      const urlToServe = photo.urlOriginal || photo.url;
-      const filePath = path.join(__dirname, '../..', urlToServe);
-      if (fs.existsSync(filePath)) {
-        archive.file(filePath, { name: photo.filename || path.basename(filePath) });
+      // Tenta urlOriginal (alta resolução), cai para url (thumb) se o arquivo não existir no disco
+      const candidates = [photo.urlOriginal, photo.url].filter(Boolean);
+      let added = false;
+      for (const urlToServe of candidates) {
+        const filePath = path.join(__dirname, '../..', urlToServe);
+        if (fs.existsSync(filePath)) {
+          archive.file(filePath, { name: photo.filename || path.basename(filePath) });
+          added = true;
+          break;
+        }
+      }
+      if (!added) {
+        console.warn('[download-all] arquivo não encontrado no disco:', photo.id, photo.urlOriginal, photo.url);
       }
     }
 
