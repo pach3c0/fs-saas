@@ -257,7 +257,12 @@ function buildPreviewButton(session) {
     color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 0.375rem;
     cursor: pointer; font-size: 0.8125rem;
   `;
-  previewBtn.onclick = () => window.open(buildGalleryUrl(session), '_blank');
+  previewBtn.onclick = () => {
+    const base = buildGalleryUrl(session);
+    const token = appState.authToken || '';
+    const url = token ? `${base}&_ap=${encodeURIComponent(token)}` : base;
+    window.open(url, '_blank');
+  };
   previewWrap.appendChild(previewBtn);
   return previewWrap;
 }

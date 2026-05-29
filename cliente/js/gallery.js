@@ -53,6 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const iosModal = document.getElementById('iosInstallModal');
     let deferredPrompt;
 
+    // Token de preview admin — passado na URL quando fotógrafo abre galeria bloqueada pelo wizard
+    const adminPreviewToken = new URLSearchParams(window.location.search).get('_ap') || '';
+
     // Elementos dinâmicos
     let commentModal = null;
     let currentCommentPhotoId = null;
@@ -1033,10 +1036,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorMessage.style.display = 'none';
 
         try {
+            const verifyBody = { accessCode: code };
+            if (adminPreviewToken) verifyBody._ap = adminPreviewToken;
             const response = await fetch('/api/client/verify-code', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode: code }),
+                body: JSON.stringify(verifyBody),
             });
 
             const result = await response.json();
@@ -1296,6 +1301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (state.isParticipant && state.participantId) {
                 url += `&participantId=${state.participantId}`;
             }
+            if (adminPreviewToken) url += `&_ap=${encodeURIComponent(adminPreviewToken)}`;
             const response = await fetch(url);
             const result = await response.json();
 

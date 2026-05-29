@@ -61,9 +61,20 @@ router.post('/client/verify-code', async (req, res) => {
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
-    // Bloqueio de emergência ativado pelo fotógrafo
+    // Bloqueio de emergência ativado pelo fotógrafo.
+    // Bypass permitido quando _ap é o JWT do próprio fotógrafo dono da sessão (preview admin).
     if (session.clientAccessBlocked) {
-      return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+      let adminPreview = false;
+      const apToken = req.body?._ap;
+      if (apToken) {
+        try {
+          const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
+          adminPreview = payload.organizationId?.toString() === session.organizationId.toString();
+        } catch (_) {}
+      }
+      if (!adminPreview) {
+        return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+      }
     }
 
     // Bloquear acesso a galeria entregue com prazo vencido
@@ -212,7 +223,17 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     if (session.clientAccessBlocked) {
-      return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+      let adminPreview = false;
+      const apToken = req.query?._ap;
+      if (apToken) {
+        try {
+          const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
+          adminPreview = payload.organizationId?.toString() === session.organizationId.toString();
+        } catch (_) {}
+      }
+      if (!adminPreview) {
+        return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+      }
     }
 
     const { participantId } = req.query;
