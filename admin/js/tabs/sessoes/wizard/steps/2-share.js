@@ -5,7 +5,10 @@
 // A visualização desse passo já marca codeViewedAt no servidor (feito no switchStep).
 
 import { apiPost } from '../../../../utils/api.js';
-import { buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppLink, openOverlayModal } from '../utils.js';
+import {
+  buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppLink, openOverlayModal,
+  buildShareEmailIntro, buildShareWhatsAppText, buildMessageCustomizer
+} from '../utils.js';
 import { nextStepIdAfter } from '../stepper.js';
 import { appState } from '../../../../state.js';
 
@@ -155,50 +158,76 @@ function renderCodeCard(session) {
 }
 
 function renderChannelCards(session, refresh) {
-  const cards = document.createElement('div');
-  cards.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;';
-
   const clientEmail = session.clientId?.email || session.clientEmail || '';
-  cards.appendChild(makeChannelCard({
+  const clientPhone = session.clientId?.phone || '';
+  const clientName = session.clientId?.name || session.name || 'Cliente';
+  const orgName = appState.appData?.organization?.name || '';
+
+  let emailTextareaEl = null;
+  let waTextareaEl = null;
+
+  const cards = document.createElement('div');
+  cards.style.cssText = 'display:flex; flex-direction:column; gap:0.75rem;';
+
+  // Card E-mail com mensagem editável
+  cards.appendChild(buildEditableChannelCard({
     icon: '📧',
     title: 'E-mail',
     subtitle: clientEmail || 'Sem e-mail cadastrado',
     disabled: !clientEmail,
     primary: true,
+    actionLabel: session.codeSentAt ? 'Reenviar' : 'Enviar',
+    defaultMessage: buildShareEmailIntro(session),
+    messageLabel: 'Personalizar mensagem do e-mail',
+    onTextareaReady: el => { emailTextareaEl = el; },
     onClick: async () => {
+      const emailIntro = emailTextareaEl?.value?.trim() || undefined;
       try {
-        const res = await apiPost(`/api/sessions/${session._id}/send-code`, { channel: 'email' });
+        const payload = { channel: 'email' };
+        if (emailIntro) payload.emailIntro = emailIntro;
+        const res = await apiPost(`/api/sessions/${session._id}/send-code`, payload);
         window.showToast?.(`E-mail enviado para ${res.emailSentTo}`, 'success');
         await refresh();
       } catch (err) {
         window.showToast?.('Erro ao enviar: ' + err.message, 'error');
       }
-    },
-    actionLabel: session.codeSentAt ? 'Reenviar' : 'Enviar'
+    }
   }));
 
-  const clientPhone = session.clientId?.phone || '';
-  cards.appendChild(makeChannelCard({
+  // Card WhatsApp com mensagem editável
+  cards.appendChild(buildEditableChannelCard({
     icon: '💬',
     title: 'WhatsApp',
     subtitle: clientPhone ? formatPhone(clientPhone) : 'Sem telefone — abrirá vazio',
     disabled: false,
     primary: false,
+    actionLabel: 'Abrir WhatsApp',
+    defaultMessage: buildShareWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
+    messageLabel: 'Personalizar mensagem do WhatsApp',
+    onTextareaReady: el => { waTextareaEl = el; },
     onClick: async () => {
+      const customText = waTextareaEl?.value?.trim() || undefined;
       try {
         const res = await apiPost(`/api/sessions/${session._id}/send-code`, { channel: 'whatsapp' });
         if (res.whatsappUrl) {
-          window.open(res.whatsappUrl, '_blank');
-          window.showToast?.(res.hasPhone ? 'Abrindo WhatsApp...' : 'WhatsApp aberto (telefone vazio — digite o número)', 'info');
+          let url = res.whatsappUrl;
+          if (customText) {
+            let phone = String(clientPhone || '').replace(/\D/g, '');
+            if (phone && (phone.length === 10 || phone.length === 11)) phone = '55' + phone;
+            const base = phone ? `https://wa.me/${phone}` : 'https://wa.me/';
+            url = `${base}?text=${encodeURIComponent(customText)}`;
+          }
+          window.open(url, '_blank');
+          window.showToast?.(res.hasPhone ? 'Abrindo WhatsApp...' : 'WhatsApp aberto (sem número — digite ao abrir)', 'info');
           await refresh();
         }
       } catch (err) {
         window.showToast?.('Erro ao gerar link: ' + err.message, 'error');
       }
-    },
-    actionLabel: 'Abrir WhatsApp'
+    }
   }));
 
+  // Card copiar link (sem textarea)
   cards.appendChild(makeChannelCard({
     icon: '🔗',
     title: 'Copiar link',
@@ -366,6 +395,54 @@ function miniBtn(label, onClick) {
 
 function escapeText(s) {
   return String(s || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+}
+
+// Card de canal com toggle de personalização de mensagem (email ou WhatsApp).
+function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, actionLabel, defaultMessage, messageLabel, onTextareaReady, onClick }) {
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    opacity: ${disabled ? '0.5' : '1'};
+  `;
+
+  const top = document.createElement('div');
+  top.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
+  const iconEl = document.createElement('span');
+  iconEl.textContent = icon;
+  iconEl.style.cssText = 'font-size:1.25rem;';
+  const titleEl = document.createElement('div');
+  titleEl.textContent = title;
+  titleEl.style.cssText = 'font-weight:600; color:var(--text-primary); font-size:0.875rem;';
+  top.appendChild(iconEl);
+  top.appendChild(titleEl);
+  card.appendChild(top);
+
+  const sub = document.createElement('div');
+  sub.textContent = subtitle;
+  sub.style.cssText = 'font-size:0.75rem; color:var(--text-muted); min-height:1.5em;';
+  card.appendChild(sub);
+
+  card.appendChild(buildMessageCustomizer({ label: messageLabel, defaultText: defaultMessage, onTextareaReady }));
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = actionLabel;
+  btn.disabled = disabled;
+  btn.style.cssText = `
+    background: ${primary ? 'var(--accent)' : 'var(--bg-base)'};
+    color: ${primary ? 'white' : 'var(--text-primary)'};
+    border: ${primary ? 'none' : '1px solid var(--border)'};
+    padding: 0.5rem; border-radius: 0.375rem;
+    cursor: ${disabled ? 'not-allowed' : 'pointer'}; font-size: 0.8125rem; font-weight: 500;
+  `;
+  btn.onclick = onClick;
+  card.appendChild(btn);
+
+  return card;
 }
 
 function makeChannelCard({ icon, title, subtitle, disabled, primary, onClick, actionLabel }) {

@@ -124,7 +124,7 @@ router.post('/client/verify-code', async (req, res) => {
         id: session.organizationId._id,
         name: session.organizationId.name,
         logo: session.organizationId.logo,
-        watermark: session.organizationId.watermarkType ? {
+        watermark: {
           watermarkType: session.organizationId.watermarkType,
           watermarkText: session.organizationId.watermarkText,
           watermarkOpacity: session.organizationId.watermarkOpacity,
@@ -139,8 +139,9 @@ router.post('/client/verify-code', async (req, res) => {
           watermarkCustomSize: session.organizationId.watermarkCustomSize,
           watermarkShadow: session.organizationId.watermarkShadow,
           watermarkImageFilter: session.organizationId.watermarkImageFilter,
-          watermarkImageOpacity: session.organizationId.watermarkImageOpacity
-        } : null
+          watermarkImageOpacity: session.organizationId.watermarkImageOpacity,
+          watermarkLayers: session.organizationId.watermarkLayers || []
+        }
       } : null
     });
   } catch (error) {
@@ -256,7 +257,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
           watermarkCustomSize: session.organizationId.watermarkCustomSize,
           watermarkShadow: session.organizationId.watermarkShadow,
           watermarkImageFilter: session.organizationId.watermarkImageFilter,
-          watermarkImageOpacity: session.organizationId.watermarkImageOpacity
+          watermarkImageOpacity: session.organizationId.watermarkImageOpacity,
+          watermarkLayers: session.organizationId.watermarkLayers || []
         } : null
       } : null
     });
@@ -791,7 +793,8 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 });
 
 // ADMIN: Enviar codigo de acesso manualmente ao cliente
-// body opcional: { channel: 'email' | 'whatsapp' | 'both' } — default 'email'
+// body opcional: { channel: 'email' | 'whatsapp' | 'both', emailIntro?: string } — default 'email'
+// emailIntro: parágrafo personalizado pelo fotógrafo que substitui o texto padrão no e-mail.
 // Para 'whatsapp': não envia mensagem; retorna whatsappUrl (wa.me) que o front abre em nova aba.
 router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
   try {
@@ -799,6 +802,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     if (!['email', 'whatsapp', 'both'].includes(channel)) {
       return res.status(400).json({ error: 'Canal inválido (use email, whatsapp ou both)' });
     }
+    const customEmailIntro = typeof req.body?.emailIntro === 'string' ? req.body.emailIntro.trim().slice(0, 1000) : undefined;
 
     const session = await Session.findOne({
       _id: req.params.id,
@@ -832,7 +836,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     const result = { success: true };
 
     if (wantsEmail) {
-      await sendGalleryAvailableEmail(clientEmail, clientName, session.accessCode, orgName, org?.slug);
+      await sendGalleryAvailableEmail(clientEmail, clientName, session.accessCode, orgName, org?.slug, customEmailIntro);
       result.emailSentTo = clientEmail;
     }
 
@@ -1300,6 +1304,7 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    const customEmailIntro = typeof req.body?.emailIntro === 'string' ? req.body.emailIntro.trim().slice(0, 1000) : undefined;
 
     // Validação: todas as fotos selecionadas devem ter urlOriginal
     const selectedSet = new Set(session.selectedPhotos || []);
@@ -1344,7 +1349,7 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     // Notificar cliente por e-mail
     if (session.clientEmail) {
       const org = await Organization.findById(session.organizationId).select('name slug');
-      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug).catch(() => { });
+      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug, customEmailIntro).catch(() => { });
     }
 
     res.json({ success: true, extrasCount: extrasDelivered.length });

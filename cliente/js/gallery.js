@@ -229,16 +229,94 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fill="${fontColor}" letter-spacing="${letterSpacing}" transform="rotate(${rotation} 150 125)"
                 opacity="0.7">${safeText}</text>
         </svg>`;
-        return `url("data:image/svg+xml;base64,${btoa(svg)}")`;
+        return `url('data:image/svg+xml;base64,${btoa(svg)}')`;
+    }
+
+    // ----------------------------------------------------------------
+    // NOVO SISTEMA: Renderiza camadas do editor de layers
+    // Posicionamento em % → funciona em qualquer tamanho de container
+    // overflow:visible no layer (rotação não clipa) → wrapper externo faz o clip
+    // ----------------------------------------------------------------
+    function renderWatermarkLayers(layers) {
+        if (!layers || layers.length === 0) return '';
+
+        return layers.map(layer => {
+            const style = [
+                'position:absolute',
+                `left:${layer.x}%`,
+                `top:${layer.y}%`,
+                `width:${layer.w}%`,
+                `height:${layer.h}%`,
+                `opacity:${layer.opacity}`,
+                `transform:rotate(${layer.rotation || 0}deg)`,
+                'transform-origin:center center',
+                'pointer-events:none',
+                'display:flex',
+                'align-items:center',
+                'justify-content:center',
+                'overflow:visible',   // ← NÃO clipar aqui — a rotação precisa extravasar
+                'box-sizing:border-box'
+            ].join(';');
+
+            if (layer.type === 'text') {
+                const fw = layer.fontWeight === 'bold' ? '700' : layer.fontWeight === 'light' ? '300' : '400';
+                const shadow = layer.shadow
+                    ? '0 0 6px rgba(0,0,0,0.9),0 0 3px rgba(0,0,0,0.7)'
+                    : 'none';
+                // font-size em cqw (container query width) → escala automaticamente
+                // no grid (container ~200px): texto pequeno. No lightbox (600px+): maior.
+                // cqw é % da largura do container pai (container-type:size definido no wrapper)
+                const relativeSize = ((layer.fontSize || 20) / 4).toFixed(1);
+                const spanStyle = [
+                    `font-family:'${escapeHtml(layer.fontFamily || 'Arial')}',sans-serif`,
+                    `font-size:${relativeSize}cqw`,
+                    `font-weight:${fw}`,
+                    `font-style:${layer.fontStyle || 'normal'}`,
+                    `color:${escapeHtml(layer.color || '#ffffff')}`,
+                    `letter-spacing:${(layer.letterSpacing || 0) * 0.05}em`,
+                    `text-shadow:${shadow}`,
+                    'white-space:nowrap',
+                    'pointer-events:none'
+                ].join(';');
+                return `<div style="${style}"><span style="${spanStyle}">${escapeHtml(layer.text || '')}</span></div>`;
+            } else {
+                const filterCSS = getImageFilterCSS(layer.filter || 'none');
+                const imgStyle = [
+                    'width:100%', 'height:100%',
+                    'object-fit:contain',
+                    `filter:${filterCSS}`,
+                    'pointer-events:none',
+                    'display:block'
+                ].join(';');
+                return `<div style="${style}"><img src="${escapeHtml(layer.url || '')}" style="${imgStyle}" alt="Watermark"></div>`;
+            }
+        }).join('');
     }
 
     // Retorna { style, innerHTML } para o elemento overlay do watermark
+    // SISTEMA NOVO: usa watermarkLayers (multi-layer)
+    // FALLBACK: usa campos antigos (retrocompat)
     function getWatermarkOverlay(watermark, forceShow = false) {
         const hidden = { style: 'display:none;', innerHTML: '' };
 
-        if (!watermark || (state.session.selectionStatus === 'delivered' && !forceShow)) {
-            return hidden;
+        // Respeita o flag booleano da sessão (fotógrafo pode desativar por sessão)
+        if (state.session.watermark === false) return hidden;
+
+        // Se entregue, só mostra com forceShow
+        if (state.session.selectionStatus === 'delivered' && !forceShow) return hidden;
+
+        // ---- SISTEMA NOVO: watermarkLayers ----
+        const layers = watermark && watermark.watermarkLayers;
+        if (layers && layers.length > 0) {
+            return {
+                // overflow:hidden aqui → clip na borda da foto. container-type:size → cqw funciona
+                style: 'position:absolute; inset:0; pointer-events:none; overflow:hidden; container-type:size;',
+                innerHTML: renderWatermarkLayers(layers)
+            };
         }
+
+        // ---- FALLBACK: sistema antigo ----
+        if (!watermark) return hidden;
 
         const {
             watermarkType: type = 'text',
@@ -457,7 +535,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderPhotos() {
         if (!state.photos) return;
 
-        const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null);
+        const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
 
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);

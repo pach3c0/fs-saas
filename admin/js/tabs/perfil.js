@@ -1,6 +1,6 @@
 /**
  * Tab: Perfil e Identidade Visual
- * Gerencia os dados da organização, incluindo logotipo e configurações de marca d'água.
+ * Editor de Marca D'água em Camadas (Layers)
  */
 
 import { apiGet, apiPut } from '../utils/api.js';
@@ -10,44 +10,66 @@ import { appState } from '../state.js';
 
 let organizationData = {};
 
-const positionOptions = [
-  { value: 'center', label: 'Centro' },
-  { value: 'tiled', label: 'Ladrilho' },
-  { value: 'top-left', label: 'Sup. Esquerdo' },
-  { value: 'top-right', label: 'Sup. Direito' },
-  { value: 'bottom-left', label: 'Inf. Esquerdo' },
-  { value: 'bottom-right', label: 'Inf. Direito' },
+// ============================================================
+// ESTADO DO EDITOR DE LAYERS
+// ============================================================
+let wmLayers = [];
+let selectedLayerId = null;
+let _dragState = null;
+let _resizeState = null;
+let _canvasEl = null;
+let _panelEl = null;
+let _saveTimeout = null;
+let _containerRef = null;
+
+const FONT_OPTIONS = [
+  'Arial', 'Playfair Display', 'Georgia', 'Inter',
+  'Montserrat', 'Dancing Script', 'Oswald', 'Roboto Slab'
 ];
 
-const fontOptions = [
-  { value: 'Arial', label: 'Arial' },
-  { value: 'Playfair Display', label: 'Playfair Display' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Inter', label: 'Inter' },
-  { value: 'Montserrat', label: 'Montserrat' },
-  { value: 'Dancing Script', label: 'Dancing Script' },
-  { value: 'Oswald', label: 'Oswald' },
-  { value: 'Roboto Slab', label: 'Roboto Slab' },
-];
-
-const imageFilterOptions = [
-  { value: 'none', label: 'Original', icon: '🎨' },
-  { value: 'grayscale', label: 'Preto & Branco', icon: '⬛' },
-  { value: 'invert', label: 'Invertido', icon: '🔄' },
-  { value: 'white', label: 'Branco Puro', icon: '⬜' },
-];
-
-// Placeholders em Base64 para evitar erros 404 e dependências externas
 const PLACEHOLDER_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTAiIGhlaWdodD0iNTAiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzNzQxNTEiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiNmZmYiPkxvZ288L3RleHQ+PC9zdmc+';
 
-// Preview backgrounds para simular fotos claras/escuras
-const PREVIEW_BG_DARK = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
-const PREVIEW_BG_LIGHT = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
-const PREVIEW_BG_PHOTO = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+// ============================================================
+// UTILITÁRIOS
+// ============================================================
 
-// ===== FUNÇÕES DE PREVIEW =====
+function genId() {
+  return Math.random().toString(36).slice(2, 9);
+}
 
-function getImageFilterCSS(filter) {
+function getDefaultLayers() {
+  const orgName = organizationData.name || 'Seu Estúdio';
+  const logo = organizationData.logo ? resolveImagePath(organizationData.logo) : null;
+  const layers = [
+    {
+      id: genId(), type: 'text',
+      x: 5, y: 38, w: 90, h: 18,
+      opacity: 0.35, rotation: -30,
+      text: 'Cópia não autorizada',
+      fontSize: 30, fontFamily: 'Arial', fontWeight: 'bold',
+      fontStyle: 'normal', color: '#ffffff', letterSpacing: 3, shadow: true
+    },
+    {
+      id: genId(), type: 'text',
+      x: 52, y: 83, w: 45, h: 10,
+      opacity: 0.30, rotation: 0,
+      text: orgName,
+      fontSize: 16, fontFamily: 'Playfair Display', fontWeight: 'normal',
+      fontStyle: 'italic', color: '#ffffff', letterSpacing: 1, shadow: true
+    }
+  ];
+  if (logo) {
+    layers.unshift({
+      id: genId(), type: 'image',
+      x: 3, y: 4, w: 22, h: 18,
+      opacity: 0.40, rotation: 0,
+      url: logo, filter: 'white'
+    });
+  }
+  return layers;
+}
+
+function getFilterCSS(filter) {
   switch (filter) {
     case 'grayscale': return 'grayscale(1)';
     case 'invert': return 'invert(1)';
@@ -56,328 +78,462 @@ function getImageFilterCSS(filter) {
   }
 }
 
-function updateWatermarkPreview(container) {
-  if (!container) return;
-  const preview = container.querySelector('#watermarkPreview');
-  if (!preview) return;
+// ============================================================
+// RENDER DO CANVAS
+// ============================================================
 
-  // Ler todos os valores
-  const typeInput = container.querySelector('input[name="watermarkType"]:checked');
-  const type = typeInput ? typeInput.value : 'text';
+function renderCanvas() {
+  if (!_canvasEl) return;
+  _canvasEl.querySelectorAll('.wm-layer').forEach(el => el.remove());
 
-  const textInput = container.querySelector('#watermarkText');
-  const text = textInput ? textInput.value : '';
+  wmLayers.forEach(layer => {
+    const el = document.createElement('div');
+    el.className = 'wm-layer';
+    el.dataset.id = layer.id;
+    const isSelected = layer.id === selectedLayerId;
 
-  const opacityInput = container.querySelector('#watermarkOpacity');
-  const opacity = opacityInput ? parseFloat(opacityInput.value) : 15;
+    el.style.cssText = [
+      'position:absolute',
+      `left:${layer.x}%`,
+      `top:${layer.y}%`,
+      `width:${layer.w}%`,
+      `height:${layer.h}%`,
+      `opacity:${layer.opacity}`,
+      `transform:rotate(${layer.rotation}deg)`,
+      'transform-origin:center center',
+      'cursor:move',
+      'box-sizing:border-box',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'overflow:visible',
+      `border:2px solid ${isSelected ? 'rgba(99,102,241,0.9)' : 'transparent'}`,
+      'border-radius:2px',
+      'user-select:none'
+    ].join(';');
 
-  const positionInput = container.querySelector('input[name="watermarkPosition"]:checked');
-  if (!positionInput) return;
-  const position = positionInput.value;
-
-  // Novos campos avançados
-  const fontColorInput = container.querySelector('#watermarkFontColor');
-  const fontColor = fontColorInput ? fontColorInput.value : '#ffffff';
-
-  const fontFamilyInput = container.querySelector('#watermarkFontFamily');
-  const fontFamily = fontFamilyInput ? fontFamilyInput.value : 'Arial';
-
-  const fontWeightInput = container.querySelector('input[name="watermarkFontWeight"]:checked');
-  const fontWeight = fontWeightInput ? fontWeightInput.value : 'bold';
-
-  const fontStyleInput = container.querySelector('#watermarkFontStyle');
-  const fontStyle = fontStyleInput ? (fontStyleInput.checked ? 'italic' : 'normal') : 'normal';
-
-  const letterSpacingInput = container.querySelector('#watermarkLetterSpacing');
-  const letterSpacing = letterSpacingInput ? parseFloat(letterSpacingInput.value) : 0;
-
-  const rotationInput = container.querySelector('#watermarkRotation');
-  const rotation = rotationInput ? parseFloat(rotationInput.value) : -30;
-
-  const customSizeInput = container.querySelector('#watermarkCustomSize');
-  const customSize = customSizeInput ? parseFloat(customSizeInput.value) : 24;
-
-  const shadowInput = container.querySelector('#watermarkShadow');
-  const shadow = shadowInput ? shadowInput.checked : true;
-
-  const imageFilterInput = container.querySelector('input[name="watermarkImageFilter"]:checked');
-  const imageFilter = imageFilterInput ? imageFilterInput.value : 'none';
-
-  const imageOpacityInput = container.querySelector('#watermarkImageOpacity');
-  const imageOpacity = imageOpacityInput ? parseFloat(imageOpacityInput.value) : 80;
-
-  // Atualizar labels dinâmicos
-  const opacityLabel = container.querySelector('#opacityLabel');
-  if (opacityLabel) opacityLabel.textContent = `${opacity}%`;
-
-  const letterSpacingLabel = container.querySelector('#letterSpacingLabel');
-  if (letterSpacingLabel) letterSpacingLabel.textContent = `${letterSpacing}px`;
-
-  const rotationLabel = container.querySelector('#rotationLabel');
-  if (rotationLabel) rotationLabel.textContent = `${rotation}°`;
-
-  const customSizeLabel = container.querySelector('#customSizeLabel');
-  if (customSizeLabel) customSizeLabel.textContent = `${customSize}px`;
-
-  const imageOpacityLabel = container.querySelector('#imageOpacityLabel');
-  if (imageOpacityLabel) imageOpacityLabel.textContent = `${imageOpacity}%`;
-
-  // Atualizar preview do swatch de cor
-  const colorSwatch = container.querySelector('#fontColorSwatch');
-  if (colorSwatch) colorSwatch.style.background = fontColor;
-
-  // Construir CSS de texto
-  const textShadowCSS = shadow
-    ? (isLightColor(fontColor)
-      ? '0 0 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.5)'
-      : '0 0 4px rgba(255,255,255,0.8), 0 0 2px rgba(255,255,255,0.6), 0 1px 3px rgba(255,255,255,0.3)')
-    : 'none';
-
-  const fontWeightCSS = fontWeight === 'light' ? '300' : fontWeight === 'bold' ? '700' : '400';
-
-  const watermarkEl = preview.querySelector('.watermark-overlay');
-  if (!watermarkEl) return;
-
-  // Reset
-  watermarkEl.style = '';
-  watermarkEl.innerHTML = '';
-
-  // Common styles
-  watermarkEl.style.opacity = opacity / 100;
-  watermarkEl.style.position = 'absolute';
-  watermarkEl.style.inset = '0';
-  watermarkEl.style.pointerEvents = 'none';
-
-  const displayText = text || organizationData.name || 'Seu Estúdio';
-  const isTiled = position === 'tiled';
-  const imgFilterCSS = getImageFilterCSS(imageFilter);
-
-  if (isTiled) {
-    watermarkEl.style.backgroundRepeat = 'repeat';
-    watermarkEl.style.backgroundPosition = 'center';
-
-    if (type === 'logo' && organizationData.logo) {
-      const logoUrl = resolveImagePath(organizationData.logo);
-      const sizeValue = `${Math.max(60, customSize * 4)}px`;
-      watermarkEl.style.backgroundImage = `url(${logoUrl})`;
-      watermarkEl.style.backgroundSize = sizeValue;
-      // Aplicar filtro via pseudo-elemento não é possível direto, mas podemos usar mix-blend-mode
-      if (imageFilter !== 'none') {
-        watermarkEl.style.filter = imgFilterCSS;
-      }
-      watermarkEl.style.opacity = (imageOpacity / 100) * (opacity / 100);
-    } else if (type === 'both' && organizationData.logo) {
-      const logoUrl = resolveImagePath(organizationData.logo);
-      const logoSize = `${Math.max(40, customSize * 3)}px`;
-      const svg = buildTiledSvg(displayText, fontColor, fontFamily, fontWeightCSS, fontStyle, customSize, letterSpacing, rotation, textShadowCSS);
-      watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}"), url(${logoUrl})`;
-      watermarkEl.style.backgroundSize = `300px 250px, ${logoSize}`;
-      watermarkEl.style.backgroundRepeat = 'repeat, no-repeat';
-      watermarkEl.style.backgroundPosition = 'center, bottom 1rem right 1rem';
+    if (layer.type === 'text') {
+      const fw = layer.fontWeight === 'bold' ? '700' : layer.fontWeight === 'light' ? '300' : '400';
+      const shadow = layer.shadow ? '0 0 6px rgba(0,0,0,0.9),0 0 3px rgba(0,0,0,0.7)' : 'none';
+      const span = document.createElement('span');
+      span.style.cssText = [
+        `font-family:'${layer.fontFamily}',sans-serif`,
+        `font-size:${layer.fontSize}px`,
+        `font-weight:${fw}`,
+        `font-style:${layer.fontStyle}`,
+        `color:${layer.color}`,
+        `letter-spacing:${layer.letterSpacing}px`,
+        `text-shadow:${shadow}`,
+        'white-space:nowrap',
+        'pointer-events:none'
+      ].join(';');
+      span.textContent = layer.text || '';
+      el.appendChild(span);
     } else {
-      const svg = buildTiledSvg(displayText, fontColor, fontFamily, fontWeightCSS, fontStyle, customSize, letterSpacing, rotation, textShadowCSS);
-      watermarkEl.style.backgroundImage = `url("data:image/svg+xml;base64,${btoa(svg)}")`;
+      const img = document.createElement('img');
+      img.src = layer.url || PLACEHOLDER_LOGO;
+      img.onerror = () => { img.src = PLACEHOLDER_LOGO; };
+      img.style.cssText = [
+        'width:100%',
+        'height:100%',
+        'object-fit:contain',
+        `filter:${getFilterCSS(layer.filter)}`,
+        'pointer-events:none',
+        'display:block'
+      ].join(';');
+      el.appendChild(img);
     }
+
+    if (isSelected) {
+      ['nw', 'ne', 'sw', 'se'].forEach(dir => {
+        const h = document.createElement('div');
+        h.className = 'wm-handle';
+        h.dataset.dir = dir;
+        h.style.cssText = [
+          'position:absolute',
+          'width:10px', 'height:10px',
+          'background:#6366f1',
+          'border:2px solid white',
+          'border-radius:50%',
+          `cursor:${dir}-resize`,
+          'z-index:10',
+          dir.includes('n') ? 'top:-5px' : 'bottom:-5px',
+          dir.includes('w') ? 'left:-5px' : 'right:-5px'
+        ].join(';');
+        h.addEventListener('mousedown', e => startResize(e, layer.id, dir));
+        el.appendChild(h);
+      });
+    }
+
+    el.addEventListener('mousedown', e => {
+      if (e.target.classList.contains('wm-handle')) return;
+      selectLayer(layer.id);
+      startDrag(e, layer.id);
+    });
+
+    _canvasEl.appendChild(el);
+  });
+}
+
+// ============================================================
+// DRAG
+// ============================================================
+
+function startDrag(e, id) {
+  e.preventDefault();
+  const canvas = _canvasEl.getBoundingClientRect();
+  const layer = wmLayers.find(l => l.id === id);
+  if (!layer) return;
+
+  _dragState = { id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
+
+  const onMove = (ev) => {
+    if (!_dragState) return;
+    const dx = ((ev.clientX - _dragState.startX) / canvas.width) * 100;
+    const dy = ((ev.clientY - _dragState.startY) / canvas.height) * 100;
+    const l = wmLayers.find(l => l.id === _dragState.id);
+    if (!l) return;
+    l.x = Math.max(0, Math.min(100 - l.w, _dragState.origX + dx));
+    l.y = Math.max(0, Math.min(100 - l.h, _dragState.origY + dy));
+    renderCanvas();
+  };
+
+  const onUp = () => {
+    _dragState = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    scheduleSave();
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ============================================================
+// RESIZE
+// ============================================================
+
+function startResize(e, id, dir) {
+  e.preventDefault();
+  e.stopPropagation();
+  const canvas = _canvasEl.getBoundingClientRect();
+  const layer = wmLayers.find(l => l.id === id);
+  if (!layer) return;
+
+  _resizeState = {
+    id, dir,
+    startX: e.clientX, startY: e.clientY,
+    origX: layer.x, origY: layer.y,
+    origW: layer.w, origH: layer.h
+  };
+
+  const onMove = (ev) => {
+    if (!_resizeState) return;
+    const dx = ((ev.clientX - _resizeState.startX) / canvas.width) * 100;
+    const dy = ((ev.clientY - _resizeState.startY) / canvas.height) * 100;
+    const l = wmLayers.find(l => l.id === _resizeState.id);
+    if (!l) return;
+    const { dir: d, origX, origY, origW, origH } = _resizeState;
+
+    if (d.includes('e')) l.w = Math.max(5, origW + dx);
+    if (d.includes('s')) l.h = Math.max(3, origH + dy);
+    if (d.includes('w')) { const nw = Math.max(5, origW - dx); l.x = origX + (origW - nw); l.w = nw; }
+    if (d.includes('n')) { const nh = Math.max(3, origH - dy); l.y = origY + (origH - nh); l.h = nh; }
+    renderCanvas();
+  };
+
+  const onUp = () => {
+    _resizeState = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    scheduleSave();
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ============================================================
+// SELEÇÃO
+// ============================================================
+
+function selectLayer(id) {
+  selectedLayerId = id;
+  renderCanvas();
+  renderPanel();
+  if (_containerRef) renderLayerList(_containerRef);
+}
+
+// ============================================================
+// PAINEL LATERAL
+// ============================================================
+
+function renderPanel() {
+  if (!_panelEl) return;
+  const layer = wmLayers.find(l => l.id === selectedLayerId);
+
+  if (!layer) {
+    _panelEl.innerHTML = `
+      <div style="text-align:center; padding:2rem 1rem; color:var(--text-secondary);">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">👆</div>
+        <p style="font-size:0.8125rem;">Clique numa camada para editar</p>
+      </div>`;
+    return;
+  }
+
+  const fw = layer.fontWeight || 'bold';
+  const fi = layer.filter || 'none';
+
+  if (layer.type === 'text') {
+    _panelEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.75rem;padding:0.75rem;">
+        <div style="font-size:0.6875rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;padding-bottom:0.25rem;border-bottom:1px solid var(--border);">✏️ Camada de Texto</div>
+
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Texto</label>
+          <input id="lp-text" type="text" class="input" value="${escapeHtml(layer.text || '')}" style="font-size:0.8125rem;">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 80px;gap:0.5rem;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Fonte</label>
+            <select id="lp-family" class="input" style="font-size:0.75rem;">
+              ${FONT_OPTIONS.map(f => `<option value="${f}" ${layer.fontFamily === f ? 'selected' : ''}>${f}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Tamanho</label>
+            <input id="lp-size" type="number" class="input" min="8" max="120" value="${layer.fontSize}" style="font-size:0.8125rem;">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.5rem;align-items:center;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Cor</label>
+            <input id="lp-color" type="color" value="${layer.color || '#ffffff'}" style="width:40px;height:32px;border:1px solid var(--border);border-radius:0.25rem;cursor:pointer;background:none;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Peso</label>
+            <div style="display:flex;gap:0.25rem;">
+              ${['light','normal','bold'].map(w => `
+                <label style="flex:1;text-align:center;padding:0.3rem 0;border:1px solid var(--border);border-radius:0.25rem;cursor:pointer;font-size:0.6875rem;font-weight:${w==='bold'?'700':w==='light'?'300':'400'};transition:all 0.1s;${fw===w?'background:var(--accent);color:white;border-color:var(--accent);':'color:var(--text-primary);'}">
+                  <input type="radio" name="lp-weight" value="${w}" ${fw===w?'checked':''} style="display:none;">${w==='light'?'Thin':w==='bold'?'Bold':'Reg'}
+                </label>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;">
+          <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.75rem;padding:0.25rem 0.625rem;border:1px solid var(--border);border-radius:0.25rem;${layer.fontStyle==='italic'?'background:var(--accent);color:white;border-color:var(--accent);':'color:var(--text-primary);'}">
+            <input type="checkbox" id="lp-italic" ${layer.fontStyle==='italic'?'checked':''} style="display:none;"><em>Itálico</em>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.75rem;padding:0.25rem 0.625rem;border:1px solid var(--border);border-radius:0.25rem;${layer.shadow?'background:var(--accent);color:white;border-color:var(--accent);':'color:var(--text-primary);'}">
+            <input type="checkbox" id="lp-shadow" ${layer.shadow?'checked':''} style="display:none;">Sombra
+          </label>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;">
+            <label style="font-size:0.75rem;color:var(--text-secondary);">Espaçamento</label>
+            <span id="lp-spacing-lbl" style="font-size:0.75rem;color:var(--text-primary);">${layer.letterSpacing}px</span>
+          </div>
+          <input id="lp-spacing" type="range" min="0" max="20" value="${layer.letterSpacing}" style="width:100%;accent-color:var(--accent);">
+        </div>
+
+        ${_commonControls(layer)}
+      </div>`;
   } else {
-    watermarkEl.style.display = 'flex';
-    watermarkEl.style.justifyContent = position.includes('right') ? 'flex-end' : position.includes('left') ? 'flex-start' : 'center';
-    watermarkEl.style.alignItems = position.includes('top') ? 'flex-start' : position.includes('bottom') ? 'flex-end' : 'center';
-    watermarkEl.style.padding = '1rem';
+    _panelEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.75rem;padding:0.75rem;">
+        <div style="font-size:0.6875rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;padding-bottom:0.25rem;border-bottom:1px solid var(--border);">🖼️ Camada de Imagem</div>
 
-    if (type === 'logo' && organizationData.logo) {
-      const logoUrl = resolveImagePath(organizationData.logo);
-      const imgW = `${Math.max(40, customSize * 3)}px`;
-      watermarkEl.innerHTML = `<img src="${logoUrl}" style="width:${imgW}; height:auto; max-width:80%; max-height:80%; filter:${imgFilterCSS}; opacity:${imageOpacity / 100};">`;
-    } else if (type === 'both' && organizationData.logo) {
-      const logoUrl = resolveImagePath(organizationData.logo);
-      const imgW = `${Math.max(40, customSize * 3)}px`;
-      watermarkEl.innerHTML = `
-        <div style="display:inline-flex; flex-direction:column; align-items:center; gap:0.25rem;">
-          <img src="${logoUrl}" style="width:${imgW}; height:auto; max-width:80%; max-height:60%; filter:${imgFilterCSS}; opacity:${imageOpacity / 100};">
-          <span style="font-family:'${fontFamily}',sans-serif; font-weight:${fontWeightCSS}; font-style:${fontStyle}; color:${fontColor}; font-size:${customSize}px; letter-spacing:${letterSpacing}px; text-shadow:${textShadowCSS}; transform:rotate(${rotation}deg); white-space:nowrap;">${escapeHtml(displayText)}</span>
-        </div>`;
-    } else {
-      watermarkEl.innerHTML = `<span style="font-family:'${fontFamily}',sans-serif; font-weight:${fontWeightCSS}; font-style:${fontStyle}; color:${fontColor}; font-size:${customSize}px; letter-spacing:${letterSpacing}px; text-shadow:${textShadowCSS}; transform:rotate(${rotation}deg); display:inline-block; white-space:nowrap;">${escapeHtml(displayText)}</span>`;
-    }
+        <div style="text-align:center;">
+          <img id="lp-img-preview" src="${layer.url || PLACEHOLDER_LOGO}" style="max-height:70px;max-width:100%;object-fit:contain;filter:${getFilterCSS(layer.filter)};border-radius:4px;border:1px solid var(--border);" onerror="this.src='${PLACEHOLDER_LOGO}'">
+        </div>
+
+        <label style="background:var(--bg-hover);color:white;padding:0.4rem;border-radius:0.375rem;font-size:0.75rem;font-weight:600;cursor:pointer;text-align:center;display:block;">
+          Trocar Imagem
+          <input type="file" id="lp-img-upload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
+        </label>
+
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:0.375rem;">Filtro</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem;">
+            ${[['none','Original','🎨'],['grayscale','P&B','⬛'],['invert','Invertido','🔄'],['white','Branco','⬜']].map(([v,l,icon]) => `
+              <label style="text-align:center;padding:0.375rem;border:1px solid var(--border);border-radius:0.25rem;cursor:pointer;font-size:0.6875rem;transition:all 0.1s;${fi===v?'background:var(--accent);color:white;border-color:var(--accent);':'color:var(--text-primary);'}">
+                <input type="radio" name="lp-filter" value="${v}" ${fi===v?'checked':''} style="display:none;">${icon} ${l}
+              </label>`).join('')}
+          </div>
+        </div>
+
+        ${_commonControls(layer)}
+      </div>`;
   }
+
+  _bindPanelEvents(layer);
 }
 
-function buildTiledSvg(text, color, fontFamily, fontWeight, fontStyle, fontSize, letterSpacing, rotation, shadowCSS) {
-  const safeText = escapeHtml(text);
-  // Usar família genérica como fallback dentro do SVG
-  const safeFontFamily = fontFamily.includes(' ') ? `'${fontFamily}', sans-serif` : `${fontFamily}, sans-serif`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="250">
-    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-      font-family="${safeFontFamily}" font-weight="${fontWeight}" font-style="${fontStyle}" font-size="${fontSize}"
-      fill="${color}" letter-spacing="${letterSpacing}" transform="rotate(${rotation} 150 125)"
-      opacity="0.7">${safeText}</text>
-  </svg>`;
+function _commonControls(layer) {
+  return `
+    <div>
+      <div style="display:flex;justify-content:space-between;">
+        <label style="font-size:0.75rem;color:var(--text-secondary);">Opacidade</label>
+        <span id="lp-opacity-lbl" style="font-size:0.75rem;color:var(--text-primary);">${Math.round(layer.opacity * 100)}%</span>
+      </div>
+      <input id="lp-opacity" type="range" min="5" max="100" value="${Math.round(layer.opacity * 100)}" style="width:100%;accent-color:var(--accent);">
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;">
+        <label style="font-size:0.75rem;color:var(--text-secondary);">Rotação</label>
+        <span id="lp-rot-lbl" style="font-size:0.75rem;color:var(--text-primary);">${layer.rotation}°</span>
+      </div>
+      <input id="lp-rotation" type="range" min="-180" max="180" value="${layer.rotation}" style="width:100%;accent-color:var(--accent);">
+    </div>`;
 }
 
-function isLightColor(hex) {
-  const c = hex.replace('#', '');
-  const r = parseInt(c.substr(0, 2), 16);
-  const g = parseInt(c.substr(2, 2), 16);
-  const b = parseInt(c.substr(4, 2), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
-}
-
-// Aplicar preset e atualizar todos os inputs
-function applyPreset(container, preset) {
-  const presets = {
-    'light-bg': {
-      watermarkFontColor: '#1a1a1a',
-      watermarkShadow: true,
-      watermarkFontFamily: 'Arial',
-      watermarkFontWeight: 'bold',
-      watermarkFontStyle: 'normal',
-      watermarkLetterSpacing: 2,
-      watermarkRotation: -30,
-    },
-    'dark-bg': {
-      watermarkFontColor: '#ffffff',
-      watermarkShadow: true,
-      watermarkFontFamily: 'Arial',
-      watermarkFontWeight: 'bold',
-      watermarkFontStyle: 'normal',
-      watermarkLetterSpacing: 2,
-      watermarkRotation: -30,
-    },
-    'professional': {
-      watermarkFontColor: '#ffffff',
-      watermarkShadow: false,
-      watermarkFontFamily: 'Playfair Display',
-      watermarkFontWeight: 'normal',
-      watermarkFontStyle: 'italic',
-      watermarkLetterSpacing: 5,
-      watermarkRotation: 0,
-    },
-    'minimalist': {
-      watermarkFontColor: '#cccccc',
-      watermarkShadow: false,
-      watermarkFontFamily: 'Inter',
-      watermarkFontWeight: 'light',
-      watermarkFontStyle: 'normal',
-      watermarkLetterSpacing: 8,
-      watermarkRotation: 0,
-    },
+function _bindPanelEvents(layer) {
+  const $ = sel => _panelEl.querySelector(sel);
+  const update = (key, val) => {
+    const l = wmLayers.find(l => l.id === layer.id);
+    if (l) { l[key] = val; renderCanvas(); scheduleSave(); }
+  };
+  const toggleLabel = (el, active) => {
+    if (!el) return;
+    el.style.background = active ? 'var(--accent)' : '';
+    el.style.color = active ? 'white' : 'var(--text-primary)';
+    el.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
   };
 
-  const p = presets[preset];
-  if (!p) return;
+  // Texto
+  $('#lp-text')?.addEventListener('input', e => update('text', e.target.value));
+  $('#lp-family')?.addEventListener('change', e => update('fontFamily', e.target.value));
+  $('#lp-size')?.addEventListener('input', e => update('fontSize', parseInt(e.target.value) || 16));
+  $('#lp-color')?.addEventListener('input', e => update('color', e.target.value));
 
-  // Aplicar valores nos inputs
-  const colorInput = container.querySelector('#watermarkFontColor');
-  if (colorInput) colorInput.value = p.watermarkFontColor;
+  $('#lp-italic')?.addEventListener('change', e => {
+    update('fontStyle', e.target.checked ? 'italic' : 'normal');
+    toggleLabel(e.target.closest('label'), e.target.checked);
+  });
+  $('#lp-shadow')?.addEventListener('change', e => {
+    update('shadow', e.target.checked);
+    toggleLabel(e.target.closest('label'), e.target.checked);
+  });
+  $('#lp-spacing')?.addEventListener('input', e => {
+    update('letterSpacing', parseFloat(e.target.value));
+    const lbl = $('#lp-spacing-lbl');
+    if (lbl) lbl.textContent = e.target.value + 'px';
+  });
 
-  const familyInput = container.querySelector('#watermarkFontFamily');
-  if (familyInput) familyInput.value = p.watermarkFontFamily;
+  _panelEl.querySelectorAll('input[name="lp-weight"]').forEach(r => {
+    r.addEventListener('change', () => {
+      update('fontWeight', r.value);
+      _panelEl.querySelectorAll('input[name="lp-weight"]').forEach(rb => {
+        toggleLabel(rb.closest('label'), rb.checked);
+      });
+    });
+  });
 
-  const weightInputs = container.querySelectorAll('input[name="watermarkFontWeight"]');
-  weightInputs.forEach(i => { i.checked = i.value === p.watermarkFontWeight; });
+  _panelEl.querySelectorAll('input[name="lp-filter"]').forEach(r => {
+    r.addEventListener('change', () => {
+      update('filter', r.value);
+      const prev = $('#lp-img-preview');
+      if (prev) prev.style.filter = getFilterCSS(r.value);
+      _panelEl.querySelectorAll('input[name="lp-filter"]').forEach(rb => {
+        toggleLabel(rb.closest('label'), rb.checked);
+      });
+    });
+  });
 
-  const styleInput = container.querySelector('#watermarkFontStyle');
-  if (styleInput) styleInput.checked = p.watermarkFontStyle === 'italic';
-
-  const letterInput = container.querySelector('#watermarkLetterSpacing');
-  if (letterInput) letterInput.value = p.watermarkLetterSpacing;
-
-  const rotInput = container.querySelector('#watermarkRotation');
-  if (rotInput) rotInput.value = p.watermarkRotation;
-
-  const shadowInput = container.querySelector('#watermarkShadow');
-  if (shadowInput) shadowInput.checked = p.watermarkShadow;
-
-  updateWatermarkPreview(container);
-}
-
-// Resetar formatação da watermark (mantém texto e tipo/logo)
-function resetWatermark(container) {
-  const defaults = {
-    watermarkFontColor: '#ffffff',
-    watermarkFontFamily: 'Arial',
-    watermarkFontWeight: 'bold',
-    watermarkFontStyle: 'normal',
-    watermarkLetterSpacing: 0,
-    watermarkRotation: -30,
-    watermarkCustomSize: 24,
-    watermarkShadow: true,
-    watermarkImageFilter: 'none',
-    watermarkImageOpacity: 80,
-    watermarkOpacity: 15,
-    watermarkPosition: 'center',
-  };
-
-  // Cor
-  const colorInput = container.querySelector('#watermarkFontColor');
-  if (colorInput) colorInput.value = defaults.watermarkFontColor;
-
-  // Fonte
-  const familyInput = container.querySelector('#watermarkFontFamily');
-  if (familyInput) familyInput.value = defaults.watermarkFontFamily;
-
-  // Peso
-  container.querySelectorAll('input[name="watermarkFontWeight"]').forEach(r => {
-    r.checked = r.value === defaults.watermarkFontWeight;
-    const label = r.closest('label');
-    if (label) {
-      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
-      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
+  $('#lp-img-upload')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      window.showToast?.('Enviando imagem...', 'info');
+      const result = await uploadImage(file, appState.authToken);
+      update('url', resolveImagePath(result.url));
+      const prev = $('#lp-img-preview');
+      if (prev) prev.src = resolveImagePath(result.url);
+    } catch (err) {
+      window.showToast?.('Erro: ' + err.message, 'error');
+    } finally {
+      e.target.value = '';
     }
   });
 
-  // Itálico
-  const styleInput = container.querySelector('#watermarkFontStyle');
-  if (styleInput) {
-    styleInput.checked = false;
-    const label = styleInput.closest('label');
-    if (label) { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
-  }
-
-  // Sliders
-  const sliders = {
-    '#watermarkCustomSize': defaults.watermarkCustomSize,
-    '#watermarkLetterSpacing': defaults.watermarkLetterSpacing,
-    '#watermarkRotation': defaults.watermarkRotation,
-    '#watermarkOpacity': defaults.watermarkOpacity,
-    '#watermarkImageOpacity': defaults.watermarkImageOpacity,
-  };
-  for (const [sel, val] of Object.entries(sliders)) {
-    const el = container.querySelector(sel);
-    if (el) el.value = val;
-  }
-
-  // Sombra
-  const shadowInput = container.querySelector('#watermarkShadow');
-  if (shadowInput) shadowInput.checked = defaults.watermarkShadow;
-
-  // Posição
-  container.querySelectorAll('input[name="watermarkPosition"]').forEach(r => {
-    r.checked = r.value === defaults.watermarkPosition;
-    const label = r.closest('label');
-    if (label) {
-      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
-      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
-    }
+  $('#lp-opacity')?.addEventListener('input', e => {
+    update('opacity', parseFloat(e.target.value) / 100);
+    const lbl = $('#lp-opacity-lbl');
+    if (lbl) lbl.textContent = e.target.value + '%';
   });
 
-  // Filtro de imagem
-  container.querySelectorAll('input[name="watermarkImageFilter"]').forEach(r => {
-    r.checked = r.value === defaults.watermarkImageFilter;
-    const label = r.closest('label');
-    if (label) {
-      if (r.checked) { label.style.background = 'var(--accent)'; label.style.color = 'white'; label.style.borderColor = 'var(--accent)'; }
-      else { label.style.background = ''; label.style.color = 'var(--text-primary)'; label.style.borderColor = 'var(--border)'; }
-    }
+  $('#lp-rotation')?.addEventListener('input', e => {
+    update('rotation', parseFloat(e.target.value));
+    const lbl = $('#lp-rot-lbl');
+    if (lbl) lbl.textContent = e.target.value + '°';
   });
-
-  updateWatermarkPreview(container);
-  window.showToast?.('Formatação resetada para o padrão', 'info');
 }
 
-// ===== RENDER PRINCIPAL =====
+// ============================================================
+// LISTA DE CAMADAS
+// ============================================================
+
+function renderLayerList(container) {
+  const list = container.querySelector('#wmLayerList');
+  if (!list) return;
+
+  if (wmLayers.length === 0) {
+    list.innerHTML = `<p style="font-size:0.75rem;color:var(--text-secondary);text-align:center;padding:0.5rem;">Nenhuma camada. Clique em + Texto ou + Imagem.</p>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  [...wmLayers].reverse().forEach((layer, revIdx) => {
+    const realIdx = wmLayers.length - 1 - revIdx;
+    const isSelected = layer.id === selectedLayerId;
+    const label = layer.type === 'text'
+      ? `✏️ ${(layer.text || 'Texto').slice(0, 26)}`
+      : `🖼️ Imagem`;
+    const el = document.createElement('div');
+    el.dataset.layerId = layer.id;
+    el.style.cssText = [
+      'display:flex', 'align-items:center', 'justify-content:space-between',
+      'padding:0.375rem 0.75rem', 'border-radius:0.375rem',
+      `background:${isSelected ? 'var(--accent)' : 'var(--bg-base)'}`,
+      `color:${isSelected ? 'white' : 'var(--text-primary)'}`,
+      `border:1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+      'cursor:pointer', 'font-size:0.75rem', 'transition:all 0.15s'
+    ].join(';');
+    el.innerHTML = `<span>${label}</span><span style="opacity:0.5;font-size:0.6875rem;">camada ${realIdx + 1}</span>`;
+    el.addEventListener('click', () => selectLayer(layer.id));
+    list.appendChild(el);
+  });
+}
+
+// ============================================================
+// AUTO-SAVE
+// ============================================================
+
+function scheduleSave() {
+  clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(saveLayers, 800);
+}
+
+async function saveLayers() {
+  try {
+    await apiPut('/api/organization/profile', { watermarkLayers: wmLayers });
+    organizationData.watermarkLayers = wmLayers;
+    window.showToast?.('Marca d\'água salva!', 'success');
+  } catch (err) {
+    window.showToast?.('Erro ao salvar: ' + err.message, 'error');
+  }
+}
+
+// ============================================================
+// RENDER PRINCIPAL
+// ============================================================
 
 export async function renderPerfil(container) {
+  _containerRef = container;
   try {
     const response = await apiGet('/api/organization/profile');
     organizationData = response.data || response;
@@ -386,453 +542,251 @@ export async function renderPerfil(container) {
     return;
   }
 
+  wmLayers = (organizationData.watermarkLayers && organizationData.watermarkLayers.length > 0)
+    ? organizationData.watermarkLayers
+    : getDefaultLayers();
+  selectedLayerId = null;
+
   const data = organizationData;
 
-  // Valores com fallback para os novos campos
-  const wm = {
-    type: data.watermarkType || 'text',
-    text: data.watermarkText || '',
-    opacity: data.watermarkOpacity ?? 15,
-    position: data.watermarkPosition || 'center',
-    size: data.watermarkSize || 'medium',
-    fontColor: data.watermarkFontColor || '#ffffff',
-    fontFamily: data.watermarkFontFamily || 'Arial',
-    fontWeight: data.watermarkFontWeight || 'bold',
-    fontStyle: data.watermarkFontStyle || 'normal',
-    letterSpacing: data.watermarkLetterSpacing ?? 0,
-    rotation: data.watermarkRotation ?? -30,
-    customSize: data.watermarkCustomSize ?? 24,
-    shadow: data.watermarkShadow !== false,
-    imageFilter: data.watermarkImageFilter || 'none',
-    imageOpacity: data.watermarkImageOpacity ?? 80,
-  };
-
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:2.5rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Perfil e Identidade Visual</h2>
+    <div style="display:flex;flex-direction:column;gap:2.5rem;">
+      <h2 style="font-size:1.5rem;font-weight:bold;color:var(--text-primary);">Perfil e Identidade Visual</h2>
 
       <!-- DADOS DO ESTÚDIO -->
-      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-        <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Dados do Estúdio</h3>
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem;">
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Nome do Estúdio</label>
-            <input type="text" id="orgName" class="input" value="${escapeHtml(data.name || '')}">
-          </div>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Email de Contato</label>
-            <input type="email" id="orgEmail" class="input" value="${escapeHtml(data.email || '')}">
-          </div>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Telefone / WhatsApp</label>
-            <input type="text" id="orgWhatsapp" class="input" value="${escapeHtml(data.whatsapp || '')}">
-          </div>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Website</label>
-            <input type="text" id="orgWebsite" class="input" value="${escapeHtml(data.website || '')}">
-          </div>
+      <div style="background:var(--bg-surface);padding:1.5rem;border-radius:0.5rem;border:1px solid var(--border);">
+        <h3 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin-bottom:1rem;">Dados do Estúdio</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;">
+          <div class="input-group" style="margin-bottom:0;"><label>Nome do Estúdio</label><input type="text" id="orgName" class="input" value="${escapeHtml(data.name || '')}"></div>
+          <div class="input-group" style="margin-bottom:0;"><label>Email de Contato</label><input type="email" id="orgEmail" class="input" value="${escapeHtml(data.email || '')}"></div>
+          <div class="input-group" style="margin-bottom:0;"><label>Telefone / WhatsApp</label><input type="text" id="orgWhatsapp" class="input" value="${escapeHtml(data.whatsapp || '')}"></div>
+          <div class="input-group" style="margin-bottom:0;"><label>Website</label><input type="text" id="orgWebsite" class="input" value="${escapeHtml(data.website || '')}"></div>
         </div>
       </div>
 
       <!-- LOGOTIPO -->
-      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-        <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem;">Logotipo</h3>
-        <div style="display:flex; align-items:center; gap:1.5rem;">
-            <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px; max-width:150px; background:white; padding:5px; border-radius:4px; object-fit: contain;">
-            <div>
-                <label style="background:var(--bg-hover); color:white; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer;">
-                    Enviar Logo
-                    <input type="file" id="logoUpload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
-                </label>
-                <div id="logoUploadProgress" style="margin-top:0.5rem;"></div>
-            </div>
+      <div style="background:var(--bg-surface);padding:1.5rem;border-radius:0.5rem;border:1px solid var(--border);">
+        <h3 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin-bottom:1rem;">Logotipo</h3>
+        <div style="display:flex;align-items:center;gap:1.5rem;">
+          <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px;max-width:150px;background:white;padding:5px;border-radius:4px;object-fit:contain;">
+          <div>
+            <label style="background:var(--bg-hover);color:white;padding:0.5rem 1rem;border-radius:0.375rem;font-weight:600;cursor:pointer;">
+              Enviar Logo <input type="file" id="logoUpload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
+            </label>
+            <div id="logoUploadProgress" style="margin-top:0.5rem;"></div>
+          </div>
         </div>
       </div>
 
-      <!-- WATERMARK AVANÇADO -->
-      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
-          <h3 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0;">Marca D'água</h3>
-          <div style="display:flex; gap:0.375rem;">
-            <button class="preset-btn" data-preset="light-bg" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Otimizado para fotos com fundo claro">☀️ Fundo Claro</button>
-            <button class="preset-btn" data-preset="dark-bg" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Otimizado para fotos com fundo escuro">🌙 Fundo Escuro</button>
-            <button class="preset-btn" data-preset="professional" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Estilo elegante e profissional">✨ Profissional</button>
-            <button class="preset-btn" data-preset="minimalist" style="background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Estilo minimalista e discreto">🔲 Minimalista</button>
-            <span style="width:1px; height:16px; background:var(--border); margin:0 0.125rem;"></span>
-            <button id="resetWatermarkBtn" style="background:transparent; color:var(--ad-red, #f85149); border:1px solid var(--ad-red, #f85149); padding:0.25rem 0.625rem; border-radius:0.25rem; font-size:0.6875rem; cursor:pointer; transition:all 0.15s;" title="Voltar todas as configurações para o padrão">🔄 Resetar</button>
+      <!-- EDITOR DE CAMADAS -->
+      <div style="background:var(--bg-surface);padding:1.5rem;border-radius:0.5rem;border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <h3 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin:0 0 0.2rem;">Marca D'água</h3>
+            <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">Arraste para posicionar · Handles para redimensionar · Clique para editar</p>
+          </div>
+          <div style="display:flex;gap:0.375rem;flex-wrap:wrap;align-items:center;">
+            <button id="wmAddText" style="background:var(--accent);color:white;border:none;padding:0.375rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;cursor:pointer;">+ Texto</button>
+            <button id="wmAddImage" style="background:var(--bg-hover);color:white;border:none;padding:0.375rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;cursor:pointer;">+ Imagem</button>
+            <span style="width:1px;height:20px;background:var(--border);"></span>
+            <button id="wmDuplicate" title="Duplicar camada" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">⧉</button>
+            <button id="wmMoveUp" title="Mover para frente" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">↑</button>
+            <button id="wmMoveDown" title="Mover para trás" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">↓</button>
+            <button id="wmDelete" title="Deletar camada" style="background:transparent;color:#f85149;border:1px solid #f85149;padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">🗑</button>
+            <button id="wmReset" title="Restaurar padrão" style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.75rem;cursor:pointer;">↺ Padrão</button>
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-            <!-- COLUNA DE CONFIGURAÇÕES -->
-            <div style="display:flex; flex-direction:column; gap:1.25rem;">
-
-                <!-- Tipo -->
-                <div>
-                    <label style="display:block; font-size:0.8125rem; font-weight:600; margin-bottom:0.5rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Tipo</label>
-                    <div style="display:flex; gap:0.5rem;">
-                        ${['text', 'logo', 'both'].map(t => `
-                          <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:0.375rem; padding:0.5rem; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer; font-size:0.8125rem; color:var(--text-primary); transition:all 0.15s; ${wm.type === t ? 'background:var(--accent); color:white; border-color:var(--accent);' : ''}">
-                            <input type="radio" name="watermarkType" value="${t}" ${wm.type === t ? 'checked' : ''} style="display:none;">
-                            ${t === 'text' ? '📝 Texto' : t === 'logo' ? '🖼️ Logo' : '📝+🖼️ Ambos'}
-                          </label>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <!-- Texto -->
-                <div class="input-group" style="margin-bottom:0;">
-                    <label style="font-size:0.8125rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Texto da Marca</label>
-                    <input type="text" id="watermarkText" class="input" value="${escapeHtml(wm.text)}" placeholder="Padrão: Nome do Estúdio">
-                </div>
-
-                <!-- Tipografia -->
-                <div style="background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
-                  <label style="display:block; font-size:0.8125rem; font-weight:600; margin-bottom:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Tipografia</label>
-
-                  <!-- Fonte -->
-                  <div style="display:grid; grid-template-columns:1fr auto; gap:0.75rem; align-items:end; margin-bottom:0.75rem;">
-                    <div>
-                      <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Fonte</label>
-                      <select id="watermarkFontFamily" class="input" style="font-size:0.875rem;">
-                        ${fontOptions.map(f => `<option value="${f.value}" style="font-family:'${f.value}',sans-serif;" ${wm.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
-                      </select>
-                    </div>
-                    <div>
-                      <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Cor</label>
-                      <div style="display:flex; align-items:center; gap:0.375rem;">
-                        <div id="fontColorSwatch" style="width:28px; height:28px; border-radius:0.25rem; border:2px solid var(--border); background:${wm.fontColor}; cursor:pointer; position:relative; overflow:hidden;">
-                          <input type="color" id="watermarkFontColor" value="${wm.fontColor}" style="position:absolute; inset:-4px; width:calc(100% + 8px); height:calc(100% + 8px); cursor:pointer; border:none; opacity:0;">
-                        </div>
-                        <span style="font-size:0.75rem; color:var(--text-secondary); font-family:monospace;">${wm.fontColor}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Peso + Itálico -->
-                  <div style="display:flex; gap:0.75rem; align-items:end; margin-bottom:0.75rem;">
-                    <div style="flex:1;">
-                      <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">Peso</label>
-                      <div style="display:flex; gap:0.25rem;">
-                        ${['light', 'normal', 'bold'].map(w => `
-                          <label style="flex:1; display:flex; align-items:center; justify-content:center; padding:0.375rem 0; border:1px solid var(--border); border-radius:0.25rem; cursor:pointer; font-size:0.75rem; font-weight:${w === 'light' ? '300' : w === 'bold' ? '700' : '400'}; color:var(--text-primary); transition:all 0.15s; ${wm.fontWeight === w ? 'background:var(--accent); color:white; border-color:var(--accent);' : ''}">
-                            <input type="radio" name="watermarkFontWeight" value="${w}" ${wm.fontWeight === w ? 'checked' : ''} style="display:none;">
-                            ${w === 'light' ? 'Light' : w === 'bold' ? 'Bold' : 'Normal'}
-                          </label>
-                        `).join('')}
-                      </div>
-                    </div>
-                    <div>
-                      <label style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border:1px solid var(--border); border-radius:0.25rem; cursor:pointer; font-size:0.75rem; font-style:italic; color:var(--text-primary); transition:all 0.15s; ${wm.fontStyle === 'italic' ? 'background:var(--accent); color:white; border-color:var(--accent);' : ''}">
-                        <input type="checkbox" id="watermarkFontStyle" ${wm.fontStyle === 'italic' ? 'checked' : ''} style="display:none;">
-                        <em>Itálico</em>
-                      </label>
-                    </div>
-                  </div>
-
-                  <!-- Tamanho -->
-                  <div style="margin-bottom:0.75rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <label style="font-size:0.75rem; color:var(--text-secondary);">Tamanho</label>
-                      <span id="customSizeLabel" style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${wm.customSize}px</span>
-                    </div>
-                    <input type="range" id="watermarkCustomSize" min="8" max="120" value="${wm.customSize}" style="width:100%; accent-color:var(--accent);">
-                  </div>
-
-                  <!-- Espaçamento -->
-                  <div style="margin-bottom:0.75rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <label style="font-size:0.75rem; color:var(--text-secondary);">Espaçamento</label>
-                      <span id="letterSpacingLabel" style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${wm.letterSpacing}px</span>
-                    </div>
-                    <input type="range" id="watermarkLetterSpacing" min="0" max="20" value="${wm.letterSpacing}" style="width:100%; accent-color:var(--accent);">
-                  </div>
-
-                  <!-- Rotação -->
-                  <div style="margin-bottom:0.75rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <label style="font-size:0.75rem; color:var(--text-secondary);">Rotação</label>
-                      <span id="rotationLabel" style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${wm.rotation}°</span>
-                    </div>
-                    <input type="range" id="watermarkRotation" min="-180" max="180" value="${wm.rotation}" style="width:100%; accent-color:var(--accent);">
-                  </div>
-
-                  <!-- Sombra -->
-                  <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.8125rem; color:var(--text-primary);">
-                    <input type="checkbox" id="watermarkShadow" ${wm.shadow ? 'checked' : ''} style="accent-color:var(--accent);">
-                    Sombra adaptativa no texto
-                    <span style="font-size:0.6875rem; color:var(--text-secondary);">(ajuda na legibilidade)</span>
-                  </label>
-                </div>
-
-                <!-- Filtro de Imagem (apenas logo/both) -->
-                <div id="imageFilterSection" style="background:var(--bg-base); padding:1rem; border-radius:0.5rem; border:1px solid var(--border); ${wm.type === 'text' ? 'display:none;' : ''}">
-                  <label style="display:block; font-size:0.8125rem; font-weight:600; margin-bottom:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Filtro do Logo</label>
-                  <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.375rem; margin-bottom:0.75rem;">
-                    ${imageFilterOptions.map(f => `
-                      <label style="display:flex; flex-direction:column; align-items:center; gap:0.25rem; padding:0.5rem 0.25rem; border:1px solid var(--border); border-radius:0.375rem; cursor:pointer; font-size:0.6875rem; color:var(--text-primary); transition:all 0.15s; ${wm.imageFilter === f.value ? 'background:var(--accent); color:white; border-color:var(--accent);' : ''}">
-                        <input type="radio" name="watermarkImageFilter" value="${f.value}" ${wm.imageFilter === f.value ? 'checked' : ''} style="display:none;">
-                        <span style="font-size:1rem;">${f.icon}</span>
-                        ${f.label}
-                      </label>
-                    `).join('')}
-                  </div>
-                  <div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <label style="font-size:0.75rem; color:var(--text-secondary);">Opacidade do Logo</label>
-                      <span id="imageOpacityLabel" style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${wm.imageOpacity}%</span>
-                    </div>
-                    <input type="range" id="watermarkImageOpacity" min="5" max="100" value="${wm.imageOpacity}" style="width:100%; accent-color:var(--accent);">
-                  </div>
-                </div>
-
-                <!-- Opacidade geral -->
-                <div>
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label style="font-size:0.8125rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Opacidade Geral</label>
-                    <span id="opacityLabel" style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${wm.opacity}%</span>
-                  </div>
-                  <input type="range" id="watermarkOpacity" min="5" max="50" value="${wm.opacity}" style="width:100%; accent-color:var(--accent);">
-                </div>
-
-                <!-- Posição -->
-                <div>
-                    <label style="display:block; font-size:0.8125rem; font-weight:600; margin-bottom:0.5rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Posição</label>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.375rem;">
-                        ${positionOptions.map(opt => `
-                            <label style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.5rem; border:1px solid var(--border); border-radius:0.25rem; cursor:pointer; font-size:0.8125rem; color:var(--text-primary); transition:all 0.15s; ${wm.position === opt.value ? 'background:var(--accent); color:white; border-color:var(--accent);' : ''}">
-                              <input type="radio" name="watermarkPosition" value="${opt.value}" ${wm.position === opt.value ? 'checked' : ''} style="display:none;">
-                              ${opt.label}
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
+        <div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start;">
+          <!-- Canvas -->
+          <div>
+            <div style="display:flex;gap:0.375rem;margin-bottom:0.5rem;align-items:center;">
+              <span style="font-size:0.6875rem;color:var(--text-secondary);">Fundo:</span>
+              <button class="wm-bg-btn" data-bg="dark" style="width:20px;height:20px;border-radius:3px;border:2px solid var(--accent);cursor:pointer;background:#1a1a2e;" title="Escuro"></button>
+              <button class="wm-bg-btn" data-bg="light" style="width:20px;height:20px;border-radius:3px;border:2px solid transparent;cursor:pointer;background:#c0c0c0;" title="Claro"></button>
+              <button class="wm-bg-btn" data-bg="photo" style="width:20px;height:20px;border-radius:3px;border:2px solid transparent;cursor:pointer;background:linear-gradient(135deg,#667eea,#764ba2);" title="Colorido"></button>
             </div>
+            <div id="wmCanvas" style="position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:0.5rem;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></div>
+            <div id="wmLayerList" style="margin-top:0.625rem;display:flex;flex-direction:column;gap:0.25rem;"></div>
+          </div>
 
-            <!-- COLUNA DE PREVIEW -->
-            <div style="position:sticky; top:1rem; align-self:start;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                  <label style="font-size:0.8125rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Preview</label>
-                  <div style="display:flex; gap:0.25rem;">
-                    <button class="preview-bg-btn" data-bg="dark" style="width:24px; height:24px; border-radius:0.25rem; border:2px solid var(--accent); cursor:pointer; background:#1a1a2e;" title="Fundo Escuro"></button>
-                    <button class="preview-bg-btn" data-bg="light" style="width:24px; height:24px; border-radius:0.25rem; border:2px solid transparent; cursor:pointer; background:#f5f7fa;" title="Fundo Claro"></button>
-                    <button class="preview-bg-btn" data-bg="photo" style="width:24px; height:24px; border-radius:0.25rem; border:2px solid transparent; cursor:pointer; background:linear-gradient(135deg, #667eea, #764ba2);" title="Fundo Colorido"></button>
-                  </div>
-                </div>
-                <div id="watermarkPreview" style="position:relative; width:100%; aspect-ratio: 4/3; background:${PREVIEW_BG_DARK}; border-radius:0.5rem; overflow:hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                    <div class="watermark-overlay"></div>
-                </div>
-                <p style="font-size:0.6875rem; color:var(--text-secondary); margin-top:0.5rem; text-align:center;">Troque o fundo para simular diferentes tipos de foto</p>
-            </div>
+          <!-- Painel -->
+          <div id="wmPanel" style="background:var(--bg-base);border:1px solid var(--border);border-radius:0.5rem;min-height:320px;overflow-y:auto;max-height:520px;"></div>
         </div>
       </div>
 
-      <!-- BOTAO SALVAR -->
-      <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
-        <button id="saveProfileBtn" style="background:var(--accent); color:white; padding:0.75rem 2rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">
-            Salvar Alterações
-        </button>
+      <!-- SALVAR PERFIL -->
+      <div style="display:flex;justify-content:flex-end;">
+        <button id="saveProfileBtn" style="background:var(--accent);color:white;padding:0.75rem 2rem;border-radius:0.375rem;border:none;font-weight:600;cursor:pointer;">Salvar Perfil</button>
       </div>
     </div>
   `;
 
-  // --- EVENT LISTENERS ---
+  _canvasEl = container.querySelector('#wmCanvas');
+  _panelEl = container.querySelector('#wmPanel');
 
-  // Upload logo
+  renderCanvas();
+  renderPanel();
+  renderLayerList(container);
+
+  // ---- EVENTOS ----
+
+  // Logo upload
   container.querySelector('#logoUpload').onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const result = await uploadImage(file, appState.authToken, (percent) => {
-        showUploadProgress('logoUploadProgress', percent);
-      });
+      const result = await uploadImage(file, appState.authToken, (pct) => showUploadProgress('logoUploadProgress', pct));
       organizationData.logo = result.url;
       container.querySelector('#logoPreview').src = resolveImagePath(result.url);
-      updateWatermarkPreview(container);
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
+    } catch (err) {
+      window.showToast?.('Erro: ' + err.message, 'error');
     } finally {
       e.target.value = '';
       showUploadProgress('logoUploadProgress', 0);
     }
   };
 
-  // Preview background switcher
-  container.querySelectorAll('.preview-bg-btn').forEach(btn => {
+  // Background switcher
+  container.querySelectorAll('.wm-bg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const bg = btn.dataset.bg;
-      const preview = container.querySelector('#watermarkPreview');
-      if (!preview) return;
-
-      const bgs = { dark: PREVIEW_BG_DARK, light: PREVIEW_BG_LIGHT, photo: PREVIEW_BG_PHOTO };
-      preview.style.background = bgs[bg] || PREVIEW_BG_DARK;
-
-      // Atualizar borda ativa
-      container.querySelectorAll('.preview-bg-btn').forEach(b => {
+      const bgs = {
+        dark: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
+        light: 'linear-gradient(135deg,#c8c8c8 0%,#a0a0a0 100%)',
+        photo: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)'
+      };
+      _canvasEl.style.background = bgs[btn.dataset.bg] || bgs.dark;
+      container.querySelectorAll('.wm-bg-btn').forEach(b => {
         b.style.borderColor = b === btn ? 'var(--accent)' : 'transparent';
       });
     });
   });
 
-  // Presets
-  container.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      applyPreset(container, btn.dataset.preset);
-    });
+  // + Texto
+  container.querySelector('#wmAddText').addEventListener('click', () => {
+    const layer = {
+      id: genId(), type: 'text',
+      x: 15, y: 40, w: 70, h: 15,
+      opacity: 0.35, rotation: 0,
+      text: 'Novo texto', fontSize: 22, fontFamily: 'Arial',
+      fontWeight: 'bold', fontStyle: 'normal', color: '#ffffff',
+      letterSpacing: 0, shadow: true
+    };
+    wmLayers.push(layer);
+    selectLayer(layer.id);
+    scheduleSave();
   });
 
-  // Reset
-  const resetBtn = container.querySelector('#resetWatermarkBtn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => resetWatermark(container));
-  }
+  // + Imagem
+  const imgInput = document.createElement('input');
+  imgInput.type = 'file';
+  imgInput.accept = '.jpg,.jpeg,.png,.svg,.webp';
+  imgInput.style.display = 'none';
+  document.body.appendChild(imgInput);
 
-  // Mostrar/ocultar seção de filtro de imagem baseado no tipo
-  container.querySelectorAll('input[name="watermarkType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const filterSection = container.querySelector('#imageFilterSection');
-      if (filterSection) {
-        filterSection.style.display = radio.value === 'text' ? 'none' : '';
-      }
-      // Atualizar visual dos botões tipo
-      container.querySelectorAll('input[name="watermarkType"]').forEach(r => {
-        const label = r.closest('label');
-        if (label) {
-          if (r.checked) {
-            label.style.background = 'var(--accent)';
-            label.style.color = 'white';
-            label.style.borderColor = 'var(--accent)';
-          } else {
-            label.style.background = '';
-            label.style.color = 'var(--text-primary)';
-            label.style.borderColor = 'var(--border)';
-          }
-        }
-      });
-      updateWatermarkPreview(container);
-    });
-  });
-
-  // Styled radio/checkbox toggles
-  function setupStyledToggles(name) {
-    container.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-      radio.addEventListener('change', () => {
-        container.querySelectorAll(`input[name="${name}"]`).forEach(r => {
-          const label = r.closest('label');
-          if (label) {
-            if (r.checked) {
-              label.style.background = 'var(--accent)';
-              label.style.color = 'white';
-              label.style.borderColor = 'var(--accent)';
-            } else {
-              label.style.background = '';
-              label.style.color = 'var(--text-primary)';
-              label.style.borderColor = 'var(--border)';
-            }
-          }
-        });
-        updateWatermarkPreview(container);
-      });
-    });
-  }
-
-  setupStyledToggles('watermarkFontWeight');
-  setupStyledToggles('watermarkPosition');
-  setupStyledToggles('watermarkImageFilter');
-
-  // Itálico toggle
-  const italicInput = container.querySelector('#watermarkFontStyle');
-  if (italicInput) {
-    italicInput.addEventListener('change', () => {
-      const label = italicInput.closest('label');
-      if (label) {
-        if (italicInput.checked) {
-          label.style.background = 'var(--accent)';
-          label.style.color = 'white';
-          label.style.borderColor = 'var(--accent)';
-        } else {
-          label.style.background = '';
-          label.style.color = 'var(--text-primary)';
-          label.style.borderColor = 'var(--border)';
-        }
-      }
-      updateWatermarkPreview(container);
-    });
-  }
-
-  // Todos os inputs que devem atualizar o preview
-  const previewInputs = [
-    '#watermarkText', '#watermarkOpacity', '#watermarkFontColor', '#watermarkFontFamily',
-    '#watermarkLetterSpacing', '#watermarkRotation', '#watermarkCustomSize',
-    '#watermarkShadow', '#watermarkImageOpacity'
-  ];
-
-  previewInputs.forEach(selector => {
-    const el = container.querySelector(selector);
-    if (el) {
-      el.addEventListener('input', () => updateWatermarkPreview(container));
-      el.addEventListener('change', () => updateWatermarkPreview(container));
+  container.querySelector('#wmAddImage').addEventListener('click', () => imgInput.click());
+  imgInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      window.showToast?.('Enviando...', 'info');
+      const result = await uploadImage(file, appState.authToken);
+      const layer = {
+        id: genId(), type: 'image',
+        x: 5, y: 5, w: 25, h: 20,
+        opacity: 0.5, rotation: 0,
+        url: resolveImagePath(result.url), filter: 'none'
+      };
+      wmLayers.push(layer);
+      selectLayer(layer.id);
+      scheduleSave();
+    } catch (err) {
+      window.showToast?.('Erro: ' + err.message, 'error');
+    } finally {
+      e.target.value = '';
     }
   });
 
-  // Salvar perfil
+  // Duplicar
+  container.querySelector('#wmDuplicate').addEventListener('click', () => {
+    if (!selectedLayerId) { window.showToast?.('Selecione uma camada', 'warning'); return; }
+    const orig = wmLayers.find(l => l.id === selectedLayerId);
+    if (!orig) return;
+    const clone = { ...orig, id: genId(), x: orig.x + 3, y: orig.y + 3 };
+    wmLayers.push(clone);
+    selectLayer(clone.id);
+    scheduleSave();
+  });
+
+  // Mover frente
+  container.querySelector('#wmMoveUp').addEventListener('click', () => {
+    if (!selectedLayerId) return;
+    const idx = wmLayers.findIndex(l => l.id === selectedLayerId);
+    if (idx < wmLayers.length - 1) {
+      [wmLayers[idx], wmLayers[idx + 1]] = [wmLayers[idx + 1], wmLayers[idx]];
+      renderCanvas(); renderLayerList(container); scheduleSave();
+    }
+  });
+
+  // Mover trás
+  container.querySelector('#wmMoveDown').addEventListener('click', () => {
+    if (!selectedLayerId) return;
+    const idx = wmLayers.findIndex(l => l.id === selectedLayerId);
+    if (idx > 0) {
+      [wmLayers[idx], wmLayers[idx - 1]] = [wmLayers[idx - 1], wmLayers[idx]];
+      renderCanvas(); renderLayerList(container); scheduleSave();
+    }
+  });
+
+  // Deletar
+  container.querySelector('#wmDelete').addEventListener('click', () => {
+    if (!selectedLayerId) { window.showToast?.('Selecione uma camada', 'warning'); return; }
+    wmLayers = wmLayers.filter(l => l.id !== selectedLayerId);
+    selectedLayerId = null;
+    renderCanvas(); renderPanel(); renderLayerList(container); scheduleSave();
+  });
+
+  // Reset padrão
+  container.querySelector('#wmReset').addEventListener('click', async () => {
+    const ok = await window.showConfirm?.('Restaurar o template padrão? As camadas atuais serão perdidas.', { confirmText: 'Restaurar' });
+    if (!ok) return;
+    wmLayers = getDefaultLayers();
+    selectedLayerId = null;
+    renderCanvas(); renderPanel(); renderLayerList(container); scheduleSave();
+  });
+
+  // Deselect ao clicar fundo do canvas
+  _canvasEl.addEventListener('mousedown', e => {
+    if (e.target === _canvasEl) {
+      selectedLayerId = null;
+      renderCanvas(); renderPanel();
+    }
+  });
+
+  // Salvar perfil (dados do estúdio)
   container.querySelector('#saveProfileBtn').onclick = async (e) => {
     const btn = e.target;
-    btn.textContent = 'Salvando...';
-    btn.disabled = true;
-
-    const watermarkTypeInput = container.querySelector('input[name="watermarkType"]:checked');
-    const watermarkPositionInput = container.querySelector('input[name="watermarkPosition"]:checked');
-    const watermarkFontWeightInput = container.querySelector('input[name="watermarkFontWeight"]:checked');
-    const watermarkImageFilterInput = container.querySelector('input[name="watermarkImageFilter"]:checked');
-
+    btn.textContent = 'Salvando...'; btn.disabled = true;
     const name = container.querySelector('#orgName').value.trim();
     if (!name) {
       window.showToast?.('O nome do estúdio é obrigatório.', 'warning');
-      btn.textContent = 'Salvar Alterações';
-      btn.disabled = false;
-      return;
+      btn.textContent = 'Salvar Perfil'; btn.disabled = false; return;
     }
-
-    const payload = {
-      name: name,
-      email: container.querySelector('#orgEmail').value,
-      whatsapp: container.querySelector('#orgWhatsapp').value,
-      website: container.querySelector('#orgWebsite').value,
-      logo: organizationData.logo,
-      // Watermark base
-      watermarkType: watermarkTypeInput ? watermarkTypeInput.value : 'text',
-      watermarkText: container.querySelector('#watermarkText').value,
-      watermarkOpacity: parseFloat(container.querySelector('#watermarkOpacity').value),
-      watermarkPosition: watermarkPositionInput ? watermarkPositionInput.value : 'center',
-      watermarkSize: 'medium', // Mantém campo legado
-      // Watermark avançado — tipografia
-      watermarkFontColor: container.querySelector('#watermarkFontColor').value,
-      watermarkFontFamily: container.querySelector('#watermarkFontFamily').value,
-      watermarkFontWeight: watermarkFontWeightInput ? watermarkFontWeightInput.value : 'bold',
-      watermarkFontStyle: container.querySelector('#watermarkFontStyle')?.checked ? 'italic' : 'normal',
-      watermarkLetterSpacing: parseFloat(container.querySelector('#watermarkLetterSpacing').value),
-      watermarkRotation: parseFloat(container.querySelector('#watermarkRotation').value),
-      watermarkCustomSize: parseFloat(container.querySelector('#watermarkCustomSize').value),
-      watermarkShadow: container.querySelector('#watermarkShadow')?.checked ?? true,
-      // Watermark avançado — imagem
-      watermarkImageFilter: watermarkImageFilterInput ? watermarkImageFilterInput.value : 'none',
-      watermarkImageOpacity: parseFloat(container.querySelector('#watermarkImageOpacity').value),
-    };
-
     try {
-      await apiPut('/api/organization/profile', payload);
-      // Atualiza o cache local para o próximo render
-      Object.assign(organizationData, payload);
-      window.showToast?.('Perfil salvo com sucesso!', 'success');
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
+      await apiPut('/api/organization/profile', {
+        name,
+        email: container.querySelector('#orgEmail').value,
+        whatsapp: container.querySelector('#orgWhatsapp').value,
+        website: container.querySelector('#orgWebsite').value,
+        logo: organizationData.logo,
+        watermarkLayers: wmLayers
+      });
+      Object.assign(organizationData, { name });
+      window.showToast?.('Perfil salvo!', 'success');
+    } catch (err) {
+      window.showToast?.('Erro: ' + err.message, 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Salvar Alterações';
+      btn.disabled = false; btn.textContent = 'Salvar Perfil';
     }
   };
-
-  // Initial render of the preview
-  updateWatermarkPreview(container);
 }

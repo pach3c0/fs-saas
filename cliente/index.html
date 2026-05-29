@@ -101,9 +101,9 @@
         .lightbox-counter { color: #aaa; font-size: 0.875rem; }
         .lightbox-close { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; }
         .lightbox-body { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-        .lightbox-img-container { position: relative; max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; }
-        .lightbox-img { max-width: 100%; max-height: calc(100vh - 140px); object-fit: contain; pointer-events: none; }
-        .lightbox-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .lightbox-img-container { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+        .lightbox-img { max-width: 90vw; max-height: calc(100vh - 140px); object-fit: contain; pointer-events: none; display: block; }
+        .lightbox-watermark { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
         .lightbox-watermark span { font-family: 'Playfair Display', serif; font-size: 3rem; color: rgba(255,255,255,0.08); transform: rotate(-35deg); white-space: nowrap; letter-spacing: 0.15em; }
         .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; }
         .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
@@ -133,6 +133,68 @@
         .photo-item:hover .photo-download { opacity: 1; }
         .photo-download a { background: #fff; color: #1a1a1a; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.8125rem; font-weight: 600; text-decoration: none; pointer-events: auto; display: flex; align-items: center; gap: 0.375rem; }
         .photo-download a svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        /* ================================================
+           PROTEÇÃO ANTI-PRINT
+           Funciona no diálogo de impressão/salvar como PDF
+           do navegador (Chrome, Firefox, Edge, Safari).
+           Não protege contra screenshot nativo do SO.
+           ================================================ */
+        @media print {
+            /* Esconde todo o conteúdo real */
+            body > *:not(#antiPrintOverlay) {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Exibe apenas o overlay de aviso */
+            #antiPrintOverlay {
+                display: flex !important;
+                position: fixed !important;
+                inset: 0 !important;
+                background: #fff !important;
+                z-index: 99999 !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                padding: 2rem !important;
+                font-family: 'Inter', sans-serif !important;
+            }
+
+            #antiPrintOverlay .apo-icon {
+                width: 80px !important;
+                height: 80px !important;
+                margin-bottom: 1.5rem !important;
+                display: block !important;
+            }
+
+            #antiPrintOverlay .apo-title {
+                font-size: 1.75rem !important;
+                font-weight: 700 !important;
+                color: #1a1a1a !important;
+                margin-bottom: 0.75rem !important;
+                display: block !important;
+            }
+
+            #antiPrintOverlay .apo-text {
+                font-size: 1rem !important;
+                color: #555 !important;
+                max-width: 500px !important;
+                line-height: 1.7 !important;
+                display: block !important;
+            }
+
+            #antiPrintOverlay .apo-legal {
+                margin-top: 1.5rem !important;
+                font-size: 0.8rem !important;
+                color: #999 !important;
+                display: block !important;
+            }
+        }
+
+        /* Overlay oculto na tela normal */
+        #antiPrintOverlay { display: none; }
     </style>
 </head>
 <body oncontextmenu="return false">
@@ -260,6 +322,118 @@
         </div>
     </div>
 
+    <!-- OVERLAY ANTI-PRINT (visível apenas ao imprimir) -->
+    <div id="antiPrintOverlay">
+        <svg class="apo-icon" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            <path d="M17 6H9a2 2 0 0 0-2 2v1"/>
+            <path d="M20 14v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5"/>
+            <line x1="8" y1="18" x2="16" y2="18"/>
+        </svg>
+        <span class="apo-title">Impressão não permitida</span>
+        <span class="apo-text">
+            As imagens desta galeria são protegidas por direitos autorais.<br>
+            A reprodução, cópia ou distribuição não autorizada é uma violação
+            da Lei de Direitos Autorais (Lei nº 9.610/1998) e pode resultar em
+            penalidades civis e criminais.
+        </span>
+        <span class="apo-legal">© Todos os direitos reservados ao fotógrafo responsável por esta galeria.</span>
+    </div>
+
     <script src="/cliente/js/gallery.js"></script>
+
+    <!-- PROTEÇÃO ANTI-PRINT: bloqueio de atalhos e eventos do navegador -->
+    <script>
+        (function () {
+            'use strict';
+
+            // 1. Bloqueia Cmd+P (Mac) e Ctrl+P (Windows/Linux)
+            document.addEventListener('keydown', function (e) {
+                var isPrint = (e.ctrlKey || e.metaKey) && e.key === 'p';
+                if (isPrint) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    mostrarAvisoPrint();
+                    return false;
+                }
+            }, true); // capture: true garante prioridade máxima
+
+            // 2. Fallback: se o diálogo de impressão abrir mesmo assim (ex: menu do browser)
+            //    o CSS @media print já cuida da tela, mas reforçamos via JS aqui.
+            window.addEventListener('beforeprint', function () {
+                // Força re-render do overlay (garante visibilidade em alguns browsers)
+                var overlay = document.getElementById('antiPrintOverlay');
+                if (overlay) overlay.style.display = 'flex';
+            });
+
+            window.addEventListener('afterprint', function () {
+                var overlay = document.getElementById('antiPrintOverlay');
+                if (overlay) overlay.style.display = 'none';
+            });
+
+            // 3. Toast de aviso quando o atalho é bloqueado
+            function mostrarAvisoPrint() {
+                // Usa o showToast global se disponível (admin), senão cria um toast simples
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Impressão bloqueada — conteúdo protegido por direitos autorais.', 'error');
+                    return;
+                }
+
+                // Toast simples para o PWA do cliente
+                var existing = document.getElementById('_antiPrintToast');
+                if (existing) return; // evita duplicatas
+
+                var toast = document.createElement('div');
+                toast.id = '_antiPrintToast';
+                toast.style.cssText = [
+                    'position:fixed',
+                    'bottom:2rem',
+                    'left:50%',
+                    'transform:translateX(-50%)',
+                    'background:#1a1a1a',
+                    'color:#fff',
+                    'padding:0.875rem 1.5rem',
+                    'border-radius:0.625rem',
+                    'font-family:Inter,sans-serif',
+                    'font-size:0.875rem',
+                    'font-weight:500',
+                    'z-index:99999',
+                    'box-shadow:0 4px 20px rgba(0,0,0,0.3)',
+                    'max-width:90vw',
+                    'text-align:center',
+                    'line-height:1.5',
+                    'border-left:4px solid #dc2626',
+                    'animation:_apFadeIn 0.25s ease'
+                ].join(';');
+
+                // Ícone + texto
+                toast.innerHTML = '<span style="margin-right:0.5rem;">🚫</span>'
+                    + '<strong>Impressão bloqueada</strong> — conteúdo protegido por direitos autorais.';
+
+                // Animação de entrada
+                var styleEl = document.getElementById('_antiPrintStyle');
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = '_antiPrintStyle';
+                    styleEl.textContent = '@keyframes _apFadeIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+                    document.head.appendChild(styleEl);
+                }
+
+                document.body.appendChild(toast);
+
+                // Remove após 3.5 segundos
+                setTimeout(function () {
+                    if (toast && toast.parentNode) {
+                        toast.style.opacity = '0';
+                        toast.style.transition = 'opacity 0.3s';
+                        setTimeout(function () {
+                            if (toast.parentNode) toast.parentNode.removeChild(toast);
+                        }, 300);
+                    }
+                }, 3500);
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -56,6 +56,11 @@ const OrganizationSchema = new mongoose.Schema({
   // Watermark avançado — Imagem/Logo
   watermarkImageFilter: { type: String, enum: ['none', 'grayscale', 'invert', 'white'], default: 'none' },
   watermarkImageOpacity: { type: Number, min: 5, max: 100, default: 80 },
+  // Editor de marca d'água em camadas (sistema novo — substitui campos acima para novos usuários)
+  // Cada layer: { id, type:'text'|'image', x, y, w, h, opacity, rotation,
+  //   [texto]: text, fontSize, fontFamily, fontWeight, fontStyle, color, letterSpacing, shadow
+  //   [imagem]: url, filter }
+  watermarkLayers: { type: mongoose.Schema.Types.Mixed, default: [] },
   // Site público do fotógrafo
   siteEnabled: { type: Boolean, default: true },
   siteTheme: {

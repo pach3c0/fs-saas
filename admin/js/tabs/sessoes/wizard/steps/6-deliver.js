@@ -6,7 +6,10 @@
 import { apiPut, apiPost } from '../../../../utils/api.js';
 import { escapeHtml } from '../../../../utils/helpers.js';
 import { appState } from '../../../../state.js';
-import { buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppDeliveryLink } from '../utils.js';
+import {
+  buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppDeliveryLink,
+  buildDeliveryEmailIntro, buildDeliveryWhatsAppText, buildMessageCustomizer
+} from '../utils.js';
 
 export function renderStepDeliver({ session, refresh }) {
   const wrap = document.createElement('div');
@@ -163,6 +166,14 @@ export function renderStepDeliver({ session, refresh }) {
     const blocked = hasReopenRequest;
     const blockMsg = blocked ? 'Decida o pedido de reabertura antes de entregar.' : null;
 
+    // Textarea de personalização do e-mail de entrega
+    let deliverEmailTextareaEl = null;
+    deliverCard.appendChild(buildMessageCustomizer({
+      label: 'Personalizar mensagem do e-mail',
+      defaultText: buildDeliveryEmailIntro(session),
+      onTextareaReady: el => { deliverEmailTextareaEl = el; }
+    }));
+
     const deliverBtn = document.createElement('button');
     deliverBtn.textContent = '✅ Entregar e notificar cliente';
     deliverBtn.disabled = blocked;
@@ -179,7 +190,8 @@ export function renderStepDeliver({ session, refresh }) {
       const ok = await window.showConfirm?.('Confirmar entrega? O cliente receberá um e-mail e o download será liberado.', { confirmText: 'Entregar', cancelText: 'Cancelar' });
       if (!ok) return;
       try {
-        await apiPut(`/api/sessions/${session._id}/deliver`, {});
+        const emailIntro = deliverEmailTextareaEl?.value?.trim() || undefined;
+        await apiPut(`/api/sessions/${session._id}/deliver`, emailIntro ? { emailIntro } : {});
         window.showToast?.('Sessão entregue! Cliente notificado.', 'success');
         await refresh();
       } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
@@ -532,12 +544,20 @@ function renderShareDeliveryCard(session) {
   `;
   card.appendChild(title);
 
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
-
   const clientName = session.clientId?.name || session.clientEmail || 'Cliente';
   const clientPhone = session.clientId?.phone || '';
-  const orgName = appState.appData?.organization?.name || 'CliqueZoom';
+  const orgName = appState.appData?.organization?.name || '';
+
+  // Textarea editável para o WhatsApp de entrega
+  let waTextareaEl = null;
+  card.appendChild(buildMessageCustomizer({
+    label: 'Personalizar mensagem do WhatsApp',
+    defaultText: buildDeliveryWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
+    onTextareaReady: el => { waTextareaEl = el; }
+  }));
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
 
   const waBtn = document.createElement('button');
   waBtn.type = 'button';
@@ -551,12 +571,14 @@ function renderShareDeliveryCard(session) {
     cursor: pointer; font-size: 0.8125rem; font-weight: 500;
   `;
   waBtn.onclick = () => {
+    const customText = waTextareaEl?.value?.trim() || undefined;
     const url = buildWhatsAppDeliveryLink({
       session,
       accessCode: session.accessCode,
       recipientName: clientName,
       recipientPhone: clientPhone,
-      orgName
+      orgName,
+      customText
     });
     window.open(url, '_blank');
   };

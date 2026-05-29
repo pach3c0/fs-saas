@@ -233,12 +233,16 @@ function buildWhatsAppGalleryLink(clientPhone, clientName, accessCode, orgName, 
 /**
  * E-mail para o cliente: galeria disponivel (enviado ao criar sessao)
  */
-async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, orgName, orgSlug) {
+async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, orgName, orgSlug, customIntro) {
   const galleryUrl = orgSlug
     ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
     : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
 
   const subject = `Suas fotos estao disponiveis! - ${orgName}`;
+  const defaultBody = 'Suas fotos ja estao disponiveis para visualizacao. Use o codigo abaixo para acessar sua galeria:';
+  const bodyText = customIntro
+    ? String(customIntro).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+    : defaultBody;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
@@ -247,7 +251,7 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
 
       <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Ola, ${clientName}!</h2>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Suas fotos ja estao disponiveis para visualizacao. Use o codigo abaixo para acessar sua galeria:
+        ${bodyText}
       </p>
 
       <div style="background: #f5f5f5; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">
@@ -274,12 +278,16 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
 /**
  * E-mail para o cliente: fotos entregues para download
  */
-async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, orgName, orgSlug) {
+async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, orgName, orgSlug, customIntro) {
   const galleryUrl = orgSlug
     ? `https://${orgSlug}.cliquezoom.com.br/cliente/?code=${accessCode}`
     : `${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}/cliente/?code=${accessCode}`;
 
   const subject = `Suas fotos foram entregues! - ${orgName}`;
+  const defaultBody = 'Suas fotos ja estao prontas para download em alta resolucao. Acesse sua galeria com o codigo abaixo:';
+  const bodyText = customIntro
+    ? String(customIntro).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+    : defaultBody;
   const html = `
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
@@ -288,7 +296,7 @@ async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, org
 
       <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Ola, ${clientName}!</h2>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
-        Suas fotos ja estao prontas para download em alta resolucao. Acesse sua galeria com o codigo abaixo:
+        ${bodyText}
       </p>
 
       <div style="background: #f5f5f5; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">

@@ -41,6 +41,7 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         watermarkShadow: org.watermarkShadow,
         watermarkImageFilter: org.watermarkImageFilter,
         watermarkImageOpacity: org.watermarkImageOpacity,
+        watermarkLayers: org.watermarkLayers || [],
         plan: org.plan,
         integrations: org.integrations || {}
       }
@@ -60,7 +61,7 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
       'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize',
       'watermarkFontColor', 'watermarkFontFamily', 'watermarkFontWeight', 'watermarkFontStyle',
       'watermarkLetterSpacing', 'watermarkRotation', 'watermarkCustomSize', 'watermarkShadow',
-      'watermarkImageFilter', 'watermarkImageOpacity'
+      'watermarkImageFilter', 'watermarkImageOpacity', 'watermarkLayers'
     ];
 
     const updates = {};
@@ -120,7 +121,8 @@ router.get('/organization/public', async (req, res) => {
         watermarkCustomSize: org.watermarkCustomSize,
         watermarkShadow: org.watermarkShadow,
         watermarkImageFilter: org.watermarkImageFilter,
-        watermarkImageOpacity: org.watermarkImageOpacity
+        watermarkImageOpacity: org.watermarkImageOpacity,
+        watermarkLayers: org.watermarkLayers || []
       }
     });
   } catch (error) {

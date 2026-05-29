@@ -96,14 +96,24 @@ export function renderStepUpload({ session, refresh }) {
 
   const uploadBtn = document.createElement('button');
   uploadBtn.type = 'button';
-  uploadBtn.textContent = isCompleted ? '+ Adicionar mais fotos' : '+ Subir fotos';
+  uploadBtn.textContent = '+ Subir fotos';
+  uploadBtn.disabled = isCompleted;
   uploadBtn.style.cssText = `
-    background: var(--accent); color: white; border: none;
+    background: ${isCompleted ? 'var(--bg-hover)' : 'var(--accent)'}; 
+    color: ${isCompleted ? 'var(--text-muted)' : 'white'}; 
+    border: none;
     padding: 0.5rem 1rem; border-radius: 0.375rem;
-    font-weight: 500; cursor: pointer; font-size: 0.875rem;
+    font-weight: 500; 
+    cursor: ${isCompleted ? 'not-allowed' : 'pointer'}; 
+    font-size: 0.875rem;
     white-space: nowrap;
   `;
-  uploadBtn.onclick = () => fileInput.click();
+  if (isCompleted) {
+    uploadBtn.title = 'Reabra o upload para adicionar mais fotos';
+  }
+  uploadBtn.onclick = () => {
+    if (!isCompleted) fileInput.click();
+  };
   statusBar.appendChild(fileInput);
   statusBar.appendChild(uploadBtn);
 
