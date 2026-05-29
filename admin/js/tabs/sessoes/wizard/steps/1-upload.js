@@ -1,6 +1,6 @@
 // Passo 1 do wizard — Upload das fotos brutas.
-// Permite subir fotos, ver o grid, ocultar/deletar individualmente,
-// e marcar "Concluí upload" para destravar o passo de código.
+// Permite subir fotos, ver o grid, ocultar/deletar individualmente ou em lote,
+// filtrar por visibilidade e marcar "Concluí upload" para destravar o próximo passo.
 
 import { apiPut, apiDelete } from '../../../../utils/api.js';
 import { resolveImagePath } from '../../../../utils/helpers.js';
@@ -24,7 +24,6 @@ function getOrCreateQueue(onDone) {
     panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
     panel.onRetry = (id) => window.globalUploadQueue.retry(id);
   }
-  // Atualiza onQueueDone para o novo callback (pode ter mudado entre etapas)
   window.globalUploadQueue.onQueueDone = onDone;
   return window.globalUploadQueue;
 }
@@ -33,7 +32,7 @@ export function renderStepUpload({ session, refresh }) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:1200px;';
 
-  // ===== HEADER DO PASSO =====
+  // ===== HEADER =====
   const header = document.createElement('div');
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Upload das Fotos</h2>
@@ -43,7 +42,8 @@ export function renderStepUpload({ session, refresh }) {
 
   // ===== BARRA DE STATUS =====
   const isCompleted = Boolean(session.uploadsCompletedAt);
-  const photosCount = (session.photos || []).length;
+  const allPhotos = session.photos || [];
+  const photosCount = allPhotos.length;
   const packageLimit = session.packageLimit || 0;
   const enforceMinimum = session.mode === 'selection' && packageLimit > 0;
   const minimumMet = !enforceMinimum || photosCount >= packageLimit;
@@ -99,21 +99,14 @@ export function renderStepUpload({ session, refresh }) {
   uploadBtn.textContent = '+ Subir fotos';
   uploadBtn.disabled = isCompleted;
   uploadBtn.style.cssText = `
-    background: ${isCompleted ? 'var(--bg-hover)' : 'var(--accent)'}; 
-    color: ${isCompleted ? 'var(--text-muted)' : 'white'}; 
-    border: none;
-    padding: 0.5rem 1rem; border-radius: 0.375rem;
-    font-weight: 500; 
-    cursor: ${isCompleted ? 'not-allowed' : 'pointer'}; 
-    font-size: 0.875rem;
-    white-space: nowrap;
+    background: ${isCompleted ? 'var(--bg-hover)' : 'var(--accent)'};
+    color: ${isCompleted ? 'var(--text-muted)' : 'white'};
+    border: none; padding: 0.5rem 1rem; border-radius: 0.375rem;
+    font-weight: 500; cursor: ${isCompleted ? 'not-allowed' : 'pointer'};
+    font-size: 0.875rem; white-space: nowrap;
   `;
-  if (isCompleted) {
-    uploadBtn.title = 'Reabra o upload para adicionar mais fotos';
-  }
-  uploadBtn.onclick = () => {
-    if (!isCompleted) fileInput.click();
-  };
+  if (isCompleted) uploadBtn.title = 'Reabra o upload para adicionar mais fotos';
+  uploadBtn.onclick = () => { if (!isCompleted) fileInput.click(); };
   statusBar.appendChild(fileInput);
   statusBar.appendChild(uploadBtn);
 
@@ -141,16 +134,12 @@ export function renderStepUpload({ session, refresh }) {
     toggleBtn.style.cssText = `
       background: ${disabled ? 'var(--bg-hover)' : 'var(--green)'};
       color: ${disabled ? 'var(--text-muted)' : 'white'};
-      border: none;
-      padding: 0.5rem 1rem; border-radius: 0.375rem;
+      border: none; padding: 0.5rem 1rem; border-radius: 0.375rem;
       cursor: ${disabled ? 'not-allowed' : 'pointer'};
       font-weight: 500; font-size: 0.875rem; white-space: nowrap;
     `;
-    if (photosCount === 0) {
-      toggleBtn.title = 'Suba pelo menos uma foto antes de concluir';
-    } else if (!minimumMet) {
-      toggleBtn.title = `Suba pelo menos ${packageLimit} fotos (faltam ${missingPhotos}) para concluir.`;
-    }
+    if (photosCount === 0) toggleBtn.title = 'Suba pelo menos uma foto antes de concluir';
+    else if (!minimumMet) toggleBtn.title = `Suba pelo menos ${packageLimit} fotos (faltam ${missingPhotos}) para concluir.`;
     toggleBtn.onclick = async () => {
       const ok = await window.showConfirm?.(
         `Confirmar que terminou o upload de ${photosCount} foto${photosCount === 1 ? '' : 's'}? Você poderá reabrir depois se precisar.`,
@@ -169,7 +158,7 @@ export function renderStepUpload({ session, refresh }) {
   statusBar.appendChild(toggleBtn);
   wrap.appendChild(statusBar);
 
-  // ===== GRID DE FOTOS =====
+  // ===== EMPTY STATE =====
   if (photosCount === 0) {
     const empty = document.createElement('div');
     empty.style.cssText = `
@@ -185,12 +174,57 @@ export function renderStepUpload({ session, refresh }) {
     return wrap;
   }
 
-  // ===== BARRA DE AÇÕES EM MASSA =====
+  // ===== ESTADO LOCAL =====
+  let currentFilter = 'all'; // 'all' | 'visible' | 'hidden'
   const selectedIds = new Set();
 
+  const visibleCount = allPhotos.filter(p => !p.hidden).length;
+  const hiddenCount  = allPhotos.filter(p =>  p.hidden).length;
+
+  // ===== FILTROS =====
+  const filterRow = document.createElement('div');
+  filterRow.style.cssText = 'display:flex; gap:0.375rem; align-items:center; flex-wrap:wrap;';
+
+  const filterDefs = [
+    { key: 'all',     label: `Todas (${photosCount})` },
+    { key: 'visible', label: `Visíveis (${visibleCount})` },
+    { key: 'hidden',  label: `Ocultas (${hiddenCount})` },
+  ];
+
+  const filterBtns = {};
+  filterDefs.forEach(({ key, label }) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.dataset.filterKey = key;
+    const isActive = key === 'all';
+    btn.style.cssText = `
+      padding: 0.3rem 0.75rem; border-radius: 9999px;
+      font-size: 0.75rem; font-weight: 500; cursor: pointer;
+      transition: background 0.15s;
+      background: ${isActive ? 'var(--accent)' : 'var(--bg-surface)'};
+      color: ${isActive ? 'white' : 'var(--text-secondary)'};
+      border: 1px solid ${isActive ? 'var(--accent)' : 'var(--border)'};
+    `;
+    btn.onclick = () => {
+      currentFilter = key;
+      Object.values(filterBtns).forEach(b => {
+        const active = b.dataset.filterKey === key;
+        b.style.background = active ? 'var(--accent)' : 'var(--bg-surface)';
+        b.style.color      = active ? 'white' : 'var(--text-secondary)';
+        b.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+      });
+      rebuildGrid();
+    };
+    filterBtns[key] = btn;
+    filterRow.appendChild(btn);
+  });
+  wrap.appendChild(filterRow);
+
+  // ===== BARRA DE AÇÕES EM MASSA =====
   const bulkBar = document.createElement('div');
   bulkBar.style.cssText = `
-    display: flex; align-items: center; gap: 0.75rem;
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
     background: var(--bg-surface); border: 1px solid var(--border);
     border-radius: 0.5rem; padding: 0.625rem 1rem;
   `;
@@ -201,42 +235,122 @@ export function renderStepUpload({ session, refresh }) {
 
   const countLabel = document.createElement('span');
   countLabel.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); flex:1;';
-  countLabel.textContent = `${photosCount} foto${photosCount !== 1 ? 's' : ''}`;
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.type = 'button';
-  deleteBtn.textContent = 'Deletar selecionadas';
-  deleteBtn.style.cssText = `
-    display: none;
-    background: var(--red); color: white; border: none;
-    padding: 0.375rem 0.875rem; border-radius: 0.375rem;
-    font-size: 0.8125rem; font-weight: 500; cursor: pointer;
-  `;
+  const hideSelectedBtn = makeBulkBtn('Ocultar selecionadas', 'var(--bg-base)', 'var(--text-primary)', '1px solid var(--border)');
+  const showSelectedBtn = makeBulkBtn('Mostrar selecionadas', 'var(--bg-base)', 'var(--text-primary)', '1px solid var(--border)');
+  const deleteBtn       = makeBulkBtn('Deletar selecionadas', 'var(--red)', 'white', 'none');
+
+  hideSelectedBtn.style.display = 'none';
+  showSelectedBtn.style.display = 'none';
+  deleteBtn.style.display = 'none';
 
   bulkBar.appendChild(selectAllCheck);
   bulkBar.appendChild(countLabel);
+  bulkBar.appendChild(hideSelectedBtn);
+  bulkBar.appendChild(showSelectedBtn);
   bulkBar.appendChild(deleteBtn);
   wrap.appendChild(bulkBar);
 
-  // ===== GRID =====
-  const grid = document.createElement('div');
-  grid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.5rem;
-  `;
+  // ===== GRID SLOT =====
+  const gridSlot = document.createElement('div');
+  wrap.appendChild(gridSlot);
 
-  // ----- Helpers de ação -----
+  // ===== FUNÇÕES =====
+  let currentCheckboxes = [];
+
+  function getFilteredPhotos() {
+    if (currentFilter === 'visible') return allPhotos.filter(p => !p.hidden);
+    if (currentFilter === 'hidden')  return allPhotos.filter(p =>  p.hidden);
+    return allPhotos;
+  }
+
+  function updateBulkUI() {
+    const filtered = getFilteredPhotos();
+    const nTotal = filtered.length;
+    const nFiltered = filtered.filter(p => selectedIds.has(String(p.id))).length;
+
+    countLabel.textContent = nFiltered > 0
+      ? `${nFiltered} selecionada${nFiltered !== 1 ? 's' : ''}`
+      : `${nTotal} foto${nTotal !== 1 ? 's' : ''}`;
+
+    selectAllCheck.checked       = nFiltered === nTotal && nTotal > 0;
+    selectAllCheck.indeterminate = nFiltered > 0 && nFiltered < nTotal;
+
+    // Botões baseados em TODAS as selecionadas (de qualquer filtro)
+    const allSelected = allPhotos.filter(p => selectedIds.has(String(p.id)));
+    const hasVisible  = allSelected.some(p => !p.hidden);
+    const hasHidden   = allSelected.some(p =>  p.hidden);
+    const hasAny      = allSelected.length > 0;
+
+    hideSelectedBtn.style.display = hasVisible ? 'inline-block' : 'none';
+    showSelectedBtn.style.display = hasHidden  ? 'inline-block' : 'none';
+    deleteBtn.style.display       = hasAny     ? 'inline-block' : 'none';
+  }
+
+  selectAllCheck.onchange = (e) => {
+    getFilteredPhotos().forEach(p => {
+      if (e.target.checked) selectedIds.add(String(p.id));
+      else selectedIds.delete(String(p.id));
+    });
+    currentCheckboxes.forEach(cb => { cb.checked = e.target.checked; });
+    updateBulkUI();
+  };
+
+  async function handleBulkToggleHidden(hidden) {
+    const ids = Array.from(selectedIds);
+    const ok = await window.showConfirm?.(
+      `${hidden ? 'Ocultar' : 'Mostrar'} ${ids.length} foto${ids.length !== 1 ? 's' : ''}?`,
+      { confirmText: hidden ? 'Ocultar' : 'Mostrar', cancelText: 'Cancelar' }
+    );
+    if (!ok) return;
+    const btn = hidden ? hideSelectedBtn : showSelectedBtn;
+    btn.disabled = true;
+    btn.textContent = hidden ? 'Ocultando...' : 'Mostrando...';
+    try {
+      await apiPut(`/api/sessions/${session._id}/photos/bulk-hidden`, { photoIds: ids, hidden });
+      const n = ids.length;
+      window.showToast?.(`${n} foto${n !== 1 ? 's' : ''} ${hidden ? 'ocultada' : 'mostrada'}${n !== 1 ? 's' : ''}!`, 'success');
+      selectedIds.clear();
+      await refresh();
+    } catch (err) {
+      window.showToast?.(err.message || `Erro ao ${hidden ? 'ocultar' : 'mostrar'} fotos`, 'error');
+      btn.disabled = false;
+      btn.textContent = hidden ? 'Ocultar selecionadas' : 'Mostrar selecionadas';
+    }
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    const ok = await window.showConfirm?.(
+      `Deletar permanentemente ${ids.length} foto${ids.length !== 1 ? 's' : ''}? Esta ação não pode ser desfeita.`,
+      { confirmText: 'Deletar', cancelText: 'Cancelar' }
+    );
+    if (!ok) return;
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Deletando...';
+    try {
+      await apiDelete(`/api/sessions/${session._id}/photos/bulk`, { photoIds: ids });
+      const n = ids.length;
+      window.showToast?.(`${n} foto${n !== 1 ? 's' : ''} deletada${n !== 1 ? 's' : ''}!`, 'success');
+      selectedIds.clear();
+      await refresh();
+      window.loadSidebarStorage?.();
+    } catch (err) {
+      window.showToast?.(err.message || 'Erro ao deletar fotos', 'error');
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = 'Deletar selecionadas';
+    }
+  }
+
   async function handleToggleHidden(photo) {
     const isVisible = !photo.hidden;
     if (isVisible && session.mode === 'selection') {
-      const totalVisible = (session.photos || []).filter(p => !p.hidden).length;
+      const totalVisible = allPhotos.filter(p => !p.hidden).length;
       const pacote = session.packageLimit || 30;
       if (totalVisible <= pacote) {
         window.showToast?.(
           `Não é possível ocultar: ${totalVisible} foto(s) visíveis e o pacote exige ${pacote}.`,
-          'warning',
-          6000
+          'warning', 6000
         );
         return;
       }
@@ -261,173 +375,184 @@ export function renderStepUpload({ session, refresh }) {
     }
   }
 
-  async function handleBulkDelete(ids) {
-    const ok = await window.showConfirm?.(
-      `Deletar permanentemente ${ids.length} foto${ids.length !== 1 ? 's' : ''}? Esta ação não pode ser desfeita.`,
-      { confirmText: 'Deletar', cancelText: 'Cancelar' }
-    );
-    if (!ok) return;
-    deleteBtn.disabled = true;
-    deleteBtn.textContent = 'Deletando...';
-    try {
-      await apiDelete(`/api/sessions/${session._id}/photos/bulk`, { photoIds: ids });
-      window.showToast?.(`${ids.length} foto${ids.length !== 1 ? 's' : ''} deletada${ids.length !== 1 ? 's' : ''}!`, 'success');
-      await refresh();
-      window.loadSidebarStorage?.();
-    } catch (err) {
-      window.showToast?.(err.message || 'Erro ao deletar fotos', 'error');
-      deleteBtn.disabled = false;
-      deleteBtn.textContent = 'Deletar selecionadas';
-    }
-  }
+  hideSelectedBtn.onclick = () => handleBulkToggleHidden(true);
+  showSelectedBtn.onclick = () => handleBulkToggleHidden(false);
+  deleteBtn.onclick       = handleBulkDelete;
 
-  // ----- Lógica de checkboxes -----
-  const allCheckboxes = [];
+  // ===== REBUILD GRID (chamado na init e ao trocar filtro) =====
+  function rebuildGrid() {
+    const filtered = getFilteredPhotos();
+    currentCheckboxes = [];
+    gridSlot.innerHTML = '';
 
-  function updateBulkUI() {
-    const checked = allCheckboxes.filter(cb => cb.checked);
-    selectedIds.clear();
-    checked.forEach(cb => selectedIds.add(cb.dataset.id));
-    const n = checked.length;
-    countLabel.textContent = n > 0
-      ? `${n} selecionada${n !== 1 ? 's' : ''}`
-      : `${photosCount} foto${photosCount !== 1 ? 's' : ''}`;
-    deleteBtn.style.display = n > 0 ? 'inline-block' : 'none';
-    selectAllCheck.checked = n === allCheckboxes.length && allCheckboxes.length > 0;
-    selectAllCheck.indeterminate = n > 0 && n < allCheckboxes.length;
-  }
-
-  selectAllCheck.onchange = (e) => {
-    allCheckboxes.forEach(cb => { cb.checked = e.target.checked; });
-    updateBulkUI();
-  };
-
-  deleteBtn.onclick = () => handleBulkDelete(Array.from(selectedIds));
-
-  // ----- Células do grid -----
-  (session.photos || []).forEach(photo => {
-    const isCoverPhoto = photo.url === session.coverPhoto;
-    const isHidden = photo.hidden === true;
-
-    const cell = document.createElement('div');
-    cell.style.cssText = `
-      position: relative; aspect-ratio: 3/2;
-      background: var(--bg-surface); border-radius: 0.375rem;
-      overflow: hidden;
-      border: 2px solid ${isCoverPhoto ? 'var(--yellow)' : 'var(--border)'};
-      ${isHidden ? 'opacity: 0.45;' : ''}
-    `;
-
-    // Imagem
-    const img = document.createElement('img');
-    img.src = resolveImagePath(photo.url);
-    img.alt = photo.filename || '';
-    img.loading = 'lazy';
-    img.style.cssText = `
-      width:100%; height:100%; object-fit:cover; display:block;
-      ${isHidden ? 'filter:grayscale(1);' : ''}
-    `;
-    cell.appendChild(img);
-
-    // Checkbox (z-index 20 — acima do overlay)
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.dataset.id = photo.id;
-    cb.style.cssText = `
-      position:absolute; top:0.375rem; left:0.375rem;
-      width:1.125rem; height:1.125rem; cursor:pointer;
-      z-index:20; accent-color:var(--accent);
-    `;
-    cb.addEventListener('click', e => e.stopPropagation());
-    cb.addEventListener('change', updateBulkUI);
-    allCheckboxes.push(cb);
-    cell.appendChild(cb);
-
-    // Badge CAPA
-    if (isCoverPhoto) {
-      const b = document.createElement('div');
-      b.textContent = 'CAPA';
-      b.style.cssText = `
-        position:absolute; top:4px; right:4px; z-index:10;
-        background:var(--yellow); color:black;
-        font-size:0.5625rem; font-weight:700;
-        padding:2px 5px; border-radius:3px;
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = `
+        border: 2px dashed var(--border); border-radius: 0.75rem;
+        padding: 2rem 1.5rem; text-align: center;
+        color: var(--text-muted); font-size: 0.875rem;
       `;
-      cell.appendChild(b);
+      empty.textContent = currentFilter === 'hidden'
+        ? 'Nenhuma foto oculta nesta sessão.'
+        : 'Nenhuma foto visível nesta sessão.';
+      gridSlot.appendChild(empty);
+      updateBulkUI();
+      return;
     }
 
-    // Badge OCULTA
-    if (isHidden) {
-      const b = document.createElement('div');
-      b.textContent = 'OCULTA';
-      b.style.cssText = `
-        position:absolute; top:${isCoverPhoto ? '1.4rem' : '4px'}; right:4px; z-index:10;
-        background:var(--text-muted); color:white;
-        font-size:0.5625rem; font-weight:700;
-        padding:2px 5px; border-radius:3px;
-      `;
-      cell.appendChild(b);
-    }
-
-    // Badge dimensões
-    if (photo.width && photo.height) {
-      const b = document.createElement('div');
-      b.textContent = `${photo.width}×${photo.height}`;
-      b.style.cssText = `
-        position:absolute; bottom:4px; right:4px; z-index:10;
-        background:rgba(0,0,0,0.65); color:white;
-        font-size:0.5625rem; padding:2px 5px; border-radius:3px;
-        font-family:monospace;
-      `;
-      cell.appendChild(b);
-    }
-
-    // Overlay de hover com ações
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position:absolute; inset:0;
-      background:rgba(0,0,0,0.45);
-      opacity:0; transition:opacity 0.18s;
-      display:flex; align-items:center; justify-content:center;
-      gap:0.5rem; z-index:5;
+    const grid = document.createElement('div');
+    grid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
     `;
 
-    const makeBtn = (title, icon, active) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.title = title;
-      btn.textContent = icon;
-      btn.style.cssText = `
-        background:${active ? 'var(--yellow)' : 'rgba(255,255,255,0.15)'};
-        color:${active ? 'black' : 'white'};
-        border:none; border-radius:9999px;
-        width:2rem; height:2rem;
-        cursor:pointer; font-size:1rem;
+    filtered.forEach(photo => {
+      const isCover  = photo.url === session.coverPhoto;
+      const isHidden = photo.hidden === true;
+      const isSelected = selectedIds.has(String(photo.id));
+
+      const cell = document.createElement('div');
+      cell.style.cssText = `
+        position: relative; aspect-ratio: 3/2;
+        background: var(--bg-surface); border-radius: 0.375rem;
+        overflow: hidden;
+        border: 2px solid ${isSelected ? 'var(--accent)' : isCover ? 'var(--yellow)' : 'var(--border)'};
+        ${isHidden ? 'opacity: 0.45;' : ''}
+      `;
+
+      const img = document.createElement('img');
+      img.src = resolveImagePath(photo.url);
+      img.alt = photo.filename || '';
+      img.loading = 'lazy';
+      img.style.cssText = `width:100%; height:100%; object-fit:cover; display:block; ${isHidden ? 'filter:grayscale(1);' : ''}`;
+      cell.appendChild(img);
+
+      // Checkbox
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.id = photo.id;
+      cb.checked = isSelected;
+      cb.style.cssText = `
+        position:absolute; top:0.375rem; left:0.375rem;
+        width:1.125rem; height:1.125rem; cursor:pointer;
+        z-index:20; accent-color:var(--accent);
+      `;
+      cb.addEventListener('click', e => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          selectedIds.add(String(photo.id));
+          cell.style.borderColor = 'var(--accent)';
+        } else {
+          selectedIds.delete(String(photo.id));
+          cell.style.borderColor = isCover ? 'var(--yellow)' : 'var(--border)';
+        }
+        updateBulkUI();
+      });
+      currentCheckboxes.push(cb);
+      cell.appendChild(cb);
+
+      // Badge CAPA
+      if (isCover) {
+        const b = document.createElement('div');
+        b.textContent = 'CAPA';
+        b.style.cssText = `
+          position:absolute; top:4px; right:4px; z-index:10;
+          background:var(--yellow); color:black;
+          font-size:0.5625rem; font-weight:700;
+          padding:2px 5px; border-radius:3px;
+        `;
+        cell.appendChild(b);
+      }
+
+      // Badge OCULTA
+      if (isHidden) {
+        const b = document.createElement('div');
+        b.textContent = 'OCULTA';
+        b.style.cssText = `
+          position:absolute; top:${isCover ? '1.4rem' : '4px'}; right:4px; z-index:10;
+          background:var(--text-muted); color:white;
+          font-size:0.5625rem; font-weight:700;
+          padding:2px 5px; border-radius:3px;
+        `;
+        cell.appendChild(b);
+      }
+
+      // Badge dimensões
+      if (photo.width && photo.height) {
+        const b = document.createElement('div');
+        b.textContent = `${photo.width}×${photo.height}`;
+        b.style.cssText = `
+          position:absolute; bottom:4px; right:4px; z-index:10;
+          background:rgba(0,0,0,0.65); color:white;
+          font-size:0.5625rem; padding:2px 5px; border-radius:3px;
+          font-family:monospace;
+        `;
+        cell.appendChild(b);
+      }
+
+      // Overlay hover com ações individuais
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position:absolute; inset:0;
+        background:rgba(0,0,0,0.45);
+        opacity:0; transition:opacity 0.18s;
         display:flex; align-items:center; justify-content:center;
-        transition:background 0.15s;
+        gap:0.5rem; z-index:5;
       `;
-      btn.onmouseenter = () => { btn.style.background = active ? 'color-mix(in srgb, var(--yellow) 80%, white)' : 'rgba(255,255,255,0.35)'; };
-      btn.onmouseleave = () => { btn.style.background = active ? 'var(--yellow)' : 'rgba(255,255,255,0.15)'; };
-      return btn;
-    };
 
-    const hideBtn = makeBtn(isHidden ? 'Mostrar foto' : 'Ocultar foto', isHidden ? '👁️‍🗨️' : '👁️', false);
-    hideBtn.style.background = isHidden ? 'var(--red)' : 'rgba(255,255,255,0.15)';
-    hideBtn.onclick = (e) => { e.stopPropagation(); handleToggleHidden(photo); };
+      const makeBtn = (title, icon, active) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = title;
+        btn.textContent = icon;
+        btn.style.cssText = `
+          background:${active ? 'var(--yellow)' : 'rgba(255,255,255,0.15)'};
+          color:${active ? 'black' : 'white'};
+          border:none; border-radius:9999px;
+          width:2rem; height:2rem;
+          cursor:pointer; font-size:1rem;
+          display:flex; align-items:center; justify-content:center;
+          transition:background 0.15s;
+        `;
+        btn.onmouseenter = () => { btn.style.background = active ? 'color-mix(in srgb, var(--yellow) 80%, white)' : 'rgba(255,255,255,0.35)'; };
+        btn.onmouseleave = () => { btn.style.background = active ? 'var(--yellow)' : 'rgba(255,255,255,0.15)'; };
+        return btn;
+      };
 
-    const coverBtn = makeBtn(isCoverPhoto ? 'Capa atual' : 'Definir como capa', '🖼️', isCoverPhoto);
-    if (!isCoverPhoto) coverBtn.onclick = (e) => { e.stopPropagation(); handleSetCover(photo); };
+      const hideBtn = makeBtn(isHidden ? 'Mostrar foto' : 'Ocultar foto', isHidden ? '👁️‍🗨️' : '👁️', false);
+      hideBtn.style.background = isHidden ? 'var(--red)' : 'rgba(255,255,255,0.15)';
+      hideBtn.onclick = (e) => { e.stopPropagation(); handleToggleHidden(photo); };
 
-    overlay.appendChild(hideBtn);
-    overlay.appendChild(coverBtn);
-    cell.appendChild(overlay);
+      const coverBtn = makeBtn(isCover ? 'Capa atual' : 'Definir como capa', '🖼️', isCover);
+      if (!isCover) coverBtn.onclick = (e) => { e.stopPropagation(); handleSetCover(photo); };
 
-    cell.addEventListener('mouseenter', () => { overlay.style.opacity = '1'; });
-    cell.addEventListener('mouseleave', () => { overlay.style.opacity = '0'; });
+      overlay.appendChild(hideBtn);
+      overlay.appendChild(coverBtn);
+      cell.appendChild(overlay);
 
-    grid.appendChild(cell);
-  });
+      cell.addEventListener('mouseenter', () => { overlay.style.opacity = '1'; });
+      cell.addEventListener('mouseleave', () => { overlay.style.opacity = '0'; });
 
-  wrap.appendChild(grid);
+      grid.appendChild(cell);
+    });
+
+    gridSlot.appendChild(grid);
+    updateBulkUI();
+  }
+
+  rebuildGrid();
   return wrap;
+}
+
+function makeBulkBtn(text, bg, color, border) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = text;
+  btn.style.cssText = `
+    padding: 0.375rem 0.875rem; border-radius: 0.375rem;
+    font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+    background: ${bg}; color: ${color}; border: ${border};
+  `;
+  return btn;
 }

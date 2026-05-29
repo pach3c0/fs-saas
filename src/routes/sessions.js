@@ -1268,6 +1268,49 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
   }
 });
 
+// ADMIN: Ocultar/mostrar fotos em massa — deve vir ANTES de /:photoId
+router.put('/sessions/:id/photos/bulk-hidden', authenticateToken, async (req, res) => {
+  try {
+    const { photoIds, hidden } = req.body;
+    if (!Array.isArray(photoIds) || photoIds.length === 0) {
+      return res.status(400).json({ error: 'Lista de IDs inválida' });
+    }
+    if (typeof hidden !== 'boolean') {
+      return res.status(400).json({ error: 'Campo hidden obrigatório (boolean)' });
+    }
+
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    // Em modo seleção, garante que não ficam menos visíveis do que o pacote
+    if (hidden && session.mode === 'selection') {
+      const hidingSet = new Set(photoIds.map(String));
+      const visibleAfter = (session.photos || []).filter(p => !p.hidden && !hidingSet.has(String(p.id))).length;
+      if (visibleAfter < (session.packageLimit || 0)) {
+        return res.status(400).json({
+          error: `Não é possível ocultar: restariam ${visibleAfter} foto(s) visíveis (mínimo do pacote: ${session.packageLimit}).`
+        });
+      }
+    }
+
+    let changed = 0;
+    const idSet = new Set(photoIds.map(String));
+    session.photos.forEach(p => {
+      if (idSet.has(String(p.id))) {
+        p.hidden = hidden;
+        changed++;
+      }
+    });
+    await session.save();
+
+    req.logger.info(`Sessão ${session.name}: ${changed} fotos ${hidden ? 'ocultadas' : 'reexibidas'} em massa`);
+    res.json({ success: true, changed });
+  } catch (error) {
+    req.logger.error('Erro bulk-hidden', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (req, res) => {
   try {
     const session = await Session.findOne({
