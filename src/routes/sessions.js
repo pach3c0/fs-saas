@@ -69,7 +69,8 @@ router.post('/client/verify-code', async (req, res) => {
       if (apToken) {
         try {
           const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
-          adminPreview = payload.organizationId?.toString() === session.organizationId.toString();
+          const orgId = session.organizationId?._id || session.organizationId;
+          adminPreview = payload.organizationId?.toString() === orgId.toString();
         } catch (_) {}
       }
       if (!adminPreview) {
@@ -228,7 +229,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       if (apToken) {
         try {
           const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
-          adminPreview = payload.organizationId?.toString() === session.organizationId.toString();
+          const orgId = session.organizationId?._id || session.organizationId;
+          adminPreview = payload.organizationId?.toString() === orgId.toString();
         } catch (_) {}
       }
       if (!adminPreview) {
