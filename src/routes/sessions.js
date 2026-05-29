@@ -61,6 +61,11 @@ router.post('/client/verify-code', async (req, res) => {
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
+    // Bloqueio de emergência ativado pelo fotógrafo
+    if (session.clientAccessBlocked) {
+      return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+    }
+
     // Bloquear acesso a galeria entregue com prazo vencido
     if (
       session.mode === 'gallery' &&
@@ -205,6 +210,10 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     }).populate('organizationId');
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    if (session.clientAccessBlocked) {
+      return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
+    }
 
     const { participantId } = req.query;
     let selectedPhotos = session.selectedPhotos || [];
@@ -567,6 +576,24 @@ router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res)
     }
 
     res.json({ success: true, uploadsCompletedAt: session.uploadsCompletedAt });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Bloqueio de emergência — impede acesso do cliente sem apagar dados.
+// Alterna clientAccessBlocked (toggle). Admin continua com acesso total.
+router.put('/sessions/:id/toggle-client-access', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
+      .select('clientAccessBlocked name');
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    session.clientAccessBlocked = !session.clientAccessBlocked;
+    await session.save();
+
+    req.logger.info(`Sessão ${session.name}: acesso do cliente ${session.clientAccessBlocked ? 'bloqueado' : 'desbloqueado'}`);
+    res.json({ success: true, clientAccessBlocked: session.clientAccessBlocked });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

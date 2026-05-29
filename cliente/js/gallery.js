@@ -1362,6 +1362,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
         } catch (error) {
+            // Galeria bloqueada pelo fotógrafo: forçar logout independente de ser polling ou não
+            if (error.message && error.message.includes('temporariamente indisponível')) {
+                try { localStorage.removeItem(LS_KEY); } catch (e) { }
+                state.accessCode = null;
+                state.sessionId = null;
+                gallerySection.style.display = 'none';
+                loginSection.style.display = 'flex';
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                return;
+            }
             if (!isPolling) {
                 errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';

@@ -77,6 +77,9 @@ const sessionSchema = new mongoose.Schema({
         upsellingSent: { type: Boolean, default: false }
     },
     isActive: { type: Boolean, default: true },
+    // Bloqueio de emergência: impede acesso do cliente sem apagar dados.
+    // Admin continua visualizando e gerenciando normalmente.
+    clientAccessBlocked: { type: Boolean, default: false },
     organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     // CRM: cliente vinculado
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },

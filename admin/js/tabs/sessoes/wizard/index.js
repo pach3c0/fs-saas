@@ -2,7 +2,7 @@
 // Abre um modal fullscreen com sidebar de etapas (stepper.js) à esquerda
 // e conteúdo do passo ativo à direita.
 
-import { apiGet, apiPut } from '../../../utils/api.js';
+import { apiGet, apiPut, apiPost } from '../../../utils/api.js';
 import { wizardState, resetWizardState, stopWizardPolling } from './state.js';
 import { computeWizardSteps, renderStepper, injectWizardStyles } from './stepper.js';
 import { openOverlayModal } from './utils.js';
@@ -144,6 +144,20 @@ function refreshWizard() {
   const content = modal.querySelector('#wizardContent');
   content.innerHTML = '';
 
+  // Banner de alerta quando acesso do cliente está bloqueado
+  if (session.clientAccessBlocked) {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      background: color-mix(in srgb, var(--red) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+      border-radius: 0.5rem; padding: 0.625rem 1rem; margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.8125rem; color: var(--red); font-weight: 600;
+    `;
+    banner.innerHTML = '🔒 Acesso do cliente bloqueado. O código não funciona até você desbloquear (botão 🔓 no cabeçalho).';
+    content.appendChild(banner);
+  }
+
   // Verifica se o conteúdo atual é o painel de histórico
   if (wizardState.currentStepId === 'history') {
     content.appendChild(renderHistoryPanel(session));
@@ -228,6 +242,35 @@ function buildHeader(session) {
 
   // Sininho de notificações (próprio do wizard — o global fica atrás)
   mountWizardBell(actions, session._id);
+
+  // Botão de bloqueio de emergência
+  const isBlocked = Boolean(session.clientAccessBlocked);
+  const lockBtn = makeIconButton(
+    isBlocked ? '🔒' : '🔓',
+    isBlocked ? 'Acesso do cliente BLOQUEADO — clique para desbloquear' : 'Bloquear acesso do cliente (emergência)',
+    async () => {
+      const action = isBlocked ? 'desbloquear' : 'bloquear';
+      const msg = isBlocked
+        ? 'Desbloquear o acesso? O cliente voltará a conseguir entrar na galeria.'
+        : 'Bloquear o acesso do cliente? Ele não conseguirá entrar na galeria até você desbloquear. Os dados ficam intactos.';
+      const ok = await window.showConfirm?.(msg, { confirmText: action.charAt(0).toUpperCase() + action.slice(1), cancelText: 'Cancelar' });
+      if (!ok) return;
+      try {
+        const res = await apiPut(`/api/sessions/${session._id}/toggle-client-access`, {});
+        wizardState.session.clientAccessBlocked = res.clientAccessBlocked;
+        window.showToast?.(res.clientAccessBlocked ? '🔒 Acesso do cliente bloqueado' : '🔓 Acesso do cliente desbloqueado', res.clientAccessBlocked ? 'warning' : 'success');
+        refreshWizard();
+      } catch (e) {
+        window.showToast?.('Erro: ' + e.message, 'error');
+      }
+    }
+  );
+  if (isBlocked) {
+    lockBtn.style.background = 'color-mix(in srgb, var(--red) 15%, transparent)';
+    lockBtn.style.borderColor = 'var(--red)';
+    lockBtn.style.color = 'var(--red)';
+  }
+  actions.appendChild(lockBtn);
 
   // Botão histórico — toggle: abre o painel ou volta ao passo atual
   const histBtn = makeIconButton('📋', 'Histórico da sessão', () => {

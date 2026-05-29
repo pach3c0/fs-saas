@@ -210,6 +210,10 @@ function renderList(container, items) {
       cardBg = 'color-mix(in srgb, var(--purple) 4%, transparent)';
       cardBorder = 'color-mix(in srgb, var(--purple) 15%, transparent)';
     }
+    if (session.clientAccessBlocked) {
+      cardBg = 'color-mix(in srgb, var(--red) 5%, transparent)';
+      cardBorder = 'color-mix(in srgb, var(--red) 35%, transparent)';
+    }
 
     return `
       <div onclick="window.openSessionWizard?.('${session._id}')"
@@ -231,6 +235,7 @@ function renderList(container, items) {
               ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
               ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
               ${session.reopenRequested ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
+              ${session.clientAccessBlocked ? `<span style="background:color-mix(in srgb, var(--red) 15%, transparent);border:1px solid color-mix(in srgb, var(--red) 35%, transparent);color:var(--red);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:600;">🔒 Acesso bloqueado</span>` : ''}
               ${session.archivedAt ? `<span style="background:color-mix(in srgb, var(--text-muted) 15%, transparent);border:1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);color:var(--text-muted);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:500;">📦 Arquivada</span>` : (() => { const ret = session.storageRetentionUntil ? new Date(session.storageRetentionUntil) : null; if (!ret) return ''; const daysLeft = Math.ceil((ret - now) / 86400000); if (daysLeft > 30) return ''; const label = daysLeft <= 0 ? '⏳ Storage vencido' : `⏳ Storage expira ${ret.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`; const color = daysLeft <= 7 ? 'var(--red)' : 'var(--orange)'; return `<span style="background:color-mix(in srgb, ${color} 15%, transparent);border:1px solid color-mix(in srgb, ${color} 35%, transparent);color:${color};font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:500;">${label}</span>`; })()}
             </div>
             <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
