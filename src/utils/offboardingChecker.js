@@ -9,6 +9,7 @@ const Album = require('../models/Album');
 const Client = require('../models/Client');
 const Subscription = require('../models/Subscription');
 const { sendOffboardingWarningEmail, sendOffboardingDeletedEmail } = require('./email');
+const logger = require('./logger');
 
 const GRACE_DAYS = parseInt(process.env.OFFBOARDING_GRACE_DAYS || '30');
 // Avisa faltando WARN_DAYS dias para o fim do grace period
@@ -47,7 +48,7 @@ async function checkOffboarding() {
           Subscription.deleteMany({ organizationId: orgId })
         ]);
       } catch (e) {
-        console.error(`[offboarding] Erro cascade delete org=${orgId}:`, e.message);
+        logger.error(`[offboarding] Erro cascade delete org=${orgId}:`, { message: e.message });
       }
 
       const uploadDir = path.join(__dirname, '../../uploads', orgId.toString());
@@ -60,14 +61,14 @@ async function checkOffboarding() {
 
       try {
         await Organization.findByIdAndDelete(orgId);
-        console.log(`[offboarding] Org excluída definitivamente org=${orgId} name="${org.name}"`);
+        logger.info(`[offboarding] Org excluída definitivamente org=${orgId} name="${org.name}"`);
       } catch (e) {
-        console.error(`[offboarding] Erro ao deletar org=${orgId}:`, e.message);
+        logger.error(`[offboarding] Erro ao deletar org=${orgId}:`, { message: e.message });
       }
 
       if (org.email) {
         await sendOffboardingDeletedEmail(org.email, org.name).catch(e =>
-          console.error(`[offboarding] Erro email exclusao org=${orgId}:`, e.message)
+          logger.error(`[offboarding] Erro email exclusao org=${orgId}:`, { message: e.message })
         );
       }
       deleted++;
@@ -75,15 +76,15 @@ async function checkOffboarding() {
       // Dentro da janela de aviso
       if (org.email) {
         await sendOffboardingWarningEmail(org.email, org.name, daysLeft).catch(e =>
-          console.error(`[offboarding] Erro email aviso org=${org._id}:`, e.message)
+          logger.error(`[offboarding] Erro email aviso org=${org._id}:`, { message: e.message })
         );
       }
-      console.log(`[offboarding] Aviso enviado org=${org._id} name="${org.name}" daysLeft=${daysLeft}`);
+      logger.info(`[offboarding] Aviso enviado org=${org._id} name="${org.name}" daysLeft=${daysLeft}`);
       warned++;
     }
   }
 
-  console.log(`[offboarding] Rodada concluída: warned=${warned} deleted=${deleted}`);
+  logger.info(`[offboarding] Rodada concluída: warned=${warned} deleted=${deleted}`);
   return { warned, deleted };
 }
 

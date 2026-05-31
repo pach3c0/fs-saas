@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
+const { checkHoneyPot } = require('../middleware/security');
 const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhotographerNotificationEmail } = require('../utils/email');
 const { applyDefaultTemplate } = require('./site');
 
@@ -21,13 +22,13 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
-      console.warn(`Tentativa de login: E-mail não encontrado: ${email}`);
+      req.logger.warn(`Tentativa de login: E-mail não encontrado: ${email}`);
       return res.status(401).json({ success: false, error: 'E-mail não cadastrado' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      console.warn(`Tentativa de login: Senha incorreta para e-mail: ${email}`);
+      req.logger.warn(`Tentativa de login: Senha incorreta para e-mail: ${email}`);
       return res.status(401).json({ success: false, error: 'Senha incorreta' });
     }
 
@@ -53,11 +54,7 @@ router.post('/login', async (req, res) => {
       role: user.role
     });
   } catch (error) {
-    if (req.logger) {
-      req.logger.error(`Erro crítico no login: ${error.message}`, { stack: error.stack });
-    } else {
-      console.error(`Erro crítico no login: ${error.message}`, error);
-    }
+    req.logger.error(`Erro crítico no login: ${error.message}`, { stack: error.stack });
     res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
@@ -83,7 +80,7 @@ router.post('/auth/forgot-password', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Erro no forgot-password:', error);
+    req.logger.error('Erro no forgot-password:', { message: error.message });
     res.status(500).json({ error: 'Erro interno' });
   }
 });
@@ -112,7 +109,7 @@ router.post('/auth/reset-password', async (req, res) => {
 
     res.json({ success: true, message: 'Senha redefinida com sucesso' });
   } catch (error) {
-    console.error('Erro no reset-password:', error);
+    req.logger.error('Erro no reset-password:', { message: error.message });
     res.status(500).json({ error: 'Erro interno' });
   }
 });

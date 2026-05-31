@@ -4,17 +4,18 @@ const path = require('path');
 const Organization = require('../models/Organization');
 const Session = require('../models/Session');
 const SiteData = require('../models/SiteData');
+const logger = require('./logger');
 
 async function cleanupStorage(orgId) {
     if (!orgId) throw new Error('Organization ID is required');
 
-    console.log(`--- Iniciando limpeza para Org: ${orgId} ---`);
+    logger.info(`[cleanupStorage] Iniciando limpeza para Org: ${orgId}`);
 
     const uploadsDir = path.join(__dirname, '../../uploads', orgId.toString());
     try {
         await fs.access(uploadsDir);
     } catch {
-        console.log('Diretório de uploads não existe.');
+        logger.info(`[cleanupStorage] Diretório de uploads não existe para org=${orgId}`);
         return;
     }
 
@@ -47,7 +48,7 @@ async function cleanupStorage(orgId) {
     if (siteData?.hero?.image) references.add(siteData.hero.image);
     // Adicionar outros campos se necessário...
 
-    console.log(`Total de referências no banco: ${references.size}`);
+    logger.info(`[cleanupStorage] Total de referências no banco: ${references.size}`);
 
     // 2. Mapear arquivos no disco
     async function getFiles(dir) {
@@ -65,7 +66,7 @@ async function cleanupStorage(orgId) {
     }
 
     const allFiles = await getFiles(uploadsDir);
-    console.log(`Total de arquivos no disco: ${allFiles.length}`);
+    logger.info(`[cleanupStorage] Total de arquivos no disco: ${allFiles.length}`);
 
     let deletedCount = 0;
     let deletedSize = 0;
@@ -78,14 +79,12 @@ async function cleanupStorage(orgId) {
             const stats = await fs.stat(fullPath);
             deletedSize += stats.size;
             deletedCount++;
-            console.log(`[DELETE] Órfão encontrado: ${relativePath} (${(stats.size / 1024).toFixed(2)} KB)`);
+            logger.info(`[cleanupStorage] Órfão encontrado: ${relativePath} (${(stats.size / 1024).toFixed(2)} KB)`);
             await fs.unlink(fullPath);
         }
     }
 
-    console.log(`--- Limpeza Concluída ---`);
-    console.log(`Arquivos deletados: ${deletedCount}`);
-    console.log(`Espaço liberado: ${(deletedSize / 1024 / 1024).toFixed(2)} MB`);
+    logger.info(`[cleanupStorage] Limpeza concluída: deletados=${deletedCount} liberado=${(deletedSize / 1024 / 1024).toFixed(2)}MB`);
 }
 
 // Se rodar direto

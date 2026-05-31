@@ -147,7 +147,7 @@ app.get('/site', async (req, res) => {
     res.send(html);
 
   } catch (error) {
-    console.error('Erro ao servir template do site:', error);
+    logger.error('Erro ao servir template do site:', { message: error.message });
     try {
       res.sendFile(masterPath); // Fallback to send the raw file if string replacement fails
     } catch {
@@ -186,14 +186,14 @@ const connectWithRetry = async () => {
       minPoolSize: 2
     });
     isConnected = true;
-    console.log('MongoDB conectado com sucesso');
+    logger.info('MongoDB conectado com sucesso');
     // Em cluster PM2, apenas o worker 0 roda os schedulers para evitar envios duplicados
     const instanceId = process.env.NODE_APP_INSTANCE;
     if (instanceId === undefined || instanceId === '0') {
       startDeadlineScheduler();
     }
   } catch (err) {
-    console.error('Erro na conexão MongoDB:', err.message);
+    logger.error('Erro na conexão MongoDB:', { message: err.message });
     isConnected = false;
     setTimeout(connectWithRetry, 5000);
   }
@@ -211,7 +211,7 @@ function safeInterval(fn, ms) {
   const run = async () => {
     if (isRunning) return;
     isRunning = true;
-    try { await fn(); } catch (e) { console.error(e); } finally { isRunning = false; }
+    try { await fn(); } catch (e) { logger.error(e.message, { stack: e.stack }); } finally { isRunning = false; }
   };
   run();
   return setInterval(run, ms);
@@ -226,19 +226,19 @@ function startDeadlineScheduler() {
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
   safeInterval(() => checkDeadlines(), SIX_HOURS);
-  console.log('[scheduler] Verificador de prazos iniciado (a cada 6h)');
+  logger.info('[scheduler] Verificador de prazos iniciado (a cada 6h)');
 
   // Roda 1x por dia — verifica orgs suspensas e aplica offboarding após grace period
   safeInterval(() => checkOffboarding(), ONE_DAY);
-  console.log('[scheduler] Offboarding checker iniciado (a cada 24h)');
+  logger.info('[scheduler] Offboarding checker iniciado (a cada 24h)');
 
   // CRM Fase 2 (Fatia A): motor de vendas automaticas — escassez 7d
   safeInterval(() => salesAutomator.run(), SIX_HOURS);
-  console.log('[scheduler] Sales automator iniciado (a cada 6h)');
+  logger.info('[scheduler] Sales automator iniciado (a cada 6h)');
 
   // Retenção de storage: roda 1× por dia às 9h Brasília (12h UTC)
   safeInterval(() => storageRetentionChecker.run(), ONE_DAY);
-  console.log('[scheduler] Storage retention checker iniciado (a cada 24h)');
+  logger.info('[scheduler] Storage retention checker iniciado (a cada 24h)');
 
   // CRM reativacao de clientes: roda todo dia às 8h horario de Brasilia (11h UTC)
   function agendarProximaReativacao() {
@@ -247,10 +247,10 @@ function startDeadlineScheduler() {
     if (proximas8h <= now) proximas8h.setUTCDate(proximas8h.getUTCDate() + 1);
     const delay = proximas8h - now;
     setTimeout(async () => {
-      try { await anniversaryAutomator.run(); } catch (e) { console.error('[anniversaryAutomator]', e.message); }
+      try { await anniversaryAutomator.run(); } catch (e) { logger.error('[anniversaryAutomator]', { message: e.message }); }
       agendarProximaReativacao();
     }, delay);
-    console.log(`[scheduler] Anniversary automator agendado para ${proximas8h.toISOString()} (8h Brasília)`);
+    logger.info(`[scheduler] Anniversary automator agendado para ${proximas8h.toISOString()} (8h Brasília)`);
   }
   agendarProximaReativacao();
 }
@@ -258,7 +258,7 @@ function startDeadlineScheduler() {
 connectWithRetry();
 
 mongoose.connection.on('error', (err) => {
-  console.error('Erro de conexão MongoDB:', err.message);
+  logger.error('Erro de conexão MongoDB:', { message: err.message });
 });
 
 // Health check

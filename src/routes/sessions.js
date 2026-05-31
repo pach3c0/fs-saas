@@ -967,7 +967,7 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
         }
       }
     } catch (e) {
-      console.error('Erro ao enviar email de recusa:', e);
+      req.logger.error('Erro ao enviar email de recusa:', { message: e.message });
     }
 
     res.json({ success: true });

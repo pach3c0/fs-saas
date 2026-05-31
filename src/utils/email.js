@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const logger = require('./logger');
 
 // Transporter singleton — reutiliza a conexão SMTP entre envios
 let _transporter = null;
@@ -11,7 +12,7 @@ function getTransporter() {
   const pass = process.env.SMTP_PASS;
 
   if (!host || !user || !pass) {
-    console.warn('[Email] SMTP nao configurado. Emails nao serao enviados.');
+    logger.warn('[Email] SMTP nao configurado. Emails nao serao enviados.');
     return null;
   }
 
@@ -39,7 +40,7 @@ function getTransporter() {
 async function sendEmail(to, subject, html) {
   const t = getTransporter();
   if (!t) {
-    console.warn(`[Email] Pulando envio para ${to}: SMTP nao configurado`);
+    logger.warn(`[Email] Pulando envio para ${to}: SMTP nao configurado`);
     return false;
   }
 
@@ -50,10 +51,10 @@ async function sendEmail(to, subject, html) {
       subject,
       html
     });
-    console.log(`[Email] Enviado para ${to}: ${subject}`);
+    logger.info(`[Email] Enviado para ${to}: ${subject}`);
     return true;
   } catch (error) {
-    console.error(`[Email] Erro ao enviar para ${to}:`, error.message);
+    logger.error(`[Email] Erro ao enviar para ${to}:`, { message: error.message });
     return false;
   }
 }
