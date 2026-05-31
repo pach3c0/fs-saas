@@ -1,7 +1,6 @@
 import { state } from './state.js';
 import { loadSessions, setupListFilters } from './list.js';
 import { setupModalForm } from './modal-form.js';
-import { setupModalDetail } from './modal-detail.js';
 import { setupComments } from './comments.js';
 import { setupParticipantes } from './modal-participantes.js';
 import { setupUpload } from './upload.js';
@@ -240,7 +239,7 @@ export async function renderSessoes(container) {
             </div>
             <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
               <input type="checkbox" id="sessionSalesAutomation" checked class="check" disabled>
-              <span style="color:var(--text-primary); font-size:0.875rem;">🤖 Automação de vendas (escassez)</span>
+              <span style="color:var(--text-primary); font-size:0.875rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="bot" style="width:16px; height:16px;"></i> Automação de vendas (escassez)</span>
             </label>
             <p class="input-hint" style="margin:0;">O robô envia e-mails de urgência ao cliente conforme o prazo se aproxima. Requer ativar a automação na configuração da organização.</p>
           </div>
@@ -432,7 +431,7 @@ export async function renderSessoes(container) {
           </div>
           <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
             <input type="checkbox" id="editSalesAutomation" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">🤖 Automação de vendas (escassez)</span>
+            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="bot" style="width:16px; height:16px;"></i> Automação de vendas (escassez)</span>
           </label>
         </div>
         <!-- Retenção de storage (edição) -->
@@ -525,7 +524,6 @@ export async function renderSessoes(container) {
   await loadSessions(container, state);
   setupListFilters(container, state);
   setupModalForm(container, state, renderSessoes);
-  setupModalDetail(container, state);
   setupComments(container, state);
   setupParticipantes(container, state, renderSessoes);
   setupUpload(container, state, renderSessoes);

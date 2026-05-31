@@ -338,16 +338,16 @@ Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pend
 - [ ] **Validar Onda 1–4 em modo `gallery`** — todas as ondas foram focadas em `selection`. Confirmar fluxo da galeria após a fusão (Upload → Compartilhar → Entregar, 3 passos).
 - [ ] **Regra do mínimo de upload em multi-seleção** — modelar como tratar o `packageLimit` por participante. Hoje a validação só vale para `selection`.
 - [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
-- [ ] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
+- [x] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
 - [ ] **Inconsistência de campos:** Uniformizar `nome`/`mensagem` (contato) vs `name`/`text` (depoimento) — não crítico
 - [ ] Completar auditoria dos dias 3–7
 - [ ] **Notificações globais clicáveis:** o sininho do wizard já roteia corretamente (`comment_added` abre o modal certo); o global do topbar ainda precisa do mesmo polish. `admin/js/utils/notifications.js`
 - [ ] **Sininho do cliente sem dropdown:** se há múltiplas respostas de fotos diferentes, ele só abre a primeira. Tratar caso surja demanda.
 - [ ] **Arquivamento de fotos com link externo:** parte da Onda 5 (retenção de storage). Campo `externalStorageUrl` + `archivedAt` no model Session.
-- [ ] **Ícone robô:** substituir 🤖 na seção Automação do `modal-form.js` por ícone Lucide.
-- [ ] **Manual do Usuário desatualizado para Sessões** — `MANUAL_MODULES[1]` em `admin/js/tabs/ajuda.js` ainda descreve fluxo antigo de botões (precisa refletir wizard de 5 passos).
+- [x] **Ícone robô:** substituir 🤖 na seção Automação do `modal-form.js` por ícone Lucide.
+- [x] **Manual do Usuário desatualizado para Sessões** — `MANUAL_MODULES[1]` em `admin/js/tabs/ajuda.js` ainda descreve fluxo antigo de botões (precisa refletir wizard de 5 passos).
 - [ ] **Testes Playwright** (`tests/3_0_sessoes.spec.js`) — clicam nos botões antigos, precisam ser reescritos para o wizard.
-- [ ] **modal-detail.js standalone** — pode ser removido, o wizard já tem o grid embutido nos passos 1/4/5.
+- [x] **modal-detail.js standalone** — pode ser removido, o wizard já tem o grid embutido nos passos 1/4/5.
 - [ ] **Cortesia como diferencial de marketing** — incluir como bullet em "Por que CliqueZoom" quando auditar a landing (Dia 4).
 
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento

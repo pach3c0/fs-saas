@@ -588,7 +588,7 @@ router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res)
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
       update,
-      { new: true }
+      { returnDocument: 'after' }
     ).select('uploadsCompletedAt photos').lean();
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
@@ -1807,7 +1807,7 @@ router.put('/sessions/:id/storage-retention', authenticateToken, async (req, res
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
       update,
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
