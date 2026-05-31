@@ -19,7 +19,6 @@ export async function loadAppData() {
     if (!response.ok) throw new Error('Erro ao carregar dados');
 
     appState.appData = await response.json();
-    console.log('Dados carregados:', Object.keys(appState.appData));
   } catch (error) {
     console.error('Erro:', error.message);
     appState.appData = {};
@@ -53,7 +52,6 @@ export async function saveAppData(section, data, silent = false) {
     if (!silent) {
       window.showToast?.('Salvo com sucesso!', 'success');
     }
-    console.log(`Seção '${section}' salva com sucesso`);
     return true;
   } catch (error) {
     window.showToast?.('Erro: ' + error.message, 'error');

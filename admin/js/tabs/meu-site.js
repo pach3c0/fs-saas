@@ -12,7 +12,6 @@ import { renderAlbuns } from './albuns.js';
 import { renderEstudio, getStudioState } from './estudio.js';
 import { renderFaq } from './faq.js';
 import { renderCliente } from './cliente.js';
-import { photoEditorHtml, setupPhotoEditor } from '../utils/photoEditor.js';
 
 
 export async function renderMeuSite(container) {
@@ -390,7 +389,7 @@ async function renderSiteContent(container, builderTabsEl) {
       title: 'Alterações não salvas',
       confirmText: 'Salvar',
       cancelText: 'Descartar',
-    }) ?? confirm(`Você tem alterações não salvas em "${label}".\n\nDeseja salvar antes de continuar?`);
+    });
 
     if (save) {
       const saveBtn = activeContent?.querySelector('button[id*="save"], button[id*="Save"]');
@@ -1264,7 +1263,7 @@ async function renderSiteContent(container, builderTabsEl) {
       };
 
       window.deleteServico = async (idx) => {
-        const ok = await window.showConfirm?.('Remover este serviço?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este serviço?');
+        const ok = await window.showConfirm?.('Remover este serviço?', { confirmText: 'Remover', danger: true });
         if (!ok) return;
         servicos.splice(idx, 1);
         renderList();
@@ -1350,7 +1349,7 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     window.rejeitarDepoimento = async (id) => {
-      const ok = await window.showConfirm?.('Rejeitar e apagar este depoimento?', { confirmText: 'Rejeitar', danger: true }) ?? confirm('Rejeitar e apagar este depoimento?');
+      const ok = await window.showConfirm?.('Rejeitar e apagar este depoimento?', { confirmText: 'Rejeitar', danger: true });
       if (!ok) return;
       try {
         await apiDelete(`/api/site/admin/depoimentos-pendentes/${id}`);
@@ -1451,7 +1450,7 @@ async function renderSiteContent(container, builderTabsEl) {
       });
 
       window.deleteDepoimento = async (idx) => {
-        const ok = await window.showConfirm?.('Remover este depoimento?', { confirmText: 'Remover', danger: true }) ?? confirm('Remover este depoimento?');
+        const ok = await window.showConfirm?.('Remover este depoimento?', { confirmText: 'Remover', danger: true });
         if (!ok) return;
         depoimentos.splice(idx, 1);
         renderList();
