@@ -1,16 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
 const Organization = require('../models/Organization');
 const DefaultSiteTemplate = require('../models/DefaultSiteTemplate');
-
-const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
+const Notification = require('../models/Notification');
+const { sendPendingDepoimentoEmail } = require('../utils/email');
 const { authenticateToken } = require('../middleware/auth');
 const { clearOrgCache } = require('../middleware/tenant');
 const { createUploader } = require('../utils/multerConfig');
-const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
 const { checkHoneyPot } = require('../middleware/security');
+
+const DEFAULT_SECTIONS = ['hero', 'portfolio', 'albuns', 'servicos', 'estudio', 'depoimentos', 'contato', 'sobre', 'faq'];
 
 const uploadSite = createUploader('site');
 
@@ -125,7 +128,7 @@ router.post('/site/admin/portfolio', authenticateToken, uploadSite.single('photo
       .toFile(resizedPath);
     
     // Remove original (optional, keeping it simple)
-    try { fs.unlinkSync(originalPath); } catch(e) {}
+    try { await fs.promises.unlink(originalPath); } catch(e) {}
 
     const url = `/uploads/${req.user.organizationId}/site/${resizedFilename}`;
 
@@ -153,7 +156,7 @@ router.delete('/site/admin/portfolio/:idx', authenticateToken, async (req, res) 
       const photo = org.siteContent.portfolio.photos[idx];
       // Try to delete file
       if (photo.url && photo.url.startsWith('/uploads/')) {
-        try { fs.unlinkSync(path.join(__dirname, '../..', photo.url)); } catch(e) {}
+        try { await fs.promises.unlink(path.join(__dirname, '../..', photo.url)); } catch(e) {}
       }
       org.siteContent.portfolio.photos.splice(idx, 1);
       await org.save();
@@ -233,7 +236,7 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
     const { name, text, email, rating } = req.body;
     if (!name || !text) return res.status(400).json({ error: 'Nome e texto são obrigatórios' });
 
-    const id = require('crypto').randomBytes(8).toString('hex');
+    const id = crypto.randomBytes(8).toString('hex');
     await Organization.findByIdAndUpdate(req.organizationId, {
       $push: { 'siteContent.pendingDepoimentos': { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
     });
@@ -241,23 +244,21 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
 
     // Notifica o fotografo por notificacao no admin + email (fire-and-forget)
     try {
-      const Notification = require('../models/Notification');
       await Notification.create({
         organizationId: req.organizationId,
         type: 'depoimento_pendente',
         message: `⭐ ${name}${email ? ` (${email})` : ''}: ${text}`
       });
     } catch (e) {
-      console.error('[Depoimento] Erro ao criar notificacao:', e.message);
+      req.logger?.error('[Depoimento] Erro ao criar notificacao:', e.message);
     }
     try {
       const org = await Organization.findById(req.organizationId).select('email name');
       if (org?.email) {
-        const { sendPendingDepoimentoEmail } = require('../utils/email');
         sendPendingDepoimentoEmail(org.email, name, org.name);
       }
     } catch (e) {
-      console.error('[Depoimento] Erro ao enviar email de notificacao:', e.message);
+      req.logger?.error('[Depoimento] Erro ao enviar email de notificacao:', e.message);
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -271,7 +272,6 @@ router.post('/site/contact', checkHoneyPot, async (req, res) => {
     const { nome, email, assunto, mensagem } = req.body;
     if (!nome || !mensagem) return res.status(400).json({ error: 'Nome e mensagem são obrigatórios' });
 
-    const Notification = require('../models/Notification');
     await Notification.create({
       organizationId: req.organizationId,
       type: 'contact',

@@ -15,9 +15,10 @@ const fs = require('fs');
 const storage = require('../services/storage');
 const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
 
-function loadPlanLimits() {
+async function loadPlanLimits() {
     try {
-        return JSON.parse(fs.readFileSync(PLAN_LIMITS_PATH, 'utf8'));
+        const data = await fs.promises.readFile(PLAN_LIMITS_PATH, 'utf8');
+        return JSON.parse(data);
     } catch {
         return {
             free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
@@ -273,7 +274,7 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
 router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin, async (req, res) => {
     try {
         const { plan } = req.body;
-        const planLimits = loadPlanLimits();
+        const planLimits = await loadPlanLimits();
         if (!planLimits[plan]) return res.status(400).json({ error: 'Plano inválido' });
 
         const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { returnDocument: 'after' });
@@ -285,8 +286,8 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
 });
 
 // Limites padrão dos planos
-router.get('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, (req, res) => {
-    res.json(loadPlanLimits());
+router.get('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, async (req, res) => {
+    res.json(await loadPlanLimits());
 });
 
 router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, async (req, res) => {

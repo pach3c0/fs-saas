@@ -1,5 +1,7 @@
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const Subscription = require('../models/Subscription');
+const Session = require('../models/Session');
+const Notification = require('../models/Notification');
 const plans = require('../models/plans');
 
 // Configuração do Client do Mercado Pago (SDK v2)
@@ -64,7 +66,6 @@ async function handleWebhook(eventBody, eventQuery) {
                 // Caso 1: Pagamento de Fotos Extras (orgId:sessionId)
                 if (extRef && extRef.includes(':')) {
                     const [orgId, sessionId] = extRef.split(':');
-                    const Session = require('../models/Session');
                     const session = await Session.findById(sessionId);
 
                     if (session && session.extraRequest.status === 'pending') {
@@ -79,7 +80,6 @@ async function handleWebhook(eventBody, eventQuery) {
                         await session.save();
 
                         // Notificar fotógrafo
-                        const Notification = require('../models/Notification');
                         await Notification.create({
                             type: 'extra_photos_paid',
                             sessionId: session._id,

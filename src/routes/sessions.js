@@ -14,7 +14,7 @@ const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const archiver = require('archiver');
 const { checkDeadlines } = require('../utils/deadlineChecker');
-const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendUpsellEmail, buildWhatsAppGalleryLink, sendPendingDownloadEmail } = require('../utils/email');
+const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendExtraPhotosRejectedEmail, sendUpsellEmail, buildWhatsAppGalleryLink, sendPendingDownloadEmail } = require('../utils/email');
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 
@@ -962,7 +962,6 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
       const clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
       if (clientEmail) {
         const org = await Organization.findById(req.user.organizationId).select('name slug');
-        const { sendExtraPhotosRejectedEmail } = require('../utils/email');
         if (sendExtraPhotosRejectedEmail) {
           sendExtraPhotosRejectedEmail(clientEmail, session.name, org?.name || 'O fotógrafo', session.extraRequest.rejectReason, org?.slug).catch(() => { });
         }

@@ -74,7 +74,7 @@ router.post('/admin/tutorials', authenticateToken, requireSuperadmin, async (req
       active: active !== undefined ? active : true
     });
 
-    res.status(211).json({ success: true, tutorial });
+    res.status(201).json({ success: true, tutorial });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
