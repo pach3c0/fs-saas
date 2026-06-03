@@ -114,8 +114,6 @@ router.post('/auth/reset-password', async (req, res) => {
   }
 });
 
-const { checkHoneyPot } = require('../middleware/security');
-
 // Registro self-service (cria org + user já ativos)
 router.post('/auth/register', checkHoneyPot, async (req, res) => {
   try {
