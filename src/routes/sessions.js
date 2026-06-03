@@ -640,6 +640,26 @@ router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
   }
 });
 
+// ADMIN: Autosave das mensagens customizadas (Share / Deliver)
+router.put('/sessions/:id/custom-messages', authenticateToken, async (req, res) => {
+  try {
+    const { customShareEmailIntro, customShareWhatsAppText, customDeliverEmailIntro, customDeliverWhatsAppText } = req.body;
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    if (customShareEmailIntro !== undefined) session.customShareEmailIntro = customShareEmailIntro;
+    if (customShareWhatsAppText !== undefined) session.customShareWhatsAppText = customShareWhatsAppText;
+    if (customDeliverEmailIntro !== undefined) session.customDeliverEmailIntro = customDeliverEmailIntro;
+    if (customDeliverWhatsAppText !== undefined) session.customDeliverWhatsAppText = customDeliverWhatsAppText;
+
+    await session.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // CLIENTE: Adicionar comentário
 router.post('/client/comments/:sessionId', async (req, res) => {
   try {

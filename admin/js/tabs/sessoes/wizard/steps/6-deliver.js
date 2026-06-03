@@ -171,7 +171,13 @@ export function renderStepDeliver({ session, refresh }) {
     deliverCard.appendChild(buildMessageCustomizer({
       label: 'Personalizar mensagem do e-mail',
       defaultText: buildDeliveryEmailIntro(session),
-      onTextareaReady: el => { deliverEmailTextareaEl = el; }
+      onTextareaReady: el => { deliverEmailTextareaEl = el; },
+      onInput: async (val) => {
+        try {
+          await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverEmailIntro: val });
+          session.customDeliverEmailIntro = val;
+        } catch (err) { console.error('Erro autosave:', err); }
+      }
     }));
 
     const deliverBtn = document.createElement('button');
@@ -553,7 +559,13 @@ function renderShareDeliveryCard(session) {
   card.appendChild(buildMessageCustomizer({
     label: 'Personalizar mensagem do WhatsApp',
     defaultText: buildDeliveryWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
-    onTextareaReady: el => { waTextareaEl = el; }
+    onTextareaReady: el => { waTextareaEl = el; },
+    onInput: async (val) => {
+      try {
+        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverWhatsAppText: val });
+        session.customDeliverWhatsAppText = val;
+      } catch (err) { console.error('Erro autosave:', err); }
+    }
   }));
 
   const row = document.createElement('div');

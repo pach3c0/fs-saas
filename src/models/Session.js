@@ -51,6 +51,10 @@ const sessionSchema = new mongoose.Schema({
     watermark: { type: Boolean, default: true },
     commentsEnabled: { type: Boolean, default: true }, // Exibir botao de comentario na galeria do cliente
     canShare: { type: Boolean, default: false },
+    customShareEmailIntro: { type: String, default: '' },
+    customShareWhatsAppText: { type: String, default: '' },
+    customDeliverEmailIntro: { type: String, default: '' },
+    customDeliverWhatsAppText: { type: String, default: '' },
     allowExtraPurchasePostSubmit: { type: Boolean, default: true },
     allowReopen: { type: Boolean, default: true },
     reopenRequested: { type: Boolean, default: false }, // cliente solicitou reabertura — aguardando decisão do admin

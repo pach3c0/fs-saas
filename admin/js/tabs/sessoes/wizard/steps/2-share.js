@@ -180,6 +180,12 @@ function renderChannelCards(session, refresh) {
     defaultMessage: buildShareEmailIntro(session),
     messageLabel: 'Personalizar mensagem do e-mail',
     onTextareaReady: el => { emailTextareaEl = el; },
+    onInput: async (val) => {
+      try {
+        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareEmailIntro: val });
+        session.customShareEmailIntro = val;
+      } catch (err) { console.error('Erro autosave:', err); }
+    },
     onClick: async () => {
       const emailIntro = emailTextareaEl?.value?.trim() || undefined;
       try {
@@ -205,6 +211,12 @@ function renderChannelCards(session, refresh) {
     defaultMessage: buildShareWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
     messageLabel: 'Personalizar mensagem do WhatsApp',
     onTextareaReady: el => { waTextareaEl = el; },
+    onInput: async (val) => {
+      try {
+        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareWhatsAppText: val });
+        session.customShareWhatsAppText = val;
+      } catch (err) { console.error('Erro autosave:', err); }
+    },
     onClick: async () => {
       const customText = waTextareaEl?.value?.trim() || undefined;
       try {
@@ -403,7 +415,7 @@ function escapeText(s) {
 }
 
 // Card de canal com toggle de personalização de mensagem (email ou WhatsApp).
-function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, actionLabel, defaultMessage, messageLabel, onTextareaReady, onClick }) {
+function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, actionLabel, defaultMessage, messageLabel, onTextareaReady, onClick, onInput }) {
   const card = document.createElement('div');
   card.style.cssText = `
     background: var(--bg-surface);
@@ -431,7 +443,7 @@ function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, ac
   sub.style.cssText = 'font-size:0.75rem; color:var(--text-muted); min-height:1.5em;';
   card.appendChild(sub);
 
-  card.appendChild(buildMessageCustomizer({ label: messageLabel, defaultText: defaultMessage, onTextareaReady }));
+  card.appendChild(buildMessageCustomizer({ label: messageLabel, defaultText: defaultMessage, onTextareaReady, onInput }));
 
   const btn = document.createElement('button');
   btn.type = 'button';

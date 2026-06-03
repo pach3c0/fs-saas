@@ -131,16 +131,19 @@ const EMAIL_DELIVERY_INTROS = {
 
 // Retorna o texto padrão do parágrafo de e-mail de envio de código (editável).
 export function buildShareEmailIntro(session) {
+  if (session.customShareEmailIntro) return session.customShareEmailIntro;
   return EMAIL_SHARE_INTROS[session.eventType] || EMAIL_SHARE_INTROS.outro;
 }
 
 // Retorna o texto padrão do parágrafo de e-mail de entrega (editável).
 export function buildDeliveryEmailIntro(session) {
+  if (session.customDeliverEmailIntro) return session.customDeliverEmailIntro;
   return EMAIL_DELIVERY_INTROS[session.eventType] || EMAIL_DELIVERY_INTROS.outro;
 }
 
 // Retorna o texto completo da mensagem WhatsApp de envio de código (sem encoding).
 export function buildShareWhatsAppText({ session, accessCode, recipientName, orgName }) {
+  if (session.customShareWhatsAppText) return session.customShareWhatsAppText;
   const url = buildGalleryUrlForCode(session, accessCode);
   const firstName = String(recipientName || '').split(' ')[0] || 'Olá';
   const opener = (WA_OPENINGS[session.eventType] || WA_OPENINGS.outro)(firstName);
@@ -150,6 +153,7 @@ export function buildShareWhatsAppText({ session, accessCode, recipientName, org
 
 // Retorna o texto completo da mensagem WhatsApp de entrega (sem encoding).
 export function buildDeliveryWhatsAppText({ session, accessCode, recipientName, orgName }) {
+  if (session.customDeliverWhatsAppText) return session.customDeliverWhatsAppText;
   const url = buildGalleryUrlForCode(session, accessCode);
   const firstName = String(recipientName || '').split(' ')[0] || 'Olá';
   const opener = (WA_DELIVERY_OPENINGS[session.eventType] || WA_DELIVERY_OPENINGS.outro)(firstName);
@@ -159,7 +163,7 @@ export function buildDeliveryWhatsAppText({ session, accessCode, recipientName, 
 
 // Componente reutilizável: toggle + textarea para personalizar mensagens antes de enviar.
 // `onTextareaReady(textarea)` é chamado imediatamente com a referência ao elemento.
-export function buildMessageCustomizer({ label, defaultText, onTextareaReady }) {
+export function buildMessageCustomizer({ label, defaultText, onTextareaReady, onInput }) {
   const section = document.createElement('div');
   section.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem;';
 
@@ -188,6 +192,9 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady }) 
   `;
 
   if (typeof onTextareaReady === 'function') onTextareaReady(textarea);
+  if (typeof onInput === 'function') {
+    textarea.oninput = (e) => onInput(e.target.value);
+  }
   textareaWrap.appendChild(textarea);
 
   toggleBtn.onclick = () => {
