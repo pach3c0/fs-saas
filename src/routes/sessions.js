@@ -1379,13 +1379,48 @@ router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, asy
   }
 });
 
+// Reabertura da seleção pelo fotógrafo.
+// Dois cenários atendidos pelo mesmo endpoint:
+//   - Aceitar pedido do cliente (botão no passo Entregar): reopenRequested → false.
+//   - Reabertura direta pelo fotógrafo (botão no passo Acompanhar): independente de pedido.
+// Body opcional { participantId } reabre apenas um participante em multi-seleção;
+// sem participantId, reabre todos os participantes que já haviam enviado.
 router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
   try {
-    await Session.findOneAndUpdate(
-      { _id: req.params.id, organizationId: req.user.organizationId },
-      { selectionStatus: 'in_progress', reopenRequested: false }
-    );
-    _logEvent(req.params.id, 'reopen_accepted', {});
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+    const { participantId } = req.body || {};
+
+    if (isMulti && (session.participants || []).length > 0) {
+      let reopened = 0;
+      const targets = participantId
+        ? [session.participants.id(participantId)].filter(Boolean)
+        : session.participants;
+      if (participantId && targets.length === 0) {
+        return res.status(404).json({ error: 'Participante não encontrado' });
+      }
+      targets.forEach((p) => {
+        if (p.selectionStatus === 'submitted' || p.selectionStatus === 'delivered') {
+          p.selectionStatus = 'in_progress';
+          p.submittedAt = undefined;
+          reopened++;
+        }
+      });
+      // Sessão volta a aguardar enquanto houver participante reaberto
+      session.selectionStatus = 'in_progress';
+    } else {
+      session.selectionStatus = 'in_progress';
+      // Limpa o carimbo de envio para o passo Acompanhar voltar a ficar ativo.
+      // O cliente re-define ao reenviar a seleção.
+      session.selectionSubmittedAt = undefined;
+    }
+
+    session.reopenRequested = false;
+    await session.save();
+
+    _logEvent(req.params.id, 'reopen_accepted', { by: 'photographer', participantId: participantId || null });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -4,7 +4,7 @@
 // Polling adaptativo: 30s default → 10s por 2 min após detectar mudança → 30s.
 // Com modal de comentário aberto, intervalo cai pra 8s. Pausa quando a aba perde foco.
 
-import { apiGet } from '../../../../utils/api.js';
+import { apiGet, apiPut } from '../../../../utils/api.js';
 import { resolveImagePath, escapeHtml } from '../../../../utils/helpers.js';
 import { wizardState, stopWizardPolling } from '../state.js';
 import { openOverlayModal } from '../utils.js';
@@ -21,6 +21,22 @@ function buildSnapshot(session) {
     comments: (session.photos || []).map(p => `${p.id}:${p.comments?.length || 0}`).sort(),
     participants: (session.participants || []).map(p => `${p._id}:${p.selectionStatus}:${(p.selectedPhotos || []).length}`).sort()
   });
+}
+
+// Reabre a seleção pelo fotógrafo. participantId opcional reabre só um participante (multi).
+async function reopenSelection(session, refresh, participantId = null, participantName = '') {
+  const msg = participantId
+    ? `Reabrir a seleção de ${participantName}? Ele(a) poderá alterar as fotos escolhidas.`
+    : 'Reabrir a seleção? O cliente poderá alterar as fotos escolhidas.';
+  const ok = await window.showConfirm?.(msg, { confirmText: 'Reabrir', cancelText: 'Cancelar' });
+  if (!ok) return;
+  try {
+    await apiPut(`/api/sessions/${session._id}/reopen`, participantId ? { participantId } : {});
+    window.showToast?.('Seleção reaberta. O cliente pode alterar as fotos.', 'success');
+    await refresh();
+  } catch (e) {
+    window.showToast?.('Erro ao reabrir: ' + e.message, 'error');
+  }
 }
 
 function isCommentsModalOpen() {
@@ -93,6 +109,24 @@ export function renderStepTracking({ session, refresh }) {
     };
     headerRow.appendChild(refreshBtn);
   }
+
+  // Reabrir seleção (iniciada pelo fotógrafo, independente do pedido do cliente).
+  // Em single: aparece quando o cliente já enviou. Em multi: por participante na tabela.
+  if (!isMulti && session.selectionStatus === 'submitted') {
+    const reopenBtn = document.createElement('button');
+    reopenBtn.type = 'button';
+    reopenBtn.title = 'Reabrir a seleção para o cliente alterar as fotos';
+    reopenBtn.innerHTML = '🔓 Reabrir seleção';
+    reopenBtn.style.cssText = `
+      background: transparent; border: 1px solid var(--orange);
+      color: var(--orange);
+      padding: 0.5rem 0.875rem; border-radius: 0.375rem;
+      cursor: pointer; font-size: 0.8125rem; font-weight: 600;
+      align-self: flex-start;
+    `;
+    reopenBtn.onclick = () => reopenSelection(session, refresh);
+    headerRow.appendChild(reopenBtn);
+  }
   wrap.appendChild(headerRow);
 
   // Stats em tempo real
@@ -102,7 +136,7 @@ export function renderStepTracking({ session, refresh }) {
 
   // Multi: tabela de progresso por participante (em cima do grid)
   if (isMulti) {
-    wrap.appendChild(renderParticipantsProgress(session));
+    wrap.appendChild(renderParticipantsProgress(session, refresh));
   }
 
   // Grid de fotos com película (compartilhado entre os participantes em multi)
@@ -220,7 +254,7 @@ function renderStatsBar(stats, isSubmitted, isMulti) {
 }
 
 // Tabela com cada participante e seu progresso de seleção.
-function renderParticipantsProgress(session) {
+function renderParticipantsProgress(session, refresh) {
   const wrap = document.createElement('div');
   wrap.style.cssText = `
     background: var(--bg-surface); border: 1px solid var(--border);
@@ -276,6 +310,23 @@ function renderParticipantsProgress(session) {
           ${statusInfo.label}
         </div>
       `;
+
+      // Reabrir seleção deste participante (independente de pedido) — só se já enviou
+      if (status === 'submitted' || status === 'delivered') {
+        const reopenBtn = document.createElement('button');
+        reopenBtn.type = 'button';
+        reopenBtn.title = `Reabrir a seleção de ${p.name}`;
+        reopenBtn.innerHTML = '🔓 Reabrir';
+        reopenBtn.style.cssText = `
+          background: transparent; border: 1px solid var(--orange);
+          color: var(--orange);
+          padding: 0.25rem 0.625rem; border-radius: 0.375rem;
+          cursor: pointer; font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+        `;
+        reopenBtn.onclick = () => reopenSelection(session, refresh, p._id, p.name);
+        row.appendChild(reopenBtn);
+      }
+
       list.appendChild(row);
     });
   }
