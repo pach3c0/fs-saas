@@ -167,6 +167,9 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   const section = document.createElement('div');
   section.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem;';
 
+  const topRow = document.createElement('div');
+  topRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; width:100%;';
+
   const toggleBtn = document.createElement('button');
   toggleBtn.type = 'button';
   let expanded = false;
@@ -174,8 +177,16 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   toggleBtn.style.cssText = `
     background: transparent; border: none; padding: 0; cursor: pointer;
     color: var(--text-muted); font-size: 0.75rem; text-align: left;
-    text-decoration: underline; text-underline-offset: 2px; width: fit-content;
+    text-decoration: underline; text-underline-offset: 2px;
   `;
+
+  const statusBadge = document.createElement('span');
+  statusBadge.style.cssText = 'font-size:0.7rem; color:var(--text-muted); opacity:0; transition:opacity 0.2s; white-space:nowrap;';
+  statusBadge.textContent = 'Salvando...';
+
+  topRow.appendChild(toggleBtn);
+  topRow.appendChild(statusBadge);
+  section.appendChild(topRow);
 
   const textareaWrap = document.createElement('div');
   textareaWrap.style.display = 'none';
@@ -193,7 +204,24 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
 
   if (typeof onTextareaReady === 'function') onTextareaReady(textarea);
   if (typeof onInput === 'function') {
-    textarea.oninput = (e) => onInput(e.target.value);
+    let timeout;
+    textarea.oninput = (e) => {
+      clearTimeout(timeout);
+      statusBadge.textContent = 'Salvando...';
+      statusBadge.style.color = 'var(--text-muted)';
+      statusBadge.style.opacity = '1';
+      timeout = setTimeout(async () => {
+        try {
+          await onInput(e.target.value);
+          statusBadge.textContent = '✓ Salvo automaticamente';
+          statusBadge.style.color = 'var(--green)';
+          setTimeout(() => { statusBadge.style.opacity = '0'; }, 3000);
+        } catch (err) {
+          statusBadge.textContent = '❌ Erro ao salvar';
+          statusBadge.style.color = 'var(--red)';
+        }
+      }, 600);
+    };
   }
   textareaWrap.appendChild(textarea);
 
@@ -203,7 +231,6 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
     toggleBtn.textContent = `✏️ ${label} ${expanded ? '▲' : '▼'}`;
   };
 
-  section.appendChild(toggleBtn);
   section.appendChild(textareaWrap);
   return section;
 }

@@ -173,10 +173,8 @@ export function renderStepDeliver({ session, refresh }) {
       defaultText: buildDeliveryEmailIntro(session),
       onTextareaReady: el => { deliverEmailTextareaEl = el; },
       onInput: async (val) => {
-        try {
-          await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverEmailIntro: val });
-          session.customDeliverEmailIntro = val;
-        } catch (err) { console.error('Erro autosave:', err); }
+        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverEmailIntro: val });
+        session.customDeliverEmailIntro = val;
       }
     }));
 
@@ -561,10 +559,8 @@ function renderShareDeliveryCard(session) {
     defaultText: buildDeliveryWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
     onTextareaReady: el => { waTextareaEl = el; },
     onInput: async (val) => {
-      try {
-        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverWhatsAppText: val });
-        session.customDeliverWhatsAppText = val;
-      } catch (err) { console.error('Erro autosave:', err); }
+      await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverWhatsAppText: val });
+      session.customDeliverWhatsAppText = val;
     }
   }));
 

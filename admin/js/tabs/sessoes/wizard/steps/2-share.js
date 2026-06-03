@@ -4,7 +4,7 @@
 // dos cards do cliente principal.
 // A visualização desse passo já marca codeViewedAt no servidor (feito no switchStep).
 
-import { apiPost } from '../../../../utils/api.js';
+import { apiPost, apiPut } from '../../../../utils/api.js';
 import {
   buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppLink, openOverlayModal,
   buildShareEmailIntro, buildShareWhatsAppText, buildMessageCustomizer
@@ -181,10 +181,8 @@ function renderChannelCards(session, refresh) {
     messageLabel: 'Personalizar mensagem do e-mail',
     onTextareaReady: el => { emailTextareaEl = el; },
     onInput: async (val) => {
-      try {
-        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareEmailIntro: val });
-        session.customShareEmailIntro = val;
-      } catch (err) { console.error('Erro autosave:', err); }
+      await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareEmailIntro: val });
+      session.customShareEmailIntro = val;
     },
     onClick: async () => {
       const emailIntro = emailTextareaEl?.value?.trim() || undefined;
@@ -212,10 +210,8 @@ function renderChannelCards(session, refresh) {
     messageLabel: 'Personalizar mensagem do WhatsApp',
     onTextareaReady: el => { waTextareaEl = el; },
     onInput: async (val) => {
-      try {
-        await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareWhatsAppText: val });
-        session.customShareWhatsAppText = val;
-      } catch (err) { console.error('Erro autosave:', err); }
+      await apiPut(`/api/sessions/${session._id}/custom-messages`, { customShareWhatsAppText: val });
+      session.customShareWhatsAppText = val;
     },
     onClick: async () => {
       const customText = waTextareaEl?.value?.trim() || undefined;
