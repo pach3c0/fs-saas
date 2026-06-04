@@ -122,7 +122,7 @@ function kpiCard(label, value) {
 
 function renderCuponsList(cupons) {
   if (cupons.length === 0) {
-    return `<p style="color:var(--text-muted); font-size:0.875rem; margin:0;">Nenhum cupom foi emitido ainda. Quando o robô disparar gatilhos com cupom (7d/3d/24h), eles aparecerão aqui.</p>`;
+    return `<p style="color:var(--text-muted); font-size:0.875rem; margin:0;">Nenhum cupom foi emitido ainda. Assim que o robô disparar um gatilho com cupom, ele aparece aqui.</p>`;
   }
 
   return `
