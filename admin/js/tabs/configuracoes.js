@@ -307,7 +307,11 @@ function renderEntrega() {
     radio.name = 'galleryDeliveryDefault';
     radio.checked = active;
     radio.style.cssText = 'margin-top:0.2rem; accent-color:var(--accent);';
-    radio.onchange = () => { scheduleSave({ galleryDeliveryDefault: val }, status, true); renderLayoutAfterRadio(); };
+    radio.onchange = () => {
+      prefs.galleryDeliveryDefault = val; // reflete na hora antes do re-render
+      scheduleSave({ galleryDeliveryDefault: val }, status, true);
+      renderLayoutAfterRadio();
+    };
     const txt = document.createElement('div');
     txt.innerHTML = `<div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${label}</div>
       <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.125rem;">${desc}</div>`;
