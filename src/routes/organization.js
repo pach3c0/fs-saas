@@ -244,4 +244,84 @@ router.post('/onboarding/dismiss', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/organization/preferences - Configurações personalizáveis do fotógrafo
+router.get('/organization/preferences', authenticateToken, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.user.organizationId).select('preferences').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
+    res.json({ success: true, preferences: org.preferences || {} });
+  } catch (error) {
+    req.logger.error('Erro ao buscar preferences', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/organization/preferences - Atualizar preferências (whitelist + validação por campo)
+router.put('/organization/preferences', authenticateToken, async (req, res) => {
+  try {
+    const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications } = req.body;
+    const $set = {};
+
+    // Mensagens — strings (limite de tamanho)
+    if (messageTemplates && typeof messageTemplates === 'object') {
+      for (const key of ['shareEmail', 'shareWhatsApp', 'deliverEmail', 'deliverWhatsApp']) {
+        if (typeof messageTemplates[key] === 'string') {
+          $set[`preferences.messageTemplates.${key}`] = messageTemplates[key].slice(0, 2000);
+        }
+      }
+    }
+
+    // Padrões de nova sessão
+    if (sessionDefaults && typeof sessionDefaults === 'object') {
+      if (typeof sessionDefaults.packageLimit === 'number') {
+        $set['preferences.sessionDefaults.packageLimit'] = Math.max(1, Math.min(1000, Math.round(sessionDefaults.packageLimit)));
+      }
+      if (typeof sessionDefaults.extraPhotoPrice === 'number') {
+        $set['preferences.sessionDefaults.extraPhotoPrice'] = Math.max(0, Math.min(10000, sessionDefaults.extraPhotoPrice));
+      }
+      if ([960, 1200, 1400, 1600].includes(sessionDefaults.photoResolution)) {
+        $set['preferences.sessionDefaults.photoResolution'] = sessionDefaults.photoResolution;
+      }
+      if (typeof sessionDefaults.deadlineDays === 'number') {
+        $set['preferences.sessionDefaults.deadlineDays'] = Math.max(0, Math.min(365, Math.round(sessionDefaults.deadlineDays)));
+      }
+      for (const key of ['allowExtraPurchase', 'allowReopen', 'commentsEnabled']) {
+        if (typeof sessionDefaults[key] === 'boolean') {
+          $set[`preferences.sessionDefaults.${key}`] = sessionDefaults[key];
+        }
+      }
+    }
+
+    // Padrão de entrega da galeria
+    if (['ask', 'preview', 'direct'].includes(galleryDeliveryDefault)) {
+      $set['preferences.galleryDeliveryDefault'] = galleryDeliveryDefault;
+    }
+
+    // Preferências de notificação
+    if (notifications && typeof notifications === 'object') {
+      for (const key of ['selectionSubmitted', 'extraRequested', 'reopenRequested']) {
+        if (typeof notifications[key] === 'boolean') {
+          $set[`preferences.notifications.${key}`] = notifications[key];
+        }
+      }
+    }
+
+    if (Object.keys($set).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum campo válido para atualizar' });
+    }
+
+    const org = await Organization.findByIdAndUpdate(
+      req.user.organizationId,
+      { $set },
+      { new: true, runValidators: true }
+    ).select('preferences').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
+
+    res.json({ success: true, preferences: org.preferences || {} });
+  } catch (error) {
+    req.logger.error('Erro ao salvar preferences', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

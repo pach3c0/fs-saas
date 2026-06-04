@@ -251,6 +251,35 @@ const OrganizationSchema = new mongoose.Schema({
       clientLinked:    { type: Boolean, default: false },
       linkSent:        { type: Boolean, default: false }
     }
+  },
+  // Configurações personalizáveis pelo fotógrafo (aba Configurações)
+  preferences: {
+    // Templates de mensagem (1 por canal). Vazio = usa o preset de fábrica por tipo de evento.
+    // Variáveis suportadas: {nome} {negocio} {evento} {link} {codigo}
+    messageTemplates: {
+      shareEmail:      { type: String, default: '' },
+      shareWhatsApp:   { type: String, default: '' },
+      deliverEmail:    { type: String, default: '' },
+      deliverWhatsApp: { type: String, default: '' }
+    },
+    // Padrões pré-preenchidos ao criar uma nova sessão
+    sessionDefaults: {
+      packageLimit:       { type: Number, default: 30 },
+      extraPhotoPrice:    { type: Number, default: 25 },
+      photoResolution:    { type: Number, enum: [960, 1200, 1400, 1600], default: 1200 },
+      deadlineDays:       { type: Number, default: 0 },   // 0 = sem prazo padrão
+      allowExtraPurchase: { type: Boolean, default: true },
+      allowReopen:        { type: Boolean, default: true },
+      commentsEnabled:    { type: Boolean, default: true }
+    },
+    // Modo Galeria: comportamento padrão ao chegar no passo Compartilhar
+    galleryDeliveryDefault: { type: String, enum: ['ask', 'preview', 'direct'], default: 'ask' },
+    // Quais e-mails internos o fotógrafo recebe
+    notifications: {
+      selectionSubmitted: { type: Boolean, default: true },
+      extraRequested:     { type: Boolean, default: true },
+      reopenRequested:    { type: Boolean, default: true }
+    }
   }
 }, { timestamps: true });
 

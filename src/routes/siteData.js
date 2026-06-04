@@ -12,8 +12,18 @@ const { authenticateToken } = require('../middleware/auth');
 router.get('/site-data', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const data = await SiteData.findOne({ organizationId: orgId }).lean();
-    res.json(data || {});
+    const [data, org] = await Promise.all([
+      SiteData.findOne({ organizationId: orgId }).lean(),
+      Organization.findById(orgId).select('name slug preferences').lean()
+    ]);
+    const payload = data || {};
+    // Disponibiliza dados da org (nome, slug, preferências) globalmente no admin
+    payload.organization = {
+      name: org?.name || '',
+      slug: org?.slug || '',
+      preferences: org?.preferences || {}
+    };
+    res.json(payload);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

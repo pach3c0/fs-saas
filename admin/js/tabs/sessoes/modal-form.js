@@ -99,6 +99,27 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     if (autoDelChk) autoDelChk.checked = false;
     const backupChk = container.querySelector('#sessionStorageBackupOnExpire');
     if (backupChk) backupChk.checked = false;
+
+    // Pré-preenche os padrões do fotógrafo (Configurações › Sessões)
+    const sd = appState.appData?.organization?.preferences?.sessionDefaults || {};
+    const limitInput = container.querySelector('#sessionLimit');
+    if (limitInput && sd.packageLimit != null) limitInput.value = sd.packageLimit;
+    const extraInput = container.querySelector('#sessionExtraPrice');
+    if (extraInput && sd.extraPhotoPrice != null) extraInput.value = sd.extraPhotoPrice;
+    const resSelect = container.querySelector('#sessionResolution');
+    if (resSelect && sd.photoResolution != null) resSelect.value = String(sd.photoResolution);
+    if (commentsChk && sd.commentsEnabled != null) commentsChk.checked = sd.commentsEnabled !== false;
+    const allowExtraChk = container.querySelector('#sessionAllowExtraPurchase');
+    if (allowExtraChk && sd.allowExtraPurchase != null) allowExtraChk.checked = sd.allowExtraPurchase !== false;
+    const allowReopenChk = container.querySelector('#sessionAllowReopen');
+    if (allowReopenChk && sd.allowReopen != null) allowReopenChk.checked = sd.allowReopen !== false;
+    const deadlineInput = container.querySelector('#sessionDeadline');
+    if (deadlineInput && sd.deadlineDays > 0) {
+      const dl = new Date();
+      dl.setDate(dl.getDate() + sd.deadlineDays);
+      deadlineInput.value = `${dl.toISOString().split('T')[0]}T23:59`;
+    }
+
     newSessionModal.style.display = 'flex';
   };
 

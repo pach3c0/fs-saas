@@ -468,10 +468,10 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     // Notificar fotografo por e-mail + upsell para o cliente
     try {
-      const org = await Organization.findById(session.organizationId).select('email name slug');
+      const org = await Organization.findById(session.organizationId).select('email name slug preferences.notifications.selectionSubmitted');
       const clientName = participant ? participant.name : session.name;
 
-      if (org?.email) {
+      if (org?.email && org?.preferences?.notifications?.selectionSubmitted !== false) {
         sendSelectionSubmittedEmail(org.email, clientName, selectedCount, session._id, org.slug).catch(() => { });
       }
 
@@ -533,13 +533,16 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
     _logEvent(session._id, 'reopen_requested', {});
 
     try {
-      await Notification.create({
-        type: 'reopen_requested',
-        sessionId: session._id,
-        sessionName: session.name,
-        message: `${session.name} pediu reabertura da seleção`,
-        organizationId: session.organizationId
-      });
+      const org = await Organization.findById(session.organizationId).select('preferences.notifications.reopenRequested').lean();
+      if (org?.preferences?.notifications?.reopenRequested !== false) {
+        await Notification.create({
+          type: 'reopen_requested',
+          sessionId: session._id,
+          sessionName: session.name,
+          message: `${session.name} pediu reabertura da seleção`,
+          organizationId: session.organizationId
+        });
+      }
     } catch (e) { }
 
     res.json({ success: true });
@@ -766,8 +769,8 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
     } catch (e) { }
 
     try {
-      const org = await Organization.findById(session.organizationId).select('email name');
-      if (org?.email) {
+      const org = await Organization.findById(session.organizationId).select('email name preferences.notifications.extraRequested');
+      if (org?.email && org?.preferences?.notifications?.extraRequested !== false) {
         sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => { });
       }
     } catch (e) { }
@@ -825,6 +828,13 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
     if (!sessionData.clientId) delete sessionData.clientId;
     if (!sessionData.date) delete sessionData.date;
     if (!sessionData.selectionDeadline) delete sessionData.selectionDeadline;
+
+    // Modo Galeria: aplica o padrão de entrega configurado (Configurações › Entrega)
+    if (mode === 'gallery' && sessionData.galleryDeliveryMode == null) {
+      const orgPref = await Organization.findById(req.user.organizationId).select('preferences.galleryDeliveryDefault').lean();
+      const def = orgPref?.preferences?.galleryDeliveryDefault;
+      if (def === 'preview' || def === 'direct') sessionData.galleryDeliveryMode = def;
+    }
 
     const session = await Session.create({
       ...sessionData,

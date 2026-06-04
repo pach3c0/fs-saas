@@ -129,15 +129,55 @@ const EMAIL_DELIVERY_INTROS = {
   outro: 'Suas fotos editadas estão prontas para download em alta resolução.'
 };
 
+// Rótulos amigáveis por tipo de evento (para a variável {evento}).
+const EVENT_LABELS = {
+  casamento: 'casamento', aniversario: 'aniversário', formatura: 'formatura',
+  corporativo: 'evento', show: 'show', ensaio: 'ensaio', gestante: 'ensaio gestante',
+  newborn: 'ensaio newborn', debutante: 'aniversário de 15 anos', batizado: 'batizado', outro: 'ensaio'
+};
+
+// Substitui variáveis {nome} {negocio} {evento} {link} {codigo} no template.
+export function applyTemplateVars(tpl, { nome, negocio, evento, link, codigo } = {}) {
+  return String(tpl || '')
+    .replace(/\{nome\}/g, nome || '')
+    .replace(/\{negocio\}/g, negocio || '')
+    .replace(/\{evento\}/g, evento || '')
+    .replace(/\{link\}/g, link || '')
+    .replace(/\{codigo\}/g, codigo || '');
+}
+
+// Lê o template do fotógrafo (preferences) para um canal, ou '' se vazio.
+function orgTemplate(channel) {
+  const t = appState.appData?.organization?.preferences?.messageTemplates?.[channel];
+  return typeof t === 'string' && t.trim() ? t : '';
+}
+
+function firstNameOf(name) {
+  return String(name || '').split(' ')[0] || '';
+}
+
 // Retorna o texto padrão do parágrafo de e-mail de envio de código (editável).
+// Ordem: custom da sessão → template do fotógrafo (interpolado) → preset de fábrica por evento.
 export function buildShareEmailIntro(session) {
   if (session.customShareEmailIntro) return session.customShareEmailIntro;
+  const tpl = orgTemplate('shareEmail');
+  if (tpl) return applyTemplateVars(tpl, {
+    nome: firstNameOf(session.clientId?.name || session.clientName || session.name),
+    negocio: appState.appData?.organization?.name || '',
+    evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro
+  });
   return EMAIL_SHARE_INTROS[session.eventType] || EMAIL_SHARE_INTROS.outro;
 }
 
 // Retorna o texto padrão do parágrafo de e-mail de entrega (editável).
 export function buildDeliveryEmailIntro(session) {
   if (session.customDeliverEmailIntro) return session.customDeliverEmailIntro;
+  const tpl = orgTemplate('deliverEmail');
+  if (tpl) return applyTemplateVars(tpl, {
+    nome: firstNameOf(session.clientId?.name || session.clientName || session.name),
+    negocio: appState.appData?.organization?.name || '',
+    evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro
+  });
   return EMAIL_DELIVERY_INTROS[session.eventType] || EMAIL_DELIVERY_INTROS.outro;
 }
 
@@ -145,9 +185,13 @@ export function buildDeliveryEmailIntro(session) {
 export function buildShareWhatsAppText({ session, accessCode, recipientName, orgName }) {
   if (session.customShareWhatsAppText) return session.customShareWhatsAppText;
   const url = buildGalleryUrlForCode(session, accessCode);
-  const firstName = String(recipientName || '').split(' ')[0] || 'Olá';
-  const opener = (WA_OPENINGS[session.eventType] || WA_OPENINGS.outro)(firstName);
   const name = orgName || appState.appData?.organization?.name || '';
+  const tpl = orgTemplate('shareWhatsApp');
+  if (tpl) return applyTemplateVars(tpl, {
+    nome: firstNameOf(recipientName), negocio: name,
+    evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro, link: url, codigo: accessCode
+  });
+  const opener = (WA_OPENINGS[session.eventType] || WA_OPENINGS.outro)(firstNameOf(recipientName) || 'Olá');
   return [opener, '', `Acesse sua galeria: ${url}`, '', `Código de acesso: ${accessCode}`, '', `— ${name}`].join('\n');
 }
 
@@ -155,9 +199,13 @@ export function buildShareWhatsAppText({ session, accessCode, recipientName, org
 export function buildDeliveryWhatsAppText({ session, accessCode, recipientName, orgName }) {
   if (session.customDeliverWhatsAppText) return session.customDeliverWhatsAppText;
   const url = buildGalleryUrlForCode(session, accessCode);
-  const firstName = String(recipientName || '').split(' ')[0] || 'Olá';
-  const opener = (WA_DELIVERY_OPENINGS[session.eventType] || WA_DELIVERY_OPENINGS.outro)(firstName);
   const name = orgName || appState.appData?.organization?.name || '';
+  const tpl = orgTemplate('deliverWhatsApp');
+  if (tpl) return applyTemplateVars(tpl, {
+    nome: firstNameOf(recipientName), negocio: name,
+    evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro, link: url, codigo: accessCode
+  });
+  const opener = (WA_DELIVERY_OPENINGS[session.eventType] || WA_DELIVERY_OPENINGS.outro)(firstNameOf(recipientName) || 'Olá');
   return [opener, '', `Acesse para baixar: ${url}`, '', `Código de acesso: ${accessCode}`, '', `— ${name}`].join('\n');
 }
 

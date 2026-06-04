@@ -28,6 +28,7 @@ const TAB_TITLES = {
   perfil: 'Perfil',
   plano: 'Plano',
   ajuda: 'Ajuda & Tutoriais',
+  configuracoes: 'Configurações',
 };
 
 // ── Skeleton loading ──────────────────────────────────────────────────────
