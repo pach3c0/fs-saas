@@ -3,7 +3,7 @@
  * Dashboard de cupons, gatilhos e KPIs do robo de escassez.
  */
 
-import { apiGet, apiPut, apiPost } from '../utils/api.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { escapeHtml } from '../utils/helpers.js';
 
 let dashboardData = null;
@@ -62,37 +62,20 @@ function render(container) {
   const k = dashboardData.kpis || {};
 
   root.innerHTML = `
-    <!-- Toggle global -->
+    <!-- Status do robô (configuração vive em Configurações › Escassês & Vendas) -->
     <div style="border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; background:var(--bg-surface); margin-bottom:1.25rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
         <div>
-          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Robô de Escassez</h3>
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Robô de Escassês & Vendas</h3>
           <p style="color:var(--text-muted); font-size:0.8125rem; margin:0.25rem 0 0;">
-            Quando ativo, dispara e-mails de urgência (15/7/3/1 dias antes do prazo) para clientes com fotos não selecionadas.
+            Recupera vendas com e-mails de urgência. Mensagens, desconto por etapa e o upsell pós-entrega ficam em Configurações.
           </p>
         </div>
-        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-          <input type="checkbox" id="crmEnabled" class="check" ${cfg.enabled ? 'checked' : ''}>
-          <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">${cfg.enabled ? 'Ativado' : 'Desativado'}</span>
-        </label>
+        <a href="#" onclick="window.switchTab('configuracoes'); return false;" class="btn btn-primary" style="text-decoration:none; white-space:nowrap;">Configurar</a>
       </div>
-
-      <div style="display:flex; gap:1rem; margin-top:1rem; flex-wrap:wrap;">
-        <div class="input-group" style="margin:0; flex:1; min-width:160px;">
-          <label>Prefixo do cupom</label>
-          <input type="text" id="crmPrefix" class="input" value="${escapeHtml(cfg.couponPrefix || 'CZ')}" maxlength="8">
-        </div>
-        <div class="input-group" style="margin:0; flex:1; min-width:160px;">
-          <label>Desconto (%)</label>
-          <input type="number" id="crmDiscount" class="input" value="${cfg.couponDiscountPercent ?? 10}" min="0" max="100">
-        </div>
-      </div>
-      <div style="margin-top:1rem; padding:0.75rem 1rem; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; font-size:0.8125rem; color:var(--text-secondary);">
-        💡 Para <strong>mensagens personalizadas</strong>, <strong>desconto por etapa</strong> (7d/3d/1d) e o novo <strong>upsell pós-entrega</strong>, acesse
-        <a href="#" onclick="window.switchTab('configuracoes'); return false;" style="color:var(--accent); font-weight:600; text-decoration:underline; cursor:pointer;">Configurações › Escassês &amp; Vendas</a>.
-      </div>
-      <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
-        <button id="crmSaveBtn" class="btn btn-primary">Salvar configurações</button>
+      <div style="display:flex; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
+        ${statusPill('Escassês pré-entrega', cfg.enabled)}
+        ${statusPill('Upsell pós-entrega', cfg.postDelivery?.enabled)}
       </div>
     </div>
 
@@ -114,6 +97,18 @@ function render(container) {
   `;
 
   setupHandlers(container);
+}
+
+function statusPill(label, on) {
+  const color = on ? 'var(--green)' : 'var(--text-muted)';
+  const txt = on ? 'Ativado' : 'Desativado';
+  return `
+    <div style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.875rem; border:1px solid var(--border); border-radius:9999px; background:var(--bg-base);">
+      <span style="width:8px; height:8px; border-radius:9999px; background:${color};"></span>
+      <span style="font-size:0.8125rem; color:var(--text-primary); font-weight:500;">${label}:</span>
+      <span style="font-size:0.8125rem; color:${color}; font-weight:600;">${txt}</span>
+    </div>
+  `;
 }
 
 function kpiCard(label, value) {
@@ -159,11 +154,6 @@ function renderCuponsList(cupons) {
 }
 
 function setupHandlers(container) {
-  const enabledChk = container.querySelector('#crmEnabled');
-  enabledChk.onchange = () => {
-    enabledChk.nextElementSibling.textContent = enabledChk.checked ? 'Ativado' : 'Desativado';
-  };
-
   container.querySelectorAll('[data-coupon-action]').forEach(btn => {
     btn.onclick = async () => {
       const code = btn.dataset.code;
@@ -180,31 +170,4 @@ function setupHandlers(container) {
     };
   });
 
-  container.querySelector('#crmSaveBtn').onclick = async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    const originalText = btn.textContent;
-    btn.textContent = 'Salvando...';
-
-    try {
-      const enabled = container.querySelector('#crmEnabled').checked;
-      const prefix = container.querySelector('#crmPrefix').value.trim() || 'CZ';
-      const discount = Number(container.querySelector('#crmDiscount').value) || 10;
-
-      await apiPut('/api/organization/integrations', {
-        salesAutomator: {
-          enabled,
-          couponPrefix: prefix,
-          couponDiscountPercent: discount
-        }
-      });
-      window.showToast?.('Configurações salvas!', 'success');
-      await carregar(container);
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  };
 }
