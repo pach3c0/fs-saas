@@ -4,8 +4,10 @@ const {
   sendScarcity15dEmail,
   sendScarcity7dEmail,
   sendScarcity3dEmail,
-  sendScarcity24hEmail
+  sendScarcity24hEmail,
+  clientGalleryUrl
 } = require('./email');
+const { EVENT_LABELS, firstName, gerarCouponCode, applyScarcityVars } = require('./salesShared');
 
 /**
  * Motor de vendas automaticas (CRM Fase 2 - Fatia B)
@@ -33,12 +35,6 @@ const TRIGGERS = {
   1:  { name: 'scarcity_24h', sender: sendScarcity24hEmail, withCoupon: true,  suffix: '24H' }
 };
 
-function gerarCouponCode(prefix, sessionId, suffix) {
-  const id6 = String(sessionId).slice(-6).toUpperCase();
-  const safePrefix = (prefix || 'CZ').replace(/[^A-Z0-9]/gi, '').toUpperCase() || 'CZ';
-  return `${safePrefix}-${id6}-${suffix}`;
-}
-
 /**
  * Processa um nivel de gatilho especifico (ex: 7 dias).
  */
@@ -58,7 +54,7 @@ async function processarNivel(diasAlvo, orgIds, orgMap, now) {
     selectionStatus: { $in: ['pending', 'in_progress', 'submitted'] },
     selectionDeadline: { $gte: lower, $lte: upper },
     'salesAutomation.enabled': { $ne: false }
-  });
+  }).populate('clientId', 'name');
 
   let sent = 0;
   let skipped = 0;
@@ -82,21 +78,41 @@ async function processarNivel(diasAlvo, orgIds, orgMap, now) {
       if (!session.clientEmail) { skipped++; continue; }
 
       let couponCode = '';
-      const discount = cfg.couponDiscountPercent || 10;
+      // Desconto por etapa (discountByDay) com fallback no desconto único
+      const discount = cfg.scarcity?.discountByDay?.[String(diasAlvo)] ?? cfg.couponDiscountPercent ?? 10;
       if (triggerCfg.withCoupon) {
         couponCode = gerarCouponCode(cfg.couponPrefix, session._id, triggerCfg.suffix);
+      }
+
+      const recipientName = firstName(session.clientId?.name) || '';
+
+      // Corpo customizado pelo fotógrafo (template com variáveis) — '' usa a copy de fábrica.
+      // Só aplica nas etapas com cupom; o aviso de 15d fica como lembrete suave de fábrica.
+      let customBody = '';
+      if (cfg.scarcity?.messageTemplate && triggerCfg.withCoupon) {
+        customBody = applyScarcityVars(cfg.scarcity.messageTemplate, {
+          nome: recipientName,
+          negocio: org.name,
+          evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro,
+          fotos_restantes: restantes,
+          dias: diasAlvo,
+          cupom: couponCode,
+          desconto: discount,
+          preco_extra: session.extraPhotoPrice,
+          link: clientGalleryUrl(org.slug, session.accessCode)
+        });
       }
 
       // Disparo: cada template tem assinatura propria
       if (triggerCfg.withCoupon) {
         await triggerCfg.sender(
-          session.clientEmail, '', session.name, org.name,
-          restantes, couponCode, discount, session.accessCode, org.slug
+          session.clientEmail, recipientName, session.name, org.name,
+          restantes, couponCode, discount, session.accessCode, org.slug, customBody
         );
       } else {
         await triggerCfg.sender(
-          session.clientEmail, '', session.name, org.name,
-          restantes, session.accessCode, org.slug
+          session.clientEmail, recipientName, session.name, org.name,
+          restantes, session.accessCode, org.slug, customBody
         );
       }
 

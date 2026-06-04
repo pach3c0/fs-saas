@@ -87,6 +87,10 @@ function render(container) {
           <input type="number" id="crmDiscount" class="input" value="${cfg.couponDiscountPercent ?? 10}" min="0" max="100">
         </div>
       </div>
+      <div style="margin-top:1rem; padding:0.75rem 1rem; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; font-size:0.8125rem; color:var(--text-secondary);">
+        💡 Para <strong>mensagens personalizadas</strong>, <strong>desconto por etapa</strong> (7d/3d/1d) e o novo <strong>upsell pós-entrega</strong>, acesse
+        <a href="#" onclick="window.switchTab('configuracoes'); return false;" style="color:var(--accent); font-weight:600; text-decoration:underline; cursor:pointer;">Configurações › Escassês &amp; Vendas</a>.
+      </div>
       <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
         <button id="crmSaveBtn" class="btn btn-primary">Salvar configurações</button>
       </div>

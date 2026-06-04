@@ -3,6 +3,19 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
 
+// Sanitiza um mapa de desconto por dia { '7': 10, '3': 15 } — chaves numéricas, valores 0–100.
+function _sanitizeDiscountMap(map) {
+  const out = {};
+  for (const [k, v] of Object.entries(map || {})) {
+    const day = Number(k);
+    const pct = Number(v);
+    if (Number.isFinite(day) && day > 0 && Number.isFinite(pct)) {
+      out[String(day)] = Math.max(0, Math.min(100, pct));
+    }
+  }
+  return out;
+}
+
 // GET /api/organization/profile - Dados do perfil da organizacao
 router.get('/organization/profile', authenticateToken, async (req, res) => {
   try {
@@ -202,6 +215,28 @@ router.put('/organization/integrations', authenticateToken, async (req, res) => 
         if (Array.isArray(salesAutomator.scarcity.daysSchedule)) {
           $set['integrations.salesAutomator.scarcity.daysSchedule'] = salesAutomator.scarcity.daysSchedule
             .map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0);
+        }
+        if (salesAutomator.scarcity.discountByDay && typeof salesAutomator.scarcity.discountByDay === 'object') {
+          $set['integrations.salesAutomator.scarcity.discountByDay'] = _sanitizeDiscountMap(salesAutomator.scarcity.discountByDay);
+        }
+        if (typeof salesAutomator.scarcity.messageTemplate === 'string') {
+          $set['integrations.salesAutomator.scarcity.messageTemplate'] = salesAutomator.scarcity.messageTemplate.slice(0, 2000);
+        }
+      }
+      if (salesAutomator.postDelivery && typeof salesAutomator.postDelivery === 'object') {
+        const pd = salesAutomator.postDelivery;
+        if (typeof pd.enabled === 'boolean') {
+          $set['integrations.salesAutomator.postDelivery.enabled'] = pd.enabled;
+        }
+        if (Array.isArray(pd.daysSchedule)) {
+          $set['integrations.salesAutomator.postDelivery.daysSchedule'] = pd.daysSchedule
+            .map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0);
+        }
+        if (pd.discountByDay && typeof pd.discountByDay === 'object') {
+          $set['integrations.salesAutomator.postDelivery.discountByDay'] = _sanitizeDiscountMap(pd.discountByDay);
+        }
+        if (typeof pd.messageTemplate === 'string') {
+          $set['integrations.salesAutomator.postDelivery.messageTemplate'] = pd.messageTemplate.slice(0, 2000);
         }
       }
       if (typeof salesAutomator.couponPrefix === 'string') {

@@ -232,11 +232,20 @@ const OrganizationSchema = new mongoose.Schema({
       enabled: { type: Boolean, default: false },
       scarcity: {
         enabled: { type: Boolean, default: true },
-        daysSchedule: { type: [Number], default: [15, 7, 3, 1] } // niveis de gatilho (dias antes do prazo)
+        daysSchedule: { type: [Number], default: [15, 7, 3, 1] }, // niveis de gatilho (dias antes do prazo)
+        discountByDay: { type: mongoose.Schema.Types.Mixed, default: {} }, // { '7':10, '3':15, '1':20 } — fallback: couponDiscountPercent
+        messageTemplate: { type: String, default: '' }            // corpo customizado (variaveis); '' = texto de fabrica
       },
       reactivation: {
         enabled: { type: Boolean, default: true },
         daysBeforeAnniversary: { type: [Number], default: [90, 30, 7] }
+      },
+      // Upsell pos-entrega: janela entre a entrega e a exclusao do storage (storageRetentionUntil)
+      postDelivery: {
+        enabled: { type: Boolean, default: false },
+        daysSchedule: { type: [Number], default: [15, 7, 1] },     // dias ANTES da exclusao
+        discountByDay: { type: mongoose.Schema.Types.Mixed, default: {} }, // { '15':10, '7':15, '1':25 }
+        messageTemplate: { type: String, default: '' }
       },
       couponPrefix: { type: String, default: 'CZ' },
       couponDiscountPercent: { type: Number, default: 10 }

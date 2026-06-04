@@ -1,11 +1,13 @@
 // Aba Configurações — personalização do app pelo fotógrafo.
-// 4 seções: Mensagens · Sessões · Entrega · Notificações.
-// Persiste em Organization.preferences via GET/PUT /api/organization/preferences.
+// 5 seções: Mensagens · Sessões · Entrega · Notificações · Escassês & Vendas.
+// Persiste em Organization.preferences (/api/organization/preferences) e, na seção
+// de vendas, em Organization.integrations.salesAutomator (/api/organization/integrations).
 
 import { appState } from '../state.js';
 import { apiGet, apiPut } from '../utils/api.js';
 
 let prefs = {};
+let salesCfg = {};
 let currentSection = 'mensagens';
 
 // Canais de mensagem (ordem de exibição na seção Mensagens)
@@ -37,8 +39,16 @@ const SECTIONS = [
   { id: 'mensagens',     label: 'Mensagens' },
   { id: 'sessoes',       label: 'Sessões' },
   { id: 'entrega',       label: 'Entrega' },
-  { id: 'notificacoes',  label: 'Notificações' }
+  { id: 'notificacoes',  label: 'Notificações' },
+  { id: 'vendas',        label: 'Escassês & Vendas' }
 ];
+
+// Variáveis disponíveis nas mensagens de venda
+const SALES_VARS = ['{nome}', '{negocio}', '{evento}', '{fotos_restantes}', '{dias}', '{cupom}', '{desconto}', '{preco_extra}', '{link}'];
+const SALES_STARTERS = {
+  scarcity:     'Olá {nome}! Você ainda tem {fotos_restantes} foto(s) do seu {evento} esperando na galeria. Faltam {dias} dias para o encerramento — depois disso elas saem do ar. Use o cupom {cupom} e garanta {desconto}% de desconto nas fotos extras: {link}',
+  postDelivery: 'Olá {nome}! As fotos do seu {evento} saem do nosso servidor em {dias} dias. Você ainda pode levar as {fotos_restantes} fotos que ficaram de fora do pacote com {desconto}% de desconto — use o cupom {cupom}: {link}'
+};
 
 // ── Entry ───────────────────────────────────────────────────────────────────
 export async function renderConfiguracoes(container) {
@@ -49,11 +59,16 @@ export async function renderConfiguracoes(container) {
     </div>`;
 
   try {
-    const res = await apiGet('/api/organization/preferences');
-    prefs = res.preferences || {};
+    const [resPrefs, resInteg] = await Promise.all([
+      apiGet('/api/organization/preferences'),
+      apiGet('/api/organization/integrations')
+    ]);
+    prefs = resPrefs.preferences || {};
+    salesCfg = resInteg.integrations?.salesAutomator || {};
   } catch (err) {
     window.showToast?.('Erro ao carregar configurações: ' + err.message, 'error');
     prefs = {};
+    salesCfg = {};
   }
   renderLayout(container);
 }
@@ -85,6 +100,7 @@ function renderLayout(container) {
   if (currentSection === 'sessoes')      content.appendChild(renderSessoes());
   if (currentSection === 'entrega')      content.appendChild(renderEntrega());
   if (currentSection === 'notificacoes') content.appendChild(renderNotificacoes());
+  if (currentSection === 'vendas')       content.appendChild(renderVendas());
   root.appendChild(content);
 
   container.appendChild(root);
@@ -416,4 +432,215 @@ function interpolateSample(tpl) {
     .replace(/\{evento\}/g, 'casamento')
     .replace(/\{link\}/g, 'https://galeria.exemplo.com/AB12CD')
     .replace(/\{codigo\}/g, 'AB12CD');
+}
+
+// ── Seção Escassês & Vendas ───────────────────────────────────────────────────
+// Persiste em integrations.salesAutomator (endpoint diferente das demais seções).
+let salesSaveTimer = null;
+let salesPending = {};
+let salesPendingStatus = null;
+
+function scheduleSalesSave(partial, statusEl, immediate = false) {
+  deepMerge(salesPending, partial);
+  if (statusEl) salesPendingStatus = statusEl;
+  if (salesPendingStatus) { salesPendingStatus.textContent = 'Salvando…'; salesPendingStatus.style.color = 'var(--text-muted)'; }
+  clearTimeout(salesSaveTimer);
+  const flush = async () => {
+    const body = salesPending; salesPending = {};
+    const statusRef = salesPendingStatus;
+    try {
+      const res = await apiPut('/api/organization/integrations', { salesAutomator: body });
+      salesCfg = res.integrations?.salesAutomator || salesCfg;
+      if (statusRef) { statusRef.textContent = '✓ Salvo'; statusRef.style.color = 'var(--green)'; }
+    } catch (err) {
+      if (statusRef) statusRef.textContent = '';
+      window.showToast?.('Erro ao salvar: ' + err.message, 'error');
+    }
+  };
+  if (immediate) flush(); else salesSaveTimer = setTimeout(flush, 600);
+}
+
+function renderVendas() {
+  const { card, status } = sectionCard(
+    'Escassês & Vendas',
+    'Automação de e-mails que recupera vendas no modo seleção: lembra o cliente antes do prazo e oferece as fotos extras antes da exclusão.'
+  );
+  const sa = salesCfg || {};
+  const sc = sa.scarcity || {};
+  const pd = sa.postDelivery || {};
+  const fallbackPct = sa.couponDiscountPercent ?? 10;
+
+  // Painel dos 3 prazos
+  card.appendChild(buildDeadlinesPanel());
+
+  // ── Escassês de seleção (pré-entrega) ──
+  const preBlock = vendasSubBlock('Escassês de seleção (pré-entrega)',
+    'Dispara antes do prazo de seleção para quem ainda não escolheu as fotos. O desconto cresce conforme o prazo se aproxima.');
+
+  preBlock.appendChild(toggleField('Ativar escassês de seleção', sa.enabled === true,
+    v => scheduleSalesSave({ enabled: v }, status, true)));
+
+  const prefixWrap = document.createElement('div');
+  prefixWrap.style.maxWidth = '220px';
+  prefixWrap.appendChild(fieldLabel('Prefixo do cupom'));
+  const prefixInput = document.createElement('input');
+  prefixInput.type = 'text'; prefixInput.maxLength = 8;
+  prefixInput.value = sa.couponPrefix || 'CZ';
+  prefixInput.style.cssText = inputCss();
+  prefixInput.oninput = () => scheduleSalesSave({ couponPrefix: prefixInput.value }, status);
+  prefixWrap.appendChild(prefixInput);
+  preBlock.appendChild(prefixWrap);
+
+  preBlock.appendChild(fieldLabel('Desconto por etapa (com cupom)'));
+  preBlock.appendChild(buildDiscountRow([7, 3, 1], sc.discountByDay, fallbackPct,
+    map => scheduleSalesSave({ scarcity: { discountByDay: map } }, status)));
+  const note15 = document.createElement('div');
+  note15.textContent = 'O aviso de 15 dias é só um lembrete suave, sem cupom.';
+  note15.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
+  preBlock.appendChild(note15);
+
+  preBlock.appendChild(fieldLabel('Mensagem (corpo do e-mail)'));
+  preBlock.appendChild(buildSalesTemplateEditor(sc.messageTemplate || '', SALES_STARTERS.scarcity,
+    val => scheduleSalesSave({ scarcity: { messageTemplate: val } }, status)));
+  card.appendChild(preBlock);
+
+  // ── Upsell pós-entrega ──
+  const postBlock = vendasSubBlock('Upsell pós-entrega',
+    'Depois da entrega, oferece as fotos que ficaram de fora até a data de exclusão do storage. Só dispara em sessões com data de exclusão definida.');
+
+  postBlock.appendChild(toggleField('Ativar upsell pós-entrega', pd.enabled === true,
+    v => scheduleSalesSave({ postDelivery: { enabled: v } }, status, true)));
+
+  const pdDays = (Array.isArray(pd.daysSchedule) && pd.daysSchedule.length ? pd.daysSchedule : [15, 7, 1])
+    .slice().sort((a, b) => b - a);
+  postBlock.appendChild(fieldLabel('Desconto por etapa (dias antes da exclusão)'));
+  postBlock.appendChild(buildDiscountRow(pdDays, pd.discountByDay, fallbackPct,
+    map => scheduleSalesSave({ postDelivery: { discountByDay: map } }, status)));
+
+  postBlock.appendChild(fieldLabel('Mensagem (corpo do e-mail)'));
+  postBlock.appendChild(buildSalesTemplateEditor(pd.messageTemplate || '', SALES_STARTERS.postDelivery,
+    val => scheduleSalesSave({ postDelivery: { messageTemplate: val } }, status)));
+  card.appendChild(postBlock);
+
+  return card;
+}
+
+function vendasSubBlock(title, desc) {
+  const b = document.createElement('div');
+  b.style.cssText = 'display:flex; flex-direction:column; gap:0.625rem; padding-top:1.25rem; border-top:1px solid var(--border);';
+  const h = document.createElement('div');
+  h.innerHTML = `<div style="font-size:0.9375rem; font-weight:600; color:var(--text-primary);">${title}</div>
+    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.125rem;">${desc}</div>`;
+  b.appendChild(h);
+  return b;
+}
+
+function buildDeadlinesPanel() {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;';
+  const items = [
+    ['1', 'Prazo de seleção', 'O cliente entra e escolhe as fotos do pacote. A escassês pré-entrega corre até aqui.'],
+    ['2', 'Janela de compra', 'Após a entrega, o cliente pode voltar e comprar mais fotos. Vai até a data de exclusão.'],
+    ['3', 'Exclusão do storage', 'As fotos saem do servidor (ou vão pro Drive). Fim da janela; o upsell pós-entrega corre até aqui.']
+  ];
+  items.forEach(([n, t, d]) => {
+    const c = document.createElement('div');
+    c.style.cssText = 'background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.875rem 1rem;';
+    c.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.375rem;">
+        <span style="width:1.25rem; height:1.25rem; border-radius:9999px; background:var(--accent); color:#fff; font-size:0.6875rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${n}</span>
+        <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">${t}</span>
+      </div>
+      <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.45;">${d}</div>`;
+    wrap.appendChild(c);
+  });
+  return wrap;
+}
+
+function buildDiscountRow(daysList, discountMap, fallback, onChange) {
+  const map = { ...(discountMap || {}) };
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap;';
+  daysList.forEach(day => {
+    const key = String(day);
+    const field = numberField(`${day} dia${day > 1 ? 's' : ''} antes (%)`, (map[key] ?? fallback), 0, 100, v => {
+      map[key] = v;
+      onChange({ ...map });
+    });
+    field.style.flex = '1';
+    field.style.minWidth = '110px';
+    wrap.appendChild(field);
+  });
+  return wrap;
+}
+
+function buildSalesTemplateEditor(value, starter, onChange) {
+  const block = document.createElement('div');
+  block.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem;';
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value || '';
+  textarea.placeholder = 'Em branco = usa a mensagem otimizada do app (urgência por etapa).';
+  textarea.rows = 6;
+  textarea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; line-height:1.5; resize:vertical;';
+
+  const preview = document.createElement('div');
+  preview.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); background:var(--bg-base); border:1px dashed var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; white-space:pre-wrap; line-height:1.5;';
+  const refreshPreview = () => { preview.textContent = interpolateSalesSample(textarea.value.trim() || starter); };
+
+  textarea.oninput = () => { refreshPreview(); onChange(textarea.value); };
+
+  const chips = document.createElement('div');
+  chips.style.cssText = 'display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center;';
+  const chipsLabel = document.createElement('span');
+  chipsLabel.textContent = 'Inserir:';
+  chipsLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
+  chips.appendChild(chipsLabel);
+  SALES_VARS.forEach(v => {
+    const chip = document.createElement('button');
+    chip.type = 'button'; chip.textContent = v;
+    chip.style.cssText = 'font-family:monospace; font-size:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--accent); border-radius:0.375rem; padding:0.125rem 0.5rem; cursor:pointer;';
+    chip.onclick = () => { insertAtCursor(textarea, v); textarea.focus(); refreshPreview(); onChange(textarea.value); };
+    chips.appendChild(chip);
+  });
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
+  const exampleBtn = document.createElement('button');
+  exampleBtn.type = 'button'; exampleBtn.textContent = 'Usar exemplo'; exampleBtn.style.cssText = ghostBtnCss();
+  exampleBtn.onclick = () => { textarea.value = starter; refreshPreview(); onChange(textarea.value); };
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button'; resetBtn.textContent = 'Restaurar padrão do app'; resetBtn.style.cssText = ghostBtnCss();
+  resetBtn.onclick = () => { textarea.value = ''; refreshPreview(); onChange(''); };
+  actions.appendChild(exampleBtn);
+  actions.appendChild(resetBtn);
+
+  const previewLabel = document.createElement('div');
+  previewLabel.textContent = 'Pré-visualização';
+  previewLabel.style.cssText = 'font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); margin-top:0.25rem;';
+
+  block.appendChild(chips);
+  block.appendChild(textarea);
+  block.appendChild(actions);
+  block.appendChild(previewLabel);
+  block.appendChild(preview);
+  refreshPreview();
+  return block;
+}
+
+function inputCss() {
+  return 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem;';
+}
+
+function interpolateSalesSample(tpl) {
+  const negocio = appState.appData?.organization?.name || 'Seu negócio';
+  return String(tpl)
+    .replace(/\{nome\}/g, 'Marina')
+    .replace(/\{negocio\}/g, negocio)
+    .replace(/\{evento\}/g, 'casamento')
+    .replace(/\{fotos_restantes\}/g, '8')
+    .replace(/\{dias\}/g, '3')
+    .replace(/\{cupom\}/g, 'CZ-AB12CD-3D')
+    .replace(/\{desconto\}/g, '15')
+    .replace(/\{preco_extra\}/g, '25')
+    .replace(/\{link\}/g, 'https://galeria.exemplo.com/AB12CD');
 }

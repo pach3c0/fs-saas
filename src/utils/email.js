@@ -724,7 +724,12 @@ async function sendExtraPhotosRejectedEmail(clientEmail, clientName, orgName, re
  * Helper interno: monta corpo HTML padrao de e-mail de escassez.
  * Reaproveitado pelos 4 niveis (15d, 7d, 3d, 24h) variando tom e cores.
  */
-function _buildScarcityHtml({ orgName, headline, subheadline, body, clientName, sessionName, remainingPhotos, couponCode, discountPercent, galleryUrl, accentColor, ctaLabel }) {
+function _buildScarcityHtml({ orgName, headline, subheadline, body, clientName, sessionName, remainingPhotos, couponCode, discountPercent, galleryUrl, accentColor, ctaLabel, customBody }) {
+  // Corpo customizado pelo fotógrafo: escapa HTML e preserva quebras de linha.
+  const customBodyHtml = customBody
+    ? String(customBody).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+    : '';
+
   const coupon = couponCode ? `
     <div style="background: #fff7ed; border: 2px dashed ${accentColor}; border-radius: 0.5rem; padding: 1.25rem; text-align: center; margin: 1.5rem 0;">
       <p style="margin: 0 0 0.5rem 0; color: #92400e; font-size: 0.875rem; font-weight: 600;">CUPOM DE DESCONTO</p>
@@ -740,11 +745,15 @@ function _buildScarcityHtml({ orgName, headline, subheadline, body, clientName, 
       </div>
 
       <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">${headline}</h2>
+      ${customBodyHtml ? `
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">${customBodyHtml}</p>
+      ` : `
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
         Olá${clientName ? `, <strong>${clientName}</strong>` : ''}! ${subheadline}
         Sessão: <strong>${sessionName}</strong> — <strong>${remainingPhotos} foto${remainingPhotos !== 1 ? 's' : ''}</strong> ainda esperando.
       </p>
       <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">${body}</p>
+      `}
 
       ${coupon}
 
@@ -774,10 +783,10 @@ function _galleryUrl(orgSlug, accessCode) {
 /**
  * E-mail de escassez (CRM): aviso suave aos 15 dias do prazo. Sem cupom ainda.
  */
-async function sendScarcity15dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, accessCode, orgSlug) {
+async function sendScarcity15dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, accessCode, orgSlug, customBody = '') {
   const subject = `Faltam 15 dias: suas fotos de ${sessionName} estão te esperando — ${orgName}`;
   const html = _buildScarcityHtml({
-    orgName, clientName, sessionName, remainingPhotos,
+    orgName, clientName, sessionName, remainingPhotos, customBody,
     headline: 'Suas memórias estão te esperando 📸',
     subheadline: 'Notamos que você ainda tem fotos importantes pendentes na galeria.',
     body: 'Faltam 15 dias para o encerramento da sessão. Após o prazo, as fotos não escolhidas serão removidas da nossa nuvem. Aproveite para revisitar a galeria com calma.',
@@ -793,10 +802,10 @@ async function sendScarcity15dEmail(clientEmail, clientName, sessionName, orgNam
  * E-mail de escassez (CRM): faltam 7 dias para a galeria expirar e o cliente
  * deixou fotos para tras. Cria urgencia + entrega cupom de desconto.
  */
-async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug, customBody = '') {
   const subject = `Faltam 7 dias: ${remainingPhotos} fotos vão sumir — ${orgName}`;
   const html = _buildScarcityHtml({
-    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent, customBody,
     headline: '⏳ Suas memórias vão sumir em 7 dias',
     subheadline: 'A contagem regressiva começou.',
     body: 'Após o prazo, as fotos não escolhidas serão removidas da nossa nuvem definitivamente. Para te ajudar, preparamos um cupom exclusivo:',
@@ -810,10 +819,10 @@ async function sendScarcity7dEmail(clientEmail, clientName, sessionName, orgName
 /**
  * E-mail de escassez (CRM): faltam 3 dias - urgencia maxima com cupom.
  */
-async function sendScarcity3dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+async function sendScarcity3dEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug, customBody = '') {
   const subject = `🚨 Última chance: 3 dias para suas fotos de ${sessionName} — ${orgName}`;
   const html = _buildScarcityHtml({
-    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent, customBody,
     headline: '🚨 Apenas 3 dias restantes',
     subheadline: 'Esta é uma das suas últimas oportunidades.',
     body: 'Em 72 horas as fotos não escolhidas saem do ar para sempre. Use o cupom abaixo agora — depois disso, fica impossível recuperar.',
@@ -827,16 +836,40 @@ async function sendScarcity3dEmail(clientEmail, clientName, sessionName, orgName
 /**
  * E-mail de escassez (CRM): falta 24h - alerta final.
  */
-async function sendScarcity24hEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug) {
+async function sendScarcity24hEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug, customBody = '') {
   const subject = `⚠️ ÚLTIMAS HORAS: suas fotos de ${sessionName} expiram amanhã`;
   const html = _buildScarcityHtml({
-    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent,
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent, customBody,
     headline: '⚠️ Hoje é o último dia',
     subheadline: 'Em 24 horas as fotos somem da nuvem para sempre.',
     body: 'Não há prorrogação. Se você quer guardar essas memórias, esta é a hora. O cupom abaixo é válido até o vencimento.',
     galleryUrl: _galleryUrl(orgSlug, accessCode),
     accentColor: '#dc2626',
     ctaLabel: 'Salvar minhas fotos antes que sumam'
+  });
+  return sendEmail(clientEmail, subject, html);
+}
+
+/**
+ * E-mail de upsell pós-entrega: a sessão já foi entregue e as fotos saem do
+ * servidor em `daysLeft` dias. Puxa a compra das fotos que ficaram de fora,
+ * com desconto crescente conforme a exclusão se aproxima.
+ */
+async function sendPostDeliveryUpsellEmail(clientEmail, clientName, sessionName, orgName, remainingPhotos, couponCode, discountPercent, accessCode, orgSlug, daysLeft, customBody = '') {
+  const urgent = daysLeft <= 1;
+  const soon = daysLeft <= 7;
+  const accentColor = urgent ? '#dc2626' : (soon ? '#d97706' : '#1a1a1a');
+  const subject = urgent
+    ? `⚠️ Hoje é o último dia: suas fotos de ${sessionName} serão removidas`
+    : `Faltam ${daysLeft} dias: leve as fotos extras de ${sessionName} antes que sumam — ${orgName}`;
+  const html = _buildScarcityHtml({
+    orgName, clientName, sessionName, remainingPhotos, couponCode, discountPercent, customBody,
+    headline: urgent ? '⚠️ Último dia para suas fotos' : `📸 Suas fotos saem do ar em ${daysLeft} dias`,
+    subheadline: 'Você ainda pode levar as fotos que ficaram de fora do pacote.',
+    body: `Depois dessa data, as fotos não baixadas serão removidas definitivamente do nosso servidor. ${couponCode ? 'Use o cupom abaixo para garantir as restantes com desconto:' : 'Aproveite enquanto a galeria está no ar.'}`,
+    galleryUrl: _galleryUrl(orgSlug, accessCode),
+    accentColor,
+    ctaLabel: 'Quero minhas fotos extras'
   });
   return sendEmail(clientEmail, subject, html);
 }
@@ -1112,6 +1145,8 @@ module.exports = {
   sendScarcity7dEmail,
   sendScarcity3dEmail,
   sendScarcity24hEmail,
+  sendPostDeliveryUpsellEmail,
+  clientGalleryUrl: _galleryUrl,
   sendReactivation90dEmail,
   sendReactivation30dEmail,
   sendReactivation7dEmail,
