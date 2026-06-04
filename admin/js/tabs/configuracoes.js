@@ -7,7 +7,8 @@ import { appState } from '../state.js';
 import { apiGet, apiPut } from '../utils/api.js';
 
 let prefs = {};
-let salesCfg = {};
+let salesCfg = {};      // integrations.salesAutomator (postDelivery, couponPrefix, ...)
+let deadlineCfg = {};   // integrations.deadlineAutomation (lembrete de seleção)
 let currentSection = 'mensagens';
 
 // Canais de mensagem (ordem de exibição na seção Mensagens)
@@ -43,10 +44,12 @@ const SECTIONS = [
   { id: 'vendas',        label: 'Escassês & Vendas' }
 ];
 
-// Variáveis disponíveis nas mensagens de venda
+// Variáveis disponíveis nas mensagens de venda (pós-entrega, com cupom)
 const SALES_VARS = ['{nome}', '{negocio}', '{evento}', '{fotos_restantes}', '{dias}', '{cupom}', '{desconto}', '{preco_extra}', '{link}'];
+// Variáveis do lembrete de seleção (pré-entrega) — sem nada de dinheiro
+const REMINDER_VARS = ['{nome}', '{negocio}', '{evento}', '{dias}', '{link}'];
 const SALES_STARTERS = {
-  scarcity:     'Olá {nome}! Você ainda tem {fotos_restantes} foto(s) do seu {evento} esperando na galeria. Faltam {dias} dias para o encerramento — depois disso elas saem do ar. Use o cupom {cupom} e garanta {desconto}% de desconto nas fotos extras: {link}',
+  reminder:     'Olá {nome}! As fotos do seu {evento} já estão na galeria esperando a sua escolha. Você tem {dias} dia(s) para selecionar antes do prazo. Acesse: {link}',
   postDelivery: 'Olá {nome}! As fotos do seu {evento} saem do nosso servidor em {dias} dias. Você ainda pode levar as {fotos_restantes} fotos que ficaram de fora do pacote com {desconto}% de desconto — use o cupom {cupom}: {link}'
 };
 
@@ -65,10 +68,12 @@ export async function renderConfiguracoes(container) {
     ]);
     prefs = resPrefs.preferences || {};
     salesCfg = resInteg.integrations?.salesAutomator || {};
+    deadlineCfg = resInteg.integrations?.deadlineAutomation || {};
   } catch (err) {
     window.showToast?.('Erro ao carregar configurações: ' + err.message, 'error');
     prefs = {};
     salesCfg = {};
+    deadlineCfg = {};
   }
   renderLayout(container);
 }
@@ -435,12 +440,13 @@ function interpolateSample(tpl) {
 }
 
 // ── Seção Escassês & Vendas ───────────────────────────────────────────────────
-// Persiste em integrations.salesAutomator (endpoint diferente das demais seções).
+// Persiste em integrations (deadlineAutomation + salesAutomator) — endpoint diferente das demais seções.
 let salesSaveTimer = null;
 let salesPending = {};
 let salesPendingStatus = null;
 
-function scheduleSalesSave(partial, statusEl, immediate = false) {
+// `partial` já vem no nível de integrations, ex: { deadlineAutomation: {...} } ou { salesAutomator: { postDelivery: {...} } }
+function scheduleIntegrationsSave(partial, statusEl, immediate = false) {
   deepMerge(salesPending, partial);
   if (statusEl) salesPendingStatus = statusEl;
   if (salesPendingStatus) { salesPendingStatus.textContent = 'Salvando…'; salesPendingStatus.style.color = 'var(--text-muted)'; }
@@ -449,8 +455,11 @@ function scheduleSalesSave(partial, statusEl, immediate = false) {
     const body = salesPending; salesPending = {};
     const statusRef = salesPendingStatus;
     try {
-      const res = await apiPut('/api/organization/integrations', { salesAutomator: body });
-      salesCfg = res.integrations?.salesAutomator || salesCfg;
+      const res = await apiPut('/api/organization/integrations', body);
+      if (res.integrations) {
+        salesCfg = res.integrations.salesAutomator || salesCfg;
+        deadlineCfg = res.integrations.deadlineAutomation || deadlineCfg;
+      }
       if (statusRef) { statusRef.textContent = '✓ Salvo'; statusRef.style.color = 'var(--green)'; }
     } catch (err) {
       if (statusRef) statusRef.textContent = '';
@@ -463,22 +472,42 @@ function scheduleSalesSave(partial, statusEl, immediate = false) {
 function renderVendas() {
   const { card, status } = sectionCard(
     'Escassês & Vendas',
-    'Automação de e-mails que recupera vendas no modo seleção: lembra o cliente antes do prazo e oferece as fotos extras antes da exclusão.'
+    'No modo seleção: lembra o cliente de selecionar (sem desconto) e, depois da entrega, oferece as fotos que sobraram com desconto.'
   );
   const sa = salesCfg || {};
-  const sc = sa.scarcity || {};
   const pd = sa.postDelivery || {};
+  const dl = deadlineCfg || {};
   const fallbackPct = sa.couponDiscountPercent ?? 10;
 
   // Painel dos 3 prazos
   card.appendChild(buildDeadlinesPanel());
 
-  // ── Escassês de seleção (pré-entrega) ──
-  const preBlock = vendasSubBlock('Escassês de seleção (pré-entrega)',
-    'Dispara antes do prazo de seleção para quem ainda não escolheu as fotos. O desconto cresce conforme o prazo se aproxima.');
+  // ── Lembrete de seleção (pré-entrega) — SEM desconto ──
+  const preBlock = vendasSubBlock('Lembrete de seleção (pré-entrega)',
+    'Só avisa o cliente para entrar e escolher as fotos que ele já comprou, antes do prazo. Sem desconto, sem venda.');
 
-  preBlock.appendChild(toggleField('Ativar escassês de seleção', sa.enabled === true,
-    v => scheduleSalesSave({ enabled: v }, status, true)));
+  preBlock.appendChild(toggleField('Ativar lembrete de seleção', dl.enabled === true,
+    v => scheduleIntegrationsSave({ deadlineAutomation: { enabled: v } }, status, true)));
+  preBlock.appendChild(toggleField('Enviar por e-mail', dl.sendEmail !== false,
+    v => scheduleIntegrationsSave({ deadlineAutomation: { sendEmail: v } }, status, true)));
+
+  const daysWrap = document.createElement('div');
+  daysWrap.style.maxWidth = '260px';
+  daysWrap.appendChild(numberField('Avisar quantos dias antes do prazo', dl.daysWarning ?? 3, 1, 30,
+    v => scheduleIntegrationsSave({ deadlineAutomation: { daysWarning: v } }, status)));
+  preBlock.appendChild(daysWrap);
+
+  preBlock.appendChild(fieldLabel('Mensagem do lembrete (corpo do e-mail)'));
+  preBlock.appendChild(buildSalesTemplateEditor(dl.messageTemplate || '', SALES_STARTERS.reminder,
+    val => scheduleIntegrationsSave({ deadlineAutomation: { messageTemplate: val } }, status), REMINDER_VARS));
+  card.appendChild(preBlock);
+
+  // ── Escassês de vendas (pós-entrega) — COM desconto, só na sobra ──
+  const postBlock = vendasSubBlock('Escassês de vendas (pós-entrega)',
+    'Depois da entrega, oferece com desconto as fotos que sobraram (subidas − compradas) até a data de exclusão do storage. Só dispara se houver sobra e data de exclusão definida.');
+
+  postBlock.appendChild(toggleField('Ativar escassês de vendas', pd.enabled === true,
+    v => scheduleIntegrationsSave({ salesAutomator: { postDelivery: { enabled: v } } }, status, true)));
 
   const prefixWrap = document.createElement('div');
   prefixWrap.style.maxWidth = '220px';
@@ -487,39 +516,19 @@ function renderVendas() {
   prefixInput.type = 'text'; prefixInput.maxLength = 8;
   prefixInput.value = sa.couponPrefix || 'CZ';
   prefixInput.style.cssText = inputCss();
-  prefixInput.oninput = () => scheduleSalesSave({ couponPrefix: prefixInput.value }, status);
+  prefixInput.oninput = () => scheduleIntegrationsSave({ salesAutomator: { couponPrefix: prefixInput.value } }, status);
   prefixWrap.appendChild(prefixInput);
-  preBlock.appendChild(prefixWrap);
-
-  preBlock.appendChild(fieldLabel('Desconto por etapa (com cupom)'));
-  preBlock.appendChild(buildDiscountRow([7, 3, 1], sc.discountByDay, fallbackPct,
-    map => scheduleSalesSave({ scarcity: { discountByDay: map } }, status)));
-  const note15 = document.createElement('div');
-  note15.textContent = 'O aviso de 15 dias é só um lembrete suave, sem cupom.';
-  note15.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
-  preBlock.appendChild(note15);
-
-  preBlock.appendChild(fieldLabel('Mensagem (corpo do e-mail)'));
-  preBlock.appendChild(buildSalesTemplateEditor(sc.messageTemplate || '', SALES_STARTERS.scarcity,
-    val => scheduleSalesSave({ scarcity: { messageTemplate: val } }, status)));
-  card.appendChild(preBlock);
-
-  // ── Upsell pós-entrega ──
-  const postBlock = vendasSubBlock('Upsell pós-entrega',
-    'Depois da entrega, oferece as fotos que ficaram de fora até a data de exclusão do storage. Só dispara em sessões com data de exclusão definida.');
-
-  postBlock.appendChild(toggleField('Ativar upsell pós-entrega', pd.enabled === true,
-    v => scheduleSalesSave({ postDelivery: { enabled: v } }, status, true)));
+  postBlock.appendChild(prefixWrap);
 
   const pdDays = (Array.isArray(pd.daysSchedule) && pd.daysSchedule.length ? pd.daysSchedule : [15, 7, 1])
     .slice().sort((a, b) => b - a);
   postBlock.appendChild(fieldLabel('Desconto por etapa (dias antes da exclusão)'));
   postBlock.appendChild(buildDiscountRow(pdDays, pd.discountByDay, fallbackPct,
-    map => scheduleSalesSave({ postDelivery: { discountByDay: map } }, status)));
+    map => scheduleIntegrationsSave({ salesAutomator: { postDelivery: { discountByDay: map } } }, status)));
 
   postBlock.appendChild(fieldLabel('Mensagem (corpo do e-mail)'));
   postBlock.appendChild(buildSalesTemplateEditor(pd.messageTemplate || '', SALES_STARTERS.postDelivery,
-    val => scheduleSalesSave({ postDelivery: { messageTemplate: val } }, status)));
+    val => scheduleIntegrationsSave({ salesAutomator: { postDelivery: { messageTemplate: val } } }, status), SALES_VARS));
   card.appendChild(postBlock);
 
   return card;
@@ -539,9 +548,9 @@ function buildDeadlinesPanel() {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;';
   const items = [
-    ['1', 'Prazo de seleção', 'O cliente entra e escolhe as fotos do pacote. A escassês pré-entrega corre até aqui.'],
-    ['2', 'Janela de compra', 'Após a entrega, o cliente pode voltar e comprar mais fotos. Vai até a data de exclusão.'],
-    ['3', 'Exclusão do storage', 'As fotos saem do servidor (ou vão pro Drive). Fim da janela; o upsell pós-entrega corre até aqui.']
+    ['1', 'Prazo de seleção', 'O cliente entra e escolhe as fotos do pacote que já comprou. O lembrete (sem desconto) corre até aqui.'],
+    ['2', 'Janela de compra', 'Após a entrega, o cliente pode voltar e comprar as fotos que sobraram. Vai até a data de exclusão.'],
+    ['3', 'Exclusão do storage', 'As fotos saem do servidor (ou vão pro Drive). Fim da janela; a escassês de vendas corre até aqui.']
   ];
   items.forEach(([n, t, d]) => {
     const c = document.createElement('div');
@@ -573,7 +582,7 @@ function buildDiscountRow(daysList, discountMap, fallback, onChange) {
   return wrap;
 }
 
-function buildSalesTemplateEditor(value, starter, onChange) {
+function buildSalesTemplateEditor(value, starter, onChange, varsList = SALES_VARS) {
   const block = document.createElement('div');
   block.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem;';
 
@@ -595,7 +604,7 @@ function buildSalesTemplateEditor(value, starter, onChange) {
   chipsLabel.textContent = 'Inserir:';
   chipsLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
   chips.appendChild(chipsLabel);
-  SALES_VARS.forEach(v => {
+  varsList.forEach(v => {
     const chip = document.createElement('button');
     chip.type = 'button'; chip.textContent = v;
     chip.style.cssText = 'font-family:monospace; font-size:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--accent); border-radius:0.375rem; padding:0.125rem 0.5rem; cursor:pointer;';

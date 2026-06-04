@@ -50,32 +50,10 @@ function renderForm(container, data) {
         </div>
       </div>
 
-      <!-- Automação de Prazos -->
-      <div style="background:var(--ad-bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-text) 15%, transparent);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
-          <div>
-            <h3 style="font-size:1.1rem; font-weight:bold; color:var(--ad-text); margin:0 0 0.25rem;">Automação de Prazos</h3>
-            <p style="font-size:0.75rem; color:var(--ad-text); opacity:0.6; margin:0;">Envia e-mail automático ao cliente quando o prazo de seleção está próximo de expirar.</p>
-          </div>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; flex-shrink:0; margin-left:1rem;">
-            <input type="checkbox" id="deadlineEnabled" ${data.deadlineAutomation?.enabled ? 'checked' : ''}>
-            <span style="color:var(--ad-text);">Ativar</span>
-          </label>
-        </div>
-        <div style="display:grid; gap:1rem;">
-          <div>
-            <label style="display:block; color:var(--ad-text); opacity:0.7; margin-bottom:0.25rem; font-size:0.875rem;">Dias de antecedência para aviso</label>
-            <div style="display:flex; align-items:center; gap:0.75rem;">
-              <input type="number" id="deadlineDays" value="${data.deadlineAutomation?.daysWarning ?? 3}" min="1" max="30"
-                style="width:100px; background:var(--ad-bg-base); border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); color:var(--ad-text); padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.9375rem;">
-              <span style="color:var(--ad-text); opacity:0.6; font-size:0.875rem;">dias antes do prazo</span>
-            </div>
-          </div>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="deadlineSendEmail" ${data.deadlineAutomation?.sendEmail !== false ? 'checked' : ''}>
-            <span style="color:var(--ad-text); font-size:0.875rem;">Enviar e-mail ao cliente</span>
-          </label>
-        </div>
+      <!-- Lembrete de prazo: movido para Configurações -->
+      <div style="background:var(--ad-bg-surface); padding:1rem 1.25rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-text) 15%, transparent); font-size:0.875rem; color:var(--ad-text);">
+        💡 O <strong>lembrete de prazo de seleção</strong> agora é configurado em
+        <a href="#" onclick="window.switchTab('configuracoes'); return false;" style="color:var(--ad-accent); font-weight:600; text-decoration:underline; cursor:pointer;">Configurações › Escassês &amp; Vendas</a>.
       </div>
 
       <button id="saveBtn" style="background:var(--ad-accent); color:var(--ad-bg-base); padding:0.75rem 1.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold; font-size:1rem; align-self:flex-start;">
@@ -97,11 +75,6 @@ function renderForm(container, data) {
       metaPixel: {
         enabled: container.querySelector('#pixelEnabled').checked,
         pixelId: container.querySelector('#pixelId').value
-      },
-      deadlineAutomation: {
-        enabled: container.querySelector('#deadlineEnabled').checked,
-        daysWarning: parseInt(container.querySelector('#deadlineDays').value) || 3,
-        sendEmail: container.querySelector('#deadlineSendEmail').checked
       }
     };
 

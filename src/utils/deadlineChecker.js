@@ -1,7 +1,8 @@
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
 const Organization = require('../models/Organization');
-const { sendDeadlineWarningEmail, sendDeadlineExpiredEmail } = require('./email');
+const { sendDeadlineWarningEmail, sendDeadlineExpiredEmail, clientGalleryUrl } = require('./email');
+const { EVENT_LABELS, firstName, applyScarcityVars } = require('./salesShared');
 
 /**
  * Verifica prazos de seleção, gera notificações e envia e-mails se org tiver automação ativada.
@@ -16,7 +17,7 @@ async function checkDeadlines(organizationId = null) {
   // Carregar configs das orgs relevantes em uma única query
   const orgQuery = organizationId ? { _id: organizationId } : { isActive: true };
   const orgs = await Organization.find(orgQuery)
-    .select('_id name integrations')
+    .select('_id name slug integrations')
     .lean();
   const orgMap = Object.fromEntries(orgs.map(o => [String(o._id), o]));
 
@@ -31,7 +32,7 @@ async function checkDeadlines(organizationId = null) {
     selectionDeadline: { $exists: true, $ne: null, $gt: now, $lte: sevenDaysFromNow },
     selectionStatus: { $in: ['pending', 'in_progress'] },
     deadlineWarningSent: { $ne: true }
-  });
+  }).populate('clientId', 'name');
 
   let warnings = 0;
   for (const session of warningSessions) {
@@ -55,7 +56,18 @@ async function checkDeadlines(organizationId = null) {
       });
 
       if (automation?.enabled && automation?.sendEmail && session.clientEmail) {
-        sendDeadlineWarningEmail(session.clientEmail, session.name, daysLeft, org.name).catch(() => {});
+        // Lembrete editável pelo fotógrafo (sem desconto) — '' usa a copy de fábrica
+        let customBody = '';
+        if (automation.messageTemplate) {
+          customBody = applyScarcityVars(automation.messageTemplate, {
+            nome: firstName(session.clientId?.name),
+            negocio: org.name,
+            evento: EVENT_LABELS[session.eventType] || EVENT_LABELS.outro,
+            dias: daysLeft,
+            link: clientGalleryUrl(org.slug, session.accessCode)
+          });
+        }
+        sendDeadlineWarningEmail(session.clientEmail, session.name, daysLeft, org.name, customBody).catch(() => {});
       }
 
       session.deadlineWarningSent = true;

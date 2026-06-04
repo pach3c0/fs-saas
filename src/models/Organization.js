@@ -222,20 +222,15 @@ const OrganizationSchema = new mongoose.Schema({
       googleSiteVerification: { type: String, default: '' },
       robots: { type: String, default: 'index, follow' }
     },
+    // Lembrete de seleção (pré-entrega): avisa o cliente para selecionar antes do prazo. Sem desconto.
     deadlineAutomation: {
       enabled: { type: Boolean, default: false },
       daysWarning: { type: Number, default: 3 }, // quantos dias antes do prazo enviar aviso
-      sendEmail: { type: Boolean, default: true }
+      sendEmail: { type: Boolean, default: true },
+      messageTemplate: { type: String, default: '' } // corpo customizado (variaveis); '' = texto de fabrica
     },
-    // CRM Fase 2: motor de vendas automaticas (escassez)
+    // CRM Fase 2: escassês de vendas (upsell pós-entrega, sobre as fotos não compradas)
     salesAutomator: {
-      enabled: { type: Boolean, default: false },
-      scarcity: {
-        enabled: { type: Boolean, default: true },
-        daysSchedule: { type: [Number], default: [15, 7, 3, 1] }, // niveis de gatilho (dias antes do prazo)
-        discountByDay: { type: mongoose.Schema.Types.Mixed, default: {} }, // { '7':10, '3':15, '1':20 } — fallback: couponDiscountPercent
-        messageTemplate: { type: String, default: '' }            // corpo customizado (variaveis); '' = texto de fabrica
-      },
       reactivation: {
         enabled: { type: Boolean, default: true },
         daysBeforeAnniversary: { type: [Number], default: [90, 30, 7] }

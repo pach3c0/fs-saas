@@ -350,11 +350,11 @@ Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pend
 - [x] **modal-detail.js standalone** — pode ser removido, o wizard já tem o grid embutido nos passos 1/4/5.
 - [ ] **Cortesia como diferencial de marketing** — incluir como bullet em "Por que CliqueZoom" quando auditar a landing (Dia 4).
 
-### Escassês & Vendas — backlog (entregue em 2026-06-04, decisões adiadas)
-Seção **Configurações › Escassês & Vendas** entregue: desconto por etapa, mensagens editáveis (texto base + variáveis), upsell pós-entrega (`postDeliveryAutomator`). Sem pagamentos na plataforma — cupom é só código de desconto, negociação direta com o fotógrafo (ver memória `project_sem_pagamentos`). Decisões deixadas para depois:
-- **Offsets de disparo fixos (Plano A escolhido):** a escassês pré-entrega dispara em 15/7/3/1 dias **antes do prazo** — esses offsets são fixos no código (cada nível tem um e-mail próprio em `email.js`). O fotógrafo personaliza desconto e mensagem, **não os dias**. Prazos curtos disparam menos níveis automaticamente (ex: prazo de 3 dias → só 3d e 1d casam; 15d/7d nunca). Comportamento aceito como está.
-- [ ] **Guarda de "idade mínima" (polimento barato):** em prazos curtos os e-mails de urgência (3d/24h) casam quase no instante em que o cliente recebe a galeria. Avaliar não disparar um gatilho se o link foi enviado há menos de X horas.
-- [ ] **Offsets configuráveis/proporcionais (refatoração):** deixar o fotógrafo escolher os dias (ex: 10/5/2) ou adaptar os offsets ao tamanho do prazo. Exige trocar os 4 `sendScarcity*` fixos por um sender genérico (como `sendPostDeliveryUpsellEmail` já é).
+### Escassês & Vendas (modelo corrigido em 2026-06-04)
+**Conceito (modo seleção):** o cliente já **pagou** o pacote, então a fase de seleção **não vende nem dá desconto** — só **lembra** ele de escolher. A venda com desconto só acontece **pós-entrega**, e **só sobre a sobra** (`fotos subidas − compradas`); se sobra = 0, nada é oferecido.
+- **Lembrete de seleção (pré-entrega):** `deadlineChecker` envia 1 aviso `daysWarning` dias antes do prazo (sem desconto). Mensagem editável via `integrations.deadlineAutomation.messageTemplate` (vars `{nome} {negocio} {evento} {dias} {link}`). Configurado em **Configurações › Escassês & Vendas**.
+- **Escassês de vendas (pós-entrega):** `postDeliveryAutomator` — dispara em `postDelivery.daysSchedule` (15/7/1) dias antes de `storageRetentionUntil`, só se `restantes > 0`. Desconto por etapa + mensagem editável (`postDelivery.messageTemplate`). Cupom = só código (sem pagamento na plataforma — ver memória `project_sem_pagamentos`).
+- **Removido:** o `salesAutomator` (escassez pré-entrega COM cupom) era conceitualmente errado (dava desconto antes da entrega) — apagado, junto dos `sendScarcity*` e do bloco `salesAutomator.scarcity`.
 - [ ] **UI dos dias do pós-entrega:** `postDelivery.daysSchedule` é configurável no backend, mas a UI em `configuracoes.js` só edita o **desconto** de cada dia (15/7/1), não os dias em si.
 
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento

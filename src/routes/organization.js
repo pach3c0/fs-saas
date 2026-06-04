@@ -202,27 +202,12 @@ router.put('/organization/integrations', authenticateToken, async (req, res) => 
       if (typeof deadlineAutomation.sendEmail === 'boolean') {
         $set['integrations.deadlineAutomation.sendEmail'] = deadlineAutomation.sendEmail;
       }
+      if (typeof deadlineAutomation.messageTemplate === 'string') {
+        $set['integrations.deadlineAutomation.messageTemplate'] = deadlineAutomation.messageTemplate.slice(0, 2000);
+      }
     }
 
     if (salesAutomator && typeof salesAutomator === 'object') {
-      if (typeof salesAutomator.enabled === 'boolean') {
-        $set['integrations.salesAutomator.enabled'] = salesAutomator.enabled;
-      }
-      if (salesAutomator.scarcity && typeof salesAutomator.scarcity === 'object') {
-        if (typeof salesAutomator.scarcity.enabled === 'boolean') {
-          $set['integrations.salesAutomator.scarcity.enabled'] = salesAutomator.scarcity.enabled;
-        }
-        if (Array.isArray(salesAutomator.scarcity.daysSchedule)) {
-          $set['integrations.salesAutomator.scarcity.daysSchedule'] = salesAutomator.scarcity.daysSchedule
-            .map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0);
-        }
-        if (salesAutomator.scarcity.discountByDay && typeof salesAutomator.scarcity.discountByDay === 'object') {
-          $set['integrations.salesAutomator.scarcity.discountByDay'] = _sanitizeDiscountMap(salesAutomator.scarcity.discountByDay);
-        }
-        if (typeof salesAutomator.scarcity.messageTemplate === 'string') {
-          $set['integrations.salesAutomator.scarcity.messageTemplate'] = salesAutomator.scarcity.messageTemplate.slice(0, 2000);
-        }
-      }
       if (salesAutomator.postDelivery && typeof salesAutomator.postDelivery === 'object') {
         const pd = salesAutomator.postDelivery;
         if (typeof pd.enabled === 'boolean') {

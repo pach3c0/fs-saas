@@ -201,7 +201,6 @@ const connectWithRetry = async () => {
 
 const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
-const salesAutomator = require('./utils/salesAutomator');
 const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
@@ -233,11 +232,7 @@ function startDeadlineScheduler() {
   safeInterval(() => checkOffboarding(), ONE_DAY);
   logger.info('[scheduler] Offboarding checker iniciado (a cada 24h)');
 
-  // CRM Fase 2 (Fatia A): motor de vendas automaticas — escassez 7d
-  safeInterval(() => salesAutomator.run(), SIX_HOURS);
-  logger.info('[scheduler] Sales automator iniciado (a cada 6h)');
-
-  // Upsell pós-entrega: janela entre a entrega e a exclusão do storage
+  // Escassês de vendas: upsell pós-entrega na janela entre a entrega e a exclusão do storage
   safeInterval(() => postDeliveryAutomator.run(), SIX_HOURS);
   logger.info('[scheduler] Post-delivery upsell automator iniciado (a cada 6h)');
 

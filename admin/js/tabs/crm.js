@@ -9,6 +9,10 @@ import { escapeHtml } from '../utils/helpers.js';
 let dashboardData = null;
 
 const TRIGGER_LABEL = {
+  upsell_15d: '15 dias (pós-entrega)',
+  upsell_7d: '7 dias (pós-entrega)',
+  upsell_1d: '1 dia (pós-entrega)',
+  // legados (escassez pré-entrega removida) — mantidos para registros antigos
   scarcity_15d: '15 dias',
   scarcity_7d: '7 dias',
   scarcity_3d: '3 dias',
@@ -59,6 +63,7 @@ async function carregar(container) {
 function render(container) {
   const root = container.querySelector('#crmContent');
   const cfg = dashboardData.integrations?.salesAutomator || {};
+  const dl = dashboardData.integrations?.deadlineAutomation || {};
   const k = dashboardData.kpis || {};
 
   root.innerHTML = `
@@ -66,16 +71,16 @@ function render(container) {
     <div style="border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; background:var(--bg-surface); margin-bottom:1.25rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
         <div>
-          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Robô de Escassês & Vendas</h3>
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Lembrete & Escassês de Vendas</h3>
           <p style="color:var(--text-muted); font-size:0.8125rem; margin:0.25rem 0 0;">
-            Recupera vendas com e-mails de urgência. Mensagens, desconto por etapa e o upsell pós-entrega ficam em Configurações.
+            Lembra o cliente de selecionar (sem desconto) e vende as fotos que sobraram após a entrega. Tudo configurado em Configurações.
           </p>
         </div>
         <a href="#" onclick="window.switchTab('configuracoes'); return false;" class="btn btn-primary" style="text-decoration:none; white-space:nowrap;">Configurar</a>
       </div>
       <div style="display:flex; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
-        ${statusPill('Escassês pré-entrega', cfg.enabled)}
-        ${statusPill('Upsell pós-entrega', cfg.postDelivery?.enabled)}
+        ${statusPill('Lembrete de seleção', dl.enabled)}
+        ${statusPill('Escassês de vendas (pós-entrega)', cfg.postDelivery?.enabled)}
       </div>
     </div>
 
