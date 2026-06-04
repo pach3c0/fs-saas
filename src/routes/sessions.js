@@ -640,6 +640,29 @@ router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
   }
 });
 
+// ADMIN: Modo Galeria — define se compartilha prévia (com marca d'água) antes de entregar
+// ou entrega direto (pula o passo Compartilhar). Só preferência de fluxo do wizard.
+router.put('/sessions/:id/gallery-delivery-mode', authenticateToken, async (req, res) => {
+  try {
+    const { mode } = req.body;
+    if (!['preview', 'direct'].includes(mode)) {
+      return res.status(400).json({ error: 'Modo inválido. Use "preview" ou "direct".' });
+    }
+    const session = await Session.findOne(
+      { _id: req.params.id, organizationId: req.user.organizationId }
+    ).select('mode galleryDeliveryMode');
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.mode !== 'gallery') {
+      return res.status(400).json({ error: 'Disponível apenas para sessões em modo Galeria.' });
+    }
+    session.galleryDeliveryMode = mode;
+    await session.save();
+    res.json({ success: true, galleryDeliveryMode: session.galleryDeliveryMode });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ADMIN: Autosave das mensagens customizadas (Share / Deliver)
 router.put('/sessions/:id/custom-messages', authenticateToken, async (req, res) => {
   try {

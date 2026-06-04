@@ -11,7 +11,7 @@ import {
   buildDeliveryEmailIntro, buildDeliveryWhatsAppText, buildMessageCustomizer
 } from '../utils.js';
 
-export function renderStepDeliver({ session, refresh }) {
+export function renderStepDeliver({ session, refresh, switchStep }) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:900px;';
 
@@ -209,6 +209,31 @@ export function renderStepDeliver({ session, refresh }) {
     }
   }
   wrap.appendChild(deliverCard);
+
+  // Escape hatch: galeria veio do caminho "Entregar direto" e ainda não entregou.
+  // Permite voltar e enviar a prévia com marca d'água antes.
+  if (isGallery && session.galleryDeliveryMode === 'direct' && !isDelivered) {
+    const backWrap = document.createElement('div');
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.textContent = '↩ Prefiro enviar uma prévia com marca d\'água antes';
+    backBtn.style.cssText = `
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 0.375rem;
+      cursor: pointer; font-size: 0.8125rem;
+    `;
+    backBtn.onclick = async () => {
+      try {
+        await apiPut(`/api/sessions/${session._id}/gallery-delivery-mode`, { mode: 'preview' });
+        session.galleryDeliveryMode = 'preview';
+        switchStep?.(2);
+      } catch (e) {
+        window.showToast?.('Erro: ' + e.message, 'error');
+      }
+    };
+    backWrap.appendChild(backBtn);
+    wrap.appendChild(backWrap);
+  }
 
   // Card "Compartilhar entrega" — WhatsApp + copiar link
   // (visível antes e depois da entrega; útil pra reforçar o aviso pelo canal preferido do cliente)

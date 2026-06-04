@@ -84,6 +84,8 @@ export function filterAndRender(container, state) {
 
 function getSessionProgress(session) {
   const isGallery = session.mode === 'gallery';
+  // Galeria com "Entregar direto": pula o passo Compartilhar — o "Link" não se aplica.
+  const isGalleryDirect = isGallery && session.galleryDeliveryMode === 'direct';
   const hasPhotos = (session.photos?.length || 0) > 0;
   const linkSent = !!session.codeSentAt;
   const clientAccessed = !!session.firstAccessAt;
@@ -96,7 +98,13 @@ function getSessionProgress(session) {
 
   const reopenPending = !isGallery && !!session.reopenRequested;
 
-  const steps = isGallery
+  const steps = isGalleryDirect
+    ? [
+        { label: 'Criada',   done: true },
+        { label: 'Fotos',    done: hasPhotos },
+        { label: 'Entregue', done: delivered },
+      ]
+    : isGallery
     ? [
         { label: 'Criada',   done: true },
         { label: 'Fotos',    done: hasPhotos },
@@ -134,7 +142,7 @@ function getSessionProgress(session) {
     nextAction = 'Prazo vencido — considere reabrir'; nextType = 'warn';
   } else if (!hasPhotos) {
     nextAction = 'Faça upload das fotos'; nextType = 'action';
-  } else if (!linkSent) {
+  } else if (!linkSent && !isGalleryDirect) {
     nextAction = 'Envie o link ao cliente'; nextType = 'action';
   } else if (isGallery) {
     nextAction = 'Libere o download ao cliente'; nextType = 'action';

@@ -9,17 +9,23 @@ const STEP_DEFS = {
   6: { label: 'Entregar', desc: 'Libere o download' }
 };
 
+// Galeria escolheu "Entregar direto" (pula o passo Compartilhar).
+export function galleryDirect(session) {
+  return session?.mode === 'gallery' && session?.galleryDeliveryMode === 'direct';
+}
+
 // Define a ordem dos passos por modo da sessão.
 // Galeria: pula seleção (4) e editadas (5) — fluxo direto Upload → Compartilhar → Entregar.
+//   Se o fotógrafo escolheu "Entregar direto" (opts.galleryDirect), pula também o Compartilhar (2).
 // Multi-Seleção / Seleção: fluxo completo, sem passo dedicado a "ver código".
-export function stepIdsForMode(mode) {
-  if (mode === 'gallery') return [1, 2, 6];
+export function stepIdsForMode(mode, opts = {}) {
+  if (mode === 'gallery') return opts.galleryDirect ? [1, 6] : [1, 2, 6];
   return [1, 2, 4, 5, 6];
 }
 
 // Retorna o próximo passo aplicável após currentId, ou null se for o último.
-export function nextStepIdAfter(mode, currentId) {
-  const ids = stepIdsForMode(mode);
+export function nextStepIdAfter(mode, currentId, opts = {}) {
+  const ids = stepIdsForMode(mode, opts);
   const idx = ids.indexOf(currentId);
   if (idx === -1 || idx === ids.length - 1) return null;
   return ids[idx + 1];
@@ -44,7 +50,7 @@ function hasAllEditedPhotos(session) {
 // Computa estado de cada passo para a sessão.
 // Retorna array ordenado: [{ id, label, desc, done, locked, current }]
 export function computeWizardSteps(session, currentStepId) {
-  const ids = stepIdsForMode(session.mode);
+  const ids = stepIdsForMode(session.mode, { galleryDirect: galleryDirect(session) });
   const photosCount = session.photos?.length || 0;
   const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
   const isSubmitted = ['submitted', 'delivered'].includes(session.selectionStatus);

@@ -19,6 +19,11 @@ export function renderStepShare({ session, refresh, switchStep }) {
   const isGallery = session.mode === 'gallery';
   const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
 
+  // Galeria sem escolha de fluxo: mostra a tela de decisão antes de qualquer coisa.
+  if (isGallery && !session.galleryDeliveryMode) {
+    return renderGalleryChoice({ session, refresh, switchStep });
+  }
+
   // Header
   const subtitle = isGallery
     ? 'Compartilhe a galeria. O cliente vai visualizar e baixar diretamente — não há etapa de seleção.'
@@ -69,6 +74,94 @@ export function renderStepShare({ session, refresh, switchStep }) {
   if (session.codeSentAt) wrap.appendChild(buildAdvanceButton(session, switchStep));
 
   return wrap;
+}
+
+// Tela de escolha (modo Galeria, antes de decidir o fluxo).
+// "Compartilhar prévia" mantém o fluxo atual; "Entregar direto" pula este passo.
+function renderGalleryChoice({ session, refresh, switchStep }) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:640px;';
+
+  const header = document.createElement('div');
+  header.innerHTML = `
+    <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Como você quer compartilhar?</h2>
+    <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">Escolha o fluxo desta galeria. Você pode mudar de ideia depois.</p>
+  `;
+  wrap.appendChild(header);
+
+  const setMode = async (mode) => {
+    try {
+      await apiPut(`/api/sessions/${session._id}/gallery-delivery-mode`, { mode });
+      session.galleryDeliveryMode = mode;
+    } catch (err) {
+      window.showToast?.('Erro ao salvar a escolha: ' + err.message, 'error');
+      return false;
+    }
+    return true;
+  };
+
+  // Card "Compartilhar prévia" (recomendado)
+  wrap.appendChild(buildChoiceCard({
+    recommended: true,
+    title: 'Compartilhar prévia',
+    desc: 'O cliente visualiza as fotos com marca d\'água. Você libera o download em alta na etapa seguinte.',
+    onClick: async () => {
+      if (await setMode('preview')) await refresh();
+    }
+  }));
+
+  // Card "Entregar direto"
+  wrap.appendChild(buildChoiceCard({
+    recommended: false,
+    title: 'Entregar direto',
+    desc: 'Pula a prévia. O cliente recebe o link já com o download liberado, sem marca d\'água.',
+    onClick: async () => {
+      if (await setMode('direct')) switchStep(6);
+    }
+  }));
+
+  return wrap;
+}
+
+function buildChoiceCard({ recommended, title, desc, onClick }) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.style.cssText = `
+    text-align: left; width: 100%; font: inherit; cursor: pointer;
+    background: var(--bg-surface);
+    border: 1px solid ${recommended ? 'var(--accent)' : 'var(--border)'};
+    border-radius: 0.75rem; padding: 1.25rem 1.5rem;
+    display: flex; flex-direction: column; gap: 0.375rem;
+    transition: border-color 0.15s, background 0.15s;
+  `;
+  card.onmouseenter = () => { card.style.background = 'var(--bg-hover)'; };
+  card.onmouseleave = () => { card.style.background = 'var(--bg-surface)'; };
+
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
+  const titleEl = document.createElement('span');
+  titleEl.textContent = title;
+  titleEl.style.cssText = 'font-size:1rem; font-weight:600; color:var(--text-primary);';
+  titleRow.appendChild(titleEl);
+  if (recommended) {
+    const badge = document.createElement('span');
+    badge.textContent = '⭐ Recomendado';
+    badge.style.cssText = `
+      font-size:0.6875rem; font-weight:600; color:var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 999px; padding: 0.125rem 0.5rem;
+    `;
+    titleRow.appendChild(badge);
+  }
+  card.appendChild(titleRow);
+
+  const descEl = document.createElement('div');
+  descEl.textContent = desc;
+  descEl.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); line-height:1.5;';
+  card.appendChild(descEl);
+
+  card.onclick = onClick;
+  return card;
 }
 
 function renderCodeCard(session) {

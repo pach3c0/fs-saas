@@ -40,6 +40,9 @@ const sessionSchema = new mongoose.Schema({
     lastEditedUploadAt: Date, // quando admin fez o último upload de fotos editadas
     uploadsCompletedAt: Date, // fotógrafo marcou "concluí upload" — destrava passo de envio do código (wizard)
     codeViewedAt: Date,       // fotógrafo abriu o passo do código no wizard — habilita o passo de envio
+    // Modo Galeria: escolha do fotógrafo no passo Compartilhar.
+    // null = ainda não decidiu (mostra a tela de escolha); 'preview' = fluxo com prévia/marca d'água; 'direct' = pula Compartilhar
+    galleryDeliveryMode: { type: String, enum: ['preview', 'direct', null], default: null },
     selectionDeadline: Date,
     deadlineWarningSent: { type: Boolean, default: false }, // Aviso de 3 dias enviado?
     deadlineExpiredSent: { type: Boolean, default: false }, // Aviso de expirado enviado?
