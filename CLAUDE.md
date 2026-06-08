@@ -198,7 +198,7 @@
 - `GET/PUT /api/site/default-template` — lê e salva o template (PUT exige `X-Admin-Key`)
 - Aba **Padrão** no Meu Site visível apenas para superadmin
 - Fallback hardcoded em `site.js` se não houver template no banco
-- **Chave:** `PLATFORM_ADMIN_KEY=cz-admin-2025-542a04deba81b574`
+- **Chave:** `PLATFORM_ADMIN_KEY` — definida apenas no `.env` da VPS (nunca commitar o valor). Rotacionada em 2026-06-08; valor antigo invalidado.
 
 ### Segurança Anti-Bot (src/middleware/security.js + src/models/SecurityLog.js)
 - Honey pot: campo invisível `_hp_trap` nos formulários públicos — bloqueia e loga bots
@@ -337,7 +337,7 @@ Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pend
 - [ ] **Validar Onda 4 em produção/local** — usuário ainda não confirmou o teste do WhatsApp na entrega (passo 6) — ver `skills/8_0_handoff-2026-05-23.md` para o checklist.
 - [ ] **Validar Onda 1–4 em modo `gallery`** — todas as ondas foram focadas em `selection`. Confirmar fluxo da galeria após a fusão (Upload → Compartilhar → Entregar, 3 passos).
 - [ ] **Regra do mínimo de upload em multi-seleção** — modelar como tratar o `packageLimit` por participante. Hoje a validação só vale para `selection`.
-- [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: cz-admin-2025-542a04deba81b574" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
+- [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: <chave do .env da VPS>" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
 - [x] **Mongoose deprecation:** `findOneAndUpdate` com `new: true` — trocar para `returnDocument: 'after'` (warnings nos logs, não é erro crítico)
 - [ ] **Inconsistência de campos:** Uniformizar `nome`/`mensagem` (contato) vs `name`/`text` (depoimento) — não crítico
 - [ ] Completar auditoria dos dias 3–7
