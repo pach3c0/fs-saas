@@ -354,10 +354,11 @@ export class UploadQueue {
     let loadedSoFar = 0;
 
     try {
-      // Usar a mesma compressão da função uploadImage
-      const compressed = await compressImage(item.file, 1200, 0.85);
+      // NÃO comprimir no cliente: o backend gera a thumb (session.photoResolution) via Sharp
+      // e preserva o arquivo original em alta para a entrega. Comprimir aqui destruía a
+      // resolução de entrega (cliente recebia 1200px em vez do arquivo original).
       const formData = new FormData();
-      formData.append('photos', compressed, item.file.name); // sessoes usa 'photos' não 'image'
+      formData.append('photos', item.file, item.file.name); // sessoes usa 'photos' não 'image'
       
       await new Promise((resolve, reject) => {
         item.xhr = new XMLHttpRequest();
