@@ -8,7 +8,7 @@ import { escapeHtml } from '../../../../utils/helpers.js';
 import { appState } from '../../../../state.js';
 import {
   buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppDeliveryLink,
-  buildDeliveryEmailIntro, buildDeliveryWhatsAppText, buildMessageCustomizer
+  buildDeliveryEmailIntro, buildMessageCustomizer
 } from '../utils.js';
 
 export function renderStepDeliver({ session, refresh, switchStep }) {
@@ -245,10 +245,6 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     backWrap.appendChild(backBtn);
     wrap.appendChild(backWrap);
   }
-
-  // Card "Compartilhar entrega" — WhatsApp + copiar link
-  // (visível antes e depois da entrega; útil pra reforçar o aviso pelo canal preferido do cliente)
-  wrap.appendChild(renderShareDeliveryCard(session));
 
   // Painel de retenção de storage
   wrap.appendChild(renderStoragePanel(session, refresh));
@@ -564,87 +560,6 @@ function renderStoragePanel(session, refresh) {
   card.appendChild(actions);
   panel.appendChild(card);
   return panel;
-}
-
-// ============================================================================
-// Compartilhar entrega — WhatsApp + Copiar link (não-multi)
-// ============================================================================
-
-function renderShareDeliveryCard(session) {
-  const card = document.createElement('div');
-  card.style.cssText = `
-    background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: 0.5rem; padding: 1rem 1.25rem;
-    display: flex; flex-direction: column; gap: 0.625rem;
-  `;
-  const title = document.createElement('div');
-  title.innerHTML = `
-    <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Compartilhar entrega</div>
-    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.125rem;">Reforce o aviso da entrega pelo canal preferido do cliente. Não dispara um novo e-mail.</div>
-  `;
-  card.appendChild(title);
-
-  const clientName = session.clientId?.name || session.clientEmail || 'Cliente';
-  const clientPhone = session.clientId?.phone || '';
-  const orgName = appState.appData?.organization?.name || '';
-
-  // Textarea editável para o WhatsApp de entrega
-  let waTextareaEl = null;
-  card.appendChild(buildMessageCustomizer({
-    label: 'Personalizar mensagem do WhatsApp',
-    defaultText: buildDeliveryWhatsAppText({ session, accessCode: session.accessCode, recipientName: clientName, orgName }),
-    onTextareaReady: el => { waTextareaEl = el; },
-    onInput: async (val) => {
-      await apiPut(`/api/sessions/${session._id}/custom-messages`, { customDeliverWhatsAppText: val });
-      session.customDeliverWhatsAppText = val;
-    }
-  }));
-
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
-
-  const waBtn = document.createElement('button');
-  waBtn.type = 'button';
-  waBtn.innerHTML = clientPhone ? '💬 Enviar WhatsApp' : '💬 Abrir WhatsApp (sem nº)';
-  waBtn.title = clientPhone
-    ? 'Abre o WhatsApp Web com a mensagem pré-preenchida'
-    : 'Telefone do cliente não cadastrado — abre o WhatsApp para você digitar o número';
-  waBtn.style.cssText = `
-    background: #25D366; color: white; border: none;
-    padding: 0.5rem 0.875rem; border-radius: 0.375rem;
-    cursor: pointer; font-size: 0.8125rem; font-weight: 500;
-  `;
-  waBtn.onclick = () => {
-    const customText = waTextareaEl?.value?.trim() || undefined;
-    const url = buildWhatsAppDeliveryLink({
-      session,
-      accessCode: session.accessCode,
-      recipientName: clientName,
-      recipientPhone: clientPhone,
-      orgName,
-      customText
-    });
-    window.open(url, '_blank');
-  };
-  row.appendChild(waBtn);
-
-  const copyBtn = document.createElement('button');
-  copyBtn.type = 'button';
-  copyBtn.textContent = '🔗 Copiar link da galeria';
-  copyBtn.style.cssText = `
-    background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border);
-    padding: 0.5rem 0.875rem; border-radius: 0.375rem;
-    cursor: pointer; font-size: 0.8125rem; font-weight: 500;
-  `;
-  copyBtn.onclick = async () => {
-    await navigator.clipboard.writeText(buildGalleryUrl(session));
-    copyBtn.textContent = '✓ Copiado!';
-    setTimeout(() => { copyBtn.textContent = '🔗 Copiar link da galeria'; }, 2000);
-  };
-  row.appendChild(copyBtn);
-
-  card.appendChild(row);
-  return card;
 }
 
 // ============================================================================
