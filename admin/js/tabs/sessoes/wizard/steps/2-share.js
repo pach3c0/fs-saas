@@ -371,7 +371,9 @@ function buildPreviewButton(session) {
 }
 
 function buildAdvanceButton(session, switchStep) {
-  const nextId = nextStepIdAfter(session.mode, 2);
+  const isDirect = session.mode === 'gallery' && session.galleryDeliveryMode === 'direct';
+  const nextId = nextStepIdAfter(session.mode, 2, { galleryDirect: isDirect });
+  if (!nextId) return document.createDocumentFragment();
   const labelByStep = { 4: 'Acompanhar seleção', 5: 'Subir editadas', 6: 'Entregar' };
   const advance = document.createElement('div');
   advance.style.cssText = 'display:flex; justify-content:flex-end;';
@@ -383,7 +385,7 @@ function buildAdvanceButton(session, switchStep) {
     padding: 0.625rem 1.25rem; border-radius: 0.5rem;
     cursor: pointer; font-weight: 500; font-size: 0.875rem;
   `;
-  nextBtn.onclick = () => switchStep(nextId || 4);
+  nextBtn.onclick = () => switchStep(nextId);
   advance.appendChild(nextBtn);
   return advance;
 }

@@ -15,11 +15,11 @@ export function galleryDirect(session) {
 }
 
 // Define a ordem dos passos por modo da sessão.
-// Galeria: pula seleção (4) e editadas (5) — fluxo direto Upload → Compartilhar → Entregar.
-//   Se o fotógrafo escolheu "Entregar direto" (opts.galleryDirect), pula também o Compartilhar (2).
-// Multi-Seleção / Seleção: fluxo completo, sem passo dedicado a "ver código".
+// Galeria prévia: Upload → Compartilhar → Entregar.
+// Galeria direta: Upload → Entregar → Compartilhar (compartilha o link de download pós-entrega).
+// Multi-Seleção / Seleção: fluxo completo.
 export function stepIdsForMode(mode, opts = {}) {
-  if (mode === 'gallery') return opts.galleryDirect ? [1, 6] : [1, 2, 6];
+  if (mode === 'gallery') return opts.galleryDirect ? [1, 6, 2] : [1, 2, 6];
   return [1, 2, 4, 5, 6];
 }
 
