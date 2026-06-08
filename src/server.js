@@ -28,6 +28,11 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // Logging Middleware
 app.use((req, res, next) => {
     req.requestId = uuidv4();
+    // Logger base para TODA requisição (inclusive rotas públicas sem authenticateToken).
+    // authenticateToken sobrescreve com um child mais rico (orgId/userId) nas rotas autenticadas.
+    // Sem isto, qualquer req.logger.* em rota pública (ex.: login com senha errada) lançava
+    // ReferenceError e travava a resposta até timeout.
+    req.logger = logger.child({ requestId: req.requestId });
     const start = Date.now();
 
     // Log ao finalizar a resposta
