@@ -123,6 +123,7 @@ router.post('/client/verify-code', async (req, res) => {
       totalPhotos: (session.photos || []).filter(p => !p.hidden).length,
       mode: session.mode || 'gallery',
       selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
+      galleryDeliveryMode: session.galleryDeliveryMode || null,
       packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
       extraPhotoPrice: session.extraPhotoPrice || 25,
       watermark: session.watermark !== false,
@@ -260,6 +261,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       selectedPhotos: selectedPhotos,
       mode: session.mode,
       selectionStatus: selectionStatus,
+      // Em modo galeria: 'direct' = entrega direta sem marca d'água; 'preview' = prévia com marca d'água
+      galleryDeliveryMode: session.galleryDeliveryMode || null,
       watermark: session.watermark,
       commentsEnabled: session.commentsEnabled !== false,
       extraRequest: session.extraRequest || { status: 'none', photos: [] },

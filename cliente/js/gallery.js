@@ -305,8 +305,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Respeita o flag booleano da sessão (fotógrafo pode desativar por sessão)
         if (state.session.watermark === false) return hidden;
 
-        // Se entregue, só mostra com forceShow
-        if (state.session.selectionStatus === 'delivered' && !forceShow) return hidden;
+        // Marca d'água some quando:
+        // (a) a sessão já foi entregue (selectionStatus === 'delivered'), OU
+        // (b) o fotógrafo escolheu entrega DIRETA na galeria (galleryDeliveryMode === 'direct'):
+        //     nesse caso não há fase de prévia — a decisão de tirar a marca já foi tomada no passo Compartilhar.
+        // O botão "Entregar" do passo 3, em modo direto, só notifica o cliente; não gerencia mais a marca d'água.
+        const semMarca = state.session.selectionStatus === 'delivered' || state.session.galleryDeliveryMode === 'direct';
+        if (semMarca && !forceShow) return hidden;
 
         // ---- SISTEMA NOVO: watermarkLayers ----
         const layers = watermark && watermark.watermarkLayers;
