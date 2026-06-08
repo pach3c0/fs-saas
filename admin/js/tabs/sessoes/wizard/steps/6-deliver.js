@@ -191,8 +191,19 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     `;
     if (blockMsg) deliverBtn.title = blockMsg;
     deliverBtn.onclick = async () => {
-      const ok = await window.showConfirm?.('Confirmar entrega? O cliente receberá um e-mail e o download será liberado.', { confirmText: 'Entregar', cancelText: 'Cancelar' });
-      if (!ok) return;
+      // Galeria-prévia: avisa se o fotógrafo não chegou a compartilhar o link/código com o cliente.
+      // Como o código só pode ser extraído por botão, ausência de codeSentAt significa que o cliente
+      // realmente não recebeu nada — entregar agora o levaria à entrega final sem ter visto a prévia.
+      if (isGallery && session.galleryDeliveryMode === 'preview' && !session.codeSentAt) {
+        const proceed = await window.showConfirm?.(
+          'Você ainda não compartilhou o link da prévia com o cliente. Se entregar agora, ele será notificado da entrega final sem nunca ter visto a prévia com marca d\'água. Entregar mesmo assim?',
+          { confirmText: 'Entregar mesmo assim', cancelText: 'Voltar e compartilhar' }
+        );
+        if (!proceed) return;
+      } else {
+        const ok = await window.showConfirm?.('Confirmar entrega? O cliente receberá um e-mail e o download será liberado.', { confirmText: 'Entregar', cancelText: 'Cancelar' });
+        if (!ok) return;
+      }
       try {
         const emailIntro = deliverEmailTextareaEl?.value?.trim() || undefined;
         await apiPut(`/api/sessions/${session._id}/deliver`, emailIntro ? { emailIntro } : {});

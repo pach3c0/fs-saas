@@ -49,7 +49,7 @@ export function renderStepShare({ session, refresh, switchStep }) {
     `;
     sentBadge.innerHTML = `
       <span style="color:var(--green); font-weight:600;">✓</span>
-      <span>Código enviado em <strong>${new Date(session.codeSentAt).toLocaleString('pt-BR')}</strong>. Você pode reenviar quantas vezes precisar.</span>
+      <span>Código compartilhado em <strong>${new Date(session.codeSentAt).toLocaleString('pt-BR')}</strong>. Você pode reenviar quantas vezes precisar.</span>
     `;
     wrap.appendChild(sentBadge);
   }
@@ -65,7 +65,7 @@ export function renderStepShare({ session, refresh, switchStep }) {
   }
 
   // Bloco 1: código de acesso + link
-  wrap.appendChild(renderCodeCard(session));
+  wrap.appendChild(renderCodeCard(session, refresh));
 
   // Bloco 2: canais de envio (e-mail, WhatsApp, copiar)
   wrap.appendChild(renderChannelCards(session, refresh));
@@ -164,7 +164,22 @@ function buildChoiceCard({ recommended, title, desc, onClick }) {
   return card;
 }
 
-function renderCodeCard(session) {
+// Registra que o fotógrafo compartilhou o código/link (clicou num botão de copiar).
+// Como o código e o link não são selecionáveis por mouse, toda extração passa por um botão —
+// então codeSentAt vira sinal confiável de "o cliente recebeu". Idempotente: só age na 1ª vez.
+async function markCodeShared(session, refresh) {
+  if (session.codeSentAt) return;
+  try {
+    await apiPost(`/api/sessions/${session._id}/send-code`, { channel: 'copy' });
+    session.codeSentAt = new Date().toISOString();
+    await refresh?.();
+  } catch (err) {
+    // Não atrapalhar a cópia se o registro falhar — o conteúdo já foi para a área de transferência.
+    console.warn('Não foi possível registrar o compartilhamento:', err.message);
+  }
+}
+
+function renderCodeCard(session, refresh) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex; flex-direction:column; gap:0.75rem;';
 
@@ -186,7 +201,7 @@ function renderCodeCard(session) {
   codeValue.style.cssText = `
     font-family: monospace; font-size: 2rem; font-weight: 700;
     letter-spacing: 0.25rem; color: var(--accent);
-    user-select: all;
+    user-select: none; -webkit-user-select: none;
   `;
   codeCard.appendChild(codeValue);
 
@@ -202,6 +217,7 @@ function renderCodeCard(session) {
     await navigator.clipboard.writeText(session.accessCode);
     copyCodeBtn.textContent = '✓ Copiado!';
     setTimeout(() => { copyCodeBtn.textContent = 'Copiar código'; }, 2000);
+    markCodeShared(session, refresh);
   };
   codeCard.appendChild(copyCodeBtn);
   wrap.appendChild(codeCard);
@@ -226,8 +242,8 @@ function renderCodeCard(session) {
     flex: 1; background: transparent; border: none; outline: none;
     color: var(--text-primary); font-family: monospace; font-size: 0.8125rem;
     padding: 0 0.5rem; min-width: 0;
+    user-select: none; -webkit-user-select: none; pointer-events: none;
   `;
-  linkInput.onclick = () => linkInput.select();
   linkRow.appendChild(linkInput);
 
   const copyLinkBtn = document.createElement('button');
@@ -243,6 +259,7 @@ function renderCodeCard(session) {
     await navigator.clipboard.writeText(linkInput.value);
     copyLinkBtn.textContent = '✓ Copiado!';
     setTimeout(() => { copyLinkBtn.textContent = 'Copiar link'; }, 2000);
+    markCodeShared(session, refresh);
   };
   linkRow.appendChild(copyLinkBtn);
   wrap.appendChild(linkRow);
@@ -339,6 +356,7 @@ function renderChannelCards(session, refresh) {
       const url = buildGalleryUrl(session);
       await navigator.clipboard.writeText(url);
       window.showToast?.('Link copiado para a área de transferência', 'success');
+      markCodeShared(session, refresh);
     },
     actionLabel: 'Copiar'
   }));

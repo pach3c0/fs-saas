@@ -905,8 +905,11 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
   try {
     const channel = req.body?.channel || 'email';
-    if (!['email', 'whatsapp', 'both'].includes(channel)) {
-      return res.status(400).json({ error: 'Canal inválido (use email, whatsapp ou both)' });
+    // 'copy' = fotógrafo copiou código/link pelo botão (não envia nada, só registra que compartilhou).
+    // É o sinal confiável de "compartilhou": como o código não é selecionável por mouse, o único
+    // jeito de extraí-lo é por um botão — todos marcam codeSentAt.
+    if (!['email', 'whatsapp', 'both', 'copy'].includes(channel)) {
+      return res.status(400).json({ error: 'Canal inválido (use email, whatsapp, both ou copy)' });
     }
     const customEmailIntro = typeof req.body?.emailIntro === 'string' ? req.body.emailIntro.trim().slice(0, 1000) : undefined;
 
@@ -973,6 +976,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
 
     if (wantsEmail && !wantsWhatsApp) result.message = `E-mail enviado para ${clientEmail}`;
     else if (wantsWhatsApp && !wantsEmail) result.message = clientPhone ? 'Link de WhatsApp gerado' : 'Link de WhatsApp gerado (cliente sem telefone — você precisará digitar)';
+    else if (channel === 'copy') result.message = 'Compartilhamento registrado';
 
     res.json(result);
   } catch (error) {

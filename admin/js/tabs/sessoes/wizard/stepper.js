@@ -74,15 +74,22 @@ export function computeWizardSteps(session, currentStepId) {
     6: isMulti ? allParticipantsDelivered : (Boolean(session.deliveredAt) || session.selectionStatus === 'delivered')
   };
 
+  // Galeria-prévia: a etapa Entregar (6) libera assim que o fotógrafo escolhe "Compartilhar prévia"
+  // (entra na config), mesmo sem ter compartilhado ainda. A rede de segurança contra entregar sem
+  // ter mandado nada é o aviso (showConfirm) no próprio botão Entregar — não o travamento do passo.
+  const galleryPreviewEarlyUnlock = session.mode === 'gallery'
+    && session.galleryDeliveryMode === 'preview';
+
   return ids.map((id, idx) => {
     const prevId = idx === 0 ? null : ids[idx - 1];
     const prevDone = prevId === null ? true : doneById[prevId];
+    const earlyUnlock = id === 6 && galleryPreviewEarlyUnlock;
     return {
       id,
       label: STEP_DEFS[id].label,
       desc: STEP_DEFS[id].desc,
       done: doneById[id],
-      locked: !prevDone && !doneById[id],
+      locked: !earlyUnlock && !prevDone && !doneById[id],
       current: id === currentStepId
     };
   });
