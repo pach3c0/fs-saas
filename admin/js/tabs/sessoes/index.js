@@ -167,7 +167,7 @@ export async function renderSessoes(container) {
           <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
             <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
             <div class="input-group" style="margin-bottom:0;">
-              <label>Resolução das fotos de seleção</label>
+              <label>Resolução do preview (grid de visualização)</label>
               <div class="select-wrap">
                 <select id="sessionResolution" class="select input" disabled>
                   <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
@@ -176,7 +176,7 @@ export async function renderSessoes(container) {
                   <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
                 </select>
               </div>
-              <p class="input-hint">Não pode ser alterado após a criação da sessão.</p>
+              <p class="input-hint">Afeta apenas a miniatura exibida no grid. A entrega usa a resolução original do arquivo subido. Não pode ser alterado após a criação.</p>
             </div>
             <div id="selectionFields" style="display:flex; gap:0.75rem;">
               <div class="input-group" style="flex:1; margin-bottom:0;">

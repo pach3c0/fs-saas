@@ -32,7 +32,7 @@ function createUploader(subdir, options = {}) {
   return multer({
     storage,
     limits: {
-      fileSize: options.maxSize || 10 * 1024 * 1024,
+      fileSize: options.maxSize || 40 * 1024 * 1024,
       files: options.maxFiles || 50
     },
     fileFilter: (req, file, cb) => {

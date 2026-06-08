@@ -10,11 +10,13 @@ const sessionSchema = new mongoose.Schema({
         type: [{
             id: String,
             filename: String,
-            url: String,         // thumb (comprimida para galeria)
-            urlOriginal: String, // original sem compressao (para entrega em alta)
-            urlEditada: String,  // foto editada subida pelo fotografo (substitui url na entrega)
-            width: Number,
-            height: Number,
+            url: String,           // thumb (comprimida para galeria)
+            urlOriginal: String,   // original sem compressao (para entrega em alta)
+            urlEditada: String,    // foto editada subida pelo fotografo (substitui url na entrega)
+            width: Number,         // largura da thumb (para render do grid)
+            height: Number,        // altura da thumb (para render do grid)
+            widthOriginal: Number, // largura do arquivo original (resolucao real de entrega)
+            heightOriginal: Number,
             uploadedAt: Date,
             comments: [{
                 text: String,

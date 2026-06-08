@@ -40,6 +40,28 @@ export function renderStepUpload({ session, refresh }) {
   `;
   wrap.appendChild(header);
 
+  // ===== AVISO MODO GALERIA =====
+  if (session.mode === 'gallery') {
+    const galleryNotice = document.createElement('div');
+    galleryNotice.style.cssText = `
+      background: color-mix(in srgb, var(--yellow) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--yellow) 40%, transparent);
+      border-radius: 0.5rem; padding: 0.875rem 1rem;
+      font-size: 0.875rem; color: var(--text-primary);
+      display: flex; gap: 0.625rem; align-items: flex-start;
+    `;
+    galleryNotice.innerHTML = `
+      <span style="font-size:1.1rem; line-height:1.4; flex-shrink:0;">⚠️</span>
+      <span>
+        <strong>Modo Galeria:</strong> As fotos que você subir aqui serão entregues ao cliente
+        <strong>na resolução original do arquivo</strong>.
+        Suba os arquivos finais em alta resolução (ex.: JPEG exportado do Lightroom em tamanho real).
+        A resolução do "preview" configurada na sessão afeta apenas a miniatura de visualização no grid.
+      </span>
+    `;
+    wrap.appendChild(galleryNotice);
+  }
+
   // ===== BARRA DE STATUS =====
   const isCompleted = Boolean(session.uploadsCompletedAt);
   const allPhotos = session.photos || [];
@@ -478,15 +500,23 @@ export function renderStepUpload({ session, refresh }) {
         cell.appendChild(b);
       }
 
-      // Badge dimensões
-      if (photo.width && photo.height) {
+      // Badge dimensões — mostra resolução ORIGINAL (entrega) quando disponível
+      const hasOrig = photo.widthOriginal && photo.heightOriginal;
+      const hasThumb = photo.width && photo.height;
+      if (hasOrig || hasThumb) {
         const b = document.createElement('div');
-        b.textContent = `${photo.width}×${photo.height}`;
+        b.textContent = hasOrig
+          ? `${photo.widthOriginal}×${photo.heightOriginal}`
+          : `${photo.width}×${photo.height}`;
+        b.title = hasOrig
+          ? `Resolução original (entrega): ${photo.widthOriginal}×${photo.heightOriginal}px`
+          : `Resolução do preview: ${photo.width}×${photo.height}px`;
         b.style.cssText = `
           position:absolute; bottom:4px; right:4px; z-index:10;
-          background:rgba(0,0,0,0.65); color:white;
+          background:${hasOrig ? 'color-mix(in srgb, var(--accent) 75%, black)' : 'rgba(0,0,0,0.65)'};
+          color:white;
           font-size:0.5625rem; padding:2px 5px; border-radius:3px;
-          font-family:monospace;
+          font-family:monospace; cursor:help;
         `;
         cell.appendChild(b);
       }

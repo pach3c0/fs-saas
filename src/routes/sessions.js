@@ -1092,6 +1092,9 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       const thumbFilename = 'thumb-' + file.filename;
       const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
 
+      // Ler dimensoes do original ANTES de qualquer processamento (resolucao real de entrega)
+      const origMeta = await sharp(originalPath).metadata();
+
       // Gerar thumb comprimida (resolucao configurada na sessao, qualidade 85)
       const thumbRes = session.photoResolution || 1200;
       await sharp(originalPath)
@@ -1117,6 +1120,8 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         urlOriginal: isGalleryMode ? `/uploads/${orgId}/sessions/${file.filename}` : '',
         width,
         height,
+        widthOriginal: origMeta.width,
+        heightOriginal: origMeta.height,
         uploadedAt: new Date()
       });
     }
@@ -1187,6 +1192,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         const thumbFilename = 'thumb-' + file.filename;
         const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
         const thumbRes = session.photoResolution || 1200;
+        const origMetaNew = await sharp(originalPath).metadata();
 
         await sharp(originalPath)
           .resize(thumbRes, thumbRes, { fit: 'inside', withoutEnlargement: true })
@@ -1194,12 +1200,17 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
           .toFile(thumbPath);
 
         generatedThumbs.push(thumbPath);
+        const thumbMetaNew = await sharp(thumbPath).metadata();
 
         newPhotos.push({
           id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           filename: originalName,
           url: `/uploads/${orgId}/sessions/${thumbFilename}`,
           urlOriginal: `/uploads/${orgId}/sessions/${file.filename}`,
+          width: thumbMetaNew.width,
+          height: thumbMetaNew.height,
+          widthOriginal: origMetaNew.width,
+          heightOriginal: origMetaNew.height,
           uploadedAt: new Date()
         });
         matched.push(originalName);
@@ -1222,6 +1233,9 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
       const thumbFilename = 'thumb-' + file.filename;
       const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
 
+      // Ler dimensoes do original antes de criar thumb
+      const origMetaEdit = await sharp(originalPath).metadata();
+
       // Gerar nova thumb a partir da foto editada
       const thumbRes = session.photoResolution || 1200;
       await sharp(originalPath)
@@ -1230,9 +1244,14 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         .toFile(thumbPath);
 
       generatedThumbs.push(thumbPath);
+      const thumbMetaEdit = await sharp(thumbPath).metadata();
 
       photo.url = `/uploads/${orgId}/sessions/${thumbFilename}`;
       photo.urlOriginal = `/uploads/${orgId}/sessions/${file.filename}`;
+      photo.width = thumbMetaEdit.width;
+      photo.height = thumbMetaEdit.height;
+      photo.widthOriginal = origMetaEdit.width;
+      photo.heightOriginal = origMetaEdit.height;
       matched.push(originalName);
     }
 
@@ -1505,6 +1524,17 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
         error: `${missing.length} foto(s) selecionada(s) sem versão editada. Suba as editadas antes de entregar.`,
         missing
       });
+    }
+
+    // Modo galeria: todas as fotos visíveis precisam ter urlOriginal
+    if (session.mode === 'gallery') {
+      const missingGallery = session.photos.filter(p => !p.hidden && !p.urlOriginal);
+      if (missingGallery.length > 0) {
+        return res.status(400).json({
+          error: `${missingGallery.length} foto(s) sem arquivo original. Re-suba as fotos antes de entregar.`,
+          missing: missingGallery.map(p => p.filename || p.id)
+        });
+      }
     }
 
     // Registrar ciclo no histórico de entregas
@@ -1843,19 +1873,23 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     archive.pipe(res);
 
     for (const photo of photosToZip) {
-      // Tenta urlOriginal (alta resolução), cai para url (thumb) se o arquivo não existir no disco
-      const candidates = [photo.urlOriginal, photo.url].filter(Boolean);
-      let added = false;
-      for (const urlToServe of candidates) {
-        const filePath = path.join(__dirname, '../..', urlToServe);
-        if (fs.existsSync(filePath)) {
-          archive.file(filePath, { name: photo.filename || path.basename(filePath) });
-          added = true;
-          break;
-        }
-      }
-      if (!added) {
-        console.warn('[download-all] arquivo não encontrado no disco:', photo.id, photo.urlOriginal, photo.url);
+      const originalPath = photo.urlOriginal ? path.join(__dirname, '../..', photo.urlOriginal) : null;
+      const thumbPath = photo.url ? path.join(__dirname, '../..', photo.url) : null;
+      const originalName = photo.filename || path.basename(photo.urlOriginal || photo.url || 'foto.jpg');
+
+      if (originalPath && fs.existsSync(originalPath)) {
+        // Arquivo em alta resolução disponível — entrega normal
+        archive.file(originalPath, { name: originalName });
+      } else if (thumbPath && fs.existsSync(thumbPath)) {
+        // Original ausente no disco — inclui thumb com prefixo PREVIEW_ para alertar o cliente
+        req.logger?.error('[download-all] original ausente, entregando thumb como fallback', {
+          photoId: photo.id, urlOriginal: photo.urlOriginal, sessionId: session._id
+        });
+        archive.file(thumbPath, { name: 'PREVIEW_' + originalName });
+      } else {
+        req.logger?.error('[download-all] nenhum arquivo encontrado no disco', {
+          photoId: photo.id, urlOriginal: photo.urlOriginal, url: photo.url, sessionId: session._id
+        });
       }
     }
 
