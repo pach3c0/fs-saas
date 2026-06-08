@@ -2,7 +2,7 @@
 // Permite subir fotos, ver o grid, ocultar/deletar individualmente ou em lote,
 // filtrar por visibilidade e marcar "Concluí upload" para destravar o próximo passo.
 
-import { apiPut, apiDelete } from '../../../../utils/api.js';
+import { apiGet, apiPut, apiDelete } from '../../../../utils/api.js';
 import { resolveImagePath } from '../../../../utils/helpers.js';
 import { UploadQueue } from '../../../../utils/upload.js';
 import { UploadPanel } from '../../../../components/upload-panel.js';
@@ -572,6 +572,68 @@ export function renderStepUpload({ session, refresh }) {
   }
 
   rebuildGrid();
+
+  // ===== DIAGNÓSTICO (só aparece em modo galeria) =====
+  if (session.mode === 'gallery') {
+    const diagRow = document.createElement('div');
+    diagRow.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding-top:0.25rem;';
+
+    const diagBtn = document.createElement('button');
+    diagBtn.type = 'button';
+    diagBtn.textContent = 'Verificar arquivos originais';
+    diagBtn.style.cssText = `
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-secondary); padding: 0.375rem 0.875rem;
+      border-radius: 0.375rem; font-size: 0.8125rem; cursor: pointer;
+    `;
+
+    const diagResult = document.createElement('span');
+    diagResult.style.cssText = 'font-size:0.8125rem; color:var(--text-muted);';
+
+    diagBtn.onclick = async () => {
+      diagBtn.disabled = true;
+      diagBtn.textContent = 'Verificando...';
+      diagResult.textContent = '';
+      try {
+        const data = await apiGet(`/api/sessions/${session._id}/photos/diagnose`);
+        const total = data.totalPhotos;
+        const semOriginal = data.photos.filter(p => !p.urlOriginal).length;
+        const origAusente = data.photos.filter(p => p.urlOriginal && !p.origExists).length;
+        const corretos    = data.photos.filter(p => p.urlOriginal && p.origExists).length;
+        const autoFixed   = data.autoFixed || 0;
+
+        let msg = '';
+        if (autoFixed > 0) {
+          msg = `✅ ${autoFixed} foto(s) corrigidas automaticamente — urlOriginal estava vazio mas o arquivo existia no disco. O cliente já pode baixar em alta resolução.`;
+          diagResult.style.color = 'var(--green)';
+          window.showToast?.(`${autoFixed} foto(s) corrigidas! Downloads em alta resolução liberados.`, 'success');
+          await refresh();
+        } else if (semOriginal > 0) {
+          msg = `⚠ ${semOriginal}/${total} foto(s) sem arquivo original no disco. Essas serão entregues no preview (${session.photoResolution || 1200}px). Re-suba as fotos em alta resolução.`;
+          diagResult.style.color = 'var(--orange)';
+        } else if (origAusente > 0) {
+          msg = `⚠ ${origAusente}/${total} foto(s) com urlOriginal registrado mas arquivo ausente no disco. Re-suba as fotos.`;
+          diagResult.style.color = 'var(--orange)';
+        } else {
+          const dims = data.photos[0]?.origDims || '?';
+          msg = `✅ Todas as ${corretos} foto(s) têm original no disco (ex: ${dims}). Downloads em alta resolução OK.`;
+          diagResult.style.color = 'var(--green)';
+        }
+        diagResult.textContent = msg;
+      } catch (err) {
+        diagResult.textContent = 'Erro: ' + err.message;
+        diagResult.style.color = 'var(--red)';
+      } finally {
+        diagBtn.disabled = false;
+        diagBtn.textContent = 'Verificar arquivos originais';
+      }
+    };
+
+    diagRow.appendChild(diagBtn);
+    diagRow.appendChild(diagResult);
+    wrap.appendChild(diagRow);
+  }
+
   return wrap;
 }
 
