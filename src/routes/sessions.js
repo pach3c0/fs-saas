@@ -2087,4 +2087,64 @@ router.post('/sessions/:id/track-download', async (req, res) => {
   }
 });
 
+// ADMIN: Diagnóstico de fotos — verifica urlOriginal no disco e auto-corrige gallery sem urlOriginal
+router.get('/sessions/:id/photos/diagnose', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const report = [];
+    let fixed = 0;
+
+    for (const photo of session.photos) {
+      const thumbPath = photo.url       ? path.join(__dirname, '../..', photo.url)       : null;
+      const origPath  = photo.urlOriginal ? path.join(__dirname, '../..', photo.urlOriginal) : null;
+      const thumbExists = thumbPath ? fs.existsSync(thumbPath) : false;
+      const origExists  = origPath  ? fs.existsSync(origPath)  : false;
+
+      let thumbSizeKB = null, origSizeKB = null, origDims = null, autoFixed = false;
+      if (thumbExists) thumbSizeKB = Math.round(fs.statSync(thumbPath).size / 1024);
+      if (origExists) {
+        origSizeKB = Math.round(fs.statSync(origPath).size / 1024);
+        try { const m = await sharp(origPath).metadata(); origDims = `${m.width}×${m.height}`; } catch {}
+      }
+
+      // Auto-corrige: galeria sem urlOriginal mas com arquivo original em disco
+      // (thumb = "thumb-{hex}.jpg" → original = "{hex}.jpg" no mesmo diretório)
+      if (session.mode === 'gallery' && !photo.urlOriginal && photo.url) {
+        const derivedUrl = photo.url.replace(/\/thumb-([^/]+)$/, '/$1');
+        const derivedPath = path.join(__dirname, '../..', derivedUrl);
+        if (derivedUrl !== photo.url && fs.existsSync(derivedPath)) {
+          photo.urlOriginal = derivedUrl;
+          origSizeKB = Math.round(fs.statSync(derivedPath).size / 1024);
+          try { const m = await sharp(derivedPath).metadata(); origDims = `${m.width}×${m.height}`; } catch {}
+          autoFixed = true;
+          fixed++;
+        }
+      }
+
+      report.push({
+        id: photo.id,
+        filename: photo.filename,
+        urlOriginal: photo.urlOriginal || null,
+        url: photo.url,
+        origExists: photo.urlOriginal ? fs.existsSync(path.join(__dirname, '../..', photo.urlOriginal)) : false,
+        thumbExists,
+        origSizeKB,
+        thumbSizeKB,
+        origDims,
+        thumbDims: photo.width && photo.height ? `${photo.width}×${photo.height}` : null,
+        autoFixed
+      });
+    }
+
+    if (fixed > 0) await session.save();
+
+    res.json({ success: true, mode: session.mode, totalPhotos: session.photos.length, autoFixed: fixed, photos: report });
+  } catch (error) {
+    req.logger.error('Diagnose error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
