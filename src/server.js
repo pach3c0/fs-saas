@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit; // helper que normaliza IPv6 (evita bypass por sub-rede)
 const Organization = require('./models/Organization');
 const logger = require('./utils/logger');
 const { v4: uuidv4 } = require('uuid');
@@ -300,7 +301,8 @@ app.get('/api/health', async (req, res) => {
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // janela de 1 minuto
   max: 300,            // máx 300 req/min por tenant (ou IP se não autenticado)
-  keyGenerator: (req) => req.user?.organizationId || req.ip,
+  // Chave por tenant quando autenticado; senão por IP normalizado (IPv6 colapsado em /56)
+  keyGenerator: (req) => req.user?.organizationId ? String(req.user.organizationId) : ipKeyGenerator(req.ip),
   skip: (req) => req.path.startsWith('/site') || req.user?.role === 'superadmin',
   handler: (req, res) => {
     const log = req.logger || logger;
