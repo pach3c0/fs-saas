@@ -209,6 +209,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
         await apiPut(`/api/sessions/${session._id}/deliver`, emailIntro ? { emailIntro } : {});
         window.showToast?.('Sessão entregue! Cliente notificado.', 'success');
         await refresh();
+        if (isGallery) switchStep(2);
       } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
     deliverCard.appendChild(deliverBtn);

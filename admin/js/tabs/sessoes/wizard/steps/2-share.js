@@ -345,22 +345,6 @@ function renderChannelCards(session, refresh) {
     }
   }));
 
-  // Card copiar link (sem textarea)
-  cards.appendChild(makeChannelCard({
-    icon: '🔗',
-    title: 'Copiar link',
-    subtitle: 'Cole onde quiser (DM, e-mail próprio, SMS)',
-    disabled: false,
-    primary: false,
-    onClick: async () => {
-      const url = buildGalleryUrl(session);
-      await navigator.clipboard.writeText(url);
-      window.showToast?.('Link copiado para a área de transferência', 'success');
-      markCodeShared(session, refresh);
-    },
-    actionLabel: 'Copiar'
-  }));
-
   return cards;
 }
 
@@ -557,52 +541,6 @@ function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, ac
   btn.textContent = actionLabel;
   btn.disabled = disabled;
   btn.style.cssText = `
-    background: ${primary ? 'var(--accent)' : 'var(--bg-base)'};
-    color: ${primary ? 'white' : 'var(--text-primary)'};
-    border: ${primary ? 'none' : '1px solid var(--border)'};
-    padding: 0.5rem; border-radius: 0.375rem;
-    cursor: ${disabled ? 'not-allowed' : 'pointer'}; font-size: 0.8125rem; font-weight: 500;
-  `;
-  btn.onclick = onClick;
-  card.appendChild(btn);
-
-  return card;
-}
-
-function makeChannelCard({ icon, title, subtitle, disabled, primary, onClick, actionLabel }) {
-  const card = document.createElement('div');
-  card.style.cssText = `
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    display: flex; flex-direction: column; gap: 0.5rem;
-    opacity: ${disabled ? '0.5' : '1'};
-  `;
-
-  const top = document.createElement('div');
-  top.style.cssText = 'display:flex; align-items:center; gap:0.5rem;';
-  const iconEl = document.createElement('span');
-  iconEl.textContent = icon;
-  iconEl.style.cssText = 'font-size:1.25rem;';
-  const titleEl = document.createElement('div');
-  titleEl.textContent = title;
-  titleEl.style.cssText = 'font-weight:600; color:var(--text-primary); font-size:0.875rem;';
-  top.appendChild(iconEl);
-  top.appendChild(titleEl);
-  card.appendChild(top);
-
-  const sub = document.createElement('div');
-  sub.textContent = subtitle;
-  sub.style.cssText = 'font-size:0.75rem; color:var(--text-muted); min-height:1.5em;';
-  card.appendChild(sub);
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.textContent = actionLabel;
-  btn.disabled = disabled;
-  btn.style.cssText = `
-    margin-top: 0.5rem;
     background: ${primary ? 'var(--accent)' : 'var(--bg-base)'};
     color: ${primary ? 'white' : 'var(--text-primary)'};
     border: ${primary ? 'none' : '1px solid var(--border)'};

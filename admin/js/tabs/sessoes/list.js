@@ -255,6 +255,20 @@ function renderList(container, items) {
           </div>
         </div>
         ${renderProgressStepper(session)}
+        <div style="display:flex; justify-content:flex-end; gap:0.375rem; margin-top:0.5rem; padding-top:0.375rem; border-top:1px solid var(--border);">
+          <button onclick="event.stopPropagation(); window.toggleSessionAccessFromList?.('${session._id}')"
+            title="${session.clientAccessBlocked ? 'Liberar acesso do cliente' : 'Bloquear acesso do cliente'}"
+            style="background:${session.clientAccessBlocked ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'var(--bg-base)'}; border:1px solid ${session.clientAccessBlocked ? 'color-mix(in srgb, var(--red) 30%, transparent)' : 'var(--border)'}; color:${session.clientAccessBlocked ? 'var(--red)' : 'var(--text-secondary)'}; padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">${session.clientAccessBlocked ? '🔓' : '🔒'}</button>
+          <button onclick="event.stopPropagation(); window.editSession?.('${session._id}')"
+            title="Editar sessão"
+            style="background:var(--bg-base); border:1px solid var(--border); color:var(--text-secondary); padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">⚙️</button>
+          <button onclick="event.stopPropagation(); window.openSessionWizardHistory?.('${session._id}')"
+            title="Histórico da sessão"
+            style="background:var(--bg-base); border:1px solid var(--border); color:var(--text-secondary); padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">📋</button>
+          <button onclick="event.stopPropagation(); window.deleteSession?.('${session._id}')"
+            title="Deletar sessão"
+            style="background:color-mix(in srgb, var(--red) 8%, transparent); border:1px solid color-mix(in srgb, var(--red) 25%, transparent); color:var(--red); padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">🗑️</button>
+        </div>
       </div>
     `;
   }).join('');

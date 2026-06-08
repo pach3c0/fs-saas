@@ -52,7 +52,13 @@ export async function openSessionWizard(sessionId) {
 }
 
 // Define qual passo abrir primeiro: o primeiro não-concluído (ou o último, se tudo done).
+// Se wizardState.openAtStep estiver definido, usa esse passo diretamente.
 function pickInitialStep(session) {
+  if (wizardState.openAtStep !== null) {
+    const step = wizardState.openAtStep;
+    wizardState.openAtStep = null;
+    return step;
+  }
   const steps = computeWizardSteps(session, null);
   const firstPending = steps.find(s => !s.done && !s.locked);
   if (firstPending) return firstPending.id;
@@ -393,3 +399,7 @@ function closeWizard() {
 // Expor globalmente para chamadas via onclick="" e cards da lista.
 window.openSessionWizard = openSessionWizard;
 window.closeSessionWizard = closeWizard;
+window.openSessionWizardHistory = async (sessionId) => {
+  wizardState.openAtStep = 'history';
+  await openSessionWizard(sessionId);
+};

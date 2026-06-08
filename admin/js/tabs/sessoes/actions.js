@@ -197,6 +197,19 @@ export function setupActions(container, state, renderSessoes) {
     }
   };
 
+  window.toggleSessionAccessFromList = async (sessionId) => {
+    try {
+      const result = await apiPut(`/api/sessions/${sessionId}/toggle-client-access`);
+      window.showToast?.(
+        result.clientAccessBlocked ? '🔒 Acesso bloqueado' : '🔓 Acesso liberado',
+        'info'
+      );
+      await renderSessoes(container);
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
+
   window.setSessionCover = async (sessionId, photoUrl) => {
     const ok = await window.showConfirm?.('Definir esta foto como capa da sessão?');
     if (!ok) return;

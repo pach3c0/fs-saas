@@ -220,8 +220,8 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
 
   const toggleBtn = document.createElement('button');
   toggleBtn.type = 'button';
-  let expanded = false;
-  toggleBtn.textContent = `✏️ ${label} ▼`;
+  let expanded = true;
+  toggleBtn.textContent = `✏️ ${label} ▲`;
   toggleBtn.style.cssText = `
     background: transparent; border: none; padding: 0; cursor: pointer;
     color: var(--text-muted); font-size: 0.75rem; text-align: left;
@@ -237,7 +237,7 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   section.appendChild(topRow);
 
   const textareaWrap = document.createElement('div');
-  textareaWrap.style.display = 'none';
+  textareaWrap.style.display = 'block';
 
   const textarea = document.createElement('textarea');
   textarea.value = defaultText;

@@ -12,7 +12,9 @@ export const wizardState = {
   pollingLastChangeAt: 0,
   pollingVisibilityHandler: null,
   // Snapshot da última seleção do cliente para detectar mudanças no polling
-  lastSelectionSnapshot: null
+  lastSelectionSnapshot: null,
+  // Se definido, o wizard abre diretamente neste passo em vez do passo inicial calculado
+  openAtStep: null
 };
 
 export function stopWizardPolling() {
@@ -33,4 +35,5 @@ export function resetWizardState() {
   wizardState.currentStepId = 1;
   wizardState.lastSelectionSnapshot = null;
   wizardState.pollingLastChangeAt = 0;
+  wizardState.openAtStep = null;
 }
