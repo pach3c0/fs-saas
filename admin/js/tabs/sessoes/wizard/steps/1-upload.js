@@ -500,8 +500,9 @@ export function renderStepUpload({ session, refresh }) {
         cell.appendChild(b);
       }
 
-      // Badge dimensões — mostra resolução ORIGINAL (entrega) quando disponível
-      const hasOrig = photo.widthOriginal && photo.heightOriginal;
+      // Badge dimensões — mostra resolução original só quando o arquivo original é preservado (galeria).
+      // Em seleção, widthOriginal/heightOriginal existem como metadado mas o arquivo foi deletado.
+      const hasOrig = photo.urlOriginal && photo.widthOriginal && photo.heightOriginal;
       const hasThumb = photo.width && photo.height;
       if (hasOrig || hasThumb) {
         const b = document.createElement('div');
