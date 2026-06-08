@@ -29,12 +29,13 @@ function createUploader(subdir, options = {}) {
     }
   });
 
+  const limits = { files: options.maxFiles || 50 };
+  if (options.maxSize) limits.fileSize = options.maxSize;
+  // Sem maxSize = sem limite por arquivo (fotógrafo usa o espaço da assinatura dele)
+
   return multer({
     storage,
-    limits: {
-      fileSize: options.maxSize || 40 * 1024 * 1024,
-      files: options.maxFiles || 50
-    },
+    limits,
     fileFilter: (req, file, cb) => {
       const allowed = ['image/jpeg', 'image/png'];
       if (allowed.includes(file.mimetype)) cb(null, true);
