@@ -182,6 +182,72 @@ router.get('/admin/organizations/:id/diagnostics', authenticateToken, requireSup
 });
 
 // ============================================================================
+// STATUS DO SISTEMA (aba Sistema)
+// ============================================================================
+
+const fs = require('fs');
+const path = require('path');
+const SchedulerRun = require('../models/SchedulerRun');
+const { verifySmtp } = require('../utils/email');
+const storageService = require('../services/storage');
+
+// getDirSize do uploads/ percorre o disco inteiro — cache de 10 min
+let _uploadsSizeCache = null; // { bytes, at }
+async function _getUploadsSize() {
+  const CACHE_MS = 10 * 60 * 1000;
+  if (_uploadsSizeCache && (Date.now() - _uploadsSizeCache.at) < CACHE_MS) {
+    return _uploadsSizeCache.bytes;
+  }
+  const bytes = await storageService.getDirSize();
+  _uploadsSizeCache = { bytes, at: Date.now() };
+  return bytes;
+}
+
+router.get('/admin/saas/system', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    // Mongo: estado + ping cronometrado
+    const mongoState = mongoose.connection.readyState;
+    let pingMs = null;
+    if (mongoState === 1) {
+      const t0 = Date.now();
+      try {
+        await mongoose.connection.db.admin().ping();
+        pingMs = Date.now() - t0;
+      } catch { /* ping falhou — pingMs fica null */ }
+    }
+
+    const uploadsPath = path.join(__dirname, '../../uploads');
+    const [smtp, schedulers, uploadsBytes, disco] = await Promise.all([
+      verifySmtp(req.query.verifySmtp === '1'),
+      SchedulerRun.find().sort({ name: 1 }).lean(),
+      _getUploadsSize().catch(() => null),
+      fs.promises.statfs(uploadsPath).then(s => ({
+        totalBytes: s.blocks * s.bsize,
+        freeBytes: s.bavail * s.bsize
+      })).catch(() => null)
+    ]);
+
+    res.json({
+      success: true,
+      mongo: { state: mongoState, ok: mongoState === 1, pingMs },
+      smtp: { ok: smtp.ok, error: smtp.error, checkedAt: smtp.at },
+      disco: disco ? { ...disco, uploadsBytes } : { uploadsBytes },
+      processo: {
+        uptimeSec: Math.floor(process.uptime()),
+        nodeVersion: process.version,
+        appVersion: require('../../package.json').version,
+        rssBytes: process.memoryUsage().rss,
+        pm2Instance: process.env.NODE_APP_INSTANCE ?? null
+      },
+      schedulers
+    });
+  } catch (error) {
+    req.logger.error('Erro no status do sistema', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
 // ERROS DO FRONTEND (público, rate-limited)
 // ============================================================================
 

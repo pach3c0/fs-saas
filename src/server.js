@@ -211,17 +211,8 @@ const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
 
-// Evita execuções sobrepostas: se a rodada anterior ainda está em curso, pula o tick
-function safeInterval(fn, ms) {
-  let isRunning = false;
-  const run = async () => {
-    if (isRunning) return;
-    isRunning = true;
-    try { await fn(); } catch (e) { logger.error(e.message, { stack: e.stack }); } finally { isRunning = false; }
-  };
-  run();
-  return setInterval(run, ms);
-}
+// Lock anti-sobreposição + telemetria persistida no SchedulerRun (aba Sistema)
+const { safeInterval, recordRun } = require('./utils/schedulerRunner');
 
 // Roda a cada 6h — verifica prazos e envia e-mails para orgs com automação ativada
 let deadlineSchedulerStarted = false;
@@ -231,19 +222,19 @@ function startDeadlineScheduler() {
   const SIX_HOURS = 6 * 60 * 60 * 1000;
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  safeInterval(() => checkDeadlines(), SIX_HOURS);
+  safeInterval('deadlineChecker', () => checkDeadlines(), SIX_HOURS);
   logger.info('[scheduler] Verificador de prazos iniciado (a cada 6h)');
 
   // Roda 1x por dia — verifica orgs suspensas e aplica offboarding após grace period
-  safeInterval(() => checkOffboarding(), ONE_DAY);
+  safeInterval('offboardingChecker', () => checkOffboarding(), ONE_DAY);
   logger.info('[scheduler] Offboarding checker iniciado (a cada 24h)');
 
   // Escassês de vendas: upsell pós-entrega na janela entre a entrega e a exclusão do storage
-  safeInterval(() => postDeliveryAutomator.run(), SIX_HOURS);
+  safeInterval('postDeliveryUpsell', () => postDeliveryAutomator.run(), SIX_HOURS);
   logger.info('[scheduler] Post-delivery upsell automator iniciado (a cada 6h)');
 
   // Retenção de storage: roda 1× por dia às 9h Brasília (12h UTC)
-  safeInterval(() => storageRetentionChecker.run(), ONE_DAY);
+  safeInterval('storageRetention', () => storageRetentionChecker.run(), ONE_DAY);
   logger.info('[scheduler] Storage retention checker iniciado (a cada 24h)');
 
   // CRM reativacao de clientes: roda todo dia às 8h horario de Brasilia (11h UTC)
@@ -253,7 +244,7 @@ function startDeadlineScheduler() {
     if (proximas8h <= now) proximas8h.setUTCDate(proximas8h.getUTCDate() + 1);
     const delay = proximas8h - now;
     setTimeout(async () => {
-      try { await anniversaryAutomator.run(); } catch (e) { logger.error('[anniversaryAutomator]', { message: e.message }); }
+      await recordRun('anniversaryAutomator', () => anniversaryAutomator.run());
       agendarProximaReativacao();
     }, delay);
     logger.info(`[scheduler] Anniversary automator agendado para ${proximas8h.toISOString()} (8h Brasília)`);

@@ -1107,8 +1107,31 @@ async function sendTicketReplyEmail(email, name, ticketSubject, replyText) {
   return sendEmail(email, subject, html, { template: 'ticket_reply' });
 }
 
+// Verifica a conexão SMTP (aba Sistema do SaaS Admin). Cache de 5 min para
+// não martelar o provedor; force=true revalida na hora (botão da UI).
+let _smtpVerifyCache = null; // { ok, error, at }
+async function verifySmtp(force = false) {
+  const CACHE_MS = 5 * 60 * 1000;
+  if (!force && _smtpVerifyCache && (Date.now() - _smtpVerifyCache.at) < CACHE_MS) {
+    return _smtpVerifyCache;
+  }
+  const t = getTransporter();
+  if (!t) {
+    _smtpVerifyCache = { ok: false, error: 'SMTP não configurado (.env)', at: Date.now() };
+    return _smtpVerifyCache;
+  }
+  try {
+    await t.verify();
+    _smtpVerifyCache = { ok: true, error: null, at: Date.now() };
+  } catch (error) {
+    _smtpVerifyCache = { ok: false, error: error.message, at: Date.now() };
+  }
+  return _smtpVerifyCache;
+}
+
 module.exports = {
   sendEmail,
+  verifySmtp,
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendApprovalEmail,
