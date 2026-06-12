@@ -519,6 +519,30 @@ export async function renderSessoes(container) {
         </div>
       </div>
     </div>
+
+    <!-- Modal Estender Retenção de Storage -->
+    <div id="storageRetentionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1200; align-items:center; justify-content:center;">
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Estender Armazenamento</h3>
+          <button id="closeStorageRetentionModal" style="color:var(--text-secondary); background:none; border:none; cursor:pointer; font-size:1.25rem;">&times;</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">
+            As fotos desta sessão expiram em <span id="storageExpiryDaysText" style="font-weight:600; color:var(--orange);">— dias</span>.
+          </p>
+          <div class="input-group" style="margin-bottom:0;">
+            <label>Nova data de expiração</label>
+            <input type="date" id="storageRetentionNewDate" class="input">
+            <p class="input-hint">Deixe em branco para remover a data de expiração.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+          <button id="cancelStorageRetentionModal" class="btn">Cancelar</button>
+          <button id="confirmStorageRetentionExtend" class="btn btn-success">Estender</button>
+        </div>
+      </div>
+    </div>
   `;
 
   await loadSessions(container, state);

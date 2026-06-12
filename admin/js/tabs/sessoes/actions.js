@@ -377,4 +377,51 @@ export function setupActions(container, state, renderSessoes) {
       modal.querySelector('#hist-body').innerHTML = '<p style="color:var(--red);font-size:0.875rem;">Erro ao carregar histórico.</p>';
     }
   };
+
+  // Modal de Retenção de Storage
+  const storageRetentionModal = container.querySelector('#storageRetentionModal');
+  let _storageSessionId = null;
+
+  window.openStorageRetentionModal = (sessionId) => {
+    const session = state.sessionsData.find(s => s._id === sessionId);
+    if (!session || !session.storageRetentionUntil) {
+      window.showToast?.('Sessão não encontrada ou sem prazo de expiração.', 'warning');
+      return;
+    }
+
+    _storageSessionId = sessionId;
+    const now = new Date();
+    const expiryDate = new Date(session.storageRetentionUntil);
+    const daysLeft = Math.ceil((expiryDate - now) / 86400000);
+
+    container.querySelector('#storageExpiryDaysText').textContent = daysLeft > 0 ? `${daysLeft}` : 'vencida';
+    container.querySelector('#storageRetentionNewDate').value = expiryDate.toISOString().split('T')[0];
+    storageRetentionModal.style.display = 'flex';
+  };
+
+  container.querySelector('#closeStorageRetentionModal').onclick = () => {
+    storageRetentionModal.style.display = 'none';
+    _storageSessionId = null;
+  };
+
+  container.querySelector('#cancelStorageRetentionModal').onclick = () => {
+    storageRetentionModal.style.display = 'none';
+    _storageSessionId = null;
+  };
+
+  container.querySelector('#confirmStorageRetentionExtend').onclick = async () => {
+    if (!_storageSessionId) return;
+    const newDate = container.querySelector('#storageRetentionNewDate').value;
+    try {
+      await apiPut(`/api/sessions/${_storageSessionId}/storage-retention`, {
+        storageRetentionUntil: newDate || null
+      });
+      window.showToast?.('Prazo de armazenamento atualizado!', 'success');
+      await renderSessoes(container);
+      storageRetentionModal.style.display = 'none';
+      _storageSessionId = null;
+    } catch (error) {
+      window.showToast?.('Erro: ' + error.message, 'error');
+    }
+  };
 }

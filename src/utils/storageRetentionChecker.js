@@ -36,7 +36,7 @@ async function checkStorageRetention() {
 
       // Criar notificação
       await Notification.create({
-        type: 'storage_expiring_soon',
+        type: 'storage_expiring',
         message: `Armazenamento da sessão "${session.name}" expira em ${daysUntilExpiry} dias`,
         sessionId: session._id,
         sessionName: session.name,

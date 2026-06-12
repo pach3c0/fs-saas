@@ -76,14 +76,6 @@ const sessionSchema = new mongoose.Schema({
         reopenReason: String
     }],
 
-    // Retenção de storage: data limite para manter fotos.
-    // null = sem expiração. Notificação automática X dias antes.
-    storageRetentionUntil: {
-        type: Date,
-        default: null,
-        index: true
-    },
-
     // Solicitacao de fotos extras (apos submit da selecao)
     extraRequest: {
         status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
@@ -155,7 +147,8 @@ const sessionSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
-// Index composto para busca rápida de sessão por org + código
+// Índices para buscas otimizadas
 sessionSchema.index({ organizationId: 1, accessCode: 1 });
+sessionSchema.index({ storageRetentionUntil: 1, isActive: 1 }); // Scheduler de retenção
 
 module.exports = mongoose.model('Session', sessionSchema);

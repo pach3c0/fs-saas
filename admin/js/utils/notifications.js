@@ -243,7 +243,10 @@ function _navigate(n) {
   const { sessionId, type, photoId } = n;
   if (type === 'contact' || type === 'depoimento_pendente') {
     window.switchTab?.('mensagens');
-  } else if (type === 'storage_expiring' || type === 'storage_deleted') {
+  } else if (type === 'storage_expiring') {
+    window.switchTab?.('sessoes');
+    if (sessionId) setTimeout(() => window.openStorageRetentionModal?.(sessionId), 300);
+  } else if (type === 'storage_deleted') {
     window.switchTab?.('sessoes');
     if (sessionId) setTimeout(() => window.openSessionWizard?.(sessionId), 300);
   } else if (type === 'comment_added' && sessionId) {
