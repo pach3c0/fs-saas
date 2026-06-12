@@ -334,6 +334,27 @@ async function loadPanelTab(tab) {
   }
 }
 
+// ── Impersonação: "entrar como" a org em nova aba (modo suporte) ────────────
+
+async function impersonateOrg(orgId) {
+  const ok = await saasConfirm(
+    'Isto abrirá o painel da org em nova aba, logado como o fotógrafo. ' +
+    'Se houver uma sessão de fotógrafo neste navegador, ela será substituída. Continuar?',
+    { title: 'Modo suporte', confirmText: 'Entrar como' }
+  );
+  if (!ok) return;
+
+  try {
+    const data = await apiRequest('POST', `/api/admin/organizations/${orgId}/impersonate`);
+    saasToast(`Modo suporte: ${data.orgName} (30 min)`, 'success');
+    window.open('/admin/?impersonate=' + encodeURIComponent(data.token), '_blank');
+  } catch (err) {
+    saasToast('Erro: ' + err.message, 'error');
+  }
+}
+
+window.impersonateOrg = impersonateOrg;
+
 // ── Jornada do cliente: timeline de eventos do ActivityEvent ────────────────
 
 const EVENT_META = {
@@ -447,7 +468,16 @@ async function renderPanelOverview(content) {
       <h3>Sessões recentes</h3>
       <ul class="detail-list">${sessionsHtml}</ul>
     </div>
+
+    <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid #334155;">
+      <button id="panelImpersonate" style="background:#b45309; color:#fff; border:none; border-radius:0.375rem; padding:0.5rem 1rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">
+        🛠️ Entrar como este fotógrafo
+      </button>
+      <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Abre o painel da org em nova aba (modo suporte, expira em 30 min). Ação registrada em auditoria.</p>
+    </div>
   `;
+
+  content.querySelector('#panelImpersonate').onclick = () => impersonateOrg(currentPanelOrgId);
 
   content.querySelector('#panelSavePlan').onclick = async () => {
     const plan = content.querySelector('#panelPlanSelect').value;

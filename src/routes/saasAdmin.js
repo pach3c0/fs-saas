@@ -11,6 +11,7 @@ const Album = require('../models/Album');
 const Client = require('../models/Client');
 const SecurityLog = require('../models/SecurityLog');
 const ManualModule = require('../models/ManualModule');
+const { audit } = require('../utils/auditLogger');
 const Ticket = require('../models/Ticket');
 const ActivityEvent = require('../models/ActivityEvent');
 const path = require('path');
@@ -260,6 +261,7 @@ router.put('/admin/organizations/:id/approve', authenticateToken, requireSuperad
         org.isActive = true;
         await org.save();
         await User.updateMany({ organizationId: org._id }, { approved: true });
+        audit(req, 'org_approve', org._id);
         res.json({ success: true, message: `Organização "${org.name}" aprovada!` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -273,6 +275,7 @@ router.put('/admin/organizations/:id/deactivate', authenticateToken, requireSupe
         org.isActive = false;
         if (!org.deactivatedAt) org.deactivatedAt = new Date();
         await org.save();
+        audit(req, 'org_deactivate', org._id);
         res.json({ success: true, message: `Organização "${org.name}" desativada` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -287,6 +290,7 @@ router.put('/admin/organizations/:id/trash', authenticateToken, requireSuperadmi
         org.deletedAt = new Date();
         if (!org.deactivatedAt) org.deactivatedAt = new Date();
         await org.save();
+        audit(req, 'org_trash', org._id);
         res.json({ success: true, message: `"${org.name}" movida para a lixeira` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -302,6 +306,7 @@ router.put('/admin/organizations/:id/restore', authenticateToken, requireSuperad
         org.deactivatedAt = null;
         await org.save();
         await User.updateMany({ organizationId: org._id }, { approved: true });
+        audit(req, 'org_restore', org._id);
         res.json({ success: true, message: `"${org.name}" restaurada com sucesso` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -326,6 +331,7 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
 
         await storage.deleteDir(`/${orgId}`);
         await Organization.findByIdAndDelete(orgId);
+        audit(req, 'org_delete', orgId, { name: org.name, slug: org.slug });
         res.json({ success: true, message: `"${org.name}" excluída definitivamente` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -340,6 +346,7 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
 
         const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { returnDocument: 'after' });
         await Subscription.findOneAndUpdate({ organizationId: org._id }, { plan, limits: planLimits[plan] });
+        audit(req, 'plan_change', org._id, { plan });
         res.json({ success: true, message: `Plano alterado para ${plan}` });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -365,6 +372,7 @@ router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, asyn
             Subscription.updateMany({ plan }, { $set: { limits: limits[plan] } })
         ));
 
+        audit(req, 'plan_limits_change', null, { limits });
         res.json({ success: true, message: 'Limites dos planos atualizados' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -379,6 +387,7 @@ router.put('/admin/organizations/:id/limits', authenticateToken, requireSuperadm
             { organizationId: req.params.id },
             { $set: { limits: { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain } } }
         );
+        audit(req, 'limits_change', req.params.id, { maxSessions, maxPhotos, maxAlbums, maxStorage });
         res.json({ success: true, message: 'Limites customizados salvos' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -417,6 +426,7 @@ router.post('/admin/organizations/:id/reset/site', authenticateToken, requireSup
         if (section === 'albuns' || section === 'all') {
             await SiteData.findOneAndUpdate({ organizationId: req.params.id }, { $set: { albums: [] } });
         }
+        audit(req, 'site_reset', req.params.id, { section });
         res.json({ success: true, message: `Reset de "${section}" realizado` });
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -28,12 +28,14 @@ const authenticateToken = async (req, res, next) => {
 
   req.user = user; // { userId, organizationId, role }
 
-  // Logger contextualizado
+  // Logger contextualizado. impersonatedBy marca sessões de suporte
+  // (superadmin "entrou como" a org) — distinguível em todos os logs.
   req.logger = logger.child({
     requestId: req.requestId,
     orgId: user.organizationId,
     userId: user.userId,
-    role: user.role
+    role: user.role,
+    ...(user.impersonatedBy ? { impersonatedBy: user.impersonatedBy } : {})
   });
 
   next();

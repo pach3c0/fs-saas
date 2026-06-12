@@ -102,6 +102,8 @@
 
         /* Modal detalhes */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 100; }
+        /* Confirm fica ACIMA do painel lateral (z 200) — pode ser disparado de dentro dele */
+        #saasConfirmModal { z-index: 300; }
         .modal-overlay.active { display: flex; }
         .modal { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; width: 48rem; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--ad-shadow-lg); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }

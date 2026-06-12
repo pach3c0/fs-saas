@@ -74,6 +74,73 @@ router.get('/admin/saas/emails', authenticateToken, requireSuperadmin, async (re
 });
 
 // ============================================================================
+// AUDITORIA + IMPERSONAÇÃO
+// ============================================================================
+
+const jwt = require('jsonwebtoken');
+const AuditLog = require('../models/AuditLog');
+const Organization = require('../models/Organization');
+const User = require('../models/User');
+const { audit } = require('../utils/auditLogger');
+
+router.get('/admin/saas/audit', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const filtro = {};
+    if (req.query.targetOrgId) filtro.targetOrgId = req.query.targetOrgId;
+
+    const entries = await AuditLog.find(filtro)
+      .sort({ at: -1 })
+      .limit(limit)
+      .populate('adminUserId', 'name email')
+      .populate('targetOrgId', 'name slug')
+      .lean();
+
+    res.json({ success: true, entries });
+  } catch (error) {
+    req.logger.error('Erro ao listar audit log', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// "Entrar como" a org: gera JWT de 30min do dono da org com a marca
+// impersonatedBy — toda ação na sessão de suporte fica rastreável nos logs.
+router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const org = await Organization.findById(req.params.id).select('name slug isActive deletedAt').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organização não encontrada' });
+    if (!org.isActive || org.deletedAt) {
+      return res.status(400).json({ success: false, error: 'Organização inativa ou na lixeira — reative antes de entrar como ela' });
+    }
+
+    const owner = await User.findOne({ organizationId: org._id, role: 'admin' }).select('_id email').lean();
+    if (!owner) return res.status(404).json({ success: false, error: 'Dono da organização não encontrado' });
+
+    const impersonator = await User.findById(req.user.userId).select('email').lean();
+    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+    const token = jwt.sign(
+      {
+        userId: owner._id,
+        organizationId: org._id,
+        role: 'admin',
+        impersonatedBy: req.user.userId,
+        impersonatorEmail: impersonator?.email || ''
+      },
+      secret,
+      { expiresIn: '30m' }
+    );
+
+    audit(req, 'impersonate', org._id, { ownerEmail: owner.email });
+    req.logger.info('Impersonação iniciada', { targetOrg: org.slug });
+
+    res.json({ success: true, token, orgName: org.name, orgSlug: org.slug });
+  } catch (error) {
+    req.logger.error('Erro ao impersonar org', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
 // ERROS DO FRONTEND (público, rate-limited)
 // ============================================================================
 

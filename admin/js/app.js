@@ -468,8 +468,58 @@ function setupKeyboardShortcuts() {
   });
 }
 
+// ── Impersonação (modo suporte) ──────────────────────────────────────────
+// O superadmin "entra como" a org via /admin/?impersonate=<jwt-30min>.
+// O token tem impersonatedBy no payload — usamos isso para exibir o banner.
+function consumeImpersonationToken() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('impersonate');
+    if (!token) return;
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.impersonatedBy) return;
+
+    appState.authToken = token;
+    localStorage.setItem('authToken', token);
+    if (payload.organizationId) localStorage.setItem('organizationId', payload.organizationId);
+
+    // Token fora da URL (não fica no histórico ao navegar)
+    params.delete('impersonate');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''));
+  } catch (e) { /* token malformado — segue o boot normal */ }
+}
+
+function renderImpersonationBanner() {
+  try {
+    if (!appState.authToken) return;
+    const payload = JSON.parse(atob(appState.authToken.split('.')[1]));
+    if (!payload.impersonatedBy) return;
+
+    const expira = payload.exp ? new Date(payload.exp * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    const bar = document.createElement('div');
+    bar.id = 'impersonationBanner';
+    bar.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:99999; background:#b45309; color:#fff; padding:0.45rem 1rem; text-align:center; font-size:0.8125rem; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.75rem;';
+    bar.innerHTML = `
+      <span>🛠️ Modo suporte — você está no painel deste fotógrafo${expira ? ` (expira às ${expira})` : ''}</span>
+      <button id="endImpersonation" style="background:rgba(0,0,0,0.25); color:#fff; border:1px solid rgba(255,255,255,0.4); border-radius:6px; padding:0.2rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer; font-family:inherit;">Encerrar</button>
+    `;
+    document.body.prepend(bar);
+    document.body.style.paddingTop = '36px';
+    bar.querySelector('#endImpersonation').onclick = () => {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('organizationId');
+      window.close();
+      // window.close() falha se a aba não foi aberta via script — volta pro login
+      window.location.href = '/admin/';
+    };
+  } catch (e) { /* token ilegível — sem banner */ }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────
 async function initApp() {
+  consumeImpersonationToken();
   setupNavigation();
   setupKeyboardShortcuts();
 
@@ -477,6 +527,8 @@ async function initApp() {
     showLoginForm();
     return;
   }
+
+  renderImpersonationBanner();
 
   // loadAppData (SiteData legado) roda em paralelo com postLoginSetup
   // postLoginSetup já paraleliza loadOrgSlug + loadSidebarStorage internamente
