@@ -17,6 +17,7 @@ const { checkDeadlines } = require('../utils/deadlineChecker');
 const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmittedEmail, sendExtraPhotosRequestedEmail, sendExtraPhotosRejectedEmail, sendUpsellEmail, buildWhatsAppGalleryLink, sendPendingDownloadEmail } = require('../utils/email');
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
+const { trackEvent } = require('../utils/activityTracker');
 
 const uploadSession = createUploader('sessions');
 
@@ -454,6 +455,12 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     const selectedCount = participant ? participant.selectedPhotos.length : session.selectedPhotos.length;
 
+    // Track selection submitted
+    trackEvent(session.organizationId, userId, 'selection_submitted', {
+      sessionId: session._id,
+      selectedPhotos: selectedCount
+    });
+
     _logEvent(session._id, 'selection_submitted', {
       count: selectedCount,
       participantName: participant ? participant.name : null
@@ -816,12 +823,12 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
 
 router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
-    const { mode, clientId } = req.body;
+    const { mode, clientId, rhynoCustomerId } = req.body;
     const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
 
-    // Validar que clientId é obrigatório apenas para non-multi_selection
-    if (!isMulti && !clientId) {
-      return res.status(400).json({ error: 'clientId é obrigatório para este modo de sessão' });
+    // Cliente obrigatório (non-multi): aceita clientId legado OU rhynoCustomerId (ERP)
+    if (!isMulti && !clientId && !rhynoCustomerId) {
+      return res.status(400).json({ error: 'Cliente é obrigatório para este modo de sessão' });
     }
 
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -862,6 +869,13 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
     _logEvent(session._id, 'session_created', {
       mode: session.mode,
       packageLimit: session.packageLimit,
+      eventType: session.eventType
+    });
+
+    // Track session creation for SaaS Admin v2
+    trackEvent(req.user.organizationId, req.user.userId, 'session_created', {
+      sessionId: session._id,
+      mode: session.mode,
       eventType: session.eventType
     });
 
@@ -930,6 +944,9 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
         clientPhone = client.phone || '';
         if (client.name) clientName = client.name;
       }
+    } else if (session.rhynoCustomerId) {
+      if (session.clientName) clientName = session.clientName;
+      clientPhone = session.clientPhone || '';
     }
 
     const org = await Organization.findById(req.user.organizationId).select('name slug');
@@ -963,6 +980,12 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
 
     session.codeSentAt = new Date();
     await session.save();
+
+    // Track code sent
+    trackEvent(req.user.organizationId, req.user.userId, 'code_sent', {
+      sessionId: session._id,
+      channel: channel || 'unknown'
+    });
 
     _logEvent(session._id, 'code_sent', {
       channel,
@@ -1139,6 +1162,13 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     _logEvent(session._id, 'photos_uploaded', {
       count: newPhotos.length,
       filenames: newPhotos.map(p => p.filename)
+    });
+
+    // Track photos upload for SaaS Admin v2
+    trackEvent(req.user.organizationId, req.user.userId, 'photos_uploaded', {
+      sessionId: session._id,
+      photoCount: newPhotos.length,
+      totalPhotos: session.photos.length
     });
 
     // Incrementar contador de fotos
@@ -1558,6 +1588,13 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
 
     await session.save();
 
+    // Track session delivered
+    trackEvent(session.organizationId, req.user.userId, 'session_delivered', {
+      sessionId: session._id,
+      mode: session.mode,
+      selectedCount: session.selectedPhotos.length
+    });
+
     _logEvent(session._id, 'delivered', {
       selectedCount: session.selectedPhotos.length,
       extrasCount: extrasDelivered.length
@@ -1566,7 +1603,8 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     // Notificar cliente por e-mail
     if (session.clientEmail) {
       const org = await Organization.findById(session.organizationId).select('name slug');
-      sendPhotosDeliveredEmail(session.clientEmail, session.name, session.accessCode, org?.name || 'Fotógrafo', org?.slug, customEmailIntro).catch(() => { });
+      const recipientName = session.clientName || session.name;
+      sendPhotosDeliveredEmail(session.clientEmail, recipientName, session.accessCode, org?.name || 'Fotógrafo', org?.slug, customEmailIntro).catch(() => { });
     }
 
     res.json({ success: true, extrasCount: extrasDelivered.length });

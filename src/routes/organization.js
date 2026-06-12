@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
+const { trackEvent } = require('../utils/activityTracker');
 
 // Sanitiza um mapa de desconto por dia { '7': 10, '3': 15 } — chaves numéricas, valores 0–100.
 function _sanitizeDiscountMap(map) {
@@ -94,8 +95,28 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
     }
 
+    // Track feature configuration (watermark, logo, etc)
+    const watermarkFields = ['watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition'];
+    const configuredFeature = Object.keys(updates).find(k => watermarkFields.includes(k));
+    if (configuredFeature) {
+      trackEvent(req.user.organizationId, req.user.userId, 'feature_configured', {
+        feature: 'watermark',
+        type: updates.watermarkType
+      });
+    }
+    if (updates.logo) {
+      trackEvent(req.user.organizationId, req.user.userId, 'feature_configured', {
+        feature: 'logo'
+      });
+    }
+
     res.json({ success: true, data: org });
   } catch (error) {
+    // Payload inválido (ex: name vazio viola required do schema) é erro do cliente, não do servidor
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      req.logger.info('Perfil rejeitado por validacao', { error: error.message });
+      return res.status(400).json({ success: false, error: error.message });
+    }
     req.logger.error('Erro ao atualizar perfil', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }

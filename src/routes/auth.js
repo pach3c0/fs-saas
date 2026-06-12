@@ -9,6 +9,7 @@ const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const { checkHoneyPot } = require('../middleware/security');
 const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhotographerNotificationEmail } = require('../utils/email');
 const { applyDefaultTemplate } = require('./site');
+const { trackEvent } = require('../utils/activityTracker');
 
 router.post('/login', async (req, res) => {
   try {
@@ -46,6 +47,9 @@ router.post('/login', async (req, res) => {
       secret,
       { expiresIn: '7d' }
     );
+
+    // Track login event (fire-and-forget)
+    trackEvent(user.organizationId, user._id, 'login');
 
     return res.json({
       success: true,
