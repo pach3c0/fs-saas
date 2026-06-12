@@ -66,7 +66,7 @@
   - `siteData.js` — dados públicos (hero, faq, marketing overview)
   - `notifications.js`, `upload.js`, `sales.js`, `payments.js`, `landing.js`, `saasAdmin.js`, `tutorials.js`
 - **middleware/** — auth.js (JWT), tenant.js (multi-tenant), security.js (honey pot), planLimits.js, stripe.js, mercadopago.js
-- **models/** — Organization (central), User, Session, Album, Client, Subscription, SiteData, LandingData, Notification, SecurityLog, Tutorial, DefaultSiteTemplate, plans
+- **models/** — Organization (central), User, Session, Album, Client, Subscription, SiteData, LandingData, Notification, SecurityLog, Tutorial, DefaultSiteTemplate, ManualModule, plans
 - **utils/** — logger (Winston), email.js, multerConfig, deadlineChecker, offboardingChecker, salesAutomator, anniversaryAutomator, dnsVerifier, cleanupStorage (script standalone)
 - **services/** — storage.js (operações de arquivo)
 
@@ -288,6 +288,8 @@ Refatorado em 2026-05-23 e consolidado em **5 passos** após a fusão dos antigo
 - **Auditoria Dia 2** — todos os 126 endpoints auditados. Fix de bug deployado (commit `93631af`)
 - **Dashboard auditado e refatorado** — fixes de qualidade + sessões recentes clicáveis
 - **Manual do Usuário** — seção na tab Ajuda com sub-nav, accordion por módulo e mini-previews visuais. Dashboard e Sessões documentados. Ver `skills/00_manual-usuario.md`
+- **Criador de Manual (SaaS Admin)** — Ferramenta completa para o Superadmin gerenciar o conteúdo do Manual. Painel em `saas-admin` com lista e editor visual de blocos (Intro, Callout, Passo a Passo), salvos no banco (`ManualModule`). O front do estúdio fotográfico (`ajuda.js`) consome o `/api/manual` e renderiza os blocos em HTML nativo, com fallback de segurança total para a versão estática atual caso o banco esteja vazio.
+- **Manual — terminologia PT-BR** — palavra "Walkthrough" substituída por "Passo a passo" em todas as 7 seções do manual (`admin/js/tabs/ajuda.js`): Dashboard, Mensagens, Gestão, Meu Site, Domínio, Integrações e Marketing. Alteração apenas de texto visível — lógica e estrutura intactas.
 - **Auditoria Sessões** — 7 fixes de tokens CSS aplicados (hexcodes, RGBA, prefixo `--ad-*`, tokens inexistentes). Ver `skills/02_sessoes.md`
 - **Manual Sessões — formulário de criação** — Seção "Criando uma Nova Sessão — Modo Seleção" documentada com 9 blocos e mini-previews (modo, cliente, nome, datas, capa, resolução, pacote, extras/reabertura, CRM). Fix: validação de data de criação removida de `modal-form.js` — apenas prazo ≥ evento é obrigatório. Commit `0a72be8`
 - **Dimensões reais pós-resize** — Após upload, cada foto exibe badge `1200×800px` no grid admin (lido do Sharp metadata). Modal de fotos exibe badge de resolução configurada com tooltip explicativo no cabeçalho. Schema `Session.photos` atualizado com `width`/`height`. Commits `ed49553`, `814b6f9`
@@ -364,3 +366,15 @@ Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pend
 - **Monetização Direta:** payment gateway para liberar download pós-upsell
 - **Slideshow Viral:** geração de vídeo com ffmpeg + Bull queue
 - **Limites de e-mail por plano:** definir se SMTP é da plataforma ou do fotógrafo; avaliar quotas por plano
+
+---
+
+## INTEGRAÇÃO COM O RHYNO SYSTEM (ERP/CRM) — 2026-06 (POC local, NADA deployado)
+
+O ERP **Rhyno System** (pasta `/Users/macbook/Documents/ERP1`, repo `pach3c0/ERP1`, prod `erp.cliquezoom.com.br`, FastAPI+Postgres+React) está sendo integrado como **CRM/financeiro principal**, via **iframe + SSO**. Tudo local, não commitado.
+- Aba **Gestão** (`admin/js/tabs/gestao.js`) — iframe do Rhyno em modo embed, com login único (SSO).
+- `src/routes/gestao.js` — `GET /api/gestao/sso-url` (gera URL de SSO), `GET/POST /api/gestao/customers` (busca/cria customer no Rhyno, server-to-server via asserção assinada com `SSO_SHARED_SECRET`).
+- `Session.rhynoCustomerId` + snapshot `clientName`/`clientPhone` — a sessão referencia cliente do **Rhyno**; o seletor de cliente da sessão (`modal-form.js`) busca no Rhyno; o "+ Novo cliente" grava no Rhyno (`client-modal.js` com `options.target='rhyno'`).
+- Aba **Clientes** oculta no menu (transição, reversível); `Client.rhynoCustomerId` mapeia a migração; `src/utils/migrateClientsToRhyno.js` migra Mongo→Rhyno (dry-run/--apply).
+- Config no `.env`: `SSO_SHARED_SECRET` (= ao do Rhyno), `RHYNO_BASE_URL`, `RHYNO_API_URL`, `RHYNO_POC_EMAIL`.
+- ⏸️ **PAUSADO** (sem créditos + ajustes locais pendentes). **Handoff completo: `skills/9_0_handoff-rhyno-integracao.md`.** Memória: `project_rhyno_integration`, `reference_rhyno_local_poc`.

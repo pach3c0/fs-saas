@@ -14,7 +14,7 @@ export async function renderDashboard(container) {
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div>
                     <h2 style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin:0;">Olá, ${appState.user?.name || 'Fotógrafo'}!</h2>
-                    <p style="color:var(--text-secondary); margin-top:0.25rem;">Aqui está o resumo do seu estúdio hoje.</p>
+                    <p style="color:var(--text-secondary); margin-top:0.25rem;">Aqui está o resumo do seu negócio hoje.</p>
                 </div>
                 <div id="last-update" style="font-size:0.75rem; color:var(--text-muted);"></div>
             </div>
@@ -89,7 +89,7 @@ async function loadDashboardData(container) {
         metricsGrid.innerHTML = `
             ${renderMetricCard('Total de Sessões', total, 'var(--accent)', 'layers')}
             ${renderMetricCard('Fotos Upadas', sessions.reduce((s, p) => s + (p.photos?.length || 0), 0), 'var(--orange)', 'image')}
-            ${renderMetricCard('Espaço Usado', `${storageMB} MB`, 'var(--orange)', 'hard-drive')}
+            ${renderMetricCard('Espaço Usado', formatStorage(storageMB), 'var(--orange)', 'hard-drive')}
             ${renderMetricCard('Entregues', delivered, 'var(--green)', 'check-circle')}
         `;
 
@@ -98,7 +98,7 @@ async function loadDashboardData(container) {
             sessionsList.innerHTML = `<p style="padding:3rem; text-align:center; color:var(--text-muted);">Você ainda não tem sessões. Crie a primeira para começar.</p>`;
         } else {
             sessionsList.innerHTML = sessions.slice(0, 5).map(session => `
-                <div onclick="switchTab('sessoes').then(() => window.viewSessionPhotos('${session._id}'))" style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-elevated)'" onmouseleave="this.style.background='transparent'">
+                <div onclick="switchTab('sessoes').then(() => window.openSessionWizard?.('${session._id}'))" style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; cursor:pointer; transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-elevated)'" onmouseleave="this.style.background='transparent'">
                     <div style="width:40px; height:40px; border-radius:8px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; overflow:hidden;">
                         ${session.coverPhoto ? `<img src="${session.coverPhoto}" style="width:100%; height:100%; object-fit:cover;">` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
                     </div>
@@ -133,7 +133,6 @@ function renderOnboardingChecklist(container, steps) {
     const items = [
         { key: 'sessionCreated', label: 'Criar sua primeira sessão', hint: 'Clique em "Nova Sessão" no menu', category: 'sessoes', query: 'Sessão' },
         { key: 'photosUploaded', label: 'Subir as primeiras fotos', hint: 'Acesse a sessão e arraste seus arquivos', category: 'sessoes', query: 'Fotos' },
-        { key: 'clientLinked',   label: 'Vincular um cliente', hint: 'Defina para quem as fotos serão enviadas', category: 'clientes', query: 'Clientes' },
         { key: 'linkSent',       label: 'Enviar link de acesso', hint: 'Mande o código de acesso por e-mail', category: 'sessoes', query: 'Clientes' }
     ];
 
@@ -197,6 +196,14 @@ function renderMetricCard(label, value, color, icon) {
             </div>
         </div>
     `;
+}
+
+// Formata o espaço usado de forma legível: GB a partir de 1 GB (evita o usuário converter
+// "1240 MB" de cabeça), MB para valores pequenos (um usuário novo não vê "0.05 GB").
+function formatStorage(mb) {
+    const v = Number(mb) || 0;
+    if (v >= 1024) return `${(v / 1024).toFixed(1)} GB`;
+    return `${v} MB`;
 }
 
 function renderMetricSkeleton() {

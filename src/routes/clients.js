@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { authenticateToken } = require('../middleware/auth');
 const Client = require('../models/Client');
 const Session = require('../models/Session');
@@ -32,7 +33,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
     // Contar sessoes por cliente
     const clientIds = clients.map(c => c._id);
     const sessionCounts = await Session.aggregate([
-      { $match: { organizationId: orgId, clientId: { $in: clientIds } } },
+      { $match: { organizationId: new mongoose.Types.ObjectId(orgId), clientId: { $in: clientIds } } },
       { $group: { _id: '$clientId', count: { $sum: 1 } } }
     ]);
 
@@ -41,7 +42,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
 
     // CRM: LTV dinamico = total de fotos extras pagas em sessoes do cliente
     const ltvAgg = await Session.aggregate([
-      { $match: { organizationId: orgId, clientId: { $in: clientIds }, 'extraRequest.paid': true } },
+      { $match: { organizationId: new mongoose.Types.ObjectId(orgId), clientId: { $in: clientIds }, 'extraRequest.paid': true } },
       { $group: { _id: '$clientId', total: { $sum: { $size: { $ifNull: ['$extraRequest.photos', []] } } } } }
     ]);
     const ltvMap = {};
@@ -64,7 +65,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
 router.post('/clients', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType } = req.body;
+    const { name, email, phone, cpf, notes, tags, birthDate, lastEventType, nextContactDate } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
@@ -90,6 +91,12 @@ router.post('/clients', authenticateToken, async (req, res) => {
       birthDate: birthDate ? new Date(birthDate) : null,
       lastEventType: lastEventType ? String(lastEventType).trim() : ''
     });
+
+    if (nextContactDate !== undefined && nextContactDate) {
+      client.nextContactDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(nextContactDate)
+        ? new Date(`${nextContactDate}T12:00:00Z`)
+        : new Date(nextContactDate);
+    }
 
     await client.save();
     res.status(201).json({ success: true, client });

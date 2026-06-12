@@ -18,4 +18,5 @@ async function verifyCNAME(domain, targetHost) {
   }
 }
 
-module.exports = { verifyDomain, verifyCNAME };
+// verifyCNAME: V2 (domínios customizados com CNAME) — não exportada ainda
+module.exports = { verifyDomain };

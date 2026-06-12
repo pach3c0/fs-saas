@@ -10,6 +10,7 @@ const Notification = require('../models/Notification');
 const Album = require('../models/Album');
 const Client = require('../models/Client');
 const SecurityLog = require('../models/SecurityLog');
+const ManualModule = require('../models/ManualModule');
 const path = require('path');
 const fs = require('fs');
 const storage = require('../services/storage');
@@ -370,6 +371,73 @@ router.get('/admin/saas/security-logs', authenticateToken, requireSuperadmin, as
             .limit(100)
             .lean();
         res.json({ logs });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================================
+// MANUAL DO USUÁRIO (CRUD — superadmin)
+// ============================================================================
+
+// Listar todos (superadmin)
+router.get('/admin/manual', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const modules = await ManualModule.find().sort({ order: 1 }).lean();
+        res.json({ success: true, modules });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Criar módulo
+router.post('/admin/manual', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const { id, label, icon, order, isPublished, blocks } = req.body;
+        if (!id || !label) return res.status(400).json({ error: 'id e label são obrigatórios' });
+        const mod = await ManualModule.create({ id, label, icon, order, isPublished, blocks });
+        res.status(201).json({ success: true, module: mod });
+    } catch (error) {
+        if (error.code === 11000) return res.status(409).json({ error: `Já existe um módulo com id "${req.body.id}"` });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Atualizar módulo
+router.put('/admin/manual/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const mod = await ManualModule.findOneAndUpdate(
+            { id: req.params.id },
+            { $set: req.body },
+            { new: true, runValidators: true }
+        );
+        if (!mod) return res.status(404).json({ error: 'Módulo não encontrado' });
+        res.json({ success: true, module: mod });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Reordenar módulos
+router.put('/admin/manual-reorder', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const { order } = req.body; // [{ id: 'dashboard', order: 0 }, ...]
+        if (!Array.isArray(order)) return res.status(400).json({ error: 'order deve ser um array' });
+        await Promise.all(order.map(({ id, order: o }) =>
+            ManualModule.findOneAndUpdate({ id }, { $set: { order: o } })
+        ));
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Excluir módulo
+router.delete('/admin/manual/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const mod = await ManualModule.findOneAndDelete({ id: req.params.id });
+        if (!mod) return res.status(404).json({ error: 'Módulo não encontrado' });
+        res.json({ success: true, message: `Módulo "${mod.label}" removido` });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

@@ -21,6 +21,7 @@ const TAB_TITLES = {
   'albuns-prova': 'Prova de Álbuns',
   mensagens: 'Mensagens',
   crm: 'CRM',
+  gestao: 'Gestão',
   'meu-site': 'Meu Site',
   dominio: 'Domínio',
   integracoes: 'Integrações',

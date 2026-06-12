@@ -18,7 +18,8 @@ const NOTIF_ICONS = {
   contact:                '📩',
   depoimento_pendente:    '⭐',
   storage_expiring:       '⏰',
-  storage_deleted:        '📦'
+  storage_deleted:        '📦',
+  ticket_reply:           '✉️'
 };
 
 let pollingInterval = null;
@@ -243,6 +244,9 @@ function _navigate(n) {
   const { sessionId, type, photoId } = n;
   if (type === 'contact' || type === 'depoimento_pendente') {
     window.switchTab?.('mensagens');
+  } else if (type === 'ticket_reply') {
+    window.switchTab?.('ajuda');
+    setTimeout(() => window._setAjudaView?.('fala-conosco'), 300);
   } else if (type === 'storage_expiring') {
     window.switchTab?.('sessoes');
     if (sessionId) setTimeout(() => window.openStorageRetentionModal?.(sessionId), 300);

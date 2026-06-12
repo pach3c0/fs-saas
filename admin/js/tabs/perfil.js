@@ -38,7 +38,7 @@ function genId() {
 }
 
 function getDefaultLayers() {
-  const orgName = organizationData.name || 'Seu Estúdio';
+  const orgName = organizationData.name || 'Seu Negócio';
   const logo = organizationData.logo ? resolveImagePath(organizationData.logo) : null;
   const layers = [
     {
@@ -351,7 +351,7 @@ function renderPanel() {
           <img id="lp-img-preview" src="${layer.url || PLACEHOLDER_LOGO}" style="max-height:70px;max-width:100%;object-fit:contain;filter:${getFilterCSS(layer.filter)};border-radius:4px;border:1px solid var(--border);" onerror="this.src='${PLACEHOLDER_LOGO}'">
         </div>
 
-        <label style="background:var(--bg-hover);color:white;padding:0.4rem;border-radius:0.375rem;font-size:0.75rem;font-weight:600;cursor:pointer;text-align:center;display:block;">
+        <label style="background:var(--bg-hover);color:var(--text-primary);padding:0.4rem;border-radius:0.375rem;font-size:0.75rem;font-weight:600;cursor:pointer;text-align:center;display:block;border:1px solid var(--border);">
           Trocar Imagem
           <input type="file" id="lp-img-upload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
         </label>
@@ -395,7 +395,12 @@ function _bindPanelEvents(layer) {
   const $ = sel => _panelEl.querySelector(sel);
   const update = (key, val) => {
     const l = wmLayers.find(l => l.id === layer.id);
-    if (l) { l[key] = val; renderCanvas(); scheduleSave(); }
+    if (!l) return;
+    l[key] = val;
+    renderCanvas();
+    // o label da lista de camadas exibe o texto — manter em sincronia ao editar
+    if (key === 'text' && _containerRef) renderLayerList(_containerRef);
+    scheduleSave();
   };
   const toggleLabel = (el, active) => {
     if (!el) return;
@@ -538,7 +543,7 @@ export async function renderPerfil(container) {
     const response = await apiGet('/api/organization/profile');
     organizationData = response.data || response;
   } catch (error) {
-    container.innerHTML = `<p style="color:#f87171;">Erro ao carregar dados do perfil.</p>`;
+    container.innerHTML = `<p style="color:var(--red);">Erro ao carregar dados do perfil.</p>`;
     return;
   }
 
@@ -555,9 +560,9 @@ export async function renderPerfil(container) {
 
       <!-- DADOS DO ESTÚDIO -->
       <div style="background:var(--bg-surface);padding:1.5rem;border-radius:0.5rem;border:1px solid var(--border);">
-        <h3 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin-bottom:1rem;">Dados do Estúdio</h3>
+        <h3 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin-bottom:1rem;">Dados do Negócio</h3>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;">
-          <div class="input-group" style="margin-bottom:0;"><label>Nome do Estúdio</label><input type="text" id="orgName" class="input" value="${escapeHtml(data.name || '')}"></div>
+          <div class="input-group" style="margin-bottom:0;"><label>Nome do Negócio</label><input type="text" id="orgName" class="input" value="${escapeHtml(data.name || '')}"></div>
           <div class="input-group" style="margin-bottom:0;"><label>Email de Contato</label><input type="email" id="orgEmail" class="input" value="${escapeHtml(data.email || '')}"></div>
           <div class="input-group" style="margin-bottom:0;"><label>Telefone / WhatsApp</label><input type="text" id="orgWhatsapp" class="input" value="${escapeHtml(data.whatsapp || '')}"></div>
           <div class="input-group" style="margin-bottom:0;"><label>Website</label><input type="text" id="orgWebsite" class="input" value="${escapeHtml(data.website || '')}"></div>
@@ -570,7 +575,7 @@ export async function renderPerfil(container) {
         <div style="display:flex;align-items:center;gap:1.5rem;">
           <img id="logoPreview" src="${data.logo ? resolveImagePath(data.logo) : PLACEHOLDER_LOGO}" onerror="this.src='${PLACEHOLDER_LOGO}'" style="height:50px;max-width:150px;background:white;padding:5px;border-radius:4px;object-fit:contain;">
           <div>
-            <label style="background:var(--bg-hover);color:white;padding:0.5rem 1rem;border-radius:0.375rem;font-weight:600;cursor:pointer;">
+            <label style="background:var(--bg-hover);color:var(--text-primary);padding:0.5rem 1rem;border-radius:0.375rem;font-weight:600;cursor:pointer;border:1px solid var(--border);">
               Enviar Logo <input type="file" id="logoUpload" accept=".jpg,.jpeg,.png,.svg,.webp" style="display:none;">
             </label>
             <div id="logoUploadProgress" style="margin-top:0.5rem;"></div>
@@ -587,12 +592,12 @@ export async function renderPerfil(container) {
           </div>
           <div style="display:flex;gap:0.375rem;flex-wrap:wrap;align-items:center;">
             <button id="wmAddText" style="background:var(--accent);color:white;border:none;padding:0.375rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;cursor:pointer;">+ Texto</button>
-            <button id="wmAddImage" style="background:var(--bg-hover);color:white;border:none;padding:0.375rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;cursor:pointer;">+ Imagem</button>
+            <button id="wmAddImage" style="background:var(--bg-hover);color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;cursor:pointer;">+ Imagem</button>
             <span style="width:1px;height:20px;background:var(--border);"></span>
             <button id="wmDuplicate" title="Duplicar camada" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">⧉</button>
             <button id="wmMoveUp" title="Mover para frente" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">↑</button>
             <button id="wmMoveDown" title="Mover para trás" style="background:transparent;color:var(--text-primary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">↓</button>
-            <button id="wmDelete" title="Deletar camada" style="background:transparent;color:#f85149;border:1px solid #f85149;padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">🗑</button>
+            <button id="wmDelete" title="Deletar camada" style="background:transparent;color:var(--red);border:1px solid var(--red);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.875rem;cursor:pointer;">🗑</button>
             <button id="wmReset" title="Restaurar padrão" style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);padding:0.375rem 0.625rem;border-radius:0.375rem;font-size:0.75rem;cursor:pointer;">↺ Padrão</button>
           </div>
         </div>
@@ -769,7 +774,7 @@ export async function renderPerfil(container) {
     btn.textContent = 'Salvando...'; btn.disabled = true;
     const name = container.querySelector('#orgName').value.trim();
     if (!name) {
-      window.showToast?.('O nome do estúdio é obrigatório.', 'warning');
+      window.showToast?.('O nome do negócio é obrigatório.', 'warning');
       btn.textContent = 'Salvar Perfil'; btn.disabled = false; return;
     }
     try {

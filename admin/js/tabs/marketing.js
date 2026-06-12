@@ -1,4 +1,5 @@
 import { appState } from '../state.js';
+import { renderCrm } from './crm.js';
 
 const EVENT_LABELS = {
   aniversario: 'Aniversário', casamento: 'Casamento', formatura: 'Formatura',
@@ -29,14 +30,57 @@ export async function renderMarketing(container) {
   }
 
   container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:1.25rem;max-width:900px;';
+
+  // Toggle interno: Visão Geral (KPIs/funil) | Vendas Automáticas (motor de cupons — antigo "CRM")
+  const toggle = document.createElement('div');
+  toggle.style.cssText = 'display:inline-flex;gap:0.25rem;background:var(--ad-bg-surface);border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);border-radius:0.5rem;padding:0.25rem;align-self:flex-start;';
+  toggle.innerHTML = `
+    <button class="mkt-toggle" data-view="overview">Visão Geral</button>
+    <button class="mkt-toggle" data-view="vendas">Vendas Automáticas</button>
+  `;
+  wrap.appendChild(toggle);
+
+  const content = document.createElement('div');
+  wrap.appendChild(content);
+  container.appendChild(wrap);
+
+  const setActive = (view) => {
+    toggle.querySelectorAll('.mkt-toggle').forEach(b => {
+      const active = b.dataset.view === view;
+      b.style.cssText = `padding:0.4rem 0.9rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:0;border-radius:0.375rem;transition:all .15s;background:${active ? 'var(--ad-accent)' : 'transparent'};color:${active ? 'var(--ad-bg-base)' : 'var(--ad-text)'};`;
+    });
+  };
+
+  const showView = (view) => {
+    setActive(view);
+    if (view === 'vendas') {
+      // Reusa o dashboard de cupons/gatilhos (faz o próprio fetch em /api/sales/dashboard)
+      renderCrm(content);
+    } else {
+      content.innerHTML = '';
+      content.appendChild(buildOverview(data));
+    }
+  };
+
+  toggle.querySelectorAll('.mkt-toggle').forEach(b => {
+    b.onclick = () => showView(b.dataset.view);
+  });
+
+  showView('overview');
+}
+
+// Monta a visão geral (KPIs, funil, status, modos, eventos, GA) a partir dos dados já carregados.
+function buildOverview(data) {
   const root = document.createElement('div');
-  root.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;max-width:900px;';
+  root.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
 
   // Título
   root.innerHTML = `
     <div>
       <h2 style="font-size:1.5rem;font-weight:bold;color:var(--ad-text);margin:0 0 0.25rem;">Marketing & Performance</h2>
-      <p style="color:var(--ad-text);opacity:0.6;font-size:0.875rem;margin:0;">Dados reais do seu estúdio</p>
+      <p style="color:var(--ad-text);opacity:0.6;font-size:0.875rem;margin:0;">Dados reais do seu negócio</p>
     </div>
   `;
 
@@ -58,13 +102,13 @@ export async function renderMarketing(container) {
     root.appendChild(_eventTypesSection(data.byEventType));
   }
 
-  // CRM automações
+  // Resumo de vendas automáticas (detalhe completo no toggle "Vendas Automáticas")
   root.appendChild(_crmSection(data.crm));
 
   // Google Analytics
   root.appendChild(_gaSection(data.ga));
 
-  container.appendChild(root);
+  return root;
 }
 
 // ─── KPIs ────────────────────────────────────────────────────────────────────
@@ -245,8 +289,8 @@ function _crmSection({ totalTriggers, redeemedCoupons }) {
   wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);display:flex;gap:2rem;align-items:center;`;
   wrap.innerHTML = `
     <div>
-      <h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 0.25rem;">Automação CRM</h3>
-      <p style="font-size:0.75rem;color:var(--ad-text);opacity:0.5;margin:0;">E-mails de escassez e reativação disparados</p>
+      <h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 0.25rem;">Vendas automáticas</h3>
+      <p style="font-size:0.75rem;color:var(--ad-text);opacity:0.5;margin:0;">E-mails de lembrete e escassês disparados</p>
     </div>
     <div style="display:flex;gap:2rem;margin-left:auto;">
       <div style="text-align:center;">

@@ -1060,6 +1060,34 @@ async function sendPendingDownloadEmail(email, clientName, sessionName, galleryU
   return sendEmail(email, subject, html);
 }
 
+async function sendTicketReplyEmail(email, name, ticketSubject, replyText) {
+  const subject = `Resposta ao seu chamado: ${ticketSubject} — CliqueZoom`;
+  const safeReply = String(replyText || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Olá, ${name}!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Recebemos sua mensagem sobre <strong>${ticketSubject}</strong> e nossa equipe respondeu:
+      </p>
+      <div style="background:#f5f5f5; border-left:3px solid #1a1a1a; padding:1rem 1.25rem; border-radius:0 0.375rem 0.375rem 0; margin:1.5rem 0; color:#333; font-size:0.9375rem;">${safeReply}</div>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Acesse sua conta em <a href="${process.env.BASE_URL || 'https://app.cliquezoom.com.br'}" style="color:#1a1a1a; text-decoration:none; font-weight:600;">CliqueZoom</a> para continuar a conversa.
+      </p>
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom — Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(email, subject, html);
+}
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -1088,5 +1116,6 @@ module.exports = {
   sendNewPhotographerNotificationEmail,
   buildWhatsAppGalleryLink,
   sendStorageRetentionEmail,
-  sendPendingDownloadEmail
+  sendPendingDownloadEmail,
+  sendTicketReplyEmail
 };

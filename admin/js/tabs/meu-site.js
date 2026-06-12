@@ -1253,7 +1253,7 @@ async function renderSiteContent(container, builderTabsEl) {
             ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum serviço adicionado</p>'}
           </div>
 
-          ${servicos.length > 0 ? '<button id="saveServicosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Serviços</button>' : ''}
+          <button id="saveServicosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Serviços</button>
         </div>
       `;
 
@@ -1673,10 +1673,27 @@ async function renderSiteContent(container, builderTabsEl) {
   const renderRodape = () => {
     const rodapeContainer = container.querySelector('#config-rodape');
     const f = configData.siteContent?.footer || {};
+    // Cópia local: re-renderizações parciais (adicionar/remover link) NÃO podem
+    // re-ler do configData, senão descartam edições ainda não salvas.
     let _rodape = {
       copyright: f.copyright || '',
-      socialMedia: f.socialMedia || {},
-      quickLinks: f.quickLinks || [],
+      socialMedia: { ...(f.socialMedia || {}) },
+      quickLinks: (f.quickLinks || []).map(l => ({ ...l })),
+    };
+
+    // Captura o que está digitado nos inputs antes de qualquer re-render
+    const lerInputs = () => {
+      const el = (sel) => rodapeContainer.querySelector(sel);
+      if (el('#rodapeCopyright')) _rodape.copyright = el('#rodapeCopyright').value;
+      [['#socialInstagram', 'instagram'], ['#socialFacebook', 'facebook'], ['#socialLinkedin', 'linkedin'],
+        ['#socialTiktok', 'tiktok'], ['#socialYoutube', 'youtube'], ['#socialEmail', 'email']].forEach(([sel, key]) => {
+        if (el(sel)) _rodape.socialMedia[key] = el(sel).value;
+      });
+      const links = [];
+      rodapeContainer.querySelectorAll('[data-link-label]').forEach((input, idx) => {
+        links.push({ label: input.value, url: el(`[data-link-url="${idx}"]`)?.value || '' });
+      });
+      _rodape.quickLinks = links;
     };
 
     const saveRodape = async (silent = false) => {
@@ -1687,8 +1704,6 @@ async function renderSiteContent(container, builderTabsEl) {
       liveRefresh({ siteContent: { footer: _rodape } });
     };
 
-    const rerenderRodape = () => renderRodape();
-
     const buildLinksHtml = (quickLinks) => quickLinks.map((link, idx) => `
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <input type="text" class="input" data-link-label="${idx}" value="${link.label || ''}" placeholder="Texto do link">
@@ -1697,6 +1712,7 @@ async function renderSiteContent(container, builderTabsEl) {
       </div>
     `).join('');
 
+    const renderList = () => {
     rodapeContainer.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:640px;">
         <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
@@ -1751,8 +1767,9 @@ async function renderSiteContent(container, builderTabsEl) {
     `;
 
     rodapeContainer.querySelector('#addRodapeLinkBtn').onclick = () => {
+      lerInputs(); // preserva o que já foi digitado antes do re-render
       _rodape.quickLinks.push({ label: '', url: '' });
-      renderRodape();
+      renderList();
     };
 
     rodapeContainer.querySelectorAll('[data-remove-link]').forEach(btn => {
@@ -1760,32 +1777,20 @@ async function renderSiteContent(container, builderTabsEl) {
         const idx = parseInt(btn.dataset.removeLink);
         const ok = await window.showConfirm?.('Remover este link?', { danger: true });
         if (!ok) return;
+        lerInputs();
         _rodape.quickLinks.splice(idx, 1);
         await saveRodape(true);
-        renderRodape();
+        renderList();
       };
     });
 
     rodapeContainer.querySelector('#saveRodapeBtn').onclick = async () => {
-      const links = [];
-      rodapeContainer.querySelectorAll('[data-link-label]').forEach((input, idx) => {
-        const url = rodapeContainer.querySelector(`[data-link-url="${idx}"]`)?.value || '';
-        links.push({ label: input.value, url });
-      });
-      _rodape = {
-        copyright: rodapeContainer.querySelector('#rodapeCopyright').value,
-        socialMedia: {
-          instagram: rodapeContainer.querySelector('#socialInstagram').value,
-          facebook: rodapeContainer.querySelector('#socialFacebook').value,
-          linkedin: rodapeContainer.querySelector('#socialLinkedin').value,
-          tiktok: rodapeContainer.querySelector('#socialTiktok').value,
-          youtube: rodapeContainer.querySelector('#socialYoutube').value,
-          email: rodapeContainer.querySelector('#socialEmail').value,
-        },
-        quickLinks: links,
-      };
+      lerInputs();
       await saveRodape();
     };
+    };
+
+    renderList();
   };
 }
 

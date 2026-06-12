@@ -146,6 +146,14 @@ export const wizardState = {
 - `buildWhatsAppDeliveryLink({...})` — mesma assinatura, mas usa `WA_DELIVERY_OPENINGS` (tom de "fotos editadas prontas para download"). Usado no passo 6.
 - `openOverlayModal(...)` — descrito na seção 4.
 
+### wizard/config-panel.js (painel lateral direito — redesign) ⭐
+Barra lateral **sempre visível** à direita do wizard com TODAS as configurações da sessão, **autosave** (`PUT /api/sessions/:id` a cada `onchange`, flash "✓ salvo"). `renderConfigPanel({ session, onChange })` — `onChange` re-renderiza o wizard só em campos "impactantes" (nome, modo, resolução, pacote).
+- **Grupos:** Geral (Nome, **Foto de capa** [upload inline via `uploadImage` + remover], Modo, Prazo, Tipo de evento, Resolução do preview) · Seleção (Fotos do pacote, Preço foto extra, venda de extras, reabertura) · (Seleção/Multi) Mensagens por foto · Vendas (automação de escassez) · Armazenamento (guardar até, deletar auto, backup ZIP).
+- **Travas por estágio (🔒):** Modo trava após o cliente enviar a seleção · Resolução trava após o 1º upload · Pacote trava após a entrega (mínimo = já selecionadas).
+- Controles têm `data-cfg="<campo>"` (usado pelos helpers E2E). Capa: `[data-cfg="coverPhoto"]` (file input).
+
+> **⚙️ Modal de edição APOSENTADO (2026-06-10):** o antigo `editSessionModal` + os botões ⚙️ (card e header do wizard) + `_setupEditSessionModal`/`window.editSession` foram **removidos** — eram ~95% redundantes com o painel. A **capa** (única exclusiva do modal) migrou para o painel (e segue na criação). E2E novo: `tests/local/4_painel-locks.spec.js` "Painel — capa: subir pelo painel salva e remover limpa". ⚠️ **CLAUDE.md** ainda cita "⚙️ Editar (editSessionModal)" na seção de compatibilidade — atualizar quando o redesign for commitado.
+
 ### wizard/notifications-bell.js (novo, 2026-05-23)
 Sininho próprio do wizard porque o sininho global do topbar fica atrás do modal fullscreen (z-index 1100).
 - `mountWizardBell(rootEl, currentSessionId)` — anexa botão+badge+dropdown ao header e inicia polling de 30s em `/api/notifications/unread-count`.
@@ -344,3 +352,38 @@ Fechar wizard → closeWizard
 - **Testes Playwright** (`tests/3_0_sessoes.spec.js`) ainda clicam nos botões antigos. Atualizar para abrir o wizard via clique no card e percorrer passos.
 - **modal-detail.js standalone** pode ser removido — o wizard já tem o grid embutido nos passos 1/4/5.
 - **Cortesia como diferencial de marketing** — quando auditar a landing, incluir como bullet em "Por que CliqueZoom".
+
+---
+
+## 12. Roteiro de Vídeo: Sessões (Modos de Trabalho)
+
+**Duração estimada:** 120 a 150 segundos
+**Objetivo:** Explicar ao fotógrafo como criar uma nova sessão e a diferença fundamental entre os três modos de trabalho: Seleção, Galeria e Multi-Seleção.
+
+### Cena 1: Abertura e Criação (0s - 25s)
+- **Visual:** Tela do módulo Sessões vazia ou com algumas sessões. Mouse clica no botão "Nova Sessão". O modal de criação se abre.
+- **Áudio (Locução):** "Bem-vindo ao coração do CliqueZoom. É aqui que os seus trabalhos ganham vida. Para começar um novo trabalho, clique em Nova Sessão. O primeiro passo, e o mais importante, é escolher o Modo da Sessão."
+- **Ação em Tela:** O mouse passa pelo campo "Modo da Sessão" e clica no dropdown, mostrando as três opções: Seleção, Galeria e Multi-Seleção.
+
+### Cena 2: Modo Seleção (25s - 65s)
+- **Visual:** O cursor seleciona a opção "Seleção".
+- **Áudio (Locução):** "O modo Seleção é o queridinho dos fotógrafos para ensaios individuais, gestantes, casamentos e famílias. Neste modo, você sobe as fotos com marca d'água e o cliente escolhe as favoritas dentro do limite que você configurou. Depois, você só edita e entrega o que ele escolheu."
+- **Ação em Tela:** O formulário preenche rapidamente campos-chave como Cliente, Nome da Sessão, e a seção "Fotos do pacote" (mostrando o número 30) e "Preço foto extra" (mostrando 25,00). 
+- **Áudio (Locução):** "O Wizard vai te guiar em 5 passos: Upload, Compartilhamento do código, Acompanhamento da escolha, Upload das Editadas e Entrega final."
+
+### Cena 3: Modo Galeria (65s - 95s)
+- **Visual:** O cursor muda o dropdown para a opção "Galeria".
+- **Áudio (Locução):** "Se o seu trabalho é entregar fotos prontas de forma rápida, como em eventos corporativos ou para a imprensa, o modo Galeria é para você."
+- **Ação em Tela:** Mostrar a interface simplificada, sem as opções de "Fotos do Pacote".
+- **Áudio (Locução):** "Não há limite de escolha nem venda de extras. O cliente entra, visualiza as fotos e baixa tudo de uma vez. O Wizard aqui é mais curto, com apenas 3 passos."
+
+### Cena 4: Modo Multi-Seleção (95s - 130s)
+- **Visual:** O cursor muda o dropdown para a opção "Multi-Seleção".
+- **Áudio (Locução):** "E para formaturas, shows ou eventos com muitos participantes, use a Multi-Seleção. Você sobe todas as fotos de uma vez e gera códigos individuais para cada pessoa."
+- **Ação em Tela:** O mouse desce e mostra o campo de prazo de seleção (um deadline único). Depois, corta rápido para o Passo 2 do Wizard (Compartilhar) mostrando uma tabela com vários participantes fictícios (ex: "Turma 2026 - João", "Turma 2026 - Maria").
+- **Áudio (Locução):** "Cada participante faz a sua própria escolha de forma independente, sem ver o que os outros estão fazendo. E você entrega para cada um no tempo deles."
+
+### Cena 5: Encerramento (130s - 150s)
+- **Visual:** Corte para a tela da lista de sessões com o botão "Nova Sessão" piscando sutilmente.
+- **Áudio (Locução):** "Escolha o modo que melhor se adapta ao seu estilo e automatize as suas entregas hoje mesmo. Vamos criar a sua primeira sessão?"
+- **Ação em Tela:** Fade out suave para o logo da CliqueZoom Academy.

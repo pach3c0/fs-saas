@@ -36,6 +36,22 @@ router.get('/site/config', async (req, res) => {
     if (result.siteEnabled == null) result.siteEnabled = true;
     if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
 
+    // Rota pública: expõe só o que o site injeta/exibe. Nunca vazar accessToken
+    // nem configs internas de automação (deadlineAutomation, salesAutomator/cupons).
+    const integ = result.integrations || {};
+    result.integrations = {
+      googleAnalytics: {
+        enabled: !!integ.googleAnalytics?.enabled,
+        measurementId: integ.googleAnalytics?.measurementId || ''
+      },
+      metaPixel: {
+        enabled: !!integ.metaPixel?.enabled,
+        pixelId: integ.metaPixel?.pixelId || ''
+      },
+      whatsapp: integ.whatsapp || {},
+      seo: integ.seo || {}
+    };
+
     // Se estiver em modo preview, substitui o tema retornado pelo simulado na query
     if (req.query._preview_theme) {
       const validThemes = ['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'];
@@ -237,8 +253,10 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
     if (!name || !text) return res.status(400).json({ error: 'Nome e texto são obrigatórios' });
 
     const id = crypto.randomBytes(8).toString('hex');
+    // Clamp 1–5: rating fora da faixa (ex.: -3) quebrava o render do admin ('⭐'.repeat negativo)
+    const notaSegura = Math.min(5, Math.max(1, parseInt(rating) || 5));
     await Organization.findByIdAndUpdate(req.organizationId, {
-      $push: { 'siteContent.pendingDepoimentos': { id, name, text, email: email || '', rating: parseInt(rating) || 5 } }
+      $push: { 'siteContent.pendingDepoimentos': { id, name, text, email: email || '', rating: notaSegura } }
     });
     res.json({ success: true });
 

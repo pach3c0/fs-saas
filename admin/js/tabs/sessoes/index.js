@@ -163,6 +163,9 @@ export async function renderSessoes(container) {
             <input type="hidden" id="sessionCoverPhoto" value="">
           </div>
 
+          <!-- Config avançada movida para o painel direito do wizard (visível após criar).
+               Mantida no DOM (oculta) só para alimentar os valores-padrão no payload de criação. -->
+          <div id="advancedConfigHidden" style="display:none;">
           <!-- Configuração da Galeria -->
           <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
             <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
@@ -265,6 +268,8 @@ export async function renderSessoes(container) {
               <p class="input-hint" style="margin:0 0 0 1.5rem;">Gera um arquivo .zip com todas as fotos no servidor antes da exclusão. Útil para ter uma cópia local de segurança.</p>
             </div>
           </div>
+          </div>
+          <!-- /advancedConfigHidden -->
 
         </div>
 
@@ -339,125 +344,6 @@ export async function renderSessoes(container) {
         <div style="padding:1.25rem; background:var(--bg-base); border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.75rem;">
           <button id="cancelValidationBtn" class="btn">Cancelar</button>
           <button id="confirmValidationBtn" class="btn btn-primary"></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Editar Sessao -->
-    <div id="editSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1200; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:28rem; max-width:100%; display:flex; flex-direction:column; gap:1rem; margin:2rem auto;">
-        <h3 style="font-size:1.125rem; font-weight:bold; color:var(--text-primary);">Editar Sessao</h3>
-        <div class="input-group" style="margin-bottom:0;">
-          <label>Nome da Sessão</label>
-          <input type="text" id="editSessionName" class="input">
-        </div>
-        <div class="input-group" style="margin-bottom:0;">
-          <label id="editDeadlineLabel">Prazo de Seleção</label>
-          <input type="datetime-local" id="editSessionDeadline" class="input">
-        </div>
-        <div class="input-group" style="margin-bottom:0;">
-          <label>Modo</label>
-          <div class="select-wrap">
-            <select id="editMode" class="select input">
-              <option value="selection">Selecao (cliente escolhe favoritas)</option>
-              <option value="gallery">Galeria (cliente so visualiza/baixa)</option>
-              <option value="multi_selection">Multi-Selecao (formaturas, shows)</option>
-                  <!-- v2: Multi-Imediata oculta até implementação de face search -->
-                  <!-- <option value="multi_instant">Multi-Imediata (Real-Time)</option> -->
-            </select>
-          </div>
-        </div>
-        <div id="editSelectionFields" style="display:flex; gap:0.75rem;">
-          <div class="input-group" style="flex:1; margin-bottom:0;">
-            <label>Fotos do pacote</label>
-            <input type="number" id="editLimit" min="1" class="input">
-          </div>
-          <div class="input-group" style="flex:1; margin-bottom:0;">
-            <label>Preco foto extra (R$)</label>
-            <input type="number" id="editExtraPrice" min="0" step="0.01" class="input">
-          </div>
-        </div>
-        <p class="input-hint">Cada cliente pode ter valores diferentes de pacote e preco de extras.</p>
-        <div style="border-top:1px solid var(--border); padding-top:0.75rem;">
-          <label style="font-size:0.875rem; font-weight:500; color:var(--text-primary); display:block; margin-bottom:0.5rem;">Foto de Capa</label>
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div id="editCoverPreview" style="width:4rem; height:4rem; border-radius:0.375rem; background:var(--bg-elevated); border:1px solid var(--border); overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>
-            </div>
-            <div style="flex:1; display:flex; flex-direction:column; gap:0.375rem;">
-              <label for="editCoverInput" class="btn btn-sm" style="cursor:pointer; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.375rem; width:fit-content;">
-                🖼️ Alterar capa
-              </label>
-              <input type="file" id="editCoverInput" accept=".jpg,.jpeg,.png" style="display:none;">
-              <input type="hidden" id="editCoverPhoto">
-              <button id="editCoverRemoveBtn" type="button" style="display:none; background:none; border:none; color:var(--red); font-size:0.75rem; cursor:pointer; text-align:left; padding:0; width:fit-content;">✕ Remover capa</button>
-              <div id="editCoverProgress" style="display:none; font-size:0.75rem; color:var(--text-muted);">Enviando...</div>
-            </div>
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editCommentsEnabled" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Comentários por foto habilitados</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editAllowExtraPurchase" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Venda de fotos extras habilitada</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editAllowReopen" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500;">Reabertura de sessão permitida</span>
-          </label>
-        </div>
-        <div id="editCrmFields" style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0;">CRM e Vendas</h4>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Tipo de Evento</label>
-            <div class="select-wrap">
-              <select id="editEventType" class="select input">
-                <option value="outro">Outro</option>
-                <option value="aniversario">Aniversário</option>
-                <option value="casamento">Casamento</option>
-                <option value="formatura">Formatura</option>
-                <option value="corporativo">Corporativo</option>
-                <option value="show">Show</option>
-                <option value="ensaio">Ensaio</option>
-                <option value="gestante">Gestante</option>
-                <option value="newborn">Newborn</option>
-                <option value="debutante">Debutante</option>
-                <option value="batizado">Batizado</option>
-              </select>
-            </div>
-          </div>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="editSalesAutomation" class="check">
-            <span style="color:var(--text-primary); font-size:0.875rem; font-weight:500; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="bot" style="width:16px; height:16px;"></i> Automação de vendas (escassez)</span>
-          </label>
-        </div>
-        <!-- Retenção de storage (edição) -->
-        <div style="border-top:1px solid var(--border); padding-top:0.75rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Armazenamento</h4>
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Guardar fotos no storage até</label>
-            <input type="date" id="editStorageRetentionUntil" class="input">
-            <p class="input-hint">Deixe em branco para guardar sem prazo. Quando a data chegar, você receberá uma notificação para decidir o que fazer.</p>
-          </div>
-          <div id="editStorageAutoDeleteField" style="display:none; flex-direction:column; gap:0.5rem;">
-            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-              <input type="checkbox" id="editStorageAutoDelete" class="check">
-              <span style="color:var(--text-primary); font-size:0.875rem;">Deletar automaticamente nesta data</span>
-            </label>
-            <p class="input-hint" style="margin:0 0 0 1.5rem;">As fotos (exceto a capa) serão excluídas do servidor automaticamente.</p>
-            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-              <input type="checkbox" id="editStorageBackupOnExpire" class="check">
-              <span style="color:var(--text-primary); font-size:0.875rem;">Gerar backup ZIP antes de deletar</span>
-            </label>
-            <p class="input-hint" style="margin:0 0 0 1.5rem;">Gera um arquivo .zip com todas as fotos no servidor antes da exclusão.</p>
-          </div>
-        </div>
-        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button id="cancelEditSession" class="btn">Cancelar</button>
-          <button id="confirmEditSession" class="btn btn-primary">Salvar</button>
         </div>
       </div>
     </div>

@@ -61,7 +61,7 @@ function renderPendentes() {
               <div style="flex:1; min-width:0;">
                 <p style="font-size:0.875rem; font-weight:600; color:var(--ad-text);">${escHtml(p.name)}</p>
                 <p style="font-size:0.8125rem; color:var(--ad-text-muted); margin-top:0.25rem; line-height:1.5;">${escHtml(p.text)}</p>
-                <p style="font-size:0.75rem; color:var(--ad-text-dim); margin-top:0.375rem;">${'⭐'.repeat(Math.min(p.rating || 5, 5))} ${p.rating || 5}/5${p.email ? ` · ${escHtml(p.email)}` : ''}</p>
+                <p style="font-size:0.75rem; color:var(--ad-text-dim); margin-top:0.375rem;">${'⭐'.repeat(clampNota(p.rating))} ${clampNota(p.rating)}/5${p.email ? ` · ${escHtml(p.email)}` : ''}</p>
               </div>
               <div style="display:flex; gap:0.5rem; flex-shrink:0;">
                 <button onclick="window._depAprovar('${p.id}')"
@@ -175,15 +175,22 @@ async function loadMensagens() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Formato gravado pelo backend: "📩 nome (email)? — assunto?: mensagem".
+// O cabeçalho termina no PRIMEIRO ":" — pontuação dentro da mensagem ("—", ":") não pode virar assunto.
 function parseMessage(msg) {
   const clean = msg.replace(/^📩\s*/, '');
-  const nome = clean.match(/^([^(—:]+)/)?.[1]?.trim() || '';
-  const email = clean.match(/\(([^)]+)\)/)?.[1]?.trim() || '';
-  const assuntoMatch = clean.match(/—\s*([^:]+):/);
-  const assunto = assuntoMatch ? assuntoMatch[1].trim() : '';
-  const mensagemIdx = assunto ? clean.indexOf(assunto + ':') + assunto.length + 1 : clean.indexOf(':') + 1;
-  const mensagem = clean.slice(mensagemIdx).trim();
+  const ci = clean.indexOf(':');
+  const header = ci === -1 ? clean : clean.slice(0, ci);
+  const mensagem = ci === -1 ? '' : clean.slice(ci + 1).trim();
+  const nome = header.match(/^([^(—]+)/)?.[1]?.trim() || '';
+  const email = header.match(/\(([^)]+)\)/)?.[1]?.trim() || '';
+  const assunto = header.match(/—\s*(.+)$/)?.[1]?.trim() || '';
   return { nome, email, assunto, mensagem };
+}
+
+// Nota sempre na faixa 1–5 — depoimentos antigos podem ter rating fora dela no banco
+function clampNota(rating) {
+  return Math.min(5, Math.max(1, parseInt(rating) || 5));
 }
 
 function escHtml(str) {

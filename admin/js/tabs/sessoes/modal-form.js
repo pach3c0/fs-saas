@@ -6,7 +6,8 @@ import { setupClientModal, abrirModalClienteNovo } from '../../utils/client-moda
 
 export function setupModalForm(container, state, renderSessoes) {
   _setupNewSessionModal(container, state, renderSessoes);
-  _setupEditSessionModal(container, state, renderSessoes);
+  // Modal de edição (⚙️) aposentado: configurações vivem no painel lateral do wizard
+  // (autosave) e a capa também — ver wizard/config-panel.js.
 }
 
 function _setupNewSessionModal(container, state, renderSessoes) {
@@ -128,6 +129,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
   const clientSearchDropdown = container.querySelector('#clientSearchDropdown');
   const clientSearchHint = container.querySelector('#clientSearchHint');
   let _searchTimer = null;
+  let _selectedClient = null; // cliente escolhido no seletor (Rhyno: _id "rhyno:<id>")
 
   function renderClientDropdown(clients, query) {
     clientSearchDropdown.innerHTML = '';
@@ -138,6 +140,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
       item.onmouseenter = () => item.style.background = 'var(--bg-hover)';
       item.onmouseleave = () => item.style.background = '';
       item.onclick = () => {
+        _selectedClient = c;
         clientSearchInput.value = c.name;
         container.querySelector('#sessionClientId').value = c._id;
         if (!container.querySelector('#sessionName').value) container.querySelector('#sessionName').value = c.name;
@@ -158,12 +161,13 @@ function _setupNewSessionModal(container, state, renderSessoes) {
         clientSearchDropdown.style.display = 'none';
         setupClientModal();
         abrirModalClienteNovo(query.trim(), (newClient) => {
+          _selectedClient = newClient;
           clientSearchInput.value = newClient.name;
           container.querySelector('#sessionClientId').value = newClient._id;
           if (!container.querySelector('#sessionName').value) container.querySelector('#sessionName').value = newClient.name;
-          clientSearchHint.textContent = `✓ Novo cliente cadastrado!`;
+          clientSearchHint.textContent = `✓ Novo cliente cadastrado no Rhyno!`;
           clientSearchHint.style.color = 'var(--green)';
-        });
+        }, { target: 'rhyno' });
       };
       clientSearchDropdown.appendChild(criar);
     }
@@ -178,11 +182,12 @@ function _setupNewSessionModal(container, state, renderSessoes) {
       clientSearchDropdown.style.display = 'none';
       container.querySelector('#sessionClientId').value = '';
       clientSearchHint.textContent = '';
+      _selectedClient = null;
       return;
     }
     _searchTimer = setTimeout(async () => {
       try {
-        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        const data = await apiGet(`/api/gestao/customers?search=${encodeURIComponent(q)}`);
         renderClientDropdown(data.clients || [], q);
       } catch (e) { /* silencioso */ }
     }, 300);
@@ -280,14 +285,22 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     if (hasError) return;
     if (!validateDates()) return;
 
-    // Resolver email do cliente (apenas se não for multi_selection)
+    // Resolver cliente escolhido (snapshot). Suporta cliente do Rhyno (id "rhyno:<n>")
+    // ou Client legado do Mongo (ObjectId).
     let clientEmail = '';
-    if (!isMulti) {
-      try {
-        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(clientInput.value)}`);
-        const linked = (data.clients || []).find(c => c._id === clientId);
-        if (linked) clientEmail = linked.email || '';
-      } catch (e) { /* silencioso */ }
+    let clientName = '';
+    let clientPhone = '';
+    let rhynoCustomerId = null;
+    let mongoClientId = null;
+    if (!isMulti && _selectedClient) {
+      clientEmail = _selectedClient.email || '';
+      clientName = _selectedClient.name || '';
+      clientPhone = _selectedClient.phone || '';
+      if (String(_selectedClient._id).startsWith('rhyno:')) {
+        rhynoCustomerId = String(_selectedClient._id).slice(6);
+      } else {
+        mongoClientId = _selectedClient._id;
+      }
     }
 
     try {
@@ -305,164 +318,25 @@ function _setupNewSessionModal(container, state, renderSessoes) {
         salesAutomation: { enabled: salesAutomationEnabled, sentTriggers: [] }
       };
 
-      // Incluir clientId e clientEmail apenas se não for multi_selection
+      // Vincular cliente (non-multi): Rhyno (CRM principal) ou Client legado do Mongo
       if (!isMulti) {
-        payload.clientId = clientId;
         payload.clientEmail = clientEmail;
+        if (rhynoCustomerId) {
+          payload.rhynoCustomerId = rhynoCustomerId;
+          payload.clientName = clientName;
+          payload.clientPhone = clientPhone;
+        } else {
+          payload.clientId = mongoClientId;
+        }
       }
 
-      await apiPost('/api/sessions', payload);
+      const created = await apiPost('/api/sessions', payload);
       newSessionModal.style.display = 'none';
       window.showToast?.('Sessão criada!', 'success');
       await renderSessoes(container);
-    } catch (error) {
-      window.showToast?.('Erro: ' + error.message, 'error');
-    }
-  };
-}
-
-function _setupEditSessionModal(container, state, renderSessoes) {
-  const editModal = container.querySelector('#editSessionModal');
-  const editModeSelect = container.querySelector('#editMode');
-  const editSelFields = container.querySelector('#editSelectionFields');
-  const editExtraLabel = container.querySelector('#editAllowExtraPurchase')?.closest('label');
-  const editReopenLabel = container.querySelector('#editAllowReopen')?.closest('label');
-  const editCrmFields = container.querySelector('#editCrmFields');
-
-  const editDeadlineLabel = container.querySelector('#editDeadlineLabel');
-  function _toggleEditSelectionFields() {
-    const mode = editModeSelect.value;
-    const isGallery = mode === 'gallery';
-    const hasPackage = mode === 'selection' || mode === 'multi_selection' || mode === 'multi_instant';
-    editSelFields.style.display = hasPackage ? 'flex' : 'none';
-    if (editExtraLabel) editExtraLabel.style.display = hasPackage ? 'flex' : 'none';
-    if (editReopenLabel) editReopenLabel.style.display = hasPackage ? 'flex' : 'none';
-    if (editDeadlineLabel) editDeadlineLabel.textContent = isGallery ? 'Prazo de Acesso' : 'Prazo de Seleção';
-    if (editCrmFields) editCrmFields.style.display = isGallery ? 'none' : 'flex';
-  }
-
-  editModeSelect.onchange = _toggleEditSelectionFields;
-
-  // Upload de capa no modal de edição
-  const editCoverInput = container.querySelector('#editCoverInput');
-  const editCoverPreview = container.querySelector('#editCoverPreview');
-  const editCoverPhotoInput = container.querySelector('#editCoverPhoto');
-  const editCoverRemoveBtn = container.querySelector('#editCoverRemoveBtn');
-  const editCoverProgress = container.querySelector('#editCoverProgress');
-
-  function _renderEditCoverPreview(url) {
-    if (url) {
-      editCoverPreview.innerHTML = `<img src="${resolveImagePath(url)}" style="width:100%; height:100%; object-fit:cover;">`;
-      editCoverRemoveBtn.style.display = 'block';
-    } else {
-      editCoverPreview.innerHTML = '<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>';
-      editCoverRemoveBtn.style.display = 'none';
-    }
-  }
-
-  editCoverInput.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    editCoverProgress.style.display = 'block';
-    try {
-      const result = await uploadImage(file, appState.authToken, (percent) => {
-        editCoverProgress.textContent = `Enviando... ${percent}%`;
-      });
-      editCoverPhotoInput.value = result.url;
-      _renderEditCoverPreview(result.url);
-      e.target.value = '';
-    } catch (error) {
-      window.showToast?.('Erro no upload: ' + error.message, 'error');
-    } finally {
-      editCoverProgress.style.display = 'none';
-    }
-  };
-
-  editCoverRemoveBtn.onclick = () => {
-    editCoverPhotoInput.value = '';
-    _renderEditCoverPreview('');
-  };
-
-  window.editSession = async (sessionId) => {
-    const session = state.sessionsData.find(s => s._id === sessionId);
-    if (!session) return;
-    state.editingSessionId = sessionId;
-
-    container.querySelector('#editSessionName').value = session.name || '';
-    container.querySelector('#editSessionDeadline').value = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
-    editModeSelect.value = session.mode || 'selection';
-    editModeSelect.disabled = session.selectionStatus === 'submitted' || session.selectionStatus === 'delivered';
-    container.querySelector('#editLimit').value = session.packageLimit || 30;
-    container.querySelector('#editExtraPrice').value = session.extraPhotoPrice || 25;
-    container.querySelector('#editCommentsEnabled').checked = session.commentsEnabled !== false;
-    container.querySelector('#editAllowExtraPurchase').checked = session.allowExtraPurchasePostSubmit !== false;
-    container.querySelector('#editAllowReopen').checked = session.allowReopen !== false;
-    _toggleEditSelectionFields();
-
-    editCoverPhotoInput.value = session.coverPhoto || '';
-    _renderEditCoverPreview(session.coverPhoto || '');
-
-    const editEvtSel = container.querySelector('#editEventType');
-    if (editEvtSel) editEvtSel.value = session.eventType || 'outro';
-    const editAutoChk = container.querySelector('#editSalesAutomation');
-    if (editAutoChk) editAutoChk.checked = session.salesAutomation?.enabled !== false;
-
-    const editRetention = container.querySelector('#editStorageRetentionUntil');
-    const editAutoDelField = container.querySelector('#editStorageAutoDeleteField');
-    const editAutoDelChk = container.querySelector('#editStorageAutoDelete');
-    if (editRetention) {
-      editRetention.value = session.storageRetentionUntil
-        ? new Date(session.storageRetentionUntil).toISOString().split('T')[0]
-        : '';
-      if (editAutoDelField) editAutoDelField.style.display = editRetention.value ? 'flex' : 'none';
-      editRetention.oninput = () => {
-        if (editAutoDelField) editAutoDelField.style.display = editRetention.value ? 'flex' : 'none';
-        if (!editRetention.value && editAutoDelChk) editAutoDelChk.checked = false;
-      };
-    }
-    if (editAutoDelChk) editAutoDelChk.checked = Boolean(session.storageAutoDelete);
-    const editBackupChk = container.querySelector('#editStorageBackupOnExpire');
-    if (editBackupChk) editBackupChk.checked = Boolean(session.storageBackupOnExpire);
-
-    editModal.style.display = 'flex';
-  };
-
-  container.querySelector('#cancelEditSession').onclick = () => {
-    editModal.style.display = 'none';
-    state.editingSessionId = null;
-  };
-
-  container.querySelector('#confirmEditSession').onclick = async () => {
-    if (!state.editingSessionId) return;
-    const name = container.querySelector('#editSessionName').value.trim();
-    const mode = editModeSelect.value;
-    const selectionDeadline = container.querySelector('#editSessionDeadline').value || null;
-    const packageLimit = parseInt(container.querySelector('#editLimit').value) || 30;
-    const extraPhotoPrice = parseFloat(container.querySelector('#editExtraPrice').value) || 25;
-    const commentsEnabled = container.querySelector('#editCommentsEnabled').checked;
-    const allowExtraPurchasePostSubmit = container.querySelector('#editAllowExtraPurchase').checked;
-    const allowReopen = container.querySelector('#editAllowReopen').checked;
-    const coverPhoto = container.querySelector('#editCoverPhoto').value;
-    const eventType = container.querySelector('#editEventType')?.value || 'outro';
-    const salesAutomationEnabled = container.querySelector('#editSalesAutomation')?.checked !== false;
-    const editRetentionVal = container.querySelector('#editStorageRetentionUntil')?.value || null;
-    const editAutoDelete = container.querySelector('#editStorageAutoDelete')?.checked || false;
-    const editBackupOnExpire = container.querySelector('#editStorageBackupOnExpire')?.checked || false;
-
-    try {
-      await apiPut(`/api/sessions/${state.editingSessionId}`, {
-        name, mode, selectionDeadline, packageLimit,
-        extraPhotoPrice, commentsEnabled, allowExtraPurchasePostSubmit, allowReopen, coverPhoto,
-        eventType,
-        'salesAutomation.enabled': salesAutomationEnabled,
-        storageRetentionUntil: editRetentionVal || null,
-        storageAutoDelete: editAutoDelete,
-        storageBackupOnExpire: editBackupOnExpire
-      });
-      editModal.style.display = 'none';
-      state.editingSessionId = null;
-      window.showToast?.('Configuração salva!', 'success');
-      await renderSessoes(container);
+      // Entra direto no wizard — config detalhada fica no painel direito (sempre visível).
+      const newId = created?.session?._id;
+      if (newId && window.openSessionWizard) window.openSessionWizard(newId);
     } catch (error) {
       window.showToast?.('Erro: ' + error.message, 'error');
     }

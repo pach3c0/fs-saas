@@ -237,9 +237,11 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('orgs')">Organizacoes</button>
             <button class="tab-btn" onclick="switchTab('trash')">Lixeira <span id="trashCount"></span></button>
+            <button class="tab-btn" onclick="switchTab('tickets')">Chamados <span id="ticketsBadge" style="background:var(--red); color:#fff; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:0.6rem; margin-left:0.25rem;"></span></button>
             <button class="tab-btn" onclick="switchTab('landing')">Landing Page</button>
             <button class="tab-btn" onclick="switchTab('componentes')">Componentes (Site)</button>
             <button class="tab-btn" onclick="switchTab('tutorials')">Tutoriais</button>
+            <button class="tab-btn" onclick="switchTab('manual')">Manual</button>
             <button class="tab-btn" onclick="switchTab('security')">Segurança</button>
         </div>
 
@@ -302,6 +304,47 @@
             </div>
         </div>
         
+        <!-- Tab: Chamados -->
+        <div class="tab-content" id="tabTickets">
+            <div style="max-width:900px; margin:0 auto;">
+                <h2 style="font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Fila de Chamados</h2>
+                <div style="display:flex; gap:1rem; margin-bottom:1.5rem;">
+                    <select id="ticketStatusFilter" onchange="loadTickets()" style="padding:0.625rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--input-bg); color:var(--text-primary); outline:none; font-family:inherit;">
+                        <option value="">Todos os Status</option>
+                        <option value="open">Aberto</option>
+                        <option value="pending">Aguardando</option>
+                        <option value="resolved">Resolvido</option>
+                    </select>
+                    <select id="ticketCategoryFilter" onchange="loadTickets()" style="padding:0.625rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--input-bg); color:var(--text-primary); outline:none; font-family:inherit;">
+                        <option value="">Todas as Categorias</option>
+                        <option value="duvida">Dúvida</option>
+                        <option value="bug">Bug</option>
+                        <option value="financeiro">Financeiro</option>
+                        <option value="sugestao">Sugestão</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fotógrafo</th>
+                                <th>Assunto</th>
+                                <th>Categoria</th>
+                                <th>Status</th>
+                                <th>Mensagens</th>
+                                <th>Atualizado em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticketsTable">
+                            <tr><td colspan="7" class="loading">Carregando chamados...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab: Segurança -->
         <div class="tab-content" id="tabSecurity">
             <div class="table-wrap">
@@ -351,6 +394,11 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Tab: Manual -->
+        <div class="tab-content" id="tabManual">
+            <!-- Renderizado dinamicamente pelo js -->
         </div>
     </div>
 

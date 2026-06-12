@@ -9,10 +9,10 @@ const path = require('path');
 // Obter status do domínio
 router.get('/domains/status', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId);
+    const org = await Organization.findById(req.user.organizationId).lean();
     res.json({
       success: true,
-      customDomain: org.customDomain,
+      customDomain: org.customDomain || null,
       domainStatus: org.domainStatus,
       serverIP: process.env.SERVER_IP || '5.189.174.18'
     });
@@ -24,15 +24,19 @@ router.get('/domains/status', authenticateToken, async (req, res) => {
 // Adicionar domínio customizado
 router.post('/domains', authenticateToken, async (req, res) => {
   try {
-    const { domain } = req.body;
+    // Normaliza antes de validar — usuário pode digitar maiúsculas ou espaços
+    const domain = String(req.body.domain || '').trim().toLowerCase();
 
     // Validar formato do domínio
     if (!/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/.test(domain)) {
       return res.status(400).json({ error: 'Domínio inválido' });
     }
 
-    // Verificar se já está em uso
-    const existing = await Organization.findOne({ customDomain: domain });
+    // Verificar se já está em uso por OUTRA conta (re-salvar o próprio é permitido)
+    const existing = await Organization.findOne({
+      customDomain: domain,
+      _id: { $ne: req.user.organizationId }
+    }).lean();
     if (existing) {
       return res.status(400).json({ error: 'Domínio já cadastrado em outra conta' });
     }
@@ -77,13 +81,16 @@ router.post('/domains/verify', authenticateToken, async (req, res) => {
       org.domainVerifiedAt = new Date();
       await org.save();
 
-      // Gerar certificado SSL automático (executar script)
-      const scriptPath = path.join(__dirname, '../scripts/generate-ssl.sh');
-      execFile('bash', [scriptPath, org.customDomain], (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Erro SSL: ${error.message}`);
-        }
-      });
+      // Gerar certificado SSL automático (só em produção — local não tem certbot/nginx)
+      if (process.env.NODE_ENV === 'production') {
+        const logger = req.logger;
+        const scriptPath = path.join(__dirname, '../scripts/generate-ssl.sh');
+        execFile('bash', [scriptPath, org.customDomain], (error) => {
+          if (error) {
+            logger.error(`Erro SSL para ${org.customDomain}: ${error.message}`);
+          }
+        });
+      }
 
       res.json({ success: true, message: 'Domínio verificado com sucesso! O SSL será gerado em instantes.' });
     } else {
@@ -100,9 +107,11 @@ router.post('/domains/verify', authenticateToken, async (req, res) => {
 // Remover domínio customizado
 router.delete('/domains', authenticateToken, async (req, res) => {
   try {
+    // $unset (não null): customDomain tem índice unique sparse — null gravado conta no
+    // índice e duas orgs sem domínio colidiriam em duplicate key
     await Organization.findByIdAndUpdate(
       req.user.organizationId,
-      { customDomain: null, domainStatus: 'pending', domainVerifiedAt: null }
+      { $unset: { customDomain: 1, domainVerifiedAt: 1 }, $set: { domainStatus: 'pending' } }
     );
     res.json({ success: true });
   } catch (error) {

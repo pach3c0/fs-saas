@@ -35,13 +35,18 @@ function renderContent(container, data) {
     const btnRemove = container.querySelector('#btnRemove');
     if (btnRemove) {
       btnRemove.onclick = async () => {
-        window.showConfirm?.('Tem certeza que deseja remover o domínio?', {
+        // showConfirm retorna Promise<boolean> — não existe callback onConfirm
+        const ok = await window.showConfirm?.('Tem certeza que deseja remover o domínio?', {
           confirmText: 'Remover',
-          onConfirm: async () => {
-            await apiDelete('/api/domains');
-            renderDominio(container);
-          }
+          danger: true
         });
+        if (!ok) return;
+        try {
+          await apiDelete('/api/domains');
+          renderDominio(container);
+        } catch (e) {
+          window.showToast?.('Erro: ' + e.message, 'error');
+        }
       };
     }
 

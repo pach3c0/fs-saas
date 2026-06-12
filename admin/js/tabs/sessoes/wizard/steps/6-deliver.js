@@ -444,7 +444,7 @@ function renderStoragePanel(session, refresh) {
   if (!retentionDate) {
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size:0.8125rem; color:var(--text-muted);';
-    empty.innerHTML = 'Sem prazo de retenção configurado. Para definir, acesse ⚙️ Configurações da sessão.';
+    empty.innerHTML = 'Sem prazo de retenção configurado. Para definir, use o painel <strong>Configurações da sessão</strong> (à direita) › Armazenamento.';
     panel.appendChild(empty);
     return panel;
   }

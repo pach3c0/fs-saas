@@ -12,6 +12,9 @@ const ClientSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   notes: { type: String, default: '' },
   cpf: { type: String, default: '' },
+  // Mapeamento da migração para o Rhyno (CRM principal): id do Customer no ERP.
+  // Preenchido pelo script de migração; também serve de idempotência (já migrado).
+  rhynoCustomerId: { type: String, default: null },
   tags: [String],
   // CRM Fase 1: dados de inteligencia de negocio
   birthDate: { type: Date, default: null },

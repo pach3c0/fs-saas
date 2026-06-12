@@ -269,8 +269,8 @@ function renderCodeCard(session, refresh) {
 
 function renderChannelCards(session, refresh) {
   const clientEmail = session.clientId?.email || session.clientEmail || '';
-  const clientPhone = session.clientId?.phone || '';
-  const clientName = session.clientId?.name || session.name || 'Cliente';
+  const clientPhone = session.clientId?.phone || session.clientPhone || '';
+  const clientName = session.clientId?.name || session.clientName || session.name || 'Cliente';
   const orgName = appState.appData?.organization?.name || '';
 
   let emailTextareaEl = null;

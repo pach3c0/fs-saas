@@ -5,7 +5,6 @@
 import { apiGet, apiPut, apiPost } from '../../../utils/api.js';
 import { wizardState, resetWizardState, stopWizardPolling } from './state.js';
 import { computeWizardSteps, renderStepper, injectWizardStyles } from './stepper.js';
-import { openOverlayModal } from './utils.js';
 import { mountWizardBell, unmountWizardBell } from './notifications-bell.js';
 import { renderStepUpload } from './steps/1-upload.js';
 import { renderStepShare } from './steps/2-share.js';
@@ -13,6 +12,7 @@ import { renderStepTracking } from './steps/4-tracking.js';
 import { renderStepEdited } from './steps/5-edited.js';
 import { renderStepDeliver } from './steps/6-deliver.js';
 import { renderHistoryPanel } from './history-panel.js';
+import { renderConfigPanel } from './config-panel.js';
 
 const STEP_RENDERERS = {
   1: renderStepUpload,
@@ -114,6 +114,12 @@ function buildModal() {
   `;
   body.appendChild(content);
 
+  // Sidebar direita: configurações da sessão (sempre visíveis e editáveis).
+  const configSlot = document.createElement('div');
+  configSlot.id = 'wizardConfigSlot';
+  configSlot.style.cssText = 'display: flex; flex-shrink: 0;';
+  body.appendChild(configSlot);
+
   shell.appendChild(body);
   modal.appendChild(shell);
   return modal;
@@ -131,20 +137,29 @@ function refreshWizard() {
   header.innerHTML = '';
   header.appendChild(buildHeader(session));
 
-  // Modo arquivado: sem stepper, conteúdo congelado
+  // Modo arquivado: sem stepper nem painel, conteúdo congelado
   if (session.archivedAt) {
     modal.querySelector('#wizardSidebar').innerHTML = '';
+    const configSlot = modal.querySelector('#wizardConfigSlot');
+    if (configSlot) configSlot.innerHTML = '';
     const content = modal.querySelector('#wizardContent');
     content.innerHTML = '';
     content.appendChild(buildArchivedView(session));
     return;
   }
 
-  // Sidebar
+  // Sidebar (etapas)
   const sidebarSlot = modal.querySelector('#wizardSidebar');
   sidebarSlot.innerHTML = '';
   const steps = computeWizardSteps(session, wizardState.currentStepId);
   sidebarSlot.appendChild(renderStepper(steps, switchStep));
+
+  // Sidebar direita (configurações da sessão — sempre visível)
+  const configSlot = modal.querySelector('#wizardConfigSlot');
+  if (configSlot) {
+    configSlot.innerHTML = '';
+    configSlot.appendChild(renderConfigPanel({ session, onChange: refreshWizard }));
+  }
 
   // Content
   const content = modal.querySelector('#wizardContent');
@@ -229,12 +244,13 @@ function buildHeader(session) {
   name.style.cssText = 'font-size:1rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
   title.appendChild(name);
 
-  if (session.clientId?.name) {
+  const _clientName = session.clientId?.name || session.clientName;
+  if (_clientName) {
     const sep = document.createElement('span');
     sep.textContent = '·';
     sep.style.cssText = 'color:var(--text-muted);';
     const client = document.createElement('span');
-    client.textContent = session.clientId.name;
+    client.textContent = _clientName;
     client.style.cssText = 'color:var(--text-secondary); font-size:0.875rem;';
     title.appendChild(sep);
     title.appendChild(client);
@@ -293,16 +309,8 @@ function buildHeader(session) {
   }
   actions.appendChild(histBtn);
 
-  if (!session.archivedAt) {
-    actions.appendChild(makeIconButton('⚙️', 'Editar configurações da sessão', () => {
-      if (!window.editSession) return;
-      openOverlayModal({
-        modalSelector: '#editSessionModal',
-        opener: () => window.editSession(session._id),
-        onClose: refreshWizardFromServer
-      });
-    }));
-  }
+  // ⚙️ removida: as configurações da sessão vivem no painel lateral direito do wizard
+  // (autosave) e a capa também se ajusta lá — o modal de edição antigo foi aposentado.
 
   actions.appendChild(makeIconButton('🗑️', 'Excluir sessão', async () => {
     const ok = await window.showConfirm?.(`Excluir a sessão "${session.name}"?`, {

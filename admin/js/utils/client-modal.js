@@ -4,6 +4,7 @@
 import { apiPost, apiPut } from './api.js';
 
 let _onSuccessCallback = null;
+let _saveTarget = 'mongo'; // 'mongo' (Client legado) | 'rhyno' (Customer do ERP)
 
 export function setupClientModal() {
   const btnCancelar = document.getElementById('btnCancelarCliente');
@@ -18,8 +19,9 @@ export function setupClientModal() {
   };
 }
 
-export function abrirModalClienteNovo(initialName = '', callback = null) {
+export function abrirModalClienteNovo(initialName = '', callback = null, options = {}) {
   _onSuccessCallback = callback;
+  _saveTarget = options.target === 'rhyno' ? 'rhyno' : 'mongo';
 
   document.getElementById('modalClienteTitulo').textContent = 'Novo Cliente';
   document.getElementById('clienteNome').value = initialName;
@@ -42,6 +44,7 @@ export function abrirModalClienteNovo(initialName = '', callback = null) {
 
 export function abrirModalClienteEditar(cliente, callback = null) {
   _onSuccessCallback = callback;
+  _saveTarget = 'mongo';
 
   document.getElementById('modalClienteTitulo').textContent = 'Editar Cliente';
   document.getElementById('clienteNome').value = cliente.name || '';
@@ -116,7 +119,10 @@ async function salvarCliente() {
 
   try {
     let result;
-    if (editandoId) {
+    if (_saveTarget === 'rhyno') {
+      // CRM principal: cria no Rhyno (ERP). Edição não se aplica aqui (só cadastro novo).
+      result = await apiPost('/api/gestao/customers', { name: nome, email, phone: telefone, cpf });
+    } else if (editandoId) {
       result = await apiPut(`/api/clients/${editandoId}`, payload);
     } else {
       result = await apiPost('/api/clients', payload);

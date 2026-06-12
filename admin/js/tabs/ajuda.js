@@ -19,8 +19,12 @@ let allTutorials = [];
 let currentCategory = 'all';
 let searchQuery = '';
 let activeTutorial = null;
-let ajudaView = 'tutorials'; // 'tutorials' | 'manual'
+let ajudaView = 'tutorials'; // 'tutorials' | 'manual' | 'fala-conosco'
 let openSections = { dashboard: true };
+let activeManualModules = [];
+let allTickets = [];
+let ticketListView = 'list'; // 'list' | 'thread'
+let activeTicketId = null;
 
 export async function renderAjuda(container) {
   container.innerHTML = `
@@ -44,6 +48,21 @@ export async function renderAjuda(container) {
     window.showToast?.('Erro ao carregar tutoriais', 'error');
   }
 
+  // Buscar manual do backend (fallback para estático)
+  try {
+    const mRes = await fetch('/api/manual', {
+      headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    const mJson = await mRes.json();
+    if (mJson.success && mJson.modules && mJson.modules.length > 0) {
+      activeManualModules = mJson.modules;
+    } else {
+      activeManualModules = MANUAL_MODULES_STATIC;
+    }
+  } catch (error) {
+    activeManualModules = MANUAL_MODULES_STATIC;
+  }
+
   // Renderizar layout principal
   renderLayout(container);
 }
@@ -54,7 +73,7 @@ function renderLayout(container) {
   const root = document.createElement('div');
   root.style.cssText = 'display:flex; flex-direction:column; gap:2rem; max-width:1100px; margin:0 auto; width:100%;';
 
-  // Sub-navegação: Tutoriais em Vídeo | Manual do Usuário
+  // Sub-navegação: Tutoriais em Vídeo | Manual do Usuário | Fala Conosco
   const btnBase = 'display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1.125rem; border-radius:9999px; font-size:0.875rem; font-weight:600; cursor:pointer; border:1px solid; transition:all 0.2s; font-family:inherit;';
   const btnActive = btnBase + 'background:var(--accent); color:#fff; border-color:var(--accent);';
   const btnIdle   = btnBase + 'background:var(--bg-elevated); color:var(--text-secondary); border-color:var(--border);';
@@ -69,8 +88,22 @@ function renderLayout(container) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
       Manual do Usuário
     </button>
+    <button onclick="window._setAjudaView('fala-conosco')" style="${ajudaView === 'fala-conosco' ? btnActive : btnIdle}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      Fala Conosco
+    </button>
   `;
   root.appendChild(subNav);
+
+  // Renderizar Fala Conosco
+  if (ajudaView === 'fala-conosco') {
+    const ticketsEl = document.createElement('div');
+    ticketsEl.id = 'fala-conosco-container';
+    root.appendChild(ticketsEl);
+    container.appendChild(root);
+    renderFalaConosco(ticketsEl);
+    return;
+  }
 
   // Renderizar Manual do Usuário
   if (ajudaView === 'manual') {
@@ -117,8 +150,7 @@ function renderLayout(container) {
   if (allTutorials.length > 0 && !activeTutorial) {
     activeTutorial = allTutorials[0];
   }
-
-  updatePlayer();
+  // updatePlayer() só funciona com o root no DOM (usa getElementById) — chamado após o append
 
   // 3. Barra de Categorias (Filtros)
   const filterBar = document.createElement('div');
@@ -213,7 +245,8 @@ function renderLayout(container) {
     });
   });
 
-  // Render inicial do Grid
+  // Render inicial do player e do grid (root já está no DOM)
+  updatePlayer();
   filterAndRenderGrid();
 }
 
@@ -383,130 +416,181 @@ function filterAndRenderGrid() {
 
 // ─── Manual do Usuário ────────────────────────────────────────────────────────
 
-const MANUAL_MODULES = [
+const MANUAL_MODULES_STATIC = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
     content: `
-      <div style="display:flex; flex-direction:column; gap:1.75rem; padding-top:1.25rem;">
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
 
-        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0;">
-          O Dashboard é a tela inicial do painel. Exibe um resumo do seu negócio — KPIs atualizados, as sessões mais recentes e atalhos para as ações mais comuns.
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          O Dashboard é a tela inicial do seu negócio. Ele exibe um resumo imediato: <strong style="color:var(--text-primary);">métricas-chave (KPIs)</strong>, suas <strong style="color:var(--text-primary);">sessões recentes</strong> e <strong style="color:var(--text-primary);">atalhos rápidos</strong> para as ações mais frequentes.
         </p>
 
-        <!-- KPI Cards -->
+        <!-- ── VISUALIZAÇÃO DAS TELAS ───────────────────────────────────── -->
         <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Indicadores (KPIs)</p>
-          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Quatro cartões no topo da tela mostram os números-chave do seu negócio em tempo real:</p>
-          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.4rem; margin-bottom:0.875rem; pointer-events:none; border:1px solid var(--border); border-radius:10px; padding:0.625rem; background:var(--bg-elevated);">
-            ${[
-              { color:'var(--accent)',  icon:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',        label:'Total de Sessões', value:'12'     },
-              { color:'var(--orange)', icon:'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',label:'Fotos Upadas',      value:'486'    },
-              { color:'var(--orange)', icon:'<line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',label:'Espaço Usado','value':'230 MB' },
-              { color:'var(--green)',  icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',                                          label:'Entregues',          value:'8'      },
-            ].map(k => `
-              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.625rem 0.75rem; display:flex; align-items:center; gap:0.5rem;">
-                <div style="width:28px; height:28px; border-radius:6px; background:var(--bg-elevated); color:${k.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border);">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${k.icon}</svg>
-                </div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização das Telas</p>
+
+          <!-- ─ ONBOARDING ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">CHECKLIST DE INÍCIO (ONBOARDING)</p>
+            <div style="border:1px solid var(--accent); border-radius:12px; border-left:4px solid var(--accent); background:var(--bg-surface); padding:1.5rem; pointer-events:none;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
                 <div>
-                  <div style="font-size:0.6rem; color:var(--text-secondary); line-height:1.2;">${k.label}</div>
-                  <div style="font-size:1rem; font-weight:700; color:var(--text-primary); line-height:1.2;">${k.value}</div>
+                  <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0;">Comece por aqui</h3>
+                  <p style="color:var(--text-secondary); font-size:0.875rem; margin-top:0.25rem;">Complete estes passos para dominar o CliqueZoom.</p>
+                </div>
+                <span style="color:var(--text-muted); text-decoration:underline; font-size:0.875rem;">Ocultar guia</span>
+              </div>
+              <div style="margin-bottom:1.5rem;">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600;">
+                  <span>Progresso do Setup</span>
+                  <span>66%</span>
+                </div>
+                <div style="height:6px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
+                  <div style="height:100%; width:66%; background:var(--accent);"></div>
                 </div>
               </div>
-            `).join('')}
-          </div>
-          <div style="display:flex; flex-direction:column; gap:0.35rem;">
-            ${[
-              { color:'var(--accent)',  label:'Total de Sessões', desc:'Número total de sessões criadas na sua conta.' },
-              { color:'var(--orange)', label:'Fotos Upadas',      desc:'Soma de todas as fotos enviadas em todas as sessões.' },
-              { color:'var(--orange)', label:'Espaço Usado',      desc:'Armazenamento em MB consumido pelos seus uploads.' },
-              { color:'var(--green)',  label:'Entregues',         desc:'Sessões finalizadas com status "Entregue".' },
-            ].map(k => `
-              <div style="display:flex; align-items:flex-start; gap:0.625rem; padding:0.5rem 0.75rem; background:var(--bg-elevated); border-radius:7px;">
-                <span style="width:7px; height:7px; border-radius:50%; background:${k.color}; flex-shrink:0; margin-top:0.3rem;"></span>
-                <span style="font-size:0.8125rem; color:var(--text-primary);"><strong>${k.label}</strong> — <span style="color:var(--text-secondary);">${k.desc}</span></span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Sessões Recentes -->
-        <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Sessões Recentes</p>
-          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Lista as últimas 5 sessões. <strong style="color:var(--text-primary);">Clique em qualquer item</strong> para abrir a sessão e gerenciar fotos, status e entrega.</p>
-          <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; pointer-events:none; background:var(--bg-surface); margin-bottom:0.5rem;">
-            ${[
-              { name:'Casamento Silva & Ana', date:'12 Mai 2025', status:'Entregue',   statusColor:'var(--green)',  statusBg:'rgba(63,185,80,0.12)'  },
-              { name:'Ensaio Newborn — Lara', date:'08 Mai 2025', status:'Revisar',    statusColor:'var(--accent)', statusBg:'rgba(47,129,247,0.12)' },
-              { name:'Book Profissional — João', date:'02 Mai 2025', status:'Pendente', statusColor:'var(--yellow)', statusBg:'rgba(210,153,34,0.12)' },
-            ].map((s, i) => `
-              <div style="padding:0.625rem 0.875rem; ${i < 2 ? 'border-bottom:1px solid var(--border);' : ''} display:flex; align-items:center; gap:0.75rem;">
-                <div style="width:32px; height:32px; border-radius:7px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                </div>
-                <div style="flex:1; min-width:0;">
-                  <div style="font-size:0.8125rem; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
-                  <div style="font-size:0.6875rem; color:var(--text-secondary);">${s.date}</div>
-                </div>
-                <div style="padding:0.2rem 0.5rem; border-radius:20px; font-size:0.6875rem; font-weight:600; background:${s.statusBg}; color:${s.statusColor}; flex-shrink:0;">${s.status}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Ações Rápidas -->
-        <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Ações Rápidas</p>
-          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Dois atalhos para as tarefas mais frequentes:</p>
-          <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem; pointer-events:none;">
-            ${[
-              { label:'Nova Sessão',  icon:'<path d="M12 5v14M5 12h14"/>',                                                                                desc:'Abre o formulário de criação de sessão.' },
-              { label:'Ver meu Site', icon:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',                    desc:'Abre o site público do seu negócio em nova aba.' },
-            ].map(a => `
-              <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:9px;">
-                <div style="width:28px; height:28px; border-radius:7px; background:rgba(47,129,247,0.1); color:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${a.icon}</svg>
-                </div>
-                <div>
-                  <div style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">${a.label}</div>
-                  <div style="font-size:0.75rem; color:var(--text-secondary);">${a.desc}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Checklist de Início -->
-        <div>
-          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 0.625rem;">Checklist de Início</p>
-          <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 0.875rem;">Aparece para novos usuários com 4 passos guiados. Some após completar tudo ou ao clicar <strong style="color:var(--text-primary);">"Ocultar guia"</strong>.</p>
-          <div style="background:var(--bg-surface); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; padding:0.875rem 1rem; pointer-events:none; margin-bottom:0.5rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.625rem;">
-              <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">Comece por aqui</span>
-              <span style="font-size:0.6875rem; color:var(--text-muted); text-decoration:underline;">Ocultar guia</span>
-            </div>
-            <div style="margin-bottom:0.75rem;">
-              <div style="display:flex; justify-content:space-between; font-size:0.6875rem; color:var(--text-secondary); margin-bottom:0.3rem; font-weight:600;">
-                <span>Progresso do Setup</span><span>50%</span>
-              </div>
-              <div style="height:5px; background:var(--bg-elevated); border-radius:3px; overflow:hidden;">
-                <div style="height:100%; width:50%; background:var(--accent);"></div>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:0.3rem;">
-              ${[
-                { label: 'Criar sua primeira sessão', done: true  },
-                { label: 'Subir as primeiras fotos',  done: true  },
-                { label: 'Vincular um cliente',       done: false },
-                { label: 'Enviar link de acesso',     done: false },
-              ].map(step => `
-                <div style="display:flex; align-items:center; gap:0.5rem; padding:0.35rem 0.5rem; background:var(--bg-elevated); border-radius:6px; opacity:${step.done ? '0.55' : '1'};">
-                  <div style="width:16px; height:16px; border-radius:50%; border:2px solid ${step.done ? 'var(--green)' : 'var(--border)'}; background:${step.done ? 'var(--green)' : 'transparent'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    ${step.done ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+                <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:8px; opacity:0.6;">
+                  <div style="width:20px; height:20px; border-radius:50%; border:2px solid var(--green); background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
-                  <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary); text-decoration:${step.done ? 'line-through' : 'none'};">${step.label}</span>
+                  <div>
+                    <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); text-decoration:line-through;">Criar sua primeira sessão</div>
+                    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:0.15rem;">Concluído!</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:8px; opacity:0.6;">
+                  <div style="width:20px; height:20px; border-radius:50%; border:2px solid var(--green); background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); text-decoration:line-through;">Subir as primeiras fotos</div>
+                    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:0.15rem;">Concluído!</div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:8px;">
+                  <div style="width:20px; height:20px; border-radius:50%; border:2px solid var(--border); background:transparent; display:flex; align-items:center; justify-content:center; flex-shrink:0;"></div>
+                  <div>
+                    <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Enviar link de acesso</div>
+                    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:0.15rem;">Mande o código de acesso por e-mail • <span style="color:var(--accent); text-decoration:underline;">Ver Tutorial</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">O onboarding aparece automaticamente para novos usuários e tem três passos: criar a primeira sessão, subir as primeiras fotos e enviar o link de acesso. Ele é inteligente e risca os passos conforme você utiliza a plataforma. Você pode ocultá-lo a qualquer momento.</p>
+          </div>
+
+          <!-- ─ INDICADORES (KPI) ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">INDICADORES DE PERFORMANCE (KPIs)</p>
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:1rem; pointer-events:none;">
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; display:flex; align-items:center; gap:1rem;">
+                <div style="width:44px; height:44px; border-radius:10px; background:var(--bg-elevated); color:var(--accent); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:0.8125rem; color:var(--text-secondary); font-weight:500;">Total de Sessões</div>
+                  <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);">12</div>
+                </div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; display:flex; align-items:center; gap:1rem;">
+                <div style="width:44px; height:44px; border-radius:10px; background:var(--bg-elevated); color:var(--orange); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:0.8125rem; color:var(--text-secondary); font-weight:500;">Fotos Upadas</div>
+                  <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);">480</div>
+                </div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; display:flex; align-items:center; gap:1rem;">
+                <div style="width:44px; height:44px; border-radius:10px; background:var(--bg-elevated); color:var(--orange); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:0.8125rem; color:var(--text-secondary); font-weight:500;">Espaço Usado</div>
+                  <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);">1.2 GB</div>
+                </div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; display:flex; align-items:center; gap:1rem;">
+                <div style="width:44px; height:44px; border-radius:10px; background:var(--bg-elevated); color:var(--green); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:0.8125rem; color:var(--text-secondary); font-weight:500;">Entregues</div>
+                  <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);">8</div>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">São quatro métricas principais: Total de Sessões (criadas), Fotos Upadas (quantidade), Espaço Usado (em MB ou GB, conforme o volume) e Sessões marcadas como "Entregue".</p>
+          </div>
+
+          <!-- ─ SESSÕES E AÇÕES ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">SESSÕES RECENTES E AÇÕES RÁPIDAS</p>
+            <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+              <div style="flex:1; min-width:280px; background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; pointer-events:none;">
+                <div style="padding:1.25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Sessões Recentes</h3>
+                  <span style="color:var(--accent); font-size:0.875rem;">Ver todas</span>
+                </div>
+                <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem;">
+                  <div style="width:40px; height:40px; border-radius:8px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+                  <div style="flex:1;">
+                    <div style="font-weight:600; color:var(--text-primary);">Casamento Silva & Ana</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary);">12 Mai 2025 • Seleção</div>
+                  </div>
+                  <div style="padding:0.25rem 0.625rem; border-radius:20px; font-size:0.75rem; font-weight:600; background:rgba(63,185,80,0.15); color:var(--green);">Entregue</div>
+                </div>
+              </div>
+              <div style="width:280px; flex-shrink:0; pointer-events:none; display:flex; flex-direction:column; gap:1rem;">
+                <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin:0;">Ações Rápidas</h3>
+                <div style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary);">
+                  <div style="width:32px; height:32px; border-radius:8px; background:rgba(47,129,247,0.15); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </div>
+                  <span style="font-weight:500;">Nova Sessão</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; color:var(--text-primary);">
+                  <div style="width:32px; height:32px; border-radius:8px; background:rgba(47,129,247,0.1); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </div>
+                  <span style="font-weight:500;">Ver meu Site</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Acompanhar saúde do negócio', desc:'Logo ao entrar, bata o olho nos Indicadores (KPIs) para saber quantas fotos e quanto espaço você está usando, assim como a conversão (sessões entregues vs criadas).' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Finalizar o Onboarding',      desc:'Se sua conta é nova, siga os passos do Checklist de Início. O clique em "Ver Tutorial" leva você diretamente para o vídeo explicativo do módulo associado.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Checar Sessões Recentes',     desc:'A lista Sessões Recentes mostra as últimas 5 criadas. Você pode clicar diretamente em qualquer linha para abrir o Wizard da sessão e continuar seu fluxo de onde parou.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Nova Sessão (Ação Rápida)',   desc:'A forma mais rápida de iniciar um novo trabalho é clicando no botão "Nova Sessão" nas Ações Rápidas. Ele já abre o modal de criação sem precisar trocar de aba.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Ir para o Site Público',      desc:'Clique em "Ver meu Site" para abrir uma nova aba com a vitrine pública do seu portfólio (criada e editada no menu "Meu Site").' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem; ${i < arr.length - 1 ? 'padding-bottom:0;' : ''}">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -527,7 +611,7 @@ const MANUAL_MODULES = [
           O módulo Sessões é o coração do seu trabalho. Ao criar uma sessão você escolhe um <strong style="color:var(--text-primary);">modo de entrega</strong> — e é esse modo que define todo o fluxo, desde o upload das fotos até a experiência do cliente na galeria.
         </p>
         <div style="background:color-mix(in srgb, var(--accent) 7%, transparent); border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:8px; padding:0.75rem 1rem; font-size:0.8125rem; color:var(--text-secondary); line-height:1.6;">
-          <strong style="color:var(--text-primary);">Como funciona o wizard:</strong> cada sessão aparece como um card na lista. <strong style="color:var(--text-primary);">Clique em qualquer parte do card</strong> para abrir o wizard — um painel fullscreen com uma barra lateral de passos à esquerda e o conteúdo do passo ativo à direita. Você avança passo a passo: o sistema bloqueia os próximos até você concluir o atual. No topo do wizard: 🔔 notificações da sessão · 📋 histórico completo · ⚙️ editar configurações · 🗑️ excluir · ✕ fechar.
+          <strong style="color:var(--text-primary);">Como funciona o wizard:</strong> cada sessão aparece como um card na lista. <strong style="color:var(--text-primary);">Clique em qualquer parte do card</strong> para abrir o wizard — um painel fullscreen com três áreas: a <strong style="color:var(--text-primary);">barra de passos</strong> à esquerda, o <strong style="color:var(--text-primary);">conteúdo do passo ativo</strong> no centro e, à direita, o <strong style="color:var(--text-primary);">painel de Configurações</strong> sempre visível (pacote, resolução, prazo, preço de extras, armazenamento e mais), que <strong style="color:var(--text-primary);">salva sozinho</strong> a cada alteração. Você avança passo a passo: o sistema bloqueia os próximos até você concluir o atual. No topo do wizard: 🔔 notificações da sessão · 📋 histórico completo · 🗑️ excluir · ✕ fechar.
         </div>
 
         <!-- ── VISUALIZAÇÃO DAS TELAS ───────────────────────────────────── -->
@@ -650,11 +734,11 @@ const MANUAL_MODULES = [
                   <span style="color:var(--text-secondary); font-size:0.875rem;">Ana Ribeiro</span>
                 </div>
                 <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-                  ${['🔔','📋','⚙️','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
+                  ${['🔔','📋','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
                 </div>
               </div>
-              <!-- Body: sidebar + conteúdo -->
-              <div style="display:flex; min-height:280px;">
+              <!-- Body: sidebar + conteúdo + config -->
+              <div style="display:flex; min-height:450px;">
                 <!-- Sidebar -->
                 <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
                   <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
@@ -682,21 +766,89 @@ const MANUAL_MODULES = [
                   }).join('')}
                   <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">0 de 5 concluído(s)</div>
                 </div>
+                
                 <!-- Conteúdo Passo 1 -->
-                <div style="flex:1; padding:1.5rem 2rem; overflow-y:auto;">
-                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.5rem;">Upload das Fotos</h3>
-                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Envie as fotos brutas do ensaio. O sistema processa e armazena na resolução configurada (1200px).</p>
-                  <div style="border:2px dashed var(--border); border-radius:0.5rem; padding:2rem; text-align:center; background:var(--bg-surface); margin-bottom:1rem;">
-                    <div style="font-size:1.5rem; margin-bottom:0.5rem;">☁️</div>
-                    <div style="font-size:0.875rem; color:var(--text-muted);">Arraste fotos aqui ou clique para selecionar</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">JPG · PNG · até 10 MB cada</div>
+                <div style="flex:1; padding:1.5rem; overflow-y:auto; background:var(--bg-base);">
+                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Upload das Fotos</h3>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1.25rem;">Suba as fotos brutas da sessão. Quando terminar, marque "Concluí upload" para liberar o próximo passo.</p>
+                  
+                  <div style="display:flex; gap:0.75rem; background:color-mix(in srgb, var(--text-muted) 8%, transparent); border:1px solid var(--border); border-radius:0.5rem; padding:1rem; margin-bottom:1.25rem;">
+                    <div style="width:24px; height:24px; background:color-mix(in srgb, var(--accent) 15%, transparent); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent); font-size:0.875rem;">i</div>
+                    <div style="font-size:0.8125rem; color:var(--text-primary); line-height:1.5;">
+                      <strong>Preview para seleção:</strong> As fotos enviadas aqui serão redimensionadas para <strong>1200px</strong> — é o preview que o cliente usará para fazer a seleção. Os originais em alta resolução são enviados no passo <strong>Editadas</strong>.
+                    </div>
                   </div>
-                  <div style="background:color-mix(in srgb, var(--text-muted) 8%, transparent); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem 1rem; font-size:0.8125rem; color:var(--text-muted);">
-                    Botão "Concluí o upload" disponível quando atingir <strong>30 fotos</strong> (tamanho do pacote). Atualmente: <strong>0 / 30</strong>.
+
+                  <div style="border:1px solid var(--border); border-radius:0.5rem; background:var(--bg-surface); padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                    <div>
+                      <div style="font-weight:600; color:var(--text-primary); font-size:0.875rem;">0 fotos enviadas</div>
+                      <div style="font-size:0.75rem; color:var(--orange); margin-top:0.25rem;">Faltam 30 fotos para atingir o mínimo do pacote (0/30).</div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                      <div style="background:var(--text-primary); color:var(--bg-base); padding:0.5rem 1rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:600;">+ Subir fotos</div>
+                      <div style="background:var(--bg-elevated); color:var(--text-muted); padding:0.5rem 1rem; border-radius:0.375rem; font-size:0.8125rem; font-weight:500;">✓ Concluí upload</div>
+                    </div>
+                  </div>
+
+                  <div style="border:2px dashed var(--border); border-radius:0.5rem; padding:3rem 2rem; text-align:center; background:var(--bg-surface);">
+                    <div style="font-size:1.75rem; margin-bottom:0.75rem; color:var(--text-muted);">📷</div>
+                    <div style="font-size:0.875rem; color:var(--text-muted);">Nenhuma foto ainda. Clique em "Subir fotos" acima para começar.</div>
                   </div>
                 </div>
+
+                <!-- Painel Configurações da Sessão -->
+                <div style="width:280px; flex-shrink:0; background:var(--bg-surface); border-left:1px solid var(--border); padding:1.25rem 1rem; display:flex; flex-direction:column; gap:0.875rem; overflow-y:auto;">
+                  <div style="font-size:0.6875rem; font-weight:700; letter-spacing:0.08em; color:var(--text-muted); text-transform:uppercase;">Configurações da sessão</div>
+
+                  <div style="font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border); padding-bottom:0.25rem; margin-top:0.5rem;">Geral</div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Nome da sessão</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">Ricardo Pacheco Nunes</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Foto de capa</label>
+                    <div style="display:flex; align-items:center; gap:0.625rem;">
+                      <div style="width:3.5rem; height:3.5rem; border-radius:0.375rem; background:var(--bg-base); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;"><span style="color:var(--text-muted); font-size:0.5625rem;">Sem capa</span></div>
+                      <span style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.3rem 0.5rem; font-size:0.75rem; color:var(--text-primary);">🖼️ Alterar capa</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Modo</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">Seleção</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Prazo de seleção</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">11 / 06 / 2026, 12:30</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Tipo de evento</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">Outro</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Resolução do preview</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">1200px (padrão)</div>
+                  </div>
+
+                  <div style="font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border); padding-bottom:0.25rem; margin-top:0.5rem;">Seleção</div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Fotos do pacote</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">30</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                    <label style="font-size:0.75rem; color:var(--text-secondary);">Preço foto extra (R$)</label>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem;">25</div>
+                  </div>
+                  <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; color:var(--text-primary);"><input type="checkbox" checked disabled style="accent-color:var(--text-primary);"> Permitir venda de fotos extras</label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; color:var(--text-primary);"><input type="checkbox" checked disabled style="accent-color:var(--text-primary);"> Permitir pedido de reabertura</label>
+                  <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; color:var(--text-primary);"><input type="checkbox" checked disabled style="accent-color:var(--text-primary);"> Mensagens por foto</label>
+                  
+                  <div style="font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border); padding-bottom:0.25rem; margin-top:0.5rem;">Vendas</div>
+                  <label style="display:flex; align-items:flex-start; gap:0.5rem; font-size:0.8125rem; color:var(--text-primary);"><input type="checkbox" checked disabled style="accent-color:var(--text-primary); margin-top:0.25rem;"><div style="display:flex; flex-direction:column; gap:0.125rem;"><strong>Automação de vendas (escassez)</strong><span style="font-size:0.6875rem; color:var(--text-muted); line-height:1.2;">Robô envia e-mails de urgência...</span></div></label>
+                  
+                  <div style="font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border); padding-bottom:0.25rem; margin-top:0.5rem;">Armazenamento</div>
+                </div>
               </div>
-            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">O painel fica fixo à direita do wizard e <strong style="color:var(--text-primary);">salva sozinho</strong> a cada alteração (aparece o "✓ salvo"). Aqui você ajusta tudo da sessão — inclusive a <strong style="color:var(--text-primary);">foto de capa</strong>. Campos que não podem mudar no estágio atual ficam <strong style="color:var(--text-primary);">travados (🔒)</strong> com o motivo: o <strong>Modo</strong> trava após o cliente enviar a seleção, a <strong>Resolução</strong> trava após o 1º upload e o <strong>Pacote</strong> trava após a entrega.</p>
           </div>
 
           <!-- ─ WIZARD GALERIA ─ -->
@@ -756,7 +908,7 @@ const MANUAL_MODULES = [
                   <strong style="font-size:1rem; color:var(--text-primary);">Formatura Turma 2026</strong>
                 </div>
                 <div style="display:flex; gap:0.5rem;">
-                  ${['🔔','📋','⚙️','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
+                  ${['🔔','📋','🗑️','✕'].map(ic => `<div style="width:32px; height:32px; border:1px solid var(--border); border-radius:0.375rem; display:flex; align-items:center; justify-content:center; font-size:0.9rem;">${ic}</div>`).join('')}
                 </div>
               </div>
               <div style="display:flex; min-height:300px;">
@@ -1035,7 +1187,7 @@ const MANUAL_MODULES = [
             <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza todas as fotos com marca d'água e escolhe as favoritas dentro do limite do pacote contratado. Você só edita e entrega o que ele escolheu. O wizard guia você em <strong style="color:var(--text-primary);">5 passos</strong>: Upload → Compartilhar → Acompanhar → Editadas → Entregar. Cada card exibe uma <strong style="color:var(--text-primary);">barra de progresso</strong> (Criada → Fotos → Link → Seleção → Entregue) com o próximo passo em destaque.</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
-                { n:1,  who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',                   desc:'Clique em + Nova Sessão. Escolha o modo Seleção. Defina o nome, vincule o cliente, configure o pacote (ex: 30 fotos), o preço de extras (R$/foto adicional), o prazo de seleção e a resolução das fotos. O wizard abre automaticamente após a criação.' },
+                { n:1,  who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',                   desc:'Clique em + Nova Sessão e escolha o modo Seleção. No modal (enxuto) você informa só o essencial: nome, cliente, datas e capa. O wizard abre automaticamente — e os detalhes (pacote, preço de extras, prazo, resolução, armazenamento e a própria capa) ficam no painel de Configurações à direita, que salva sozinho a cada mudança.' },
                 { n:2,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 1 — Upload',                 desc:'Arraste as fotos originais do ensaio (JPG/PNG, até 10 MB cada) ou clique para selecionar. O sistema redimensiona para a resolução configurada. O botão "Concluí o upload" só fica disponível quando o número de fotos atinge o tamanho do pacote. As fotos ficam com marca d\'água.' },
                 { n:3,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 2 — Compartilhar',           desc:'O código de acesso gerado aparece com botões para enviar via WhatsApp (com mensagem personalizada por tipo de evento) ou e-mail direto. Ao abrir este passo, o sistema registra automaticamente que você visualizou o código.' },
                 { n:4,  who:'cliente',   color:'var(--green)',   title:'Acessar a galeria',                desc:'O cliente entra em app.cliquezoom.com.br, insere o código e visualiza todas as fotos com marca d\'água. Pode navegar, fazer zoom e comparar.' },
@@ -1049,7 +1201,7 @@ const MANUAL_MODULES = [
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem; ${i < arr.length - 1 ? 'padding-bottom:0;' : ''}">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
-                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:white; display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
                     ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
                   </div>
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
@@ -1085,7 +1237,7 @@ const MANUAL_MODULES = [
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
-                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:white; display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
                     ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
                   </div>
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
@@ -1112,7 +1264,7 @@ const MANUAL_MODULES = [
             <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">Cada participante recebe um código próprio e seleciona suas fotos de forma independente — sem interferir nos outros. Você gerencia tudo em um só lugar e entrega individualmente conforme cada um finaliza. O wizard tem <strong style="color:var(--text-primary);">5 passos</strong> (igual ao Seleção, mas com tabela de participantes no Passo 6).</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
-                { n:1,  who:'fotógrafo',    color:'var(--accent)',  title:'Criar a sessão',                desc:'Escolha o modo Multi-Seleção. Defina o nome do evento e um prazo compartilhado (todos os participantes têm o mesmo deadline). A resolução também é configurada aqui.' },
+                { n:1,  who:'fotógrafo',    color:'var(--accent)',  title:'Criar a sessão',                desc:'Escolha o modo Multi-Seleção. No modal informe o nome do evento e o prazo compartilhado (todos os participantes têm o mesmo deadline). Resolução, armazenamento e demais ajustes ficam no painel de Configurações à direita do wizard.' },
                 { n:2,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 1 — Upload',              desc:'Suba TODAS as fotos do evento. Na Multi-Seleção não há separação por participante no upload — todos veem a galeria completa e cada um encontra as suas.' },
                 { n:3,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 2 — Compartilhar',        desc:'Gerencie participantes: clique em "Gerenciar participantes" para adicionar cada pessoa com nome, e-mail e limite individual (ex: 15 fotos por formando). O sistema gera um código único para cada um. Envie os códigos pelo e-mail cadastrado, pelo WhatsApp individual ou exporte a lista completa.' },
                 { n:4,  who:'participante', color:'var(--orange)',  title:'Acessar com código individual', desc:'Cada participante entra em app.cliquezoom.com.br e insere SEU código. Ele vê todas as fotos do evento com marca d\'água e seleciona as suas favoritas.' },
@@ -1124,7 +1276,7 @@ const MANUAL_MODULES = [
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">
                   <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
-                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:white; display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
                     ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
                   </div>
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
@@ -1182,85 +1334,910 @@ const MANUAL_MODULES = [
       </div>
     `
   },
-  { id: 'clientes',  label: 'Clientes',  icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', content: `
-    <div style="display:flex; flex-direction:column; gap:1.25rem; padding-top:1rem;">
+  { id: 'mensagens', label: 'Mensagens', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
 
-      <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0;">
-        A tab Clientes é o CRM da sua base — registra o histórico de cada cliente, o valor gerado e permite agendar e-mails de reativação automáticos para manter o relacionamento ativo.
-      </p>
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Mensagens reúne tudo que chega pelo <strong style="color:var(--text-primary);">seu site público</strong>: os <strong style="color:var(--text-primary);">contatos</strong> enviados pelo formulário e os <strong style="color:var(--text-primary);">depoimentos</strong> de clientes que aguardam sua aprovação antes de aparecerem no site.
+        </p>
 
-      <!-- Cadastro de clientes -->
-      <div style="margin-bottom:0.5rem;">
-        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">CADASTRO</p>
-        <div style="display:flex; flex-direction:column; gap:0.3rem;">
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Nome, e-mail, telefone e CPF</strong> são obrigatórios. Os demais campos (tags, data de nascimento, tipo de evento) são opcionais e servem para segmentação futura.</span>
+        <!-- ── VISUALIZAÇÃO DAS TELAS ───────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização das Telas</p>
+
+          <!-- ─ DEPOIMENTOS PENDENTES ─ -->
+          <div style="margin-bottom:2rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">DEPOIMENTOS AGUARDANDO APROVAÇÃO</p>
+            <div style="background:var(--bg-elevated); border:1px solid var(--green); border-radius:8px; padding:1rem; pointer-events:none;">
+              <h4 style="color:var(--green); font-size:0.875rem; font-weight:600; margin:0 0 0.75rem;">⭐ 1 depoimento aguardando aprovação</h4>
+              <div style="background:var(--bg-surface); padding:0.75rem; border-radius:6px; border:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+                  <div style="flex:1; min-width:0;">
+                    <p style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Ana Ribeiro</p>
+                    <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0.25rem 0 0; line-height:1.5;">Trabalho impecável, superou todas as expectativas do nosso casamento!</p>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin:0.375rem 0 0;">⭐⭐⭐⭐⭐ 5/5 · ana@cliente.com</p>
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+                    <span style="background:var(--green); color:#fff; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600;">✓ Aprovar</span>
+                    <span style="background:var(--red); color:#fff; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600;">✕ Rejeitar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;"><strong style="color:var(--green);">Aprovar</strong> publica o depoimento na seção de depoimentos do seu site. <strong style="color:var(--red);">Rejeitar</strong> apaga em definitivo (pede confirmação). Esta caixa só aparece quando há depoimentos pendentes.</p>
           </div>
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);">Ao vincular um cliente a uma sessão (campo Cliente no modal de criação), o histórico de sessões aparece automaticamente no perfil do cliente — sem nenhuma ação extra.</span>
+
+          <!-- ─ CONTATOS RECEBIDOS ─ -->
+          <div style="margin-bottom:0.5rem;">
+            <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0 0 0.75rem;">📩 CONTATOS RECEBIDOS</p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem; pointer-events:none;">
+              <!-- Card não lido (recolhido) -->
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-left:3px solid var(--ad-accent, var(--accent)); border-radius:8px; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem;">
+                  <div style="display:flex; align-items:center; gap:0.75rem; min-width:0;">
+                    <span style="width:8px; height:8px; background:var(--accent); border-radius:50%; flex-shrink:0;"></span>
+                    <div style="min-width:0;">
+                      <p style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Maria Souza — Orçamento de casamento</p>
+                      <p style="font-size:0.75rem; color:var(--text-muted); margin:0.125rem 0 0;">12/06/2026 14:32</p>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </div>
+              </div>
+              <!-- Card lido (expandido) -->
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem;">
+                  <div style="display:flex; align-items:center; gap:0.75rem; min-width:0;">
+                    <span style="width:8px; height:8px; flex-shrink:0;"></span>
+                    <div style="min-width:0;">
+                      <p style="font-size:0.875rem; font-weight:400; color:var(--text-primary); margin:0;">João Lima — Ensaio newborn</p>
+                      <p style="font-size:0.75rem; color:var(--text-muted); margin:0.125rem 0 0;">10/06/2026 09:10</p>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                </div>
+                <div style="padding:0 1rem 1rem; border-top:1px solid var(--border);">
+                  <div style="margin-top:0.875rem; display:flex; flex-direction:column; gap:0.5rem;">
+                    <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0;"><strong style="color:var(--text-primary);">E-mail:</strong> <span style="color:var(--accent);">joao@cliente.com</span></p>
+                    <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0;"><strong style="color:var(--text-primary);">Assunto:</strong> Ensaio newborn</p>
+                    <div style="background:var(--bg-elevated); border-radius:6px; padding:0.75rem; margin-top:0.25rem;">
+                      <p style="font-size:0.875rem; color:var(--text-primary); line-height:1.6; margin:0;">Olá! Meu bebê nasce em agosto, gostaria de saber valores e disponibilidade para um ensaio newborn.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Mensagens <strong style="color:var(--text-primary);">não lidas</strong> têm a bolinha azul e a borda lateral de destaque. Clique no card para <strong style="color:var(--text-primary);">expandir</strong> (mostra e-mail, assunto e a mensagem) — isso já marca como lida e atualiza o contador de não lidas no topo. O ícone de lixeira <strong style="color:var(--red);">exclui</strong> a mensagem (pede confirmação).</p>
           </div>
         </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'cliente',   color:'var(--green)',  title:'Chega pelo site',            desc:'Quando um visitante preenche o formulário de contato ou envia um depoimento no seu site público, ele aparece automaticamente aqui — e você recebe um aviso no sininho do topo.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Aprovar um depoimento',       desc:'Leia o depoimento pendente e clique em ✓ Aprovar para publicá-lo na seção de depoimentos do seu site. É a sua curadoria: só vai ao ar o que você liberar.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Rejeitar um depoimento',      desc:'Se for spam ou algo que você não quer exibir, clique em ✕ Rejeitar. Ele é apagado em definitivo (com confirmação).' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Ler e responder um contato',  desc:'Clique no card do contato para abrir a mensagem completa (e-mail, assunto e texto). Ao abrir, ela é marcada como lida. Clique no e-mail para responder direto pelo seu aplicativo de e-mail.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Excluir um contato',          desc:'Terminou de tratar? Use o ícone de lixeira para remover a mensagem da lista e manter sua caixa organizada.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
       </div>
+    ` },
+  { id: 'gestao', label: 'Gestão', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
 
-      <!-- Próximo Contato / Reativação -->
-      <div style="margin-bottom:0.5rem;">
-        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">REATIVAÇÃO AUTOMÁTICA</p>
-        <div style="border:1px solid var(--border); border-radius:10px; padding:0.875rem; background:var(--bg-elevated); pointer-events:none; display:flex; flex-direction:column; gap:0.625rem; margin-bottom:0.5rem;">
-          <div>
-            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.375rem;">Próximo Contato</div>
-            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.75rem; font-size:0.8125rem; color:var(--text-primary);">19/09/2026</div>
-            <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:0.25rem;">O sistema envia um e-mail automático nesta data convidando para um novo trabalho.</div>
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Gestão traz um <strong style="color:var(--text-primary);">ERP completo</strong> para dentro do CliqueZoom: clientes, ordens de serviço, catálogo de produtos e serviços, financeiro e CRM. Tudo com <strong style="color:var(--text-primary);">login único</strong> — ao abrir a aba você já entra autenticado, sem precisar de outra senha.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO DA TELA ─────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none;">
+            <!-- Sub-menu agrupado -->
+            <div style="display:flex; gap:1.25rem; flex-wrap:wrap; padding-bottom:0.85rem; border-bottom:1px solid var(--border);">
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                <span style="font-size:0.6875rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);">Operação</span>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--accent); color:#fff;">Dashboard</span>
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Clientes</span>
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Ordens de Serviço</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                <span style="font-size:0.6875rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);">Cadastros</span>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Produtos / Serviços</span>
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Categorias</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                <span style="font-size:0.6875rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);">Financeiro</span>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Contas a Receber</span>
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Contas a Pagar</span>
+                </div>
+              </div>
+            </div>
+            <!-- Área do ERP -->
+            <div style="margin-top:0.85rem; border:1px solid var(--border); border-radius:12px; background:var(--bg-surface); height:120px; display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:0.8125rem; color:var(--text-muted);">O módulo de gestão abre aqui, já logado — como parte do CliqueZoom</span>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Os botões do topo trocam a seção exibida. O grupo <strong style="color:var(--text-primary);">Operação</strong> concentra o dia a dia (clientes e ordens de serviço); <strong style="color:var(--text-primary);">Cadastros</strong> guarda o seu catálogo; <strong style="color:var(--text-primary);">Financeiro</strong> controla contas a receber/pagar; <strong style="color:var(--text-primary);">Relacionamento</strong> traz o CRM.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'sistema',   color:'var(--green)',  title:'Login único, automático',       desc:'Ao abrir a aba, o CliqueZoom te autentica no módulo de gestão sozinho. Você nunca digita outra senha — parece (e funciona como) uma parte nativa do painel.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Clientes integrados',           desc:'O cadastro de clientes daqui é o MESMO usado nas suas sessões: quando você cria uma sessão e cadastra um cliente (com CPF), ele entra direto na base da Gestão.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Monte seu catálogo primeiro',   desc:'Em Cadastros › Produtos / Serviços, registre o que você vende (ensaios, pacotes, horas extras, álbuns). É a base para criar ordens de serviço com preços consistentes.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Ordens de serviço do catálogo', desc:'Ao criar uma OS, todo item precisa ser selecionado do catálogo — itens digitados à mão mostram o aviso ⚠ e não deixam salvar. Isso evita preço fora do padrão e mantém seus relatórios confiáveis.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Acompanhe o financeiro',        desc:'Use Contas a Receber e Contas a Pagar para acompanhar o caixa do seu negócio: parcelas das OS, despesas fixas e formas de pagamento, tudo num lugar só.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:0.3rem;">
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Como agendar</strong> — Abra o modal de edição do cliente (botão ✏️), role até a seção <em>Próximo Contato</em> e escolha a data. Salve. O sistema envia o e-mail automaticamente na data escolhida e limpa o campo após o envio.</span>
-          </div>
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Badge 📅 na lista</strong> — Clientes com data agendada exibem um badge com a data. Clientes já contactados exibem "✓ Último: DD/MM" indicando o envio mais recente.</span>
-          </div>
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Fotos no e-mail</strong> — O sistema inclui automaticamente a capa e até 2 fotos da última sessão entregue do cliente para tornar o e-mail mais pessoal e difícil de ignorar.</span>
-          </div>
-        </div>
+
       </div>
+    ` },
+  { id: 'meu-site',  label: 'Meu Site',  icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
 
-      <!-- Disparo manual -->
-      <div style="margin-bottom:0.5rem;">
-        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin:0 0 0.5rem;">DISPARO MANUAL</p>
-        <div style="display:flex; flex-direction:column; gap:0.3rem;">
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);">O botão <strong style="color:var(--text-primary);">📧 Disparar Reativações</strong> (topo da listagem) processa imediatamente todos os clientes cuja data de próximo contato já chegou. Útil para testar ou adiantar um envio planejado.</span>
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          O Meu Site é o <strong style="color:var(--text-primary);">construtor do seu site público</strong>. Ele abre em tela cheia: o painel de edição fica à esquerda e o <strong style="color:var(--text-primary);">preview ao vivo</strong> do site à direita — cada mudança aparece na hora, e só vai ao ar quando você salva.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO DA TELA ─────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+          <div style="border:1px solid var(--border); border-radius:10px; background:var(--bg-base); padding:0.75rem; display:flex; gap:0.75rem; pointer-events:none;">
+            <!-- Painel de edição -->
+            <div style="width:150px; flex-shrink:0; display:flex; flex-direction:column; gap:3px; border-right:1px solid var(--border); padding-right:0.6rem;">
+              ${['Geral', 'Seções', 'Capa', 'Sobre', 'Portfólio', 'Serviços', 'Depoimentos', 'Álbuns', 'Estúdio', 'Contato', 'FAQ', 'Rodapé', 'Área do Cliente', 'Personalizar'].map((s, i) => `
+                <span style="padding:0.3rem 0.6rem; border-radius:6px; font-size:0.72rem; font-weight:${i === 0 ? '700' : '500'}; background:${i === 0 ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent'}; color:${i === 0 ? 'var(--accent)' : 'var(--text-secondary)'};">${s}</span>
+              `).join('')}
+            </div>
+            <!-- Preview -->
+            <div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:20px; background:color-mix(in srgb, var(--green) 15%, transparent); color:var(--green);">Preview Ativo</span>
+                <span style="font-size:0.72rem; color:var(--text-muted);">Tema: Elegante</span>
+                <span style="margin-left:auto; display:flex; gap:0.3rem;">
+                  <span style="font-size:0.65rem; padding:0.15rem 0.5rem; border:1px solid var(--accent); border-radius:6px; color:var(--accent); font-weight:600;">Desktop</span>
+                  <span style="font-size:0.65rem; padding:0.15rem 0.5rem; border:1px solid var(--border); border-radius:6px; color:var(--text-muted);">Tablet</span>
+                  <span style="font-size:0.65rem; padding:0.15rem 0.5rem; border:1px solid var(--border); border-radius:6px; color:var(--text-muted);">Mobile</span>
+                </span>
+              </div>
+              <div style="flex:1; min-height:130px; border:1px solid var(--border); border-radius:10px; background:var(--bg-surface); display:flex; align-items:center; justify-content:center;">
+                <span style="font-size:0.8125rem; color:var(--text-muted);">Seu site, ao vivo — atualiza enquanto você edita</span>
+              </div>
+            </div>
           </div>
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);">Ao clicar, o sistema pergunta se você quer incluir fotos do último evento nos e-mails. Escolha <em>Sim, incluir fotos</em> para um e-mail mais visual, ou <em>Não, só texto</em> para um envio mais simples.</span>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Cada item do painel edita uma parte do site. <strong style="color:var(--text-primary);">Geral</strong> controla o tema e o status (ativado/desativado); <strong style="color:var(--text-primary);">Seções</strong> liga/desliga e reordena os blocos; as demais abas editam o conteúdo de cada seção. Os botões Desktop/Tablet/Mobile simulam o site em cada tela.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
           </div>
-          <div style="display:flex; align-items:flex-start; gap:0.5rem; padding:0.4rem 0.625rem; background:var(--bg-elevated); border-radius:7px;">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:0.35rem;"></span>
-            <span style="font-size:0.8rem; color:var(--text-secondary);">O disparo automático (sem clicar nada) acontece uma vez por dia. O manual é apenas um atalho — não envia duplicado se o automático já rodou.</span>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Escolha o tema (Geral)',          desc:'São 5 temas prontos. Clique em "Visualizar" para testar sem compromisso — só muda de verdade quando você seleciona o card e clica em Salvar Tema.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Organize as Seções',              desc:'Ligue e desligue blocos (Portfólio, Serviços, FAQ...) e arraste para mudar a ordem em que aparecem no site. O que estiver desativado some do site na hora.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Monte a Capa',                    desc:'Suba a imagem de fundo, ajuste zoom e posição, e adicione textos como camadas — cada texto tem posição, tamanho, cor e alinhamento próprios.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Preencha o conteúdo',             desc:'Sobre (sua história + fotos), Portfólio (suas melhores imagens), Serviços com preços, Depoimentos, Álbuns, Estúdio, Contato, FAQ e Rodapé. Cada aba tem o próprio botão Salvar.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Personalize o estilo',            desc:'Na aba Personalizar, ajuste a paleta de cores (principal, fundo, texto) e a fonte do site inteiro — ou volte ao padrão do tema com um clique.' },
+                { n:6, who:'sistema',   color:'var(--green)',  title:'Ative quando estiver pronto',     desc:'O interruptor "Status do Site" (em Geral) controla a publicação: desativado, visitantes veem uma página elegante de "Em breve" — ative quando quiser ir ao ar.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
         </div>
-      </div>
 
-    </div>
-  ` },
-  { id: 'mensagens', label: 'Mensagens', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', content: null },
-  { id: 'meu-site',  label: 'Meu Site',  icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', content: null },
+      </div>
+    ` },
+  { id: 'dominio', label: 'Domínio', icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Domínio conecta o <strong style="color:var(--text-primary);">seu próprio endereço</strong> (ex: www.seunome.com.br) ao seu site. Em vez do endereço padrão do CliqueZoom, seus clientes acessam o site pelo domínio que você já tem — com <strong style="color:var(--text-primary);">certificado de segurança (https) gerado automaticamente</strong>.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO DA TELA ─────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Card do domínio -->
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface); padding:0.85rem 1rem; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap; gap:0.5rem;">
+              <div>
+                <div style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">www.seunome.com.br</div>
+                <div style="color:var(--yellow); font-size:0.75rem; margin-top:0.2rem;">⏳ Aguardando verificação DNS</div>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <span style="background:var(--accent); color:#fff; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Verificar DNS</span>
+                <span style="background:var(--red); color:#fff; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Remover</span>
+              </div>
+            </div>
+            <!-- Instruções de DNS -->
+            <div style="border:1px solid var(--border); border-radius:8px; background:var(--bg-surface); padding:0.85rem 1rem;">
+              <div style="font-size:0.8125rem; font-weight:700; color:var(--text-primary); margin-bottom:0.6rem;">Instruções de Configuração DNS</div>
+              <div style="display:grid; grid-template-columns:auto 1fr auto auto; gap:0.35rem 1.25rem; font-size:0.75rem; color:var(--text-secondary);">
+                <span style="font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">Tipo</span>
+                <span style="font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">Nome</span>
+                <span style="font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">Valor</span>
+                <span style="font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:0.65rem;">TTL</span>
+                <span style="color:var(--accent); font-weight:600;">A Record</span>
+                <span>www.seunome.com.br</span>
+                <span style="font-family:monospace; background:var(--bg-base); border-radius:4px; padding:0 0.35rem;">IP do servidor</span>
+                <span>3600</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Enquanto o DNS não propaga, o card mostra <strong style="color:var(--text-primary);">⏳ Aguardando verificação</strong> e a tabela com o registro que você precisa criar no provedor. Depois de verificado, o status vira <strong style="color:var(--green);">✓ Verificado e Ativo</strong> e as instruções somem.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Adicione o seu domínio',            desc:'Digite o endereço que você já comprou (ex: www.seunome.com.br) e clique em Adicionar. O domínio precisa estar registrado em algum provedor — o CliqueZoom não vende domínios.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Crie o registro DNS no provedor',   desc:'Acesse o painel onde comprou o domínio (Hostinger, GoDaddy, Registro.br...) e crie um registro do tipo A com o nome e o IP mostrados na tabela de instruções. TTL: 3600.' },
+                { n:3, who:'sistema',   color:'var(--green)',  title:'Aguarde a propagação',              desc:'A mudança de DNS leva de alguns minutos até 48 horas para se espalhar pela internet. Não tem como acelerar — é o tempo normal do sistema de domínios.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Clique em Verificar DNS',           desc:'Quando a propagação terminar, o status muda para ✓ Verificado e Ativo. Se ainda aparecer "não propagado", aguarde mais um pouco e tente de novo.' },
+                { n:5, who:'sistema',   color:'var(--green)',  title:'Certificado de segurança automático', desc:'Logo após a verificação, o CliqueZoom gera o certificado SSL sozinho — seu site abre com o cadeado (https) sem nenhuma configuração extra.' },
+                { n:6, who:'fotógrafo', color:'var(--accent)', title:'Remover quando quiser',             desc:'O botão Remover desconecta o domínio (com confirmação). Seu site continua no ar normalmente pelo endereço padrão do CliqueZoom.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
+  { id: 'integracoes', label: 'Integrações', icon: '<path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Integrações conecta o seu site público às <strong style="color:var(--text-primary);">ferramentas de medição de audiência</strong>: o Google Analytics 4 (quem visita, de onde vem, o que olha) e o Meta Pixel do Facebook/Instagram (essencial se você faz anúncios). Você só cola os códigos aqui — o CliqueZoom instala as tags no seu site sozinho.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO DA TELA ─────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Card GA4 -->
+            <div style="background:var(--bg-surface); padding:0.85rem 1rem; border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <span style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">Google Analytics 4</span>
+                <span style="display:flex; align-items:center; gap:0.35rem; font-size:0.75rem; color:var(--text-secondary);"><span style="width:13px; height:13px; border-radius:3px; background:var(--accent); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:0.6rem;">✓</span> Ativar</span>
+              </div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">Measurement ID (G-XXXXXXXX)</div>
+              <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.65rem; font-size:0.8rem; font-family:monospace; color:var(--text-primary);">G-ABC123456</div>
+            </div>
+            <!-- Card Meta Pixel -->
+            <div style="background:var(--bg-surface); padding:0.85rem 1rem; border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <span style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">Meta Pixel (Facebook)</span>
+                <span style="display:flex; align-items:center; gap:0.35rem; font-size:0.75rem; color:var(--text-secondary);"><span style="width:13px; height:13px; border-radius:3px; border:1px solid var(--border); display:inline-block;"></span> Ativar</span>
+              </div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">Pixel ID</div>
+              <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.65rem; font-size:0.8rem; font-family:monospace; color:var(--text-primary);">1234567890</div>
+            </div>
+            <!-- Aviso do lembrete de prazo -->
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.9rem; font-size:0.75rem; color:var(--text-secondary);">💡 O <strong style="color:var(--text-primary);">lembrete de prazo de seleção</strong> agora é configurado em <span style="color:var(--accent); font-weight:600; text-decoration:underline;">Configurações › Escassês &amp; Vendas</span>.</div>
+            <span style="background:var(--accent); color:#fff; padding:0.5rem 1rem; border-radius:6px; font-size:0.78rem; font-weight:700; align-self:flex-start;">Salvar Configurações</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Cada ferramenta tem o seu card: marque <strong style="color:var(--text-primary);">Ativar</strong>, cole o código e clique em <strong style="color:var(--text-primary);">Salvar Configurações</strong>. A tag só entra no site quando o card está ativado <em>e</em> com o código preenchido.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Pegue o seu Measurement ID no Google',  desc:'Crie (ou abra) a sua propriedade no Google Analytics 4 e copie o Measurement ID — ele começa com G- (ex: G-ABC123456). Fica em Administrador › Fluxos de dados.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Ative e cole o código do GA4',          desc:'No card Google Analytics 4, marque Ativar e cole o Measurement ID no campo. Sem o Ativar marcado, o código fica guardado mas a medição não liga.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Pegue o Pixel ID no Facebook',          desc:'Se você anuncia no Facebook/Instagram, copie o ID do seu Pixel no Gerenciador de Eventos da Meta (é um número longo). Ele permite medir conversões e criar públicos dos visitantes do seu site.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Salve',                                  desc:'Clique em Salvar Configurações. Pronto — não precisa mexer em código nem instalar nada no site.' },
+                { n:5, who:'sistema',   color:'var(--green)',  title:'As tags entram no site sozinhas',        desc:'A partir do próximo acesso, toda visita ao seu site público carrega o Google Analytics e o Meta Pixel automaticamente. Desmarcou Ativar e salvou? A tag sai do site na hora.' },
+                { n:6, who:'fotógrafo', color:'var(--accent)', title:'Procurando o lembrete de prazo?',        desc:'O aviso automático para o cliente selecionar as fotos antes do prazo mudou de endereço: agora fica em Configurações › Escassês & Vendas, junto das outras automações.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
+  { id: 'marketing', label: 'Marketing', icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Marketing mostra o <strong style="color:var(--text-primary);">desempenho real do seu negócio</strong> — tudo calculado sozinho a partir das suas sessões, sem você configurar nada. Ela tem duas visões, alternadas pelo botão no topo: <strong style="color:var(--text-primary);">Visão Geral</strong> (números, funil e taxas) e <strong style="color:var(--text-primary);">Vendas Automáticas</strong> (o robô que lembra o cliente do prazo e vende as fotos que sobraram após a entrega).
+        </p>
+
+        <!-- ── VISUALIZAÇÃO: VISÃO GERAL ─────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização — Visão Geral</p>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Toggle -->
+            <div style="display:inline-flex; gap:0.25rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.25rem; align-self:flex-start;">
+              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:0.375rem; background:var(--accent); color:var(--bg-base);">Visão Geral</span>
+              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:0.375rem; color:var(--text-primary);">Vendas Automáticas</span>
+            </div>
+            <!-- KPIs -->
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.6rem;">
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem;">
+                <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Sessões (30d)</div>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">8</div>
+                <div style="font-size:0.6rem; color:var(--green);">+33% vs mês anterior</div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem;">
+                <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Clientes (30d)</div>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">5</div>
+                <div style="font-size:0.6rem; color:var(--text-muted);">42 no total</div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem;">
+                <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Taxa de Acesso</div>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">85%</div>
+                <div style="font-size:0.6rem; color:var(--text-muted);">cliente abriu a galeria</div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem;">
+                <div style="font-size:0.58rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Taxa de Entrega</div>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">90%</div>
+                <div style="font-size:0.6rem; color:var(--text-muted);">seleções entregues</div>
+              </div>
+            </div>
+            <!-- Funil -->
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.85rem 1rem;">
+              <div style="font-size:0.78rem; font-weight:700; color:var(--text-primary); margin-bottom:0.6rem;">Funil de Sessões</div>
+              ${[
+                { label:'Sessões criadas', pct:100, val:'20 (100%)', color:'var(--accent)' },
+                { label:'Código enviado',  pct:85,  val:'17 (85%)',  color:'#3b82f6' },
+                { label:'Cliente acessou', pct:70,  val:'14 (70%)',  color:'var(--green)' },
+                { label:'Seleção enviada', pct:55,  val:'11 (55%)',  color:'var(--yellow)' },
+                { label:'Entregue',        pct:50,  val:'10 (50%)',  color:'#a855f7' },
+              ].map(f => `
+                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.35rem;">
+                  <div style="width:6.5rem; text-align:right; font-size:0.62rem; color:var(--text-secondary); flex-shrink:0;">${f.label}</div>
+                  <div style="flex:1; background:color-mix(in srgb, var(--text-primary) 8%, transparent); height:0.85rem; border-radius:0.2rem; overflow:hidden;"><div style="width:${f.pct}%; height:100%; background:${f.color}; border-radius:0.2rem;"></div></div>
+                  <div style="width:3.6rem; font-size:0.62rem; font-weight:600; color:var(--text-primary);">${f.val}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Abaixo do funil a tela ainda mostra o <strong style="color:var(--text-primary);">status atual</strong> das sessões, os <strong style="color:var(--text-primary);">modos</strong> e <strong style="color:var(--text-primary);">tipos de evento</strong> mais frequentes, o resumo das vendas automáticas e o estado do Google Analytics.</p>
+        </div>
+
+        <!-- ── VISUALIZAÇÃO: VENDAS AUTOMÁTICAS ──────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização — Vendas Automáticas</p>
+
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Status do robô -->
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.85rem 1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary);">Lembrete &amp; Escassês de Vendas</div>
+                  <div style="font-size:0.62rem; color:var(--text-muted);">Lembra o cliente de selecionar e vende as fotos que sobraram após a entrega.</div>
+                </div>
+                <span style="background:var(--accent); color:var(--bg-base); padding:0.35rem 0.8rem; border-radius:6px; font-size:0.68rem; font-weight:700;">Configurar</span>
+              </div>
+              <div style="display:flex; gap:0.5rem; margin-top:0.7rem; flex-wrap:wrap;">
+                <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.3rem 0.65rem; border:1px solid var(--border); border-radius:9999px; font-size:0.62rem; color:var(--text-primary);"><span style="width:7px; height:7px; border-radius:9999px; background:var(--green);"></span> Lembrete de seleção: <strong style="color:var(--green);">Ativado</strong></span>
+                <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.3rem 0.65rem; border:1px solid var(--border); border-radius:9999px; font-size:0.62rem; color:var(--text-primary);"><span style="width:7px; height:7px; border-radius:9999px; background:var(--text-muted);"></span> Escassês de vendas: <strong style="color:var(--text-muted);">Desativado</strong></span>
+              </div>
+            </div>
+            <!-- KPIs do robô -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem;">
+              ${[
+                ['📁 Sessões monitoradas','3'], ['🖼️ Fotos pendentes','27'], ['💰 Receita potencial','R$ 810,00'],
+              ].map(([l,v]) => `
+                <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.6rem 0.7rem;">
+                  <div style="font-size:0.55rem; text-transform:uppercase; color:var(--text-muted);">${l}</div>
+                  <div style="font-size:0.95rem; font-weight:700; color:var(--text-primary);">${v}</div>
+                </div>
+              `).join('')}
+            </div>
+            <!-- Cupom -->
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.85rem 1rem;">
+              <div style="font-size:0.78rem; font-weight:700; color:var(--text-primary); margin-bottom:0.5rem;">Cupons emitidos</div>
+              <div style="border:1px solid var(--border); border-radius:6px; padding:0.55rem 0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                <div style="min-width:0;">
+                  <div style="font-family:monospace; font-weight:700; font-size:0.72rem; color:var(--text-primary); letter-spacing:0.05em;">CZ-MARIA15</div>
+                  <div style="font-size:0.6rem; color:var(--text-muted);">Casamento Maria · 7 dias (pós-entrega) · enviado em 02 de jun.</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                  <span style="font-size:0.58rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:20px; background:color-mix(in srgb, var(--text-muted) 15%, transparent); color:var(--text-secondary);">Em aberto</span>
+                  <span style="font-size:0.6rem; font-weight:700; padding:0.25rem 0.55rem; border-radius:5px; background:var(--green); color:#fff;">Marcar como usado</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">O robô e os textos das mensagens são configurados em <strong style="color:var(--text-primary);">Configurações › Escassês &amp; Vendas</strong> — aqui você acompanha o resultado e gerencia os cupons.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO NUMERADO ─────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'sistema',   color:'var(--green)',  title:'Os números se calculam sozinhos',       desc:'Tudo na Visão Geral vem das suas sessões reais: quantas você criou nos últimos 30 dias, quantos clientes entraram e as taxas de acesso e entrega. Não há nada para configurar — é só ler.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Leia o funil de cima para baixo',        desc:'O funil mostra onde os clientes travam: se muitos receberam o código mas poucos acessaram, vale reenviar o link; se acessam mas não finalizam a seleção, um lembrete resolve. Cada degrau que cai é uma oportunidade de cobrança gentil.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Conecte o Google Analytics (opcional)',  desc:'O último card mostra se o GA está ligado. Se ainda não estiver, configure o Measurement ID na aba Integrações — aí você passa a ver visitas e origem de tráfego do seu site no painel do Google.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Alterne para Vendas Automáticas',        desc:'O botão no topo troca para a visão do robô de vendas: as pills mostram se o lembrete de seleção e a escassês pós-entrega estão ativados, e o botão Configurar leva direto para Configurações › Escassês & Vendas.' },
+                { n:5, who:'sistema',   color:'var(--green)',  title:'O robô emite cupons sozinho',            desc:'Com a escassês pós-entrega ativada, o robô avisa o cliente quando as fotos não compradas estão para expirar e envia um cupom de desconto. Cada cupom emitido aparece na lista, com a sessão e a data do envio.' },
+                { n:6, who:'fotógrafo', color:'var(--accent)', title:'Fechou a venda? Marque o cupom',         desc:'A negociação acontece direto com você (WhatsApp, Pix) — a plataforma não cobra o cliente. Quando a venda fechar, clique em Marcar como usado para o cupom contar como convertido. Errou? O Desmarcar volta atrás.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
+  { id: 'perfil', label: 'Perfil', icon: '<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Perfil guarda a <strong style="color:var(--text-primary);">identidade do seu negócio</strong>: os dados de contato que aparecem para o cliente, o logotipo e o editor de <strong style="color:var(--text-primary);">marca d'água em camadas</strong> — a proteção que cobre as fotos na fase de prévia e some sozinha na entrega.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO: DADOS + LOGO ─────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização — Dados do Negócio</p>
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.85rem 1rem;">
+              <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin-bottom:0.6rem;">Dados do Negócio</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                ${[['Nome do Negócio','Fotografia Maria Silva'],['Email de Contato','contato@mariasilva.com'],['Telefone / WhatsApp','(11) 99999-8888'],['Website','mariasilva.com.br']].map(([l,v]) => `
+                  <div>
+                    <div style="font-size:0.6rem; color:var(--text-muted); margin-bottom:0.2rem;">${l}</div>
+                    <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:5px; padding:0.35rem 0.55rem; font-size:0.68rem; color:var(--text-primary);">${v}</div>
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.85rem 1rem; display:flex; align-items:center; gap:0.85rem;">
+              <div style="background:#fff; border-radius:4px; padding:0.3rem 0.7rem; font-family:'Playfair Display',serif; font-size:0.8rem; color:#1a1a1a; border:1px solid var(--border);">Maria Silva</div>
+              <span style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); padding:0.35rem 0.8rem; border-radius:6px; font-size:0.68rem; font-weight:600;">Enviar Logo</span>
+            </div>
+            <span style="background:var(--accent); color:var(--bg-base); padding:0.45rem 1.1rem; border-radius:6px; font-size:0.75rem; font-weight:700; align-self:flex-end;">Salvar Perfil</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Os dados do negócio só gravam quando você clica em <strong style="color:var(--text-primary);">Salvar Perfil</strong>. Já a marca d'água (abaixo) salva sozinha a cada ajuste.</p>
+        </div>
+
+        <!-- ── VISUALIZAÇÃO: EDITOR DE MARCA D'ÁGUA ──────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização — Marca D'água em Camadas</p>
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.7rem;">
+            <div style="display:flex; gap:0.3rem; flex-wrap:wrap; align-items:center;">
+              <span style="background:var(--accent); color:var(--bg-base); padding:0.3rem 0.7rem; border-radius:5px; font-size:0.65rem; font-weight:700;">+ Texto</span>
+              <span style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); padding:0.3rem 0.7rem; border-radius:5px; font-size:0.65rem;">+ Imagem</span>
+              <span style="border:1px solid var(--border); color:var(--text-primary); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">⧉</span>
+              <span style="border:1px solid var(--border); color:var(--text-primary); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">↑</span>
+              <span style="border:1px solid var(--border); color:var(--text-primary); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">↓</span>
+              <span style="border:1px solid var(--red); color:var(--red); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">🗑</span>
+              <span style="border:1px solid var(--border); color:var(--text-muted); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.62rem;">↺ Padrão</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:0.7rem; align-items:start;">
+              <div>
+                <div style="position:relative; width:100%; aspect-ratio:4/3; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%); border-radius:8px; overflow:hidden;">
+                  <div style="position:absolute; left:5%; top:40%; width:90%; text-align:center; transform:rotate(-25deg); opacity:0.4; border:1.5px dashed rgba(99,102,241,0.9); border-radius:3px; padding:0.3rem 0;">
+                    <span style="color:#fff; font-size:0.8rem; font-weight:700; letter-spacing:2px; text-shadow:0 0 5px rgba(0,0,0,0.9);">Cópia não autorizada</span>
+                  </div>
+                  <div style="position:absolute; right:6%; bottom:8%; opacity:0.35;">
+                    <span style="color:#fff; font-size:0.6rem; font-style:italic; font-family:'Playfair Display',serif;">Maria Silva</span>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
+                  <div style="display:flex; justify-content:space-between; padding:0.3rem 0.6rem; border-radius:5px; background:var(--accent); color:var(--bg-base); font-size:0.62rem;"><span>✏️ Cópia não autorizada</span><span style="opacity:0.6;">camada 2</span></div>
+                  <div style="display:flex; justify-content:space-between; padding:0.3rem 0.6rem; border-radius:5px; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); font-size:0.62rem;"><span>✏️ Maria Silva</span><span style="opacity:0.5;">camada 1</span></div>
+                </div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem;">
+                <div style="font-size:0.58rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:0.3rem; margin-bottom:0.5rem;">✏️ Camada de Texto</div>
+                <div style="font-size:0.6rem; color:var(--text-muted); margin-bottom:0.15rem;">Texto</div>
+                <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:4px; padding:0.3rem 0.5rem; font-size:0.62rem; color:var(--text-primary); margin-bottom:0.5rem;">Cópia não autorizada</div>
+                ${[['Opacidade','35%',35],['Rotação','-25°',43]].map(([l,v,p]) => `
+                  <div style="margin-bottom:0.45rem;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.6rem; color:var(--text-muted);"><span>${l}</span><span style="color:var(--text-primary);">${v}</span></div>
+                    <div style="height:4px; background:color-mix(in srgb, var(--text-primary) 12%, transparent); border-radius:2px; margin-top:0.2rem;"><div style="width:${p}%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+                  </div>`).join('')}
+              </div>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;"><strong style="color:var(--text-primary);">Arraste</strong> a camada para posicionar, puxe os <strong style="color:var(--text-primary);">cantos</strong> para redimensionar e <strong style="color:var(--text-primary);">clique</strong> para abrir o painel de edição. Cada mudança salva sozinha (toast "Marca d'água salva!").</p>
+        </div>
+
+        <!-- ── PASSO A PASSO ─────────────────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Preencha os dados do negócio',        desc:'Nome, e-mail, WhatsApp e site. São esses dados que aparecem para o cliente nos e-mails, no WhatsApp e no rodapé do seu site. Clique em Salvar Perfil para gravar — o nome é obrigatório.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Envie o seu logotipo',                desc:'Clique em Enviar Logo (JPG, PNG, SVG ou WebP). Ele aparece no site público, na galeria do cliente e pode virar uma camada da marca d\'água.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Monte a marca d\'água em camadas',    desc:'O editor já vem com um template pronto. Arraste cada camada para posicionar, puxe os cantos para redimensionar e clique nela para editar texto, fonte, cor, opacidade e rotação no painel ao lado.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Adicione, duplique e organize',       desc:'+ Texto e + Imagem criam camadas novas; ⧉ duplica a selecionada; ↑ ↓ mudam a ordem (o que fica por cima); 🗑 deleta; ↺ Padrão volta ao template de fábrica. Tudo salva sozinho.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Teste nos 3 fundos',                  desc:'Os botões de fundo (escuro, claro, colorido) simulam fotos diferentes — confira se a marca fica visível sem atrapalhar. Dica: opacidade entre 30% e 45% costuma equilibrar bem.' },
+                { n:6, who:'sistema',   color:'var(--green)',  title:'A marca protege a prévia e some na entrega', desc:'O cliente vê a marca d\'água sobre todas as fotos enquanto escolhe. Depois que você entrega a sessão, as fotos saem limpas para download — sem você fazer nada.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
+  { id: 'plano', label: 'Plano', icon: '<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Plano mostra <strong style="color:var(--text-primary);">quanto do seu plano você já usou</strong> — sessões, fotos e espaço em disco — e compara os planos disponíveis. As barras mudam de cor conforme o uso aperta, para você nunca ser pego de surpresa.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO ───────────────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Card do plano atual -->
+            <div style="background:var(--bg-surface); border:2px solid var(--accent); border-radius:8px; padding:0.9rem 1rem;">
+              <div style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">Basic</div>
+              <div style="font-size:0.65rem; color:var(--text-muted); margin-bottom:0.7rem;">R$ 49,00/mês · Renova em 15/07/2026</div>
+              ${[
+                ['Sessões','12 / 50',24,'var(--accent)'],
+                ['Fotos','3.800 / 5.000',76,'var(--yellow)'],
+                ['Armazenamento (MB)','9.200 / 10.000',92,'var(--red)'],
+              ].map(([l,v,p,c]) => `
+                <div style="margin-bottom:0.55rem;">
+                  <div style="display:flex; justify-content:space-between; font-size:0.65rem;"><span style="color:var(--text-secondary);">${l}</span><span style="color:var(--text-primary); font-weight:600;">${v}</span></div>
+                  <div style="height:5px; background:color-mix(in srgb, var(--text-primary) 12%, transparent); border-radius:99px; margin-top:0.2rem; overflow:hidden;"><div style="width:${p}%; height:100%; background:${c}; border-radius:99px;"></div></div>
+                  ${p >= 90 ? '<div style="font-size:0.58rem; color:var(--red); margin-top:0.15rem;">⚠ Limite quase atingido</div>' : ''}
+                </div>`).join('')}
+              <div style="display:flex; gap:0.7rem; border-top:1px solid var(--border); padding-top:0.5rem; font-size:0.58rem; color:var(--text-muted);">
+                <span>Sessões: 8.900 MB</span><span>Site: 250 MB</span><span>Vídeos: 50 MB</span>
+              </div>
+            </div>
+            <!-- Cards de planos -->
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem;">
+              ${[['Free','Grátis',false],['Basic','R$ 49,00',true],['Pro','R$ 99,00',false]].map(([n,p,atual]) => `
+                <div style="background:var(--bg-surface); border:2px solid ${atual ? 'var(--accent)' : 'var(--border)'}; border-radius:8px; padding:0.7rem; position:relative;">
+                  ${atual ? '<span style="position:absolute; top:-1px; right:0.5rem; background:var(--accent); color:var(--bg-base); font-size:0.5rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:0 0 4px 4px;">ATUAL</span>' : ''}
+                  <div style="font-size:0.72rem; font-weight:700; color:var(--text-primary);">${n}</div>
+                  <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary); margin-bottom:0.4rem;">${p}</div>
+                  <div style="font-size:0.55rem; color:var(--text-muted); line-height:1.6;">✓ Sessões<br>✓ Armazenamento<br>✓ Suporte</div>
+                  ${atual
+                    ? '<div style="margin-top:0.4rem; text-align:center; border:1px solid var(--border); border-radius:4px; padding:0.25rem; font-size:0.55rem; color:var(--text-muted);">Plano Atual</div>'
+                    : '<div style="margin-top:0.4rem; text-align:center; background:var(--accent); opacity:0.45; color:var(--bg-base); border-radius:4px; padding:0.25rem; font-size:0.55rem; font-weight:700;">Em Breve</div>'}
+                </div>`).join('')}
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Barra <strong style="color:var(--text-primary);">escura</strong> = uso tranquilo · <strong style="color:var(--yellow);">amarela</strong> = passou de 70% · <strong style="color:var(--red);">vermelha</strong> = passou de 90% (com aviso). Limite ∞ = ilimitado no seu plano.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO ─────────────────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Acompanhe as barras de uso',          desc:'Sessões, fotos e armazenamento do seu plano, sempre atualizados. A cor avisa sozinha: amarelo passou de 70%, vermelho passou de 90% — hora de liberar espaço ou subir de plano.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Entenda o espaço em disco',           desc:'Abaixo das barras, o armazenamento aparece dividido: fotos das sessões, imagens do site e vídeos. Sessões antigas já entregues são as maiores candidatas a limpeza.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Compare os planos',                   desc:'Os cards mostram preço e o que cada plano inclui. O seu plano atual fica marcado com a etiqueta ATUAL.' },
+                { n:4, who:'sistema',   color:'var(--green)',  title:'Upgrade online em breve',             desc:'O pagamento online dentro da plataforma está chegando — por enquanto os botões mostram "Em Breve". Precisa de mais limite agora? Fale com o suporte.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Cancelamento sem pegadinha',          desc:'Em planos pagos, o botão Cancelar Plano agenda o cancelamento: você continua com tudo até o fim do período já pago e depois volta ao plano gratuito.' },
+                { n:6, who:'sistema',   color:'var(--green)',  title:'Os limites se aplicam sozinhos',      desc:'Ao atingir um limite, o CliqueZoom avisa na hora de criar sessões ou subir fotos — nada é apagado e nada quebra. Os seus dados ficam sempre seguros.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
+  { id: 'configuracoes', label: 'Configurações', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>', content: `
+      <div style="display:flex; flex-direction:column; gap:2rem; padding-top:1.25rem;">
+
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.7; margin:0 0 0.75rem;">
+          A aba Configurações deixa o CliqueZoom com o <strong style="color:var(--text-primary);">seu jeito de trabalhar</strong>: as mensagens que vão para o cliente, os padrões de cada sessão nova, o modo de entrega das galerias, os avisos que você recebe e o robô de Escassês &amp; Vendas. <strong style="color:var(--text-primary);">Tudo salva sozinho</strong> enquanto você edita — repare no "✓ Salvo" no canto de cada cartão.
+        </p>
+
+        <!-- ── VISUALIZAÇÃO ───────────────────────────────────────────────── -->
+        <div>
+          <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização da Tela</p>
+          <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
+            <!-- Sub-nav -->
+            <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+              ${['Mensagens','Sessões','Entrega','Notificações','Escassês & Vendas'].map((s,i) => `
+                <span style="padding:0.3rem 0.8rem; border-radius:9999px; font-size:0.65rem; font-weight:600; border:1px solid ${i===0 ? 'var(--accent)' : 'var(--border)'}; background:${i===0 ? 'var(--accent)' : 'var(--bg-elevated)'}; color:${i===0 ? 'var(--bg-base)' : 'var(--text-secondary)'};">${s}</span>`).join('')}
+            </div>
+            <!-- Card Mensagens -->
+            <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary);">Mensagens</div>
+                <span style="font-size:0.62rem; font-weight:700; color:var(--green);">✓ Salvo</span>
+              </div>
+              <div style="font-size:0.68rem; font-weight:600; color:var(--text-primary); margin:0.6rem 0 0.25rem;">WhatsApp — envio do link</div>
+              <div style="display:flex; gap:0.3rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                <span style="font-size:0.55rem; color:var(--text-muted);">Inserir:</span>
+                ${['{nome}','{negocio}','{evento}','{link}','{codigo}'].map(v => `<span style="font-family:monospace; font-size:0.55rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--accent); border-radius:4px; padding:0.05rem 0.3rem;">${v}</span>`).join('')}
+              </div>
+              <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.6rem; font-size:0.62rem; color:var(--text-primary); line-height:1.5;">Olá {nome}! 📸 As fotos do seu {evento} já estão prontas...</div>
+              <div style="font-size:0.52rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin:0.45rem 0 0.2rem;">Pré-visualização</div>
+              <div style="background:var(--bg-base); border:1px dashed var(--border); border-radius:6px; padding:0.45rem 0.6rem; font-size:0.62rem; color:var(--text-secondary); line-height:1.5;">Olá Marina! 📸 As fotos do seu casamento já estão prontas...</div>
+            </div>
+            <!-- Mini-cards das outras seções -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.85rem;">
+                <div style="font-size:0.68rem; font-weight:700; color:var(--text-primary); margin-bottom:0.35rem;">Padrões de novas sessões</div>
+                <div style="font-size:0.58rem; color:var(--text-muted); line-height:1.7;">Pacote: <strong style="color:var(--text-primary);">30 fotos</strong> · Extra: <strong style="color:var(--text-primary);">R$ 25</strong><br>Resolução: <strong style="color:var(--text-primary);">1200px</strong> · ✓ Comentários</div>
+              </div>
+              <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.85rem;">
+                <div style="font-size:0.68rem; font-weight:700; color:var(--text-primary); margin-bottom:0.35rem;">Escassês &amp; Vendas</div>
+                <div style="font-size:0.58rem; color:var(--text-muted); line-height:1.7;">● Lembrete de seleção: <strong style="color:var(--green);">Ativado</strong><br>● Pós-entrega: cupom <strong style="color:var(--text-primary);">CZ</strong> · 15/7/1 dias</div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Campo de mensagem <strong style="color:var(--text-primary);">em branco</strong> = o app usa a mensagem otimizada, que muda conforme o tipo de evento (casamento, newborn...). A pré-visualização mostra o texto como o cliente vai receber.</p>
+        </div>
+
+        <!-- ── PASSO A PASSO ─────────────────────────────────────────────── -->
+        <div style="border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius:12px; overflow:hidden;">
+          <div style="background:color-mix(in srgb, var(--accent) 8%, transparent); border-bottom:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.875rem 1.125rem; display:flex; align-items:center; gap:0.625rem;">
+            <span style="width:10px; height:10px; border-radius:50%; background:var(--accent); flex-shrink:0;"></span>
+            <span style="font-size:0.875rem; font-weight:800; color:var(--text-primary);">Passo a passo: O que fazer aqui?</span>
+          </div>
+          <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
+            <div style="display:flex; flex-direction:column; gap:0;">
+              ${[
+                { n:1, who:'fotógrafo', color:'var(--accent)', title:'Personalize as mensagens',             desc:'Em Mensagens, escreva o seu texto padrão para o envio do link e a entrega (e-mail e WhatsApp). Use os chips de variáveis — {nome}, {evento}, {link} — e confira na pré-visualização. Em branco, o app usa a mensagem otimizada por tipo de evento.' },
+                { n:2, who:'fotógrafo', color:'var(--accent)', title:'Defina os padrões de sessão',          desc:'Em Sessões: pacote de fotos, preço da foto extra, resolução e prazo padrão, além dos toggles de compra extra, reabertura e comentários. Cada sessão nova já nasce preenchida assim — e você ainda pode ajustar caso a caso.' },
+                { n:3, who:'fotógrafo', color:'var(--accent)', title:'Escolha o padrão de entrega',          desc:'Em Entrega, decida o que acontece nas galerias: sempre perguntar, compartilhar prévia com marca d\'água, ou entregar direto para download.' },
+                { n:4, who:'fotógrafo', color:'var(--accent)', title:'Controle os avisos que você recebe',   desc:'Em Notificações, ligue ou desligue os e-mails de quando o cliente finaliza a seleção, pede fotos extras ou pede reabertura.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)', title:'Ligue a Escassês & Vendas',            desc:'O lembrete de seleção avisa o cliente antes do prazo (sem desconto). Depois da entrega, a escassês oferece as fotos que sobraram com desconto crescente — 15, 7 e 1 dia antes da exclusão — com cupom personalizado.' },
+                { n:6, who:'sistema',   color:'var(--green)',  title:'Tudo salva sozinho',                   desc:'Não existe botão Salvar: cada mudança grava na hora ("Salvando… → ✓ Salvo"). Pode fechar a aba sem medo.' }
+              ].map((s, i, arr) => `
+                <div style="display:flex; gap:0.875rem;">
+                  <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${s.color}; color:var(--bg-base); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:800; flex-shrink:0;">${s.n}</div>
+                    ${i < arr.length - 1 ? `<div style="width:2px; flex:1; min-height:16px; background:var(--border); margin:3px 0;"></div>` : ''}
+                  </div>
+                  <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+                      <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` },
 ];
+
+function renderDynamicContent(blocks) {
+  if (!blocks || !blocks.length) return '';
+  return blocks.map(b => {
+    if (b.type === 'intro') {
+      return `<p style="color:var(--text-secondary); font-size:0.9375rem; line-height:1.6; margin:0 0 1.5rem 0;">${b.content}</p>`;
+    }
+    if (b.type === 'callout') {
+      const colors = {
+        accent: { bg: 'rgba(99,102,241,0.1)', border: 'var(--accent)', text: 'var(--text-primary)' },
+        green:  { bg: 'rgba(34,197,94,0.1)', border: 'var(--green)', text: 'var(--text-primary)' },
+        yellow: { bg: 'rgba(234,179,8,0.1)', border: 'var(--yellow)', text: 'var(--text-primary)' },
+        red:    { bg: 'rgba(239,68,68,0.1)', border: 'var(--red)', text: 'var(--text-primary)' },
+      };
+      const c = colors[b.color] || colors.accent;
+      return `<div style="background:${c.bg}; border-left:3px solid ${c.border}; padding:1rem; border-radius:0 0.5rem 0.5rem 0; margin-bottom:1.5rem; color:${c.text}; font-size:0.875rem; line-height:1.5;">${b.content}</div>`;
+    }
+    if (b.type === 'image') {
+      if (!b.url) return '';
+      return `
+        <figure style="margin:0 0 1.5rem 0;">
+          <img src="${b.url}" alt="${b.caption || 'Captura de tela'}" loading="lazy"
+            style="max-width:100%; border-radius:0.5rem; border:1px solid var(--border); display:block; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          ${b.caption ? `<figcaption style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem; text-align:center;">${b.caption}</figcaption>` : ''}
+        </figure>`;
+    }
+    if (b.type === 'steps') {
+      return `
+        <div style="margin-bottom:1.5rem;">
+          <h4 style="font-size:0.8125rem; font-weight:700; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            PASSO A PASSO
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+          </h4>
+          <div style="display:flex; flex-direction:column; gap:0; position:relative; padding-left:1.5rem;">
+            <div style="position:absolute; left:0; top:0; bottom:0; width:1px; background:var(--border);"></div>
+            ${b.steps.map(s => `
+              <div style="position:relative; margin-bottom:1.5rem;">
+                <div style="position:absolute; left:-1.5rem; top:0; width:0; display:flex; justify-content:center;">
+                  <div style="width:1.5rem; height:1.5rem; background:var(--bg-surface); border:2px solid var(--${s.color}); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:var(--${s.color}); z-index:1;">${s.n}</div>
+                </div>
+                <div>
+                  <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">${s.who === 'sistema' ? 'SISTEMA CLIQUEZOOM' : (s.who === 'cliente' ? 'O CLIENTE' : 'O FOTÓGRAFO')}</span>
+                  <h5 style="font-size:0.9375rem; font-weight:700; color:var(--text-primary); margin:0.25rem 0;">${s.title}</h5>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); line-height:1.5; margin:0;">${s.desc}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    return '';
+  }).join('');
+}
 
 function renderManualHTML() {
   return `
     <div style="display:flex; flex-direction:column; gap:0; border-radius:12px; overflow:hidden; border:1px solid var(--border);">
-      ${MANUAL_MODULES.map((mod, i) => {
+      ${activeManualModules.map((mod, i) => {
         const isOpen = openSections[mod.id] || false;
-        const notLast = i < MANUAL_MODULES.length - 1;
+        const notLast = i < activeManualModules.length - 1;
+        
+        let bodyHtml = '';
+        if (mod.content) {
+          bodyHtml = mod.content;
+        } else if (mod.blocks && mod.blocks.length > 0) {
+          bodyHtml = renderDynamicContent(mod.blocks);
+        } else {
+          bodyHtml = '<p style="color:var(--text-muted); font-size:0.875rem; padding-top:1rem; margin:0; font-style:italic;">Conteúdo em breve.</p>';
+        }
+
         return `
           <div style="${notLast ? 'border-bottom:1px solid var(--border);' : ''}">
             <button data-manual-toggle="${mod.id}" style="width:100%; display:flex; align-items:center; gap:0.875rem; padding:1rem 1.25rem; background:var(--bg-surface); border:none; cursor:pointer; text-align:left; font-family:inherit;">
@@ -1268,11 +2245,11 @@ function renderManualHTML() {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${mod.icon}</svg>
               </div>
               <span style="font-size:0.9375rem; font-weight:700; color:var(--text-primary); flex:1;">${mod.label}</span>
-              ${!mod.content ? '<span style="font-size:0.6875rem; color:var(--text-muted); font-weight:600; margin-right:0.5rem;">Em breve</span>' : ''}
+              ${(!mod.content && (!mod.blocks || mod.blocks.length === 0)) ? '<span style="font-size:0.6875rem; color:var(--text-muted); font-weight:600; margin-right:0.5rem;">Em breve</span>' : ''}
               <svg id="manual-arrow-${mod.id}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s; transform:${isOpen ? 'rotate(90deg)' : 'rotate(0deg)'}; color:var(--text-muted); flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
             <div id="manual-body-${mod.id}" style="display:${isOpen ? 'block' : 'none'}; padding:0 1.25rem 1.25rem; background:var(--bg-surface); border-top:1px solid var(--border);">
-              ${mod.content || '<p style="color:var(--text-muted); font-size:0.875rem; padding-top:1rem; margin:0; font-style:italic;">Conteúdo em breve.</p>'}
+              ${bodyHtml}
             </div>
           </div>
         `;
@@ -1285,6 +2262,465 @@ window._setAjudaView = function(view) {
   ajudaView = view;
   const container = document.getElementById('tabContent');
   if (container) renderLayout(container);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FALA CONOSCO — Sistema de Suporte (Tickets)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function renderFalaConosco(container) {
+  // Carregar tickets
+  try {
+    const res = await fetch('/api/tickets', {
+      headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    if (!res.ok) {
+      container.innerHTML = '<p style="color:var(--red); padding:1rem;">Erro ao carregar chamados</p>';
+      return;
+    }
+    const data = await res.json();
+    allTickets = data.tickets || [];
+  } catch (error) {
+    window.showToast?.('Erro ao carregar chamados', 'error');
+    container.innerHTML = '<p style="color:var(--red); padding:1rem;">Erro ao carregar chamados</p>';
+    return;
+  }
+
+  // Renderizar lista ou thread
+  if (ticketListView === 'list') {
+    renderTicketList(container);
+  } else {
+    renderTicketThread(container);
+  }
+}
+
+function renderTicketList(container) {
+  const html = `
+    <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
+      <!-- Header + Botão novo -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+        <div>
+          <h2 style="font-size:1.5rem; font-weight:800; margin:0 0 0.25rem 0; color:var(--text-primary);">Meus Chamados</h2>
+          <p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">Envie dúvidas, reporte bugs ou compartilhe sugestões</p>
+        </div>
+        <button onclick="window._openTicketForm()" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.875rem; transition:all 0.2s; font-family:inherit;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Chamado
+        </button>
+      </div>
+
+      <!-- Lista de Tickets -->
+      <div style="display:flex; flex-direction:column; gap:0.75rem;">
+        ${allTickets.length === 0 ? `
+          <div style="text-align:center; padding:2rem 1rem; color:var(--text-muted);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5; margin:0 auto 0.5rem;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <p style="margin:0; font-size:0.875rem;">Nenhum chamado ainda. Clique em "Novo Chamado" para começar!</p>
+          </div>
+        ` : `
+          ${allTickets.map(t => `
+            <div onclick="window._openTicketDetail('${t._id}')" style="
+              padding:1rem;
+              background:var(--bg-surface);
+              border:1px solid var(--border);
+              border-radius:8px;
+              cursor:pointer;
+              transition:all 0.2s;
+              display:flex;
+              justify-content:space-between;
+              align-items:flex-start;
+              gap:1rem;
+            " onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-surface)'">
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                  <span style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${_esc(t.subject)}</span>
+                  <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:4px; background:${getCategoryColor(t.category).bg}; color:${getCategoryColor(t.category).text};">
+                    ${getCategoryLabel(t.category)}
+                  </span>
+                </div>
+                <p style="margin:0 0 0.5rem 0; color:var(--text-secondary); font-size:0.875rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  ${t.messages.length > 0 ? _esc(t.messages[t.messages.length - 1].text.substring(0, 60)) + (t.messages[t.messages.length - 1].text.length > 60 ? '…' : '') : 'Sem mensagens'}
+                </p>
+                <p style="margin:0; color:var(--text-muted); font-size:0.75rem;">
+                  ${_formatDate(new Date(t.updatedAt))} • ${t.messages.length} mensagem${t.messages.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <span style="
+                font-weight:700;
+                font-size:0.75rem;
+                text-transform:uppercase;
+                padding:0.4rem 0.75rem;
+                border-radius:4px;
+                background:${getStatusColor(t.status).bg};
+                color:${getStatusColor(t.status).text};
+                flex-shrink:0;
+              ">
+                ${getStatusLabel(t.status)}
+              </span>
+            </div>
+          `).join('')}
+        `}
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function renderTicketThread(container) {
+  const ticket = allTickets.find(t => t._id === activeTicketId);
+  if (!ticket) {
+    ticketListView = 'list';
+    renderFalaConosco(container);
+    return;
+  }
+
+  const html = `
+    <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
+      <!-- Voltar + Info do Ticket -->
+      <div style="display:flex; align-items:center; gap:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+        <button onclick="window._backToTicketList()" style="padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; transition:all 0.2s; font-family:inherit;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+          ← Voltar
+        </button>
+        <div style="flex:1;">
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+            <span style="font-weight:800; font-size:1.125rem; color:var(--text-primary);">${_esc(ticket.subject)}</span>
+            <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:4px; background:${getStatusColor(ticket.status).bg}; color:${getStatusColor(ticket.status).text};">
+              ${getStatusLabel(ticket.status)}
+            </span>
+          </div>
+          <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">
+            Criado em ${_formatDate(new Date(ticket.createdAt))}
+          </p>
+        </div>
+      </div>
+
+      <!-- Thread de Mensagens -->
+      <div style="display:flex; flex-direction:column; gap:1rem; max-height:500px; overflow-y:auto; padding:0.5rem 0;">
+        ${ticket.messages.map((msg, i) => `
+          <div style="display:flex; gap:0.75rem; ${msg.from === 'admin' ? 'flex-direction:row-reverse' : ''}">
+            <div style="
+              width:32px;
+              height:32px;
+              border-radius:50%;
+              background:${msg.from === 'admin' ? 'var(--green)' : 'var(--accent)'};
+              color:#fff;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              font-weight:800;
+              font-size:0.75rem;
+              flex-shrink:0;
+            ">${msg.from === 'admin' ? '👩‍💼' : '👤'}</div>
+            <div>
+              <p style="margin:0 0 0.25rem 0; font-size:0.75rem; color:var(--text-muted); font-weight:600;">
+                ${msg.from === 'admin' ? 'CliqueZoom' : 'Você'} • ${_formatDate(new Date(msg.at))}
+              </p>
+              <div style="
+                background:${msg.from === 'admin' ? 'var(--green)' : 'var(--bg-surface)'};
+                color:${msg.from === 'admin' ? '#fff' : 'var(--text-primary)'};
+                padding:0.75rem 1rem;
+                border-radius:8px;
+                max-width:500px;
+                word-break:break-word;
+                font-size:0.875rem;
+                line-height:1.5;
+              ">${_esc(msg.text)}</div>
+              ${msg.attachmentUrl ? `
+                <p style="margin:0.5rem 0 0; font-size:0.75rem;">
+                  <a href="${msg.attachmentUrl}" target="_blank" style="color:${msg.from === 'admin' ? '#fff' : 'var(--accent)'}; text-decoration:underline;">📎 Ver anexo</a>
+                </p>
+              ` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Formulário de Resposta -->
+      <div style="border-top:1px solid var(--border); padding-top:1rem;">
+        <form onsubmit="window._submitTicketReply(event)" style="display:flex; flex-direction:column; gap:0.75rem;">
+          <label style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Sua Resposta</label>
+          <textarea id="ticketReplyText" placeholder="Escreva sua resposta aqui…" style="
+            padding:0.75rem;
+            background:var(--bg-surface);
+            border:1px solid var(--border);
+            border-radius:6px;
+            color:var(--text-primary);
+            font-family:inherit;
+            font-size:0.875rem;
+            resize:vertical;
+            min-height:100px;
+            outline:none;
+            transition:border-color 0.2s;
+          " onfocu="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+
+          <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; cursor:pointer;">
+            <input type="file" id="ticketReplyFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none;">
+            <button type="button" onclick="document.getElementById('ticketReplyFile').click()" style="
+              padding:0.5rem 0.75rem;
+              background:var(--bg-surface);
+              border:1px solid var(--border);
+              border-radius:6px;
+              cursor:pointer;
+              font-size:0.75rem;
+              font-weight:600;
+              transition:all 0.2s;
+              font-family:inherit;
+            " onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-surface)'">
+              📎 Anexar arquivo (opcional)
+            </button>
+            <span id="ticketFileLabel" style="font-size:0.75rem; color:var(--text-muted);"></span>
+          </label>
+
+          <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button type="button" onclick="window._backToTicketList()" style="
+              padding:0.75rem 1.5rem;
+              background:transparent;
+              border:1px solid var(--border);
+              border-radius:6px;
+              cursor:pointer;
+              font-weight:600;
+              font-size:0.875rem;
+              transition:all 0.2s;
+              font-family:inherit;
+            " onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+              Cancelar
+            </button>
+            <button type="submit" style="
+              padding:0.75rem 1.5rem;
+              background:var(--accent);
+              color:#fff;
+              border:none;
+              border-radius:6px;
+              cursor:pointer;
+              font-weight:600;
+              font-size:0.875rem;
+              transition:all 0.2s;
+              font-family:inherit;
+            " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              Enviar Resposta
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+
+  // Attach file label listener
+  document.getElementById('ticketReplyFile')?.addEventListener('change', (e) => {
+    const label = document.getElementById('ticketFileLabel');
+    if (e.target.files.length > 0) {
+      label.textContent = `✓ ${e.target.files[0].name}`;
+    } else {
+      label.textContent = '';
+    }
+  });
+}
+
+function getCategoryColor(cat) {
+  const colors = {
+    duvida: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6' },
+    bug: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' },
+    financeiro: { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7' },
+    sugestao: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
+    outro: { bg: 'rgba(107, 114, 128, 0.15)', text: '#6b7280' }
+  };
+  return colors[cat] || colors.outro;
+}
+
+function getCategoryLabel(cat) {
+  const labels = { duvida: 'Dúvida', bug: 'Bug', financeiro: 'Financeiro', sugestao: 'Sugestão', outro: 'Outro' };
+  return labels[cat] || 'Outro';
+}
+
+function getStatusColor(status) {
+  const colors = {
+    open: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6' },
+    pending: { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
+    resolved: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' }
+  };
+  return colors[status] || colors.open;
+}
+
+function getStatusLabel(status) {
+  const labels = { open: 'Aberto', pending: 'Aguardando', resolved: 'Resolvido' };
+  return labels[status] || 'Aberto';
+}
+
+function _formatDate(date) {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Ontem';
+  } else {
+    return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+}
+
+function _esc(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+window._openTicketForm = async function() {
+  const subject = prompt('Assunto do chamado:');
+  if (!subject) return;
+
+  const categoryLabels = { duvida: 'Dúvida', bug: 'Bug', financeiro: 'Financeiro', sugestao: 'Sugestão', outro: 'Outro' };
+  const category = prompt(`Categoria:\n\n1. ${categoryLabels.duvida}\n2. ${categoryLabels.bug}\n3. ${categoryLabels.financeiro}\n4. ${categoryLabels.sugestao}\n5. ${categoryLabels.outro}\n\nDigite 1-5 (padrão: 1)`, '1');
+  const cats = ['duvida', 'bug', 'financeiro', 'sugestao', 'outro'];
+  const catValue = cats[(parseInt(category) || 1) - 1] || 'duvida';
+
+  // Use modal form instead of prompt for message
+  _showTicketFormModal(subject, catValue);
+};
+
+function _showTicketFormModal(subject, category) {
+  const div = document.createElement('div');
+  div.style.cssText = `
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+    z-index:9999;
+  `;
+  div.innerHTML = `
+    <div style="background:var(--bg-base); border-radius:12px; padding:2rem; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 25px rgba(0,0,0,0.15);">
+      <h3 style="margin:0 0 1rem 0; color:var(--text-primary); font-size:1.25rem;">Novo Chamado</h3>
+      <form onsubmit="window._submitNewTicket(event, '${subject}', '${category}')" style="display:flex; flex-direction:column; gap:1rem;">
+        <div>
+          <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Assunto</label>
+          <input type="text" value="${_esc(subject)}" readonly style="width:100%; padding:0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Mensagem</label>
+          <textarea id="ticketFormText" placeholder="Descreva seu assunto com detalhes…" style="width:100%; padding:0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:inherit; resize:vertical; min-height:120px; outline:none;" required></textarea>
+        </div>
+        <div>
+          <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; cursor:pointer;">
+            <input type="file" id="ticketFormFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none;">
+            <button type="button" onclick="document.getElementById('ticketFormFile').click()" style="padding:0.5rem 0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:600; font-family:inherit;">
+              📎 Anexar arquivo (opcional)
+            </button>
+            <span id="ticketFormFileLabel" style="font-size:0.75rem; color:var(--text-muted);"></span>
+          </label>
+        </div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+          <button type="button" onclick="this.closest('div').parentElement.remove()" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
+            Cancelar
+          </button>
+          <button type="submit" style="padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
+            Criar Chamado
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(div);
+  div.addEventListener('click', (e) => {
+    if (e.target === div) div.remove();
+  });
+  document.getElementById('ticketFormFile')?.addEventListener('change', (e) => {
+    const label = document.getElementById('ticketFormFileLabel');
+    if (e.target.files.length > 0) {
+      label.textContent = `✓ ${e.target.files[0].name}`;
+    } else {
+      label.textContent = '';
+    }
+  });
+}
+
+window._submitNewTicket = async function(event, subject, category) {
+  event.preventDefault();
+  const text = document.getElementById('ticketFormText').value.trim();
+  const fileInput = document.getElementById('ticketFormFile');
+
+  if (!text) {
+    window.showToast?.('Escreva uma mensagem', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('subject', subject);
+  formData.append('category', category);
+  formData.append('text', text);
+  if (fileInput.files.length > 0) {
+    formData.append('attachment', fileInput.files[0]);
+  }
+
+  try {
+    const res = await fetch('/api/tickets', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${appState.authToken}` },
+      body: formData
+    });
+    if (!res.ok) {
+      window.showToast?.('Erro ao criar chamado', 'error');
+      return;
+    }
+    window.showToast?.('Chamado criado com sucesso!', 'success');
+    document.querySelector('[style*="position:fixed"]')?.remove();
+    // Reload tickets
+    const ticketsRes = await fetch('/api/tickets', {
+      headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    allTickets = (await ticketsRes.json()).tickets || [];
+    renderTicketList(document.getElementById('fala-conosco-container'));
+  } catch (error) {
+    window.showToast?.('Erro ao criar chamado', 'error');
+  }
+};
+
+window._openTicketDetail = function(ticketId) {
+  activeTicketId = ticketId;
+  ticketListView = 'thread';
+  renderFalaConosco(document.getElementById('fala-conosco-container'));
+};
+
+window._backToTicketList = function() {
+  ticketListView = 'list';
+  activeTicketId = null;
+  renderFalaConosco(document.getElementById('fala-conosco-container'));
+};
+
+window._submitTicketReply = async function(event) {
+  event.preventDefault();
+  const text = document.getElementById('ticketReplyText').value.trim();
+  const fileInput = document.getElementById('ticketReplyFile');
+
+  if (!text) {
+    window.showToast?.('Escreva uma mensagem', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('text', text);
+  if (fileInput.files.length > 0) {
+    formData.append('attachment', fileInput.files[0]);
+  }
+
+  try {
+    const res = await fetch(`/api/tickets/${activeTicketId}/reply`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${appState.authToken}` },
+      body: formData
+    });
+    if (!res.ok) {
+      window.showToast?.('Erro ao enviar resposta', 'error');
+      return;
+    }
+    window.showToast?.('Resposta enviada!', 'success');
+    // Reload ticket
+    const ticketsRes = await fetch('/api/tickets', {
+      headers: { 'Authorization': `Bearer ${appState.authToken}` }
+    });
+    allTickets = (await ticketsRes.json()).tickets || [];
+    renderTicketThread(document.getElementById('fala-conosco-container'));
+  } catch (error) {
+    window.showToast?.('Erro ao enviar resposta', 'error');
+  }
 };
 
 window._ajudaLoaded = true;

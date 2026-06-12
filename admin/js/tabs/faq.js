@@ -151,25 +151,33 @@ export async function renderFaq(container) {
     }
   });
 
+  // Captura o que está digitado nos editores ANTES de qualquer re-render —
+  // sem isso, "+ Adicionar"/remover descartavam edições não salvas dos outros cards.
+  const lerEditores = () => {
+    _faqItems = _faqItems.map((item, idx) => ({
+      id: item.id || generateId(),
+      question: questionRtes[idx] ? questionRtes[idx].getValue() : item.question,
+      answer: answerRtes[idx] ? answerRtes[idx].getValue() : item.answer,
+    }));
+  };
+
   window.deleteFaq = async (index) => {
     const ok = await window.showConfirm?.('Remover esta pergunta?', { confirmText: 'Remover', danger: true }) ?? true;
     if (!ok) return;
+    lerEditores();
     _faqItems.splice(index, 1);
     await saveFaq(true);
     renderFaq(container);
   };
 
   container.querySelector('#addFaqBtn').onclick = () => {
+    lerEditores();
     _faqItems.push({ id: generateId(), question: 'Nova pergunta', answer: '' });
     renderFaq(container);
   };
 
   container.querySelector('#saveFaqBtn').onclick = async () => {
-    _faqItems = _faqItems.map((item, idx) => ({
-      id: item.id || generateId(),
-      question: questionRtes[idx]?.getValue() || item.question,
-      answer: answerRtes[idx]?.getValue() || item.answer,
-    }));
+    lerEditores();
     await saveFaq();
   };
 }

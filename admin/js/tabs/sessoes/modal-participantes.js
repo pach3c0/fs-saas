@@ -34,7 +34,9 @@ export function setupParticipantes(container, state, renderSessoes) {
       item.onclick = () => {
         partNameInput.value = c.name;
         partEmailInput.value = c.email || '';
-        container.querySelector('#newPartClientId').value = c._id;
+        // clientId do participante é ObjectId do Mongo; IDs do Rhyno (prefixo 'rhyno:') não são armazenados aqui
+        const idStr = String(c._id || '');
+        container.querySelector('#newPartClientId').value = idStr.startsWith('rhyno:') ? '' : idStr;
         partDropdown.style.display = 'none';
       };
       partDropdown.appendChild(item);
@@ -49,8 +51,8 @@ export function setupParticipantes(container, state, renderSessoes) {
     if (!q) { partDropdown.style.display = 'none'; return; }
     _partSearchTimer = setTimeout(async () => {
       try {
-        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(q)}`);
-        renderPartDropdown(data.clients || []);
+        const data = await apiGet(`/api/gestao/customers?search=${encodeURIComponent(q)}`);
+        renderPartDropdown(data.customers || []);
       } catch { partDropdown.style.display = 'none'; }
     }, 300);
   };

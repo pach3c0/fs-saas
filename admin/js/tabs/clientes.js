@@ -165,6 +165,7 @@ function renderLista(container) {
   });
 
   if (filtrados.length === 0) {
+    updateBulkActionsBar(container, filtrados);
     lista.innerHTML = `
       <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
         ${clientesData.length === 0

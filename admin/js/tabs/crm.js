@@ -36,7 +36,7 @@ export async function renderCrm(container) {
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
         <div>
-          <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin:0;">CRM — Vendas Automáticas</h2>
+          <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin:0;">Vendas Automáticas</h2>
           <p style="color:var(--text-muted); font-size:0.875rem; margin:0.25rem 0 0;">O robô monitora suas galerias e converte fotos esquecidas em receita.</p>
         </div>
       </div>
