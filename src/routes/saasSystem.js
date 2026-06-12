@@ -141,6 +141,47 @@ router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSu
 });
 
 // ============================================================================
+// DIAGNÓSTICO POR ORGANIZAÇÃO (aba do painel lateral)
+// ============================================================================
+
+const ActivityEvent = require('../models/ActivityEvent');
+
+router.get('/admin/organizations/:id/diagnostics', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const orgId = req.params.id;
+    const org = await Organization.findById(orgId).select('slug').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organização não encontrada' });
+
+    const users = await User.find({ organizationId: orgId }).select('email').lean();
+    const userEmails = users.map(u => u.email);
+    const last7d = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const emailFiltro = { $or: [{ orgSlug: org.slug }, { to: { $in: userEmails } }] };
+
+    const [erros, emails, ultimoLogin, auditoria, erros7d, emailsFalha7d] = await Promise.all([
+      PlatformLog.find({ organizationId: orgId }).sort({ at: -1 }).limit(20).lean(),
+      EmailLog.find(emailFiltro).sort({ at: -1 }).limit(20).lean(),
+      ActivityEvent.findOne({ organizationId: orgId, type: 'login' }).sort({ at: -1 }).lean(),
+      AuditLog.find({ targetOrgId: orgId }).sort({ at: -1 }).limit(10)
+        .populate('adminUserId', 'email').lean(),
+      PlatformLog.countDocuments({ organizationId: orgId, at: { $gte: last7d } }),
+      EmailLog.countDocuments({ ...emailFiltro, ok: false, at: { $gte: last7d } })
+    ]);
+
+    res.json({
+      success: true,
+      erros,
+      emails,
+      ultimoLogin: ultimoLogin?.at || null,
+      auditoria,
+      counters: { erros7d, emailsFalha7d }
+    });
+  } catch (error) {
+    req.logger.error('Erro no diagnóstico da org', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
 // ERROS DO FRONTEND (público, rate-limited)
 // ============================================================================
 

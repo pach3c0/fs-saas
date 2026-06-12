@@ -325,6 +325,7 @@ async function loadPanelTab(tab) {
   try {
     if (tab === 'overview') await renderPanelOverview(content);
     else if (tab === 'jornada') await renderPanelJornada(content);
+    else if (tab === 'diagnostico') await renderPanelDiagnostico(content);
     else if (tab === 'meusite') await renderPanelMeuSite(content);
     else {
       content.innerHTML = `<div class="coming-soon"><span class="cs-icon">🚧</span><p>Em breve</p></div>`;
@@ -332,6 +333,86 @@ async function loadPanelTab(tab) {
   } catch (err) {
     content.innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
   }
+}
+
+// ── Diagnóstico: erros, e-mails e ações de suporte da org ───────────────────
+
+function _tempoRelativo(date) {
+  if (!date) return 'nunca';
+  const dias = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  if (dias === 0) return 'hoje';
+  if (dias === 1) return 'ontem';
+  return `${dias} dias atrás`;
+}
+
+const AUDIT_LABEL = {
+  org_approve: 'Aprovou a org', org_deactivate: 'Desativou a org',
+  org_trash: 'Moveu para a lixeira', org_restore: 'Restaurou da lixeira',
+  org_delete: 'Excluiu definitivamente', plan_change: 'Mudou o plano',
+  limits_change: 'Alterou limites custom', site_reset: 'Resetou seção do site',
+  plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
+};
+
+async function renderPanelDiagnostico(content) {
+  const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/diagnostics`);
+
+  const errosHtml = (data.erros || []).map(e => `
+    <li style="padding:0.4rem 0; border-bottom:1px solid #334155; font-size:0.8rem;">
+      <div style="display:flex; gap:0.5rem; align-items:baseline;">
+        <span style="background:${e.level === 'error' ? 'rgba(248,113,113,0.12)' : 'rgba(250,204,21,0.12)'}; color:${e.level === 'error' ? '#f87171' : '#facc15'}; padding:0.1rem 0.4rem; border-radius:4px; font-size:0.6rem; font-weight:700; text-transform:uppercase; flex-shrink:0;">${e.level}</span>
+        <span style="word-break:break-word;">${esc((e.message || '').slice(0, 140))}</span>
+      </div>
+      <div style="font-size:0.65rem; color:#64748b; margin-top:0.15rem;">${new Date(e.at).toLocaleString('pt-BR')}${e.source !== 'backend' ? ' · ' + esc(e.source) : ''}</div>
+    </li>`).join('') || '<li style="color:#64748b; font-size:0.8rem; padding:0.4rem 0;">Nenhum erro registrado 🎉</li>';
+
+  const emailsHtml = (data.emails || []).map(e => `
+    <li style="padding:0.4rem 0; border-bottom:1px solid #334155; font-size:0.8rem; display:flex; justify-content:space-between; gap:0.5rem;">
+      <span style="min-width:0;">
+        <span style="color:${e.ok ? '#34d399' : '#f87171'}; font-weight:700; font-size:0.65rem;">${e.skipped ? 'SMTP OFF' : e.ok ? 'OK' : 'FALHA'}</span>
+        <span style="color:#94a3b8; font-size:0.7rem;">${esc(e.template || '-')}</span> → ${esc(e.to)}
+        ${!e.ok && e.error ? `<div style="font-size:0.65rem; color:#f87171;">${esc(e.error.slice(0, 80))}</div>` : ''}
+      </span>
+      <span style="color:#64748b; font-size:0.65rem; flex-shrink:0;">${new Date(e.at).toLocaleDateString('pt-BR')}</span>
+    </li>`).join('') || '<li style="color:#64748b; font-size:0.8rem; padding:0.4rem 0;">Nenhum e-mail registrado</li>';
+
+  const auditHtml = (data.auditoria || []).map(a => `
+    <li style="padding:0.35rem 0; border-bottom:1px solid #334155; font-size:0.75rem; display:flex; justify-content:space-between; gap:0.5rem;">
+      <span>${AUDIT_LABEL[a.action] || esc(a.action)}${a.meta?.plan ? ` (${esc(a.meta.plan)})` : ''}${a.meta?.section ? ` (${esc(a.meta.section)})` : ''} <span style="color:#64748b;">por ${esc(a.adminUserId?.email || '?')}</span></span>
+      <span style="color:#64748b; font-size:0.65rem; flex-shrink:0;">${new Date(a.at).toLocaleString('pt-BR')}</span>
+    </li>`).join('') || '<li style="color:#64748b; font-size:0.8rem; padding:0.4rem 0;">Nenhuma ação de suporte</li>';
+
+  content.innerHTML = `
+    <h3 style="font-size:0.875rem; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Diagnóstico</h3>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.75rem; margin-bottom:1.25rem;">
+      <div class="detail-card"><h4>Último login</h4><div class="val" style="font-size:0.95rem;">${_tempoRelativo(data.ultimoLogin)}</div></div>
+      <div class="detail-card"><h4>Erros (7d)</h4><div class="val" style="color:${data.counters.erros7d > 0 ? '#f87171' : '#34d399'};">${data.counters.erros7d}</div></div>
+      <div class="detail-card"><h4>E-mails falhados (7d)</h4><div class="val" style="color:${data.counters.emailsFalha7d > 0 ? '#f87171' : '#34d399'};">${data.counters.emailsFalha7d}</div></div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Últimos erros desta org</h3>
+      <ul style="list-style:none; margin:0; padding:0; max-height:220px; overflow-y:auto;">${errosHtml}</ul>
+    </div>
+
+    <div class="detail-section" style="margin-top:1rem;">
+      <h3>E-mails</h3>
+      <ul style="list-style:none; margin:0; padding:0; max-height:220px; overflow-y:auto;">${emailsHtml}</ul>
+    </div>
+
+    <div class="detail-section" style="margin-top:1rem;">
+      <h3>Ações de suporte (auditoria)</h3>
+      <ul style="list-style:none; margin:0; padding:0;">${auditHtml}</ul>
+    </div>
+
+    <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid #334155;">
+      <button id="diagImpersonate" style="background:#b45309; color:#fff; border:none; border-radius:0.375rem; padding:0.5rem 1rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">
+        🛠️ Entrar como este fotógrafo
+      </button>
+    </div>
+  `;
+
+  content.querySelector('#diagImpersonate').onclick = () => impersonateOrg(currentPanelOrgId);
 }
 
 // ── Impersonação: "entrar como" a org em nova aba (modo suporte) ────────────
