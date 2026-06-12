@@ -366,6 +366,7 @@ app.use('/api', require('./routes/saasAdmin'));
 app.use('/api', require('./routes/tutorials'));
 app.use('/api', require('./routes/manual'));
 app.use('/api', require('./routes/tickets'));
+app.use('/api', require('./routes/saasSystem'));
 
 
 

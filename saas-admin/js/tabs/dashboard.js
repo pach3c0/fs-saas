@@ -29,7 +29,12 @@ async function loadHealth() {
   const section = document.getElementById('healthSection');
   if (!section) return;
   try {
-    const data = await apiRequest('GET', '/api/admin/saas/health');
+    // Erros 24h em paralelo com a saúde (limit 1: só queremos os contadores)
+    const [data, errData] = await Promise.all([
+      apiRequest('GET', '/api/admin/saas/health'),
+      apiRequest('GET', '/api/admin/saas/errors?hours=24&limit=1').catch(() => null)
+    ]);
+    const errors24h = errData?.counters?.errors24h ?? null;
 
     // Card 1 — Suporte & atividade
     const supportHtml = `
@@ -38,6 +43,11 @@ async function loadHealth() {
           <span style="color:var(--text-secondary); font-size:0.85rem;">Chamados abertos</span>
           <span style="font-size:1.25rem; font-weight:700; color:${data.openTickets > 0 ? '#fbbf24' : 'var(--text-primary)'};">${data.openTickets}</span>
         </div>
+        ${errors24h !== null ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="switchTab('eventos')">
+          <span style="color:var(--text-secondary); font-size:0.85rem;">Erros (24h)</span>
+          <span style="font-size:1.25rem; font-weight:700; color:${errors24h > 0 ? '#f87171' : '#34d399'};">${errors24h}</span>
+        </div>` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="color:var(--text-secondary); font-size:0.85rem;">Sessões criadas (7 dias)</span>
           <span style="font-size:1.25rem; font-weight:700; color:var(--text-primary);">${data.sessionsLast7d}</span>

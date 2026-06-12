@@ -40,6 +40,11 @@ const logger = winston.createLogger({
     ]
 });
 
+// Espelha error/warn no MongoDB para a aba "Eventos" do SaaS Admin
+// (fire-and-forget com circuit breaker — ver mongoLogTransport.js)
+const MongoLogTransport = require('./mongoLogTransport');
+logger.add(new MongoLogTransport({ level: 'warn' }));
+
 // Em desenvolvimento, logar também no console com cores
 if (process.env.NODE_ENV !== 'production') {
     logger.add(new winston.transports.Console({

@@ -248,6 +248,7 @@
             <button class="tab-btn" onclick="switchTab('tutorials')">Tutoriais</button>
             <button class="tab-btn" onclick="switchTab('manual')">Manual</button>
             <button class="tab-btn" onclick="switchTab('security')">Segurança</button>
+            <button class="tab-btn" onclick="switchTab('eventos')">Eventos</button>
         </div>
 
         <!-- Tab: Organizações -->
@@ -351,6 +352,51 @@
         </div>
 
         <!-- Tab: Segurança -->
+        <!-- Eventos — central de erros (backend + frontend) -->
+        <div class="tab-content" id="tabEventos">
+            <div class="table-wrap">
+                <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                    <div>
+                        <h3 style="font-size:0.875rem; font-weight:600; margin:0 0 0.25rem 0;">Central de Erros</h3>
+                        <div id="eventosCounters" style="display:flex; gap:0.4rem; align-items:center; font-size:0.75rem;"></div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                        <select id="eventosLevelFilter" onchange="loadEventos()" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; cursor:pointer;">
+                            <option value="">Todos os níveis</option>
+                            <option value="error">Só erros</option>
+                            <option value="warn">Só avisos</option>
+                        </select>
+                        <select id="eventosSourceFilter" onchange="loadEventos()" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; cursor:pointer;">
+                            <option value="">Todas as origens</option>
+                            <option value="backend">Backend</option>
+                            <option value="frontend-admin">Painel fotógrafo</option>
+                            <option value="frontend-cliente">Galeria cliente</option>
+                        </select>
+                        <select id="eventosHoursFilter" onchange="loadEventos()" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; cursor:pointer;">
+                            <option value="24">Últimas 24h</option>
+                            <option value="168" selected>Últimos 7 dias</option>
+                            <option value="720">Últimos 30 dias</option>
+                        </select>
+                        <button class="btn" onclick="loadEventos()">Atualizar</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Nível</th>
+                            <th>Origem</th>
+                            <th>Org</th>
+                            <th>Mensagem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventosTable">
+                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="tab-content" id="tabSecurity">
             <div class="table-wrap">
                 <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">

@@ -9,6 +9,7 @@ import { loadTrash } from './tabs/lixeira.js';
 import { loadTickets } from './tabs/tickets.js';
 import { loadLandingEditor } from './tabs/landing.js';
 import { loadSecurityLogs } from './tabs/seguranca.js';
+import { loadEventos } from './tabs/eventos.js';
 import { loadTutorials } from './tabs/tutoriais.js';
 import { loadManual } from './tabs/manual.js';
 
@@ -95,6 +96,9 @@ window.switchTab = (tab) => {
   } else if (tab === 'security') {
     document.getElementById('tabSecurity').classList.add('active');
     loadSecurityLogs();
+  } else if (tab === 'eventos') {
+    document.getElementById('tabEventos').classList.add('active');
+    loadEventos();
   } else {
     const firstBtn = document.querySelectorAll('.tab-btn')[0];
     if (firstBtn) firstBtn.classList.add('active');
