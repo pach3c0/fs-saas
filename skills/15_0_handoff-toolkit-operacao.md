@@ -1,8 +1,15 @@
 # Handoff — Toolkit de Operação do SaaS Admin (2026-06-12)
 
-> Sessão interrompida por crédito baixo. **Fases 0–5 de 6 implementadas, validadas e
-> commitadas** (tudo local, NADA deployado). Plano original aprovado em
-> `~/.claude/plans/nao-posso-fazer-deploy-curried-cupcake.md` (cópia das fases abaixo).
+> ✅ **CONCLUÍDO em 2026-06-12: TODAS as 7 fases (0–6) implementadas, validadas e
+> commitadas. Regressão final: 131/131 testes verdes (19,6 min).** Tudo local,
+> NADA deployado. Plano: `~/.claude/plans/nao-posso-fazer-deploy-curried-cupcake.md`.
+>
+> Fase 6 entregue: model SchedulerRun + schedulerRunner.js (safeInterval nomeado +
+> recordRun p/ anniversary), verifySmtp() com cache 5min em email.js,
+> GET /admin/saas/system (mongo ping, smtp, disco statfs+uploads cache 10min,
+> processo, schedulers) e aba "Sistema" (4 cards de estado + tabela de schedulers +
+> auditoria recente). Aba Diagnóstico (F5) validada na UI no mesmo teste.
+> Nota: alerta de disco >85% já disparou de verdade (Mac do usuário a 96%).
 
 ## Objetivo
 Ferramentas para o dono operar a plataforma sozinho: ver tudo que acontece no app,
