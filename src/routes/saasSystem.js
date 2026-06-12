@@ -41,6 +41,39 @@ router.get('/admin/saas/errors', authenticateToken, requireSuperadmin, async (re
 });
 
 // ============================================================================
+// E-MAILS (EmailLog)
+// ============================================================================
+
+const EmailLog = require('../models/EmailLog');
+
+router.get('/admin/saas/emails', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { ok, template, to } = req.query;
+    const hours = Math.min(parseInt(req.query.hours) || 168, 2160);
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+
+    const filtro = { at: { $gte: new Date(Date.now() - hours * 3600 * 1000) } };
+    if (ok === 'true') filtro.ok = true;
+    if (ok === 'false') filtro.ok = false;
+    if (template) filtro.template = template;
+    if (to) filtro.to = { $regex: to.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+
+    const last24h = new Date(Date.now() - 24 * 3600 * 1000);
+    const [emails, sent24h, failed24h] = await Promise.all([
+      // Falhas primeiro, depois mais recentes
+      EmailLog.find(filtro).sort({ ok: 1, at: -1 }).limit(limit).lean(),
+      EmailLog.countDocuments({ ok: true, at: { $gte: last24h } }),
+      EmailLog.countDocuments({ ok: false, at: { $gte: last24h } })
+    ]);
+
+    res.json({ success: true, emails, counters: { sent24h, failed24h } });
+  } catch (error) {
+    req.logger.error('Erro ao listar email logs', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
 // ERROS DO FRONTEND (público, rate-limited)
 // ============================================================================
 

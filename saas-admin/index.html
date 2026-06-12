@@ -352,9 +352,14 @@
         </div>
 
         <!-- Tab: Segurança -->
-        <!-- Eventos — central de erros (backend + frontend) -->
+        <!-- Eventos — central de erros (backend + frontend) + e-mails -->
         <div class="tab-content" id="tabEventos">
-            <div class="table-wrap">
+            <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                <button class="btn" id="eventosViewErros" onclick="switchEventosView('erros')" style="font-weight:600;">Erros</button>
+                <button class="btn" id="eventosViewEmails" onclick="switchEventosView('emails')">E-mails</button>
+            </div>
+
+            <div id="eventosPainelErros" class="table-wrap">
                 <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
                     <div>
                         <h3 style="font-size:0.875rem; font-weight:600; margin:0 0 0.25rem 0;">Central de Erros</h3>
@@ -391,6 +396,44 @@
                         </tr>
                     </thead>
                     <tbody id="eventosTable">
+                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="eventosPainelEmails" class="table-wrap" style="display:none;">
+                <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                    <div>
+                        <h3 style="font-size:0.875rem; font-weight:600; margin:0 0 0.25rem 0;">E-mails Enviados</h3>
+                        <div id="emailsCounters" style="display:flex; gap:0.4rem; align-items:center; font-size:0.75rem;"></div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                        <select id="emailsOkFilter" onchange="loadEmails()" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; cursor:pointer;">
+                            <option value="">Todos</option>
+                            <option value="false">Só falhas</option>
+                            <option value="true">Só enviados</option>
+                        </select>
+                        <select id="emailsHoursFilter" onchange="loadEmails()" style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; cursor:pointer;">
+                            <option value="24">Últimas 24h</option>
+                            <option value="168" selected>Últimos 7 dias</option>
+                            <option value="720">Últimos 30 dias</option>
+                        </select>
+                        <input id="emailsToFilter" placeholder="Filtrar por destinatário…" onkeydown="if(event.key==='Enter')loadEmails()"
+                            style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.75rem; width:190px;">
+                        <button class="btn" onclick="loadEmails()">Atualizar</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Status</th>
+                            <th>Destinatário</th>
+                            <th>Tipo</th>
+                            <th>Assunto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="emailsTable">
                         <tr><td colspan="5" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>

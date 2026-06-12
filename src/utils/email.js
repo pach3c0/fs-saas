@@ -34,13 +34,30 @@ function getTransporter() {
   return _transporter;
 }
 
+// Registra cada tentativa no EmailLog (aba Eventos do SaaS Admin).
+// Fire-and-forget: nunca atrasa nem quebra o envio.
+function _logEmail(doc) {
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) return;
+    const EmailLog = require('../models/EmailLog');
+    EmailLog.create(doc).catch(err => {
+      console.error('[EmailLog] falha ao gravar:', err.message);
+    });
+  } catch (err) {
+    console.error('[EmailLog] erro interno:', err.message);
+  }
+}
+
 /**
- * Envia email generico
+ * Envia email generico. meta (opcional): { template, orgSlug, organizationId }
+ * — só para rastreio no EmailLog, não afeta o envio.
  */
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, meta = {}) {
   const t = getTransporter();
   if (!t) {
     logger.warn(`[Email] Pulando envio para ${to}: SMTP nao configurado`);
+    _logEmail({ to, subject, ...meta, ok: false, skipped: true, error: 'SMTP não configurado' });
     return false;
   }
 
@@ -52,9 +69,11 @@ async function sendEmail(to, subject, html) {
       html
     });
     logger.info(`[Email] Enviado para ${to}: ${subject}`);
+    _logEmail({ to, subject, ...meta, ok: true });
     return true;
   } catch (error) {
     logger.error(`[Email] Erro ao enviar para ${to}:`, { message: error.message });
+    _logEmail({ to, subject, ...meta, ok: false, error: error.message });
     return false;
   }
 }
@@ -100,7 +119,7 @@ async function sendWelcomeEmail(email, name, slug) {
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'welcome', orgSlug: slug });
 }
 
 /**
@@ -135,7 +154,7 @@ async function sendPasswordResetEmail(email, name, resetUrl) {
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'password_reset' });
 }
 
 /**
@@ -181,7 +200,7 @@ async function sendApprovalEmail(email, name, slug) {
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'approval', orgSlug: slug });
 }
 
 /**
@@ -273,7 +292,7 @@ async function sendGalleryAvailableEmail(clientEmail, clientName, accessCode, or
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'gallery_available', orgSlug });
 }
 
 /**
@@ -318,7 +337,7 @@ async function sendPhotosDeliveredEmail(clientEmail, clientName, accessCode, org
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'photos_delivered', orgSlug });
 }
 
 /**
@@ -353,7 +372,7 @@ async function sendAlbumAvailableEmail(clientEmail, clientName, accessCode, albu
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'album_available' });
 }
 
 /**
@@ -387,7 +406,7 @@ async function sendSelectionSubmittedEmail(adminEmail, clientName, photoCount, s
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmail(adminEmail, subject, html, { template: 'selection_submitted', orgSlug });
 }
 
 /**
@@ -419,7 +438,7 @@ async function sendAlbumApprovedEmail(adminEmail, clientName, albumName, orgSlug
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmail(adminEmail, subject, html, { template: 'album_approved', orgSlug });
 }
 
 /**
@@ -457,7 +476,7 @@ async function sendAlbumRevisionEmail(adminEmail, clientName, albumName, comment
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmail(adminEmail, subject, html, { template: 'album_revision', orgSlug });
 }
 
 /**
@@ -484,7 +503,7 @@ async function sendPendingDepoimentoEmail(adminEmail, depoimentoName, orgName) {
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmail(adminEmail, subject, html, { template: 'pending_depoimento' });
 }
 
 /**
@@ -518,7 +537,7 @@ async function sendExtraPhotosRequestedEmail(adminEmail, clientName, photoCount)
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmail(adminEmail, subject, html, { template: 'extra_photos_requested' });
 }
 
 /**
@@ -553,7 +572,7 @@ async function sendDeadlineWarningEmail(clientEmail, sessionName, daysLeft, orgN
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'deadline_warning' });
 }
 
 /**
@@ -580,7 +599,7 @@ async function sendDeadlineExpiredEmail(clientEmail, sessionName, orgName) {
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'deadline_expired' });
 }
 
 /**
@@ -631,7 +650,7 @@ async function sendUpsellEmail(clientEmail, clientName, sessionName, orgName, ex
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'upsell', orgSlug });
 }
 
 /**
@@ -668,7 +687,7 @@ async function sendOffboardingWarningEmail(ownerEmail, orgName, graceDays) {
       </div>
     </div>
   `;
-  return sendEmail(ownerEmail, subject, html);
+  return sendEmail(ownerEmail, subject, html, { template: 'offboarding_warning' });
 }
 
 /**
@@ -696,7 +715,7 @@ async function sendOffboardingDeletedEmail(ownerEmail, orgName) {
       </div>
     </div>
   `;
-  return sendEmail(ownerEmail, subject, html);
+  return sendEmail(ownerEmail, subject, html, { template: 'offboarding_deleted' });
 }
 
 /**
@@ -725,7 +744,7 @@ async function sendExtraPhotosRejectedEmail(clientEmail, clientName, orgName, re
       </div>
     </div>
   `;
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'extra_photos_rejected', orgSlug });
 }
 
 /**
@@ -809,7 +828,7 @@ async function sendPostDeliveryUpsellEmail(clientEmail, clientName, sessionName,
     accentColor,
     ctaLabel: 'Quero minhas fotos extras'
   });
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'post_delivery_upsell', orgSlug });
 }
 
 /**
@@ -882,7 +901,7 @@ async function sendReactivation90dEmail(clientEmail, clientName, sessionName, ev
     ctaLabel: 'Quero conversar',
     contactUrl: _contactUrl(orgSlug)
   });
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'reactivation_9_0d', orgSlug });
 }
 
 /**
@@ -897,7 +916,7 @@ async function sendReactivation30dEmail(clientEmail, clientName, sessionName, ev
     ctaLabel: 'Reservar agenda',
     contactUrl: _contactUrl(orgSlug)
   });
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'reactivation_3_0d', orgSlug });
 }
 
 /**
@@ -912,7 +931,7 @@ async function sendReactivation7dEmail(clientEmail, clientName, sessionName, eve
     ctaLabel: 'Reservar agora',
     contactUrl: _contactUrl(orgSlug)
   });
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'reactivation_7d', orgSlug });
 }
 
 /**
@@ -927,7 +946,7 @@ async function sendManualReactivationEmail(clientEmail, clientName, orgName, org
     ctaLabel: 'Entrar em contato',
     contactUrl: _contactUrl(orgSlug)
   });
-  return sendEmail(clientEmail, subject, html);
+  return sendEmail(clientEmail, subject, html, { template: 'manual_reactivation', orgSlug });
 }
 
 /**
@@ -965,7 +984,7 @@ async function sendNewPhotographerNotificationEmail(photographerName, photograph
       </div>
     </div>
   `;
-  return sendEmail(ownerEmail, subject, html);
+  return sendEmail(ownerEmail, subject, html, { template: 'new_photographer_notification', orgSlug: slug });
 }
 
 /**
@@ -1015,7 +1034,7 @@ async function sendStorageRetentionEmail(email, orgName, sessionName, dateStr, a
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'storage_retention' });
 }
 
 async function sendPendingDownloadEmail(email, clientName, sessionName, galleryUrl, orgName) {
@@ -1057,7 +1076,7 @@ async function sendPendingDownloadEmail(email, clientName, sessionName, galleryU
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'pending_download' });
 }
 
 async function sendTicketReplyEmail(email, name, ticketSubject, replyText) {
@@ -1085,7 +1104,7 @@ async function sendTicketReplyEmail(email, name, ticketSubject, replyText) {
       </div>
     </div>
   `;
-  return sendEmail(email, subject, html);
+  return sendEmail(email, subject, html, { template: 'ticket_reply' });
 }
 
 module.exports = {

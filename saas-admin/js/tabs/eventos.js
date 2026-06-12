@@ -85,6 +85,89 @@ async function loadEventos() {
   }
 }
 
-window.loadEventos = loadEventos;
+// ============================================================================
+// E-MAILS (EmailLog) — sub-painel da mesma aba
+// ============================================================================
 
-export { loadEventos };
+window.switchEventosView = function (view) {
+  const erros = document.getElementById('eventosPainelErros');
+  const emails = document.getElementById('eventosPainelEmails');
+  const btnErros = document.getElementById('eventosViewErros');
+  const btnEmails = document.getElementById('eventosViewEmails');
+  const ativo = 'background:var(--accent); color:var(--accent-on); font-weight:600;';
+  if (view === 'emails') {
+    erros.style.display = 'none';
+    emails.style.display = '';
+    btnEmails.style.cssText = ativo;
+    btnErros.style.cssText = '';
+    loadEmails();
+  } else {
+    erros.style.display = '';
+    emails.style.display = 'none';
+    btnErros.style.cssText = ativo;
+    btnEmails.style.cssText = '';
+    loadEventos();
+  }
+};
+
+async function loadEmails() {
+  const tbody = document.getElementById('emailsTable');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">Carregando e-mails...</td></tr>';
+
+  try {
+    const params = new URLSearchParams();
+    const ok = document.getElementById('emailsOkFilter')?.value || '';
+    const hours = document.getElementById('emailsHoursFilter')?.value || '168';
+    const to = document.getElementById('emailsToFilter')?.value.trim() || '';
+    if (ok) params.set('ok', ok);
+    if (to) params.set('to', to);
+    params.set('hours', hours);
+
+    const data = await apiRequest('GET', `/api/admin/saas/emails?${params}`);
+    const emails = data.emails || [];
+
+    const counters = document.getElementById('emailsCounters');
+    if (counters && data.counters) {
+      counters.innerHTML = `
+        <span style="color:#34d399; font-weight:700;">${data.counters.sent24h} enviados</span>
+        <span style="color:#64748b;">·</span>
+        <span style="color:#f87171; font-weight:700;">${data.counters.failed24h} falhas</span>
+        <span style="color:#64748b; font-size:0.7rem;">(últimas 24h)</span>
+      `;
+    }
+
+    if (!emails.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">Nenhum e-mail no período.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = emails.map(e => {
+      const date = new Date(e.at).toLocaleString('pt-BR');
+      let badge;
+      if (e.skipped) badge = '<span style="background:rgba(148,163,184,0.12); color:#94a3b8; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.65rem; font-weight:700;">SMTP OFF</span>';
+      else if (e.ok) badge = '<span style="background:rgba(52,211,153,0.12); color:#34d399; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.65rem; font-weight:700;">ENVIADO</span>';
+      else badge = '<span style="background:rgba(248,113,113,0.12); color:#f87171; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.65rem; font-weight:700;">FALHA</span>';
+
+      const erroDetalhe = (!e.ok && e.error)
+        ? `<div style="font-size:0.65rem; color:#f87171; margin-top:0.2rem;">${esc(e.error)}</div>` : '';
+
+      return `
+        <tr>
+          <td style="white-space:nowrap; font-size:0.7rem;">${date}</td>
+          <td>${badge}</td>
+          <td style="font-size:0.75rem;">${esc(e.to || '-')}${e.orgSlug ? `<div style="font-size:0.65rem; color:#64748b;">org: ${esc(e.orgSlug)}</div>` : ''}</td>
+          <td style="font-size:0.7rem; color:#94a3b8;">${esc(e.template || '-')}</td>
+          <td style="font-size:0.75rem; max-width:340px; word-break:break-word;">${esc(e.subject || '-')}${erroDetalhe}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading" style="color:var(--red);">Erro ao carregar: ${esc(err.message)}</td></tr>`;
+  }
+}
+
+window.loadEventos = loadEventos;
+window.loadEmails = loadEmails;
+
+export { loadEventos, loadEmails };
