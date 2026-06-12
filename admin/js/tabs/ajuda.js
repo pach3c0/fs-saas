@@ -2566,21 +2566,18 @@ function _esc(text) {
   return div.innerHTML;
 }
 
-window._openTicketForm = async function() {
-  const subject = prompt('Assunto do chamado:');
-  if (!subject) return;
-
-  const categoryLabels = { duvida: 'Dúvida', bug: 'Bug', financeiro: 'Financeiro', sugestao: 'Sugestão', outro: 'Outro' };
-  const category = prompt(`Categoria:\n\n1. ${categoryLabels.duvida}\n2. ${categoryLabels.bug}\n3. ${categoryLabels.financeiro}\n4. ${categoryLabels.sugestao}\n5. ${categoryLabels.outro}\n\nDigite 1-5 (padrão: 1)`, '1');
-  const cats = ['duvida', 'bug', 'financeiro', 'sugestao', 'outro'];
-  const catValue = cats[(parseInt(category) || 1) - 1] || 'duvida';
-
-  // Use modal form instead of prompt for message
-  _showTicketFormModal(subject, catValue);
+window._openTicketForm = function() {
+  _showTicketFormModal();
 };
 
-function _showTicketFormModal(subject, category) {
+window._closeTicketForm = function() {
+  document.getElementById('ticketFormOverlay')?.remove();
+};
+
+function _showTicketFormModal() {
+  _closeTicketFormIfOpen();
   const div = document.createElement('div');
+  div.id = 'ticketFormOverlay';
   div.style.cssText = `
     position:fixed; top:0; left:0; right:0; bottom:0;
     background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
@@ -2589,10 +2586,20 @@ function _showTicketFormModal(subject, category) {
   div.innerHTML = `
     <div style="background:var(--bg-base); border-radius:12px; padding:2rem; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 25px rgba(0,0,0,0.15);">
       <h3 style="margin:0 0 1rem 0; color:var(--text-primary); font-size:1.25rem;">Novo Chamado</h3>
-      <form onsubmit="window._submitNewTicket(event, '${subject}', '${category}')" style="display:flex; flex-direction:column; gap:1rem;">
+      <form onsubmit="window._submitNewTicket(event)" style="display:flex; flex-direction:column; gap:1rem;">
         <div>
           <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Assunto</label>
-          <input type="text" value="${_esc(subject)}" readonly style="width:100%; padding:0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-family:inherit;">
+          <input type="text" id="ticketFormSubject" placeholder="Ex: Dúvida sobre marca d'água" maxlength="120" required style="width:100%; padding:0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:inherit; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Categoria</label>
+          <select id="ticketFormCategory" style="width:100%; padding:0.75rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:inherit; cursor:pointer; outline:none;">
+            <option value="duvida">Dúvida</option>
+            <option value="bug">Bug / Problema</option>
+            <option value="financeiro">Financeiro</option>
+            <option value="sugestao">Sugestão</option>
+            <option value="outro">Outro</option>
+          </select>
         </div>
         <div>
           <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem;">Mensagem</label>
@@ -2608,10 +2615,10 @@ function _showTicketFormModal(subject, category) {
           </label>
         </div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
-          <button type="button" onclick="this.closest('div').parentElement.remove()" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
+          <button type="button" onclick="window._closeTicketForm()" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit; color:var(--text-primary);">
             Cancelar
           </button>
-          <button type="submit" style="padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
+          <button type="submit" id="ticketFormSubmitBtn" style="padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
             Criar Chamado
           </button>
         </div>
@@ -2630,13 +2637,24 @@ function _showTicketFormModal(subject, category) {
       label.textContent = '';
     }
   });
+  document.getElementById('ticketFormSubject')?.focus();
 }
 
-window._submitNewTicket = async function(event, subject, category) {
+function _closeTicketFormIfOpen() {
+  document.getElementById('ticketFormOverlay')?.remove();
+}
+
+window._submitNewTicket = async function(event) {
   event.preventDefault();
+  const subject = document.getElementById('ticketFormSubject').value.trim();
+  const category = document.getElementById('ticketFormCategory').value;
   const text = document.getElementById('ticketFormText').value.trim();
   const fileInput = document.getElementById('ticketFormFile');
 
+  if (!subject) {
+    window.showToast?.('Informe o assunto', 'error');
+    return;
+  }
   if (!text) {
     window.showToast?.('Escreva uma mensagem', 'error');
     return;
@@ -2650,6 +2668,9 @@ window._submitNewTicket = async function(event, subject, category) {
     formData.append('attachment', fileInput.files[0]);
   }
 
+  const submitBtn = document.getElementById('ticketFormSubmitBtn');
+  if (submitBtn) { submitBtn.textContent = 'Enviando…'; submitBtn.disabled = true; }
+
   try {
     const res = await fetch('/api/tickets', {
       method: 'POST',
@@ -2658,10 +2679,11 @@ window._submitNewTicket = async function(event, subject, category) {
     });
     if (!res.ok) {
       window.showToast?.('Erro ao criar chamado', 'error');
+      if (submitBtn) { submitBtn.textContent = 'Criar Chamado'; submitBtn.disabled = false; }
       return;
     }
+    window._closeTicketForm();
     window.showToast?.('Chamado criado com sucesso!', 'success');
-    document.querySelector('[style*="position:fixed"]')?.remove();
     // Reload tickets
     const ticketsRes = await fetch('/api/tickets', {
       headers: { 'Authorization': `Bearer ${appState.authToken}` }
@@ -2670,6 +2692,7 @@ window._submitNewTicket = async function(event, subject, category) {
     renderTicketList(document.getElementById('fala-conosco-container'));
   } catch (error) {
     window.showToast?.('Erro ao criar chamado', 'error');
+    if (submitBtn) { submitBtn.textContent = 'Criar Chamado'; submitBtn.disabled = false; }
   }
 };
 
