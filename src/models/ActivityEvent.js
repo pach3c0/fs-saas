@@ -37,8 +37,8 @@ const activityEventSchema = new mongoose.Schema({
   },
   at: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
+    // index { at: 1 } definido abaixo com TTL — não duplicar com index: true
   }
 }, { timestamps: false });
 
