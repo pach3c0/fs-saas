@@ -308,7 +308,9 @@ const apiLimiter = rateLimit({
   max: 300,            // máx 300 req/min por tenant (ou IP se não autenticado)
   // Chave por tenant quando autenticado; senão por IP normalizado (IPv6 colapsado em /56)
   keyGenerator: (req) => req.user?.organizationId ? String(req.user.organizationId) : ipKeyGenerator(req.ip),
-  skip: (req) => req.path.startsWith('/site') || req.user?.role === 'superadmin',
+  skip: (req) => req.path.startsWith('/site') || req.user?.role === 'superadmin'
+    // Dev: não rate-limita localhost (evita 429 ao rodar a suíte E2E local). Produção intacta.
+    || (process.env.NODE_ENV !== 'production' && ['::1', '127.0.0.1', '::ffff:127.0.0.1'].includes(req.ip)),
   handler: (req, res) => {
     const log = req.logger || logger;
     log.warn('Rate Limit Hit', { 
@@ -351,6 +353,7 @@ app.use('/api', require('./routes/upload'));
 app.use('/api', require('./routes/notifications'));
 app.use('/api', require('./routes/organization'));
 app.use('/api', require('./routes/clients'));
+app.use('/api', require('./routes/gestao'));
 app.use('/api', require('./routes/sales'));
 // Fase 8: registrar rotas de álbuns de prova
 app.use('/api', require('./routes/albums'));
@@ -361,6 +364,9 @@ app.use('/api', require('./routes/payments'));
 app.use('/api', require('./routes/landing'));
 app.use('/api', require('./routes/saasAdmin'));
 app.use('/api', require('./routes/tutorials'));
+app.use('/api', require('./routes/manual'));
+app.use('/api', require('./routes/tickets'));
+
 
 
 // ============================================================================

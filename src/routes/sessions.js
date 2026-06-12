@@ -891,6 +891,10 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
     if (updateData.clientId === '') delete updateData.clientId;
     if (updateData.date === '') updateData.date = null;
     if (updateData.selectionDeadline === '') updateData.selectionDeadline = null;
+    if (updateData.storageRetentionUntil === '') updateData.storageRetentionUntil = null;
+    if (updateData.storageRetentionUntil) {
+      updateData.storageRetentionUntil = new Date(updateData.storageRetentionUntil);
+    }
 
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },

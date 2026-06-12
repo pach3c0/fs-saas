@@ -75,6 +75,15 @@ const sessionSchema = new mongoose.Schema({
         reopenedAt: Date,
         reopenReason: String
     }],
+
+    // Retenção de storage: data limite para manter fotos.
+    // null = sem expiração. Notificação automática X dias antes.
+    storageRetentionUntil: {
+        type: Date,
+        default: null,
+        index: true
+    },
+
     // Solicitacao de fotos extras (apos submit da selecao)
     extraRequest: {
         status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
@@ -92,6 +101,11 @@ const sessionSchema = new mongoose.Schema({
     organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     // CRM: cliente vinculado
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
+    // Integração Rhyno: cliente vindo do ERP (fonte da verdade do CRM).
+    // Convive com clientId (legado) durante a transição; snapshot evita ir ao Rhyno toda hora.
+    rhynoCustomerId: { type: String, default: null },
+    clientName: { type: String, default: '' },
+    clientPhone: { type: String, default: '' },
     // Multi-selecao: participantes individuais (modo multi_selection)
     participants: [{
         name: { type: String, required: true },
