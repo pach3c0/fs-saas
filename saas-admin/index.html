@@ -222,6 +222,11 @@
             <div class="loading">Carregando metricas...</div>
         </div>
 
+        <!-- Saúde da plataforma: orgs em risco, suporte, cadastros recentes -->
+        <div id="healthSection" style="margin:1.5rem 0; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem;">
+            <div class="loading" style="color:var(--text-muted); font-size:0.8rem;">Carregando saúde da plataforma...</div>
+        </div>
+
         <!-- Configuração de Limites dos Planos -->
         <div id="planLimitsSection" style="margin:1.5rem 0; background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -548,6 +553,9 @@
                 <div class="panel-nav-group">Geral</div>
                 <div class="panel-nav-item active" data-panel="overview" onclick="switchPanelTab(this)">
                     <span class="nav-icon">📊</span> Visão Geral
+                </div>
+                <div class="panel-nav-item" data-panel="jornada" onclick="switchPanelTab(this)">
+                    <span class="nav-icon">👣</span> Jornada
                 </div>
 
                 <div class="panel-nav-group">Site</div>

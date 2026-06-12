@@ -1,5 +1,5 @@
-// Dashboard — métricas da plataforma e limites de planos
-import { apiRequest, saasToast, formatSize } from '../core.js';
+// Dashboard — métricas da plataforma, saúde das orgs e limites de planos
+import { apiRequest, saasToast, esc, formatSize } from '../core.js';
 import { loadOrganizations } from './organizacoes.js';
 
 // ============================================================================
@@ -7,7 +7,75 @@ import { loadOrganizations } from './organizacoes.js';
 // ============================================================================
 
 async function loadDashboard() {
-  await Promise.all([loadMetrics(), loadOrganizations(), loadPlanLimitsConfig()]);
+  await Promise.all([loadMetrics(), loadHealth(), loadOrganizations(), loadPlanLimitsConfig()]);
+}
+
+// ============================================================================
+// SAÚDE DA PLATAFORMA — orgs em risco, suporte, cadastros recentes
+// ============================================================================
+
+const HEALTH_DOT = { green: '#34d399', yellow: '#fbbf24', red: '#f87171' };
+const HEALTH_LABEL = { green: 'Ativa', yellow: 'Inativa 14d+', red: 'Inativa 30d+' };
+
+function _healthCard(title, bodyHtml) {
+  return `
+    <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1rem;">
+      <div style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.75rem;">${title}</div>
+      ${bodyHtml}
+    </div>`;
+}
+
+async function loadHealth() {
+  const section = document.getElementById('healthSection');
+  if (!section) return;
+  try {
+    const data = await apiRequest('GET', '/api/admin/saas/health');
+
+    // Card 1 — Suporte & atividade
+    const supportHtml = `
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="switchTab('tickets')">
+          <span style="color:var(--text-secondary); font-size:0.85rem;">Chamados abertos</span>
+          <span style="font-size:1.25rem; font-weight:700; color:${data.openTickets > 0 ? '#fbbf24' : 'var(--text-primary)'};">${data.openTickets}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text-secondary); font-size:0.85rem;">Sessões criadas (7 dias)</span>
+          <span style="font-size:1.25rem; font-weight:700; color:var(--text-primary);">${data.sessionsLast7d}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text-secondary); font-size:0.85rem;">Orgs em risco</span>
+          <span style="font-size:1.25rem; font-weight:700; color:${data.atRisk > 0 ? '#f87171' : '#34d399'};">${data.atRisk}</span>
+        </div>
+      </div>`;
+
+    // Card 2 — Saúde por org (piores primeiro)
+    const orgsHtml = (data.orgsHealth || []).slice(0, 6).map(o => `
+      <li style="display:flex; justify-content:space-between; align-items:center; padding:0.35rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+        <span style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;" onclick="openOrgPanel('${o._id}', '${esc(o.name)}', '${esc(o.slug)}')">
+          <span style="width:8px; height:8px; border-radius:50%; background:${HEALTH_DOT[o.health]}; flex-shrink:0;"></span>
+          <span style="font-weight:600; color:var(--text-primary);">${esc(o.name)}</span>
+          <span style="color:var(--text-muted); font-size:0.7rem; text-transform:uppercase;">${o.plan}</span>
+        </span>
+        <span style="color:var(--text-muted); font-size:0.75rem;" title="${HEALTH_LABEL[o.health]}">${o.idleDays === 0 ? 'hoje' : `${o.idleDays}d atrás`}</span>
+      </li>`).join('') || '<li style="color:var(--text-muted); font-size:0.8rem;">Nenhuma org ativa</li>';
+
+    // Card 3 — Últimos cadastros
+    const recentHtml = (data.recentOrgs || []).map(o => `
+      <li style="display:flex; justify-content:space-between; align-items:center; padding:0.35rem 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+        <span>
+          <span style="font-weight:600; color:var(--text-primary);">${esc(o.name)}</span>
+          <span style="color:${o.isActive ? '#34d399' : '#fbbf24'}; font-size:0.7rem; margin-left:0.4rem;">${o.isActive ? 'ativa' : 'pendente'}</span>
+        </span>
+        <span style="color:var(--text-muted); font-size:0.75rem;">${new Date(o.createdAt).toLocaleDateString('pt-BR')}</span>
+      </li>`).join('') || '<li style="color:var(--text-muted); font-size:0.8rem;">Nenhum cadastro</li>';
+
+    section.innerHTML =
+      _healthCard('Operação', supportHtml) +
+      _healthCard('Saúde das organizações', `<ul style="list-style:none; margin:0; padding:0;">${orgsHtml}</ul>`) +
+      _healthCard('Últimos cadastros', `<ul style="list-style:none; margin:0; padding:0;">${recentHtml}</ul>`);
+  } catch (err) {
+    section.innerHTML = `<div style="color:#f87171; font-size:0.8rem;">Erro ao carregar saúde: ${err.message}</div>`;
+  }
 }
 
 async function loadPlanLimitsConfig() {

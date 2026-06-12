@@ -324,6 +324,7 @@ async function loadPanelTab(tab) {
 
   try {
     if (tab === 'overview') await renderPanelOverview(content);
+    else if (tab === 'jornada') await renderPanelJornada(content);
     else if (tab === 'meusite') await renderPanelMeuSite(content);
     else {
       content.innerHTML = `<div class="coming-soon"><span class="cs-icon">🚧</span><p>Em breve</p></div>`;
@@ -331,6 +332,77 @@ async function loadPanelTab(tab) {
   } catch (err) {
     content.innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
   }
+}
+
+// ── Jornada do cliente: timeline de eventos do ActivityEvent ────────────────
+
+const EVENT_META = {
+  login:                   { icon: '🔑', label: 'Fez login' },
+  session_created:         { icon: '📸', label: 'Criou sessão' },
+  photos_uploaded:         { icon: '🖼️', label: 'Subiu fotos' },
+  code_sent:               { icon: '📤', label: 'Compartilhou galeria' },
+  code_viewed_by_client:   { icon: '👀', label: 'Cliente acessou a galeria' },
+  selection_submitted:     { icon: '✅', label: 'Cliente enviou a seleção' },
+  session_delivered:       { icon: '🎉', label: 'Entregou a sessão' },
+  feature_configured:      { icon: '⚙️', label: 'Configurou recurso' },
+  plan_upgraded:           { icon: '⭐', label: 'Mudou de plano' },
+  domain_verified:         { icon: '🌐', label: 'Verificou domínio' },
+  support_ticket_created:  { icon: '💬', label: 'Abriu chamado de suporte' },
+  support_ticket_resolved: { icon: '✔️', label: 'Chamado resolvido' }
+};
+
+function _eventDetail(ev) {
+  const m = ev.meta || {};
+  const parts = [];
+  if (m.mode) parts.push(m.mode);
+  if (m.eventType) parts.push(m.eventType);
+  if (m.photoCount) parts.push(`${m.photoCount} fotos`);
+  if (m.channel && m.channel !== 'unknown') parts.push(`via ${m.channel}`);
+  if (m.feature) parts.push(m.feature);
+  if (m.category) parts.push(m.category);
+  if (m.selectedPhotos) parts.push(`${m.selectedPhotos} selecionadas`);
+  return parts.length ? ` <span style="color:#64748b;">(${esc(parts.join(', '))})</span>` : '';
+}
+
+async function renderPanelJornada(content) {
+  const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/activity`);
+  const events = data.events || [];
+
+  if (!events.length) {
+    content.innerHTML = `
+      <div class="coming-soon"><span class="cs-icon">👣</span>
+        <p>Nenhuma atividade registrada ainda.<br>
+        <span style="font-size:0.75rem; color:#64748b;">Os eventos começaram a ser coletados em 12/06/2026 — ações anteriores não aparecem aqui.</span></p>
+      </div>`;
+    return;
+  }
+
+  // Agrupar por dia
+  const byDay = {};
+  events.forEach(ev => {
+    const day = new Date(ev.at).toLocaleDateString('pt-BR');
+    (byDay[day] = byDay[day] || []).push(ev);
+  });
+
+  content.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      ${Object.entries(byDay).map(([day, evs]) => `
+        <div>
+          <div style="font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:0.4rem;">${day}</div>
+          <ul style="list-style:none; margin:0; padding:0; border-left:2px solid #334155;">
+            ${evs.map(ev => {
+              const meta = EVENT_META[ev.type] || { icon: '·', label: ev.type };
+              const time = new Date(ev.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              return `
+                <li style="padding:0.3rem 0 0.3rem 0.85rem; font-size:0.85rem; display:flex; gap:0.5rem; align-items:baseline;">
+                  <span style="color:#64748b; font-size:0.7rem; flex-shrink:0; width:2.6rem;">${time}</span>
+                  <span>${meta.icon} ${meta.label}${_eventDetail(ev)}</span>
+                </li>`;
+            }).join('')}
+          </ul>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 async function renderPanelOverview(content) {

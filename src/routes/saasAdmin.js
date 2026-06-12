@@ -11,6 +11,8 @@ const Album = require('../models/Album');
 const Client = require('../models/Client');
 const SecurityLog = require('../models/SecurityLog');
 const ManualModule = require('../models/ManualModule');
+const Ticket = require('../models/Ticket');
+const ActivityEvent = require('../models/ActivityEvent');
 const path = require('path');
 const fs = require('fs');
 const storage = require('../services/storage');
@@ -95,6 +97,64 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
         });
     } catch (error) {
         req.logger.error('Saas Metrics Error', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Saúde da plataforma: orgs em risco (churn), chamados abertos, atividade recente.
+// "Risco" = dias desde a última atividade registrada no ActivityEvent
+// (fallback: createdAt da org, para orgs anteriores à instrumentação).
+router.get('/admin/saas/health', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const now = Date.now();
+        const DAY = 24 * 60 * 60 * 1000;
+
+        const [openTickets, sessionsLast7d, orgs, lastActivities, recentOrgs] = await Promise.all([
+            Ticket.countDocuments({ status: 'open' }),
+            Session.countDocuments({ createdAt: { $gte: new Date(now - 7 * DAY) } }),
+            Organization.find({ isActive: true, deletedAt: null })
+                .select('name slug plan createdAt').lean(),
+            ActivityEvent.aggregate([
+                { $group: { _id: '$organizationId', lastAt: { $max: '$at' } } }
+            ]),
+            Organization.find({ deletedAt: null })
+                .sort({ createdAt: -1 }).limit(5)
+                .select('name slug plan isActive createdAt').lean()
+        ]);
+
+        const lastByOrg = {};
+        lastActivities.forEach(a => { lastByOrg[String(a._id)] = a.lastAt; });
+
+        const orgsHealth = orgs.map(org => {
+            const lastActivity = lastByOrg[String(org._id)] || org.createdAt;
+            const idleDays = Math.floor((now - new Date(lastActivity).getTime()) / DAY);
+            const health = idleDays >= 30 ? 'red' : idleDays >= 14 ? 'yellow' : 'green';
+            return { _id: org._id, name: org.name, slug: org.slug, plan: org.plan, lastActivity, idleDays, health };
+        }).sort((a, b) => b.idleDays - a.idleDays);
+
+        res.json({
+            openTickets,
+            sessionsLast7d,
+            orgsHealth,
+            atRisk: orgsHealth.filter(o => o.health !== 'green').length,
+            recentOrgs
+        });
+    } catch (error) {
+        req.logger.error('Saas Health Error', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Jornada do cliente: timeline de eventos de uma org (ActivityEvent)
+router.get('/admin/organizations/:id/activity', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const events = await ActivityEvent.find({ organizationId: req.params.id })
+            .sort({ at: -1 })
+            .limit(60)
+            .lean();
+        res.json({ success: true, events });
+    } catch (error) {
+        req.logger.error('Org Activity Error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
