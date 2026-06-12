@@ -2,7 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  testIgnore: '**/local/**', // specs em tests/local/ rodam só via playwright.local.config.js
+  testIgnore: ['**/local/**', '**/smoke/**'], // local/ via playwright.local.config.js; smoke/ via playwright.smoke.config.js
   fullyParallel: false,
   workers: 1,
   reporter: 'list',

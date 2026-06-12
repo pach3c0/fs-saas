@@ -6,6 +6,8 @@ module.exports = {
   ...base,
   testDir: './tests/local',
   testIgnore: undefined,
+  // HTML report navegável em playwright-report-local/ (npm run test:local:report)
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report-local', open: 'never' }]],
   use: {
     ...base.use,
     baseURL: 'http://localhost:3051',

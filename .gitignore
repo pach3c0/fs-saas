@@ -48,6 +48,7 @@ out/
 coverage/
 .nyc_output/
 playwright-report/
+playwright-report-local/
 test-results/
 test-results/*
 

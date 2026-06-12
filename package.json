@@ -8,7 +8,10 @@
     "dev": "nodemon src/server.js",
     "build:css": "npx @tailwindcss/cli -i ./assets/css/tailwind-input.css -o ./assets/css/tailwind.css --minify",
     "deploy": "npm run build:css",
-    "test": "npx playwright test"
+    "test": "npx playwright test",
+    "test:local": "npx playwright test --config=playwright.local.config.js",
+    "test:local:report": "npx playwright show-report playwright-report-local",
+    "test:smoke": "npx playwright test --config=playwright.smoke.config.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
