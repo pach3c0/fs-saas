@@ -11,10 +11,10 @@ export function showUploadValidationModal(container, report, onConfirm) {
 
   if (report.unmatched.length > 0) {
     html += `
-      <div style="background:color-mix(in srgb, var(--red) 10%, transparent); border:1px solid color-mix(in srgb, var(--red) 20%, transparent); padding:0.75rem; border-radius:0.5rem;">
+      <div style="background:color-mix(in srgb, var(--red) 10%, transparent); border:1px solid color-mix(in srgb, var(--red) 20%, transparent); padding:0.75rem; border-radius:var(--r-card);">
         <strong style="color:var(--red); font-size:0.875rem; display:block; margin-bottom:0.25rem;">🔴 Arquivos Não Encontrados (${report.unmatched.length})</strong>
         <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Esses nomes não existem na galeria atual. Se continuar, elas serão adicionadas como novas fotos.</p>
-        <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:0.25rem;">
+        <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:var(--r-chip);">
           ${report.unmatched.join('<br>')}
         </div>
       </div>
@@ -23,10 +23,10 @@ export function showUploadValidationModal(container, report, onConfirm) {
 
   if (report.notSelected.length > 0) {
     html += `
-      <div style="background:color-mix(in srgb, var(--yellow) 10%, transparent); border:1px solid color-mix(in srgb, var(--yellow) 20%, transparent); padding:0.75rem; border-radius:0.5rem;">
+      <div style="background:color-mix(in srgb, var(--yellow) 10%, transparent); border:1px solid color-mix(in srgb, var(--yellow) 20%, transparent); padding:0.75rem; border-radius:var(--r-card);">
         <strong style="color:var(--yellow); font-size:0.875rem; display:block; margin-bottom:0.25rem;">🟡 Não Selecionadas pelo Cliente (${report.notSelected.length})</strong>
         <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Estas fotos existem na galeria, mas o cliente NÃO as escolheu no pacote.</p>
-        <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:0.25rem;">
+        <div style="max-height:80px; overflow-y:auto; font-family:monospace; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); padding:0.4rem; border-radius:var(--r-chip);">
           ${report.notSelected.join('<br>')}
         </div>
       </div>
@@ -35,7 +35,7 @@ export function showUploadValidationModal(container, report, onConfirm) {
 
   if (report.extraCount > 0) {
     html += `
-      <div style="background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.75rem; border-radius:0.5rem;">
+      <div style="background:color-mix(in srgb, var(--accent) 10%, transparent); border:1px solid color-mix(in srgb, var(--accent) 20%, transparent); padding:0.75rem; border-radius:var(--r-card);">
         <strong style="color:var(--accent); font-size:0.875rem; display:block; margin-bottom:0.25rem;">📊 Resumo de Quantidade</strong>
         <p style="font-size:0.875rem; color:var(--text-primary);">Você está enviando <b>${report.total}</b> fotos.</p>
         <p style="font-size:0.75rem; color:var(--text-secondary);">O limite do pacote/seleção é de <b>${report.limit}</b> fotos. Você está entregando <b>${report.extraCount}</b> fotos a mais (Brinde).</p>
@@ -43,7 +43,7 @@ export function showUploadValidationModal(container, report, onConfirm) {
     `;
   } else if (report.total > 0 && report.unmatched.length === 0 && report.notSelected.length === 0) {
     html += `
-      <div style="background:color-mix(in srgb, var(--green) 10%, transparent); border:1px solid color-mix(in srgb, var(--green) 20%, transparent); padding:0.75rem; border-radius:0.5rem;">
+      <div style="background:color-mix(in srgb, var(--green) 10%, transparent); border:1px solid color-mix(in srgb, var(--green) 20%, transparent); padding:0.75rem; border-radius:var(--r-card);">
         <strong style="color:var(--green); font-size:0.875rem; display:block; margin-bottom:0.25rem;">✅ Tudo Certo!</strong>
         <p style="font-size:0.875rem; color:var(--text-primary);">Total de <b>${report.total}</b> fotos compatíveis com a seleção.</p>
       </div>

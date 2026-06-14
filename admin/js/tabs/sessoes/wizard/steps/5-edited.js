@@ -6,6 +6,62 @@ import { resolveImagePath } from '../../../../utils/helpers.js';
 import { UploadQueue } from '../../../../utils/upload.js';
 import { UploadPanel } from '../../../../components/upload-panel.js';
 import { appState } from '../../../../state.js';
+import { icon } from '../../../../utils/icons.js';
+import { apiPut } from '../../../../utils/api.js';
+import { buildWhatsAppDeliveryLink } from '../utils.js';
+import { showDeliveryModal } from './2-share.js';
+import {
+  renderStoragePanel, renderDeliveryHistorySection,
+  renderMultiDeliverHeader, renderParticipantsDeliveryTable
+} from './6-deliver.js';
+
+// ── Estilos compartilhados dos botões morph (injetados uma vez) ──────────
+function ensureXBtnStyles() {
+  if (document.getElementById('cz-xbtn-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'cz-xbtn-styles';
+  style.textContent = `
+    .cz-xbtn {
+      box-sizing: border-box;
+      display: inline-flex; align-items: center;
+      height: 40px; min-width: 40px; padding: 0;
+      border: none; border-radius: 9999px;
+      cursor: pointer; overflow: hidden; white-space: nowrap;
+      font-family: inherit; font-weight: 500; font-size: 0.875rem;
+      transition: filter 0.15s, box-shadow 0.15s;
+    }
+    .cz-xbtn .cz-xic {
+      width: 40px; height: 40px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cz-xbtn .cz-xlabel {
+      max-width: 0; opacity: 0; overflow: hidden;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .cz-xbtn:hover .cz-xlabel,
+    .cz-xbtn:focus-visible .cz-xlabel {
+      max-width: 14rem; opacity: 1; padding-right: 1.1rem;
+    }
+    .cz-xbtn:hover:not([disabled]) { filter: brightness(0.96); }
+    .cz-xbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .cz-xbtn .cz-xlabel { transition: opacity 0.2s ease; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function makeXBtn(iconName, label, { bg, color } = {}) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'cz-xbtn';
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  btn.style.background = bg || 'var(--accent)';
+  btn.style.color = color || 'var(--accent-on)';
+  btn.innerHTML = `<span class="cz-xic">${icon(iconName, 18)}</span><span class="cz-xlabel">${label}</span>`;
+  return btn;
+}
 
 function getOrCreateQueue(onDone) {
   if (!window.globalUploadPanel) {
@@ -28,6 +84,8 @@ function getOrCreateQueue(onDone) {
 }
 
 export function renderStepEdited({ session, refresh, switchStep }) {
+  ensureXBtnStyles();
+
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:1200px;';
 
@@ -41,8 +99,9 @@ export function renderStepEdited({ session, refresh, switchStep }) {
   const delivered = selected.filter(id => photoById.get(id)?.urlOriginal);
   const pending = selected.filter(id => !photoById.get(id)?.urlOriginal);
 
-  // Header
+  // ── Header centralizado ──────────────────────────────────────────────
   const header = document.createElement('div');
+  header.style.cssText = 'text-align:center;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Upload das Fotos Editadas</h2>
     <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">
@@ -53,54 +112,45 @@ export function renderStepEdited({ session, refresh, switchStep }) {
   `;
   wrap.appendChild(header);
 
-  // Barra de progresso de entrega
-  const progressCard = document.createElement('div');
+  // ── Barra de progresso centralizada ─────────────────────────────────
   const isComplete = delivered.length === selected.length && selected.length > 0;
+  const progressCard = document.createElement('div');
   progressCard.style.cssText = `
     background: ${isComplete ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'var(--bg-surface)'};
     border: 1px solid ${isComplete ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'var(--border)'};
-    border-radius: 0.5rem; padding: 1rem 1.25rem;
-    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-  `;
-  progressCard.innerHTML = `
-    <div style="flex:1; min-width:200px;">
-      <div style="font-size:0.875rem; font-weight:500; color:var(--text-primary);">
-        ${isComplete ? '✓ Todas as fotos editadas enviadas' : `${delivered.length} de ${selected.length} fotos editadas enviadas`}
-      </div>
-      <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">
-        ${isComplete ? 'Pode avançar para Entregar.' : `${pending.length} pendente${pending.length === 1 ? '' : 's'}`}
-      </div>
-    </div>
+    border-radius:var(--r-card); padding: 1rem 1.25rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+    text-align: center;
   `;
 
-  // Barra visual de progresso
+  const progressText = document.createElement('div');
+  progressText.innerHTML = `
+    <div style="font-size:0.875rem; font-weight:500; color:var(--text-primary);">
+      ${isComplete ? '✓ Todas as fotos editadas enviadas' : `${delivered.length} de ${selected.length} fotos editadas enviadas`}
+    </div>
+    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">
+      ${isComplete ? 'Pode avançar para Entregar.' : `${pending.length} pendente${pending.length === 1 ? '' : 's'}`}
+    </div>
+  `;
+  progressCard.appendChild(progressText);
+
   if (selected.length > 0) {
     const pct = Math.round((delivered.length / selected.length) * 100);
     const barWrap = document.createElement('div');
-    barWrap.style.cssText = 'width:160px; flex-shrink:0;';
+    barWrap.style.cssText = 'width:200px;';
     barWrap.innerHTML = `
       <div style="height:6px; background:var(--bg-base); border-radius:3px; overflow:hidden;">
         <div style="height:100%; width:${pct}%; background:${isComplete ? 'var(--green)' : 'var(--accent)'}; transition: width 0.3s;"></div>
       </div>
-      <div style="text-align:right; font-size:0.6875rem; color:var(--text-muted); margin-top:2px;">${pct}%</div>
+      <div style="text-align:center; font-size:0.6875rem; color:var(--text-muted); margin-top:2px;">${pct}%</div>
     `;
     progressCard.appendChild(barWrap);
   }
   wrap.appendChild(progressCard);
 
-  // Ações
+  // ── Ações centralizadas com botões morph ─────────────────────────────
   const actions = document.createElement('div');
-  actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
-
-  // Botão upload editadas
-  const uploadBtn = document.createElement('button');
-  uploadBtn.type = 'button';
-  uploadBtn.textContent = isComplete ? '+ Subir mais editadas' : '+ Subir fotos editadas';
-  uploadBtn.style.cssText = `
-    background: var(--accent); color: white; border: none;
-    padding: 0.5rem 1rem; border-radius: 0.375rem;
-    font-weight: 500; cursor: pointer; font-size: 0.875rem;
-  `;
+  actions.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; align-items:center;';
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -110,7 +160,6 @@ export function renderStepEdited({ session, refresh, switchStep }) {
   fileInput.onchange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    // Valida nomes localmente
     const unmatched = [];
     const notSelected = [];
     files.forEach(f => {
@@ -139,115 +188,194 @@ export function renderStepEdited({ session, refresh, switchStep }) {
       proceed();
     }
   };
+
+  // Botão upload morph
+  const uploadBtn = makeXBtn('upload', isComplete ? 'Subir mais editadas' : 'Subir fotos editadas', {
+    bg: isComplete ? 'var(--bg-hover)' : 'var(--accent)',
+    color: isComplete ? 'var(--text-secondary)' : 'var(--accent-on)',
+  });
   uploadBtn.onclick = () => fileInput.click();
   actions.appendChild(fileInput);
   actions.appendChild(uploadBtn);
 
-  // Botão export Lightroom (não-multi: 1 arquivo com tudo)
+  // Botão export Lightroom (não-multi)
   if (!isMulti) {
-    const exportBtn = document.createElement('button');
-    exportBtn.type = 'button';
-    exportBtn.textContent = '📥 Exportar lista para Lightroom (.txt)';
+    const exportBtn = makeXBtn('download', 'Exportar para Lightroom (.txt)', {
+      bg: selected.length === 0 ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+      color: selected.length === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+    });
     exportBtn.disabled = selected.length === 0;
-    exportBtn.style.cssText = `
-      background: var(--bg-surface); color: var(--text-primary);
-      border: 1px solid var(--border);
-      padding: 0.5rem 1rem; border-radius: 0.375rem;
-      cursor: ${selected.length === 0 ? 'not-allowed' : 'pointer'};
-      font-size: 0.875rem;
-      opacity: ${selected.length === 0 ? '0.5' : '1'};
-    `;
+    if (selected.length === 0) exportBtn.style.cursor = 'not-allowed';
+    exportBtn.style.border = '1px solid var(--border)';
     exportBtn.title = 'Baixa um .txt com os nomes das fotos selecionadas para filtro no Lightroom';
     exportBtn.onclick = () => {
-      // A rota exige JWT em ?token= ou Authorization — usamos query string porque window.open não envia headers.
       const token = encodeURIComponent(appState.authToken || '');
       window.open(`/api/sessions/${session._id}/export?token=${token}`, '_blank');
     };
     actions.appendChild(exportBtn);
   }
 
-  // Botão avançar
+  // Botão avançar ou entregar (quando concluído)
   if (isComplete) {
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.textContent = 'Próximo: Entregar →';
-    nextBtn.style.cssText = `
-      background: var(--green); color: white; border: none;
-      padding: 0.5rem 1rem; border-radius: 0.375rem;
-      cursor: pointer; font-weight: 500; font-size: 0.875rem; margin-left: auto;
-    `;
-    nextBtn.onclick = () => switchStep(6);
-    actions.appendChild(nextBtn);
+    if (!isMulti) {
+      const isDelivered = Boolean(session.deliveredAt) || session.selectionStatus === 'delivered';
+      const deliverBtn = makeXBtn('checkCircle', isDelivered ? 'Re-entregar (notificar novamente)' : 'Entregar e notificar cliente', {
+        bg: isDelivered ? 'var(--orange)' : 'var(--green)',
+        color: 'white',
+      });
+      deliverBtn.onclick = async () => {
+        const payload = await showDeliveryModal(session);
+        if (!payload) return;
+
+        try {
+          const apiPayload = {};
+          if (payload.sendEmail) apiPayload.emailIntro = payload.emailIntro;
+          else apiPayload.skipEmail = true;
+
+          await apiPut(`/api/sessions/${session._id}/deliver`, apiPayload);
+          
+          window.showToast?.(isDelivered ? 'Cliente notificado novamente' : 'Sessão entregue! Cliente notificado.', 'success');
+          
+          if (payload.sendWhatsapp) {
+            const orgName = appState.appData?.organization?.name || 'CliqueZoom';
+            const url = buildWhatsAppDeliveryLink({
+              session,
+              accessCode: session.accessCode,
+              recipientName: session.clientName || session.name,
+              recipientPhone: session.clientPhone,
+              orgName,
+              customText: payload.whatsappText
+            });
+            window.open(url, '_blank');
+          }
+
+          await refresh();
+        } catch (e) {
+          window.showToast?.('Erro: ' + e.message, 'error');
+        }
+      };
+      actions.appendChild(deliverBtn);
+    }
   }
   wrap.appendChild(actions);
 
-  // Multi: painel de export individual por participante
+  // Multi: painel de export por participante e painel de entrega
   if (isMulti) {
     wrap.appendChild(renderParticipantsExportPanel(session, photoById));
+    wrap.appendChild(renderMultiDeliverHeader(session));
+    wrap.appendChild(renderParticipantsDeliveryTable(session, refresh));
   }
 
-  // Cortesia = foto NÃO selecionada pelo cliente mas com urlOriginal já enviado.
-  // Aparece com badge diferente. O cliente verá esse mesmo conjunto como "presente" na entrega.
+  // ── Grid de fotos em círculo com morph no hover ──────────────────────
   const selectedSet = new Set(selected);
   const courtesyPhotos = (session.photos || []).filter(p => !selectedSet.has(p.id) && p.urlOriginal);
 
-  // Lista visual das selecionadas (com status entregue/pendente) + cortesia
   if (selected.length > 0 || courtesyPhotos.length > 0) {
     const grid = document.createElement('div');
     grid.style.cssText = `
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 1.25rem;
+      width: 100%;
     `;
 
-    const renderCell = ({ photo, kind }) => {
-      // kind: 'delivered' | 'pending' | 'courtesy'
+    const allPhotosForGrid = [
+      ...selected.map(id => ({ photo: photoById.get(id), kind: photoById.get(id)?.urlOriginal ? 'delivered' : 'pending' })).filter(x => x.photo),
+      ...courtesyPhotos.map(photo => ({ photo, kind: 'courtesy' }))
+    ];
+
+    allPhotosForGrid.forEach(({ photo, kind }) => {
       const borderColor = kind === 'delivered'
         ? 'var(--green)'
         : kind === 'courtesy'
-          ? 'var(--purple)'
+          ? 'var(--accent)'
           : 'var(--yellow)';
-      const badgeBg = borderColor;
-      const badgeText = kind === 'delivered' ? '✓ Editada' : kind === 'courtesy' ? '★ Cortesia' : 'Pendente';
+
+      const hasOrig = photo.urlOriginal && photo.widthOriginal && photo.heightOriginal;
+      const hasThumb = photo.width && photo.height;
+      const w = hasOrig ? photo.widthOriginal : photo.width;
+      const h = hasOrig ? photo.heightOriginal : photo.height;
+      const aspect = (w && h) ? (w / h) : 1.5;
+      const hoverHeight = 200;
+      const hoverWidth = Math.round(hoverHeight * aspect);
+
       const cell = document.createElement('div');
       cell.style.cssText = `
-        position: relative; aspect-ratio: 3/2;
+        position: relative;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
         background: var(--bg-surface);
+        overflow: hidden;
         border: 2px solid ${borderColor};
-        border-radius: 0.375rem; overflow: hidden;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       `;
+
       const img = document.createElement('img');
       img.src = resolveImagePath(photo.url);
       img.loading = 'lazy';
       img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;';
       cell.appendChild(img);
 
+      // Badge de status (aparece no hover, posicionada no canto)
+      const badgeText = kind === 'delivered' ? '✓ Editada' : kind === 'courtesy' ? '★ Cortesia' : 'Pendente';
       const badge = document.createElement('div');
       badge.textContent = badgeText;
       badge.style.cssText = `
         position: absolute; top: 4px; left: 4px;
-        background: ${badgeBg};
-        color: white; font-size: 0.625rem; font-weight: 600;
-        padding: 2px 6px; border-radius: 3px;
+        background: ${borderColor};
+        color: white; font-size: 0.5625rem; font-weight: 700;
+        padding: 2px 5px; border-radius: 3px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
       `;
       cell.appendChild(badge);
-      return cell;
-    };
 
-    selected.forEach(id => {
-      const photo = photoById.get(id);
-      if (!photo) return;
-      grid.appendChild(renderCell({ photo, kind: photo.urlOriginal ? 'delivered' : 'pending' }));
+      // Overlay com nome do arquivo no hover
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.4);
+        opacity: 0; transition: opacity 0.18s;
+        display: flex; align-items: flex-end; justify-content: center;
+        padding: 0.25rem; z-index: 5;
+      `;
+      if (photo.filename) {
+        const fname = document.createElement('div');
+        fname.textContent = photo.filename;
+        fname.style.cssText = 'color:white; font-size:0.5rem; font-weight:500; text-align:center; word-break:break-all; line-height:1.2;';
+        overlay.appendChild(fname);
+      }
+      cell.appendChild(overlay);
+
+      cell.addEventListener('mouseenter', () => {
+        cell.style.width = `${hoverWidth}px`;
+        cell.style.height = `${hoverHeight}px`;
+        cell.style.borderRadius = 'var(--r-field)';
+        overlay.style.opacity = '1';
+        badge.style.opacity = '1';
+      });
+      cell.addEventListener('mouseleave', () => {
+        cell.style.width = '120px';
+        cell.style.height = '120px';
+        cell.style.borderRadius = '50%';
+        overlay.style.opacity = '0';
+        badge.style.opacity = '0';
+      });
+
+      grid.appendChild(cell);
     });
-    courtesyPhotos.forEach(photo => {
-      grid.appendChild(renderCell({ photo, kind: 'courtesy' }));
-    });
+
     wrap.appendChild(grid);
 
     if (courtesyPhotos.length > 0) {
       const note = document.createElement('div');
-      note.style.cssText = 'font-size:0.75rem; color:var(--text-muted); padding-top:0.25rem;';
-      note.innerHTML = `<strong style="color:var(--purple);">★ Cortesia:</strong> ${courtesyPhotos.length} foto${courtesyPhotos.length === 1 ? '' : 's'} fora da seleção do cliente. O cliente verá com a badge "Cortesia" na entrega.`;
+      note.style.cssText = 'font-size:0.75rem; color:var(--text-muted); padding-top:0.25rem; text-align:center;';
+      note.innerHTML = `<strong style="color:var(--accent);">★ Cortesia:</strong> ${courtesyPhotos.length} foto${courtesyPhotos.length === 1 ? '' : 's'} fora da seleção do cliente. O cliente verá com a badge "Cortesia" na entrega.`;
       wrap.appendChild(note);
     }
   } else {
@@ -257,26 +385,33 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     wrap.appendChild(empty);
   }
 
+  // Se for seleção individual e já tiver sido entregue, exibe painel de storage e histórico
+  const isDelivered = Boolean(session.deliveredAt) || session.selectionStatus === 'delivered';
+  if (session.mode !== 'multi_selection' && isDelivered) {
+    wrap.appendChild(renderStoragePanel(session, refresh));
+    wrap.appendChild(renderDeliveryHistorySection(session));
+  }
+
   return wrap;
 }
 
 // Multi: painel com lista de participantes, cada um com botão Export Lightroom individual.
-// O .txt é gerado client-side a partir do selectedPhotos do participante.
 function renderParticipantsExportPanel(session, photoById) {
   const wrap = document.createElement('div');
   wrap.style.cssText = `
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: 0.5rem; overflow: hidden;
+    border-radius:var(--r-card); overflow: hidden;
   `;
 
   const head = document.createElement('div');
   head.style.cssText = `
     padding: 0.625rem 0.875rem;
     border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 0.5rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    text-align: center;
   `;
   head.innerHTML = `
-    <div style="flex:1;">
+    <div>
       <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); letter-spacing:0.05em; text-transform:uppercase;">Export por participante</div>
       <div style="font-size:0.6875rem; color:var(--text-muted); margin-top:2px;">Cada participante tem seu .txt de seleção — gerado quando ele finaliza.</div>
     </div>
@@ -302,12 +437,12 @@ function renderParticipantsExportPanel(session, photoById) {
 
     const row = document.createElement('div');
     row.style.cssText = `
-      padding: 0.5rem 0.875rem;
-      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      padding: 0.75rem 0.875rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;
       ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}
     `;
     row.innerHTML = `
-      <div style="flex:1; min-width:140px;">
+      <div>
         <div style="font-size:0.875rem; font-weight:500; color:var(--text-primary);">${escapeHtmlSafe(p.name)}</div>
         <div style="font-size:0.6875rem; color:var(--text-muted);">${count} foto${count === 1 ? '' : 's'} · ${ready ? 'finalizou' : 'aguardando finalizar'}</div>
       </div>
@@ -316,16 +451,13 @@ function renderParticipantsExportPanel(session, photoById) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.disabled = !ready || count === 0;
-    btn.textContent = '📥 Lightroom (.txt)';
-    btn.style.cssText = `
-      background: ${ready && count ? 'var(--bg-base)' : 'var(--bg-elevated)'};
-      color: ${ready && count ? 'var(--text-primary)' : 'var(--text-muted)'};
-      border: 1px solid var(--border);
-      padding: 0.375rem 0.75rem; border-radius: 0.375rem;
-      cursor: ${ready && count ? 'pointer' : 'not-allowed'};
-      font-size: 0.75rem;
-    `;
+    btn.className = 'cz-xbtn';
+    btn.style.background = ready && count ? 'var(--bg-base)' : 'var(--bg-elevated)';
+    btn.style.color = ready && count ? 'var(--text-primary)' : 'var(--text-muted)';
+    btn.style.border = '1px solid var(--border)';
+    if (!ready || !count) btn.style.cursor = 'not-allowed';
     btn.title = ready ? `Baixa lista de ${count} fotos de ${p.name}` : 'Disponível quando o participante finalizar';
+    btn.innerHTML = `<span class="cz-xic">${icon('download', 16)}</span><span class="cz-xlabel">Lightroom (.txt)</span>`;
     btn.onclick = () => exportParticipantSelection(session, p, photoById);
     row.appendChild(btn);
     list.appendChild(row);

@@ -1,0 +1,203 @@
+// Fundo dos cards do catálogo de sessões — imagem de fundo por MODO de sessão (Superadmin).
+// Espelha o padrão dos Cards do Dashboard: upload via /api/admin/upload, persistência em
+// /api/admin/session-card-backgrounds/:key. As keys são fixas (3 modos V1 do catálogo).
+// O front do fotógrafo (admin/js/tabs/sessoes/list.js) consome /api/session-card-backgrounds
+// e desenha a imagem atrás do conteúdo do card; sem imagem, cai no tint sólido por modo.
+import { apiRequest, saasToast, saasConfirm, esc, getToken } from '../core.js';
+
+// Metadados de cada modo de sessão. `tint`/`border` espelham o color-mix usado no card real
+// (list.js): selection=verde, multi_selection=laranja, gallery=roxo.
+const MODES = [
+  { key: 'selection',       label: 'Seleção',       sub: 'Cliente escolhe suas favoritas',       tint: 'rgba(63,185,80,0.06)',   border: 'rgba(63,185,80,0.22)',  badge: 'Em seleção',     badgeColor: '#d29922' },
+  { key: 'gallery',         label: 'Galeria',        sub: 'Cliente visualiza e baixa',            tint: 'rgba(167,139,250,0.06)', border: 'rgba(167,139,250,0.22)', badge: 'Em visualização', badgeColor: '#d29922' },
+  { key: 'multi_selection', label: 'Multi-Seleção',  sub: 'Formaturas, shows, eventos',           tint: 'rgba(255,166,87,0.06)',  border: 'rgba(255,166,87,0.22)',  badge: 'Em seleção',     badgeColor: '#d29922' },
+];
+
+let _state = {}; // key -> { key, imageUrl, opacity, active }
+
+async function loadSessionBackgrounds() {
+  const el = document.getElementById('tabSessionBackgrounds');
+  if (!el) return;
+  el.innerHTML = '<div class="loading">Carregando fundos...</div>';
+  try {
+    const data = await apiRequest('GET', '/api/admin/session-card-backgrounds');
+    _state = {};
+    (data.backgrounds || []).forEach(b => { _state[b.key] = b; });
+    renderSessionBackgrounds(el);
+  } catch (err) {
+    el.innerHTML = `<div class="loading" style="color:#f87171">Erro: ${err.message}</div>`;
+  }
+}
+
+function renderSessionBackgrounds(container) {
+  container.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+      <div>
+        <h2 style="font-size:1.2rem; font-weight:700; color:#f1f5f9; margin:0;">Fundo dos Cards de Sessão</h2>
+        <p style="font-size:0.78rem; color:#64748b; margin:0.25rem 0 0; max-width:680px;">
+          Imagem de fundo dos cards no <strong style="color:#cbd5e1;">catálogo de sessões</strong> de todos os fotógrafos,
+          por <strong style="color:#cbd5e1;">modo de sessão</strong>. Quando o fotógrafo cria uma sessão de
+          <em>Seleção</em>, <em>Galeria</em> ou <em>Multi-Seleção</em>, o card correspondente usa o fundo que você
+          definir aqui. Sem imagem, o card mantém o tint sólido padrão. Reflete para todos assim que você salva.
+        </p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem;">
+        ${MODES.map(renderModeEditor).join('')}
+      </div>
+    </div>
+  `;
+}
+
+const USER_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>';
+
+function renderModeEditor(meta) {
+  const bg = _state[meta.key] || { key: meta.key, imageUrl: '', opacity: 0.18, active: true };
+  const hasImage = !!bg.imageUrl;
+  const active = bg.active !== false;
+  const opacity = (typeof bg.opacity === 'number') ? bg.opacity : 0.18;
+
+  const opacitySlider = hasImage ? `
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <span style="font-size:0.72rem; color:#94a3b8; white-space:nowrap;">Opacidade</span>
+        <input type="range" min="0" max="100" value="${Math.round(opacity * 100)}" style="flex:1; cursor:pointer;"
+          oninput="window.previewSessionBgOpacity('${meta.key}', this.value)"
+          onchange="window.saveSessionBgOpacity('${meta.key}', this.value)">
+        <span id="sbgOpLabel-${meta.key}" style="font-size:0.72rem; color:#cbd5e1; width:36px; text-align:right;">${Math.round(opacity * 100)}%</span>
+      </div>` : '';
+
+  return `
+    <div style="background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem; opacity:${active ? '1' : '0.6'};">
+      <!-- nome + toggle -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+        <div>
+          <strong style="color:#f1f5f9; font-size:0.95rem;">${esc(meta.label)}</strong>
+          <div style="font-size:0.7rem; color:#64748b;">${esc(meta.sub)}</div>
+        </div>
+        <span style="font-size:0.6875rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:9999px; cursor:pointer; ${active ? 'background:#064e3b; color:#34d399;' : 'background:#0f172a; color:#64748b; border:1px solid #334155;'}"
+          onclick="window.toggleSessionBgActive('${meta.key}', ${active})">
+          ${active ? 'Ativo' : 'Inativo'}
+        </span>
+      </div>
+
+      ${renderCardPreview(meta, bg, opacity)}
+      ${opacitySlider}
+
+      <!-- ações -->
+      <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+        <label style="background:#1e3a5f; color:#93c5fd; border:1px solid #2563eb; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600;">
+          ${hasImage ? 'Trocar imagem' : 'Upload imagem'}
+          <input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="window.uploadSessionBgImage(this, '${meta.key}')">
+        </label>
+        ${hasImage ? `<button onclick="window.removeSessionBgImage('${meta.key}', '${esc(meta.label)}')" style="background:#450a0a; color:#fca5a5; border:none; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer;">Remover</button>` : ''}
+        <span id="sbgStatus-${meta.key}" style="font-size:0.72rem; color:#64748b;"></span>
+      </div>
+      <p style="font-size:0.68rem; color:#475569; margin:0;">Imagem larga (paisagem). JPG, PNG ou WEBP, até 2 MB. Ajuste a opacidade para o conteúdo do card ficar legível.</p>
+    </div>
+  `;
+}
+
+// Preview fiel ao card real do catálogo do fotógrafo: superfície clara (tema light do
+// admin) + tint do modo + imagem de fundo na opacidade escolhida + conteúdo por cima.
+function renderCardPreview(meta, bg, opacity) {
+  const hasImage = !!bg.imageUrl;
+  const imgLayer = hasImage
+    ? `<div id="sbgPreviewImg-${meta.key}" style="position:absolute; inset:0; background-image:url('${esc(bg.imageUrl)}'); background-size:cover; background-position:center; opacity:${opacity}; pointer-events:none;"></div>`
+    : '';
+  return `
+    <div style="position:relative; overflow:hidden; border:1px solid ${meta.border}; border-radius:12px; background:#f1f1f3;">
+      ${imgLayer}
+      <div style="position:relative; padding:0.85rem;">
+        <div style="display:flex; gap:0.6rem; align-items:flex-start;">
+          <div style="width:46px; height:46px; flex-shrink:0; border-radius:8px; background:rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.5rem;">Capa</div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <span style="color:#1a1a1a; font-size:0.85rem; font-weight:700;">Ana &amp; João</span>
+              <span style="color:#3fb950; font-size:0.66rem; display:inline-flex; align-items:center; gap:0.15rem;">${USER_ICON} Cliente</span>
+              <span style="background:${meta.badgeColor}22; color:${meta.badgeColor}; border:1px solid ${meta.badgeColor}55; font-size:0.6rem; padding:0.05rem 0.4rem; border-radius:9999px; font-weight:600;">${esc(meta.badge)}</span>
+            </div>
+            <div style="color:#52525b; font-size:0.66rem; margin-top:0.2rem;">12/06/2026 • 84 fotos</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.25rem; margin-top:0.6rem; padding-top:0.45rem; border-top:1px solid rgba(0,0,0,0.08);">
+          ${['Criada', 'Fotos', 'Link', 'Entregue'].map((s, i) => `
+            <div style="width:0.8rem; height:0.8rem; border-radius:50%; background:${i < 2 ? '#3fb950' : 'rgba(0,0,0,0.15)'}; color:#fff; font-size:0.4rem; display:flex; align-items:center; justify-content:center;">${i < 2 ? '✓' : ''}</div>
+            ${i < 3 ? `<div style="flex:1; height:1px; background:${i < 1 ? '#3fb950' : 'rgba(0,0,0,0.12)'};"></div>` : ''}
+          `).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Upload + persistência ──────────────────────────────────────────────────────
+
+window.uploadSessionBgImage = async (input, key) => {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const status = document.getElementById(`sbgStatus-${key}`);
+  if (status) status.textContent = 'Enviando...';
+  try {
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+      body: fd
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+
+    await apiRequest('POST', `/api/admin/session-card-backgrounds/${key}`, { imageUrl: json.url });
+    saasToast('Fundo do card atualizado!', 'success');
+    await loadSessionBackgrounds();
+  } catch (err) {
+    if (status) status.textContent = '';
+    saasToast('Erro no upload: ' + err.message, 'error');
+  } finally {
+    input.value = '';
+  }
+};
+
+window.removeSessionBgImage = async (key, label) => {
+  if (!await saasConfirm(`Remover a imagem de fundo das sessões "${label}"? Os cards voltam ao tint sólido.`, { title: 'Remover imagem', confirmText: 'Remover', danger: true })) return;
+  try {
+    await apiRequest('DELETE', `/api/admin/session-card-backgrounds/${key}`);
+    saasToast('Imagem removida.', 'success');
+    await loadSessionBackgrounds();
+  } catch (err) {
+    saasToast('Erro: ' + err.message, 'error');
+  }
+};
+
+window.toggleSessionBgActive = async (key, current) => {
+  try {
+    await apiRequest('PATCH', `/api/admin/session-card-backgrounds/${key}`, { active: !current });
+    saasToast(!current ? 'Fundo ativado!' : 'Fundo desativado.', 'success');
+    await loadSessionBackgrounds();
+  } catch (err) {
+    saasToast('Erro: ' + err.message, 'error');
+  }
+};
+
+// Atualiza só o preview ao vivo (sem salvar) enquanto arrasta o slider.
+window.previewSessionBgOpacity = (key, val) => {
+  const op = Math.max(0, Math.min(100, Number(val))) / 100;
+  const img = document.getElementById(`sbgPreviewImg-${key}`);
+  const label = document.getElementById(`sbgOpLabel-${key}`);
+  if (img) img.style.opacity = op;
+  if (label) label.textContent = `${Math.round(op * 100)}%`;
+};
+
+// Salva a opacidade ao soltar o slider. Não recarrega — preserva a posição do slider.
+window.saveSessionBgOpacity = async (key, val) => {
+  const op = Math.max(0, Math.min(100, Number(val))) / 100;
+  try {
+    await apiRequest('PATCH', `/api/admin/session-card-backgrounds/${key}`, { opacity: op });
+    if (_state[key]) _state[key].opacity = op;
+    else _state[key] = { key, imageUrl: '', opacity: op, active: true };
+    saasToast('Opacidade salva.', 'success');
+  } catch (err) {
+    saasToast('Erro ao salvar opacidade: ' + err.message, 'error');
+  }
+};
+
+export { loadSessionBackgrounds };

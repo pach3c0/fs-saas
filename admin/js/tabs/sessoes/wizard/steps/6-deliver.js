@@ -6,6 +6,7 @@
 import { apiPut, apiPost } from '../../../../utils/api.js';
 import { escapeHtml } from '../../../../utils/helpers.js';
 import { appState } from '../../../../state.js';
+import { icon } from '../../../../utils/icons.js';
 import {
   buildGalleryUrl, buildGalleryUrlForCode, buildWhatsAppDeliveryLink,
   buildDeliveryEmailIntro, buildMessageCustomizer
@@ -51,7 +52,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     card.style.cssText = `
       background: color-mix(in srgb, var(--orange) 10%, transparent);
       border: 1px solid color-mix(in srgb, var(--orange) 30%, transparent);
-      border-radius: 0.5rem; padding: 1rem 1.25rem;
+      border-radius:var(--r-card); padding: 1rem 1.25rem;
     `;
     card.innerHTML = `
       <div style="font-weight:600; color:var(--orange); margin-bottom:0.25rem;">⚠ Pedido de reabertura</div>
@@ -62,7 +63,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
 
     const acceptBtn = document.createElement('button');
     acceptBtn.textContent = '✓ Reabrir seleção';
-    acceptBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;`;
+    acceptBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;`;
     acceptBtn.onclick = async () => {
       try {
         await apiPut(`/api/sessions/${session._id}/reopen`, {});
@@ -73,7 +74,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
 
     const dismissBtn = document.createElement('button');
     dismissBtn.textContent = '✗ Recusar pedido';
-    dismissBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;`;
+    dismissBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;`;
     dismissBtn.onclick = async () => {
       const ok = await window.showConfirm?.('Recusar o pedido mantém a seleção atual. Confirmar?', { confirmText: 'Recusar', cancelText: 'Cancelar' });
       if (!ok) return;
@@ -97,7 +98,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     card.style.cssText = `
       background: color-mix(in srgb, var(--yellow) 10%, transparent);
       border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
-      border-radius: 0.5rem; padding: 1rem 1.25rem;
+      border-radius:var(--r-card); padding: 1rem 1.25rem;
     `;
     card.innerHTML = `
       <div style="font-weight:600; color:var(--yellow); margin-bottom:0.25rem;">📸 ${extras.length} foto(s) extra(s) solicitada(s)</div>
@@ -108,7 +109,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
 
     const acceptBtn = document.createElement('button');
     acceptBtn.textContent = `✓ Aceitar ${extras.length} extras`;
-    acceptBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;`;
+    acceptBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;`;
     acceptBtn.onclick = async () => {
       try {
         await apiPut(`/api/sessions/${session._id}/extra-request/accept`, {});
@@ -119,7 +120,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
 
     const rejectBtn = document.createElement('button');
     rejectBtn.textContent = '✗ Recusar';
-    rejectBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;`;
+    rejectBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;`;
     rejectBtn.onclick = async () => {
       const reason = prompt('Motivo da recusa (opcional):') || '';
       try {
@@ -139,7 +140,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
   const deliverCard = document.createElement('div');
   deliverCard.style.cssText = `
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: 0.5rem; padding: 1.5rem;
+    border-radius:var(--r-card); padding: 1.5rem;
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem;
   `;
 
@@ -151,7 +152,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     `;
     const reBtn = document.createElement('button');
     reBtn.textContent = '🔄 Re-entregar (notificar novamente)';
-    reBtn.style.cssText = `background:var(--orange); color:white; border:none; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem; font-weight:500;`;
+    reBtn.style.cssText = `background:var(--orange); color:white; border:none; padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem; font-weight:500;`;
     reBtn.onclick = async () => {
       const ok = await window.showConfirm?.('Notificar o cliente novamente sobre a entrega?', { confirmText: 'Sim, re-notificar', cancelText: 'Cancelar' });
       if (!ok) return;
@@ -185,7 +186,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
       background: ${blocked ? 'var(--bg-base)' : 'var(--green)'};
       color: ${blocked ? 'var(--text-muted)' : 'white'};
       border: ${blocked ? '1px solid var(--border)' : 'none'};
-      padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+      padding: 0.75rem 1.5rem; border-radius:var(--r-card);
       cursor: ${blocked ? 'not-allowed' : 'pointer'};
       font-weight: 600; font-size: 0.9375rem;
     `;
@@ -231,7 +232,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     backBtn.textContent = '↩ Prefiro enviar uma prévia com marca d\'água antes';
     backBtn.style.cssText = `
       background: transparent; border: 1px solid var(--border);
-      color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 0.375rem;
+      color: var(--text-secondary); padding: 0.5rem 1rem; border-radius:var(--r-field);
       cursor: pointer; font-size: 0.8125rem;
     `;
     backBtn.onclick = async () => {
@@ -251,32 +252,7 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
   wrap.appendChild(renderStoragePanel(session, refresh));
 
   // Histórico de entregas
-  if (Array.isArray(session.deliveryHistory) && session.deliveryHistory.length > 0) {
-    const histSection = document.createElement('div');
-    histSection.style.cssText = 'border-top:1px solid var(--border); padding-top:1rem;';
-    const histTitle = document.createElement('div');
-    histTitle.textContent = 'Histórico';
-    histTitle.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.5rem;';
-    histSection.appendChild(histTitle);
-
-    session.deliveryHistory.slice().reverse().forEach((entry, idx) => {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        padding: 0.5rem 0.75rem; border-left: 2px solid var(--green);
-        margin-bottom: 0.5rem; background: var(--bg-surface);
-        border-radius: 0 0.25rem 0.25rem 0; font-size: 0.8125rem;
-      `;
-      const when = entry.deliveredAt ? new Date(entry.deliveredAt).toLocaleString('pt-BR') : '—';
-      let html = `<strong>Entrega #${session.deliveryHistory.length - idx}</strong> · ${when}`;
-      if (entry.selectedCount) html += ` · ${entry.selectedCount} fotos`;
-      if (entry.reopenedAt) html += `<br><span style="color:var(--orange);">↻ Reaberta em ${new Date(entry.reopenedAt).toLocaleString('pt-BR')}</span>`;
-      if (entry.reopenReason) html += `<br><span style="color:var(--text-muted); font-size:0.75rem;">"${entry.reopenReason}"</span>`;
-      item.innerHTML = html;
-      histSection.appendChild(item);
-    });
-
-    wrap.appendChild(histSection);
-  }
+  wrap.appendChild(renderDeliveryHistorySection(session));
 
   return wrap;
 }
@@ -332,7 +308,7 @@ function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
     const box = document.createElement('div');
     box.style.cssText = `
       background:var(--bg-surface); border:1px solid var(--border);
-      border-radius:0.75rem; padding:1.5rem; width:400px; max-width:90vw;
+      border-radius:var(--r-card); padding:1.5rem; width:400px; max-width:90vw;
       box-shadow:0 20px 60px rgba(0,0,0,0.4);
     `;
 
@@ -354,7 +330,7 @@ function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
     notifyBtn.textContent = '📧 Avisar o cliente por e-mail';
     notifyBtn.style.cssText = `
       background:var(--accent); color:var(--bg-base); border:none;
-      padding:0.625rem 1rem; border-radius:0.5rem; cursor:pointer;
+      padding:0.625rem 1rem; border-radius:var(--r-card); cursor:pointer;
       font-size:0.875rem; font-weight:600; text-align:left;
     `;
     notifyBtn.onclick = async () => {
@@ -372,7 +348,7 @@ function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
     proceedBtn.textContent = `🗑️ ${actionLabel}`;
     proceedBtn.style.cssText = `
       background:transparent; color:var(--red); border:1px solid color-mix(in srgb, var(--red) 40%, transparent);
-      padding:0.625rem 1rem; border-radius:0.5rem; cursor:pointer;
+      padding:0.625rem 1rem; border-radius:var(--r-card); cursor:pointer;
       font-size:0.875rem; font-weight:600; text-align:left;
     `;
     proceedBtn.onclick = async () => { close(); await actionFn(); };
@@ -382,7 +358,7 @@ function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
     cancelBtn.textContent = 'Cancelar';
     cancelBtn.style.cssText = `
       background:transparent; color:var(--text-secondary); border:1px solid var(--border);
-      padding:0.5rem 1rem; border-radius:0.5rem; cursor:pointer; font-size:0.875rem; text-align:left;
+      padding:0.5rem 1rem; border-radius:var(--r-card); cursor:pointer; font-size:0.875rem; text-align:left;
     `;
     cancelBtn.onclick = close;
 
@@ -402,7 +378,7 @@ function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
 // Painel de retenção de storage
 // ============================================================================
 
-function renderStoragePanel(session, refresh) {
+export function renderStoragePanel(session, refresh) {
   const panel = document.createElement('div');
   panel.style.cssText = 'border-top:1px solid var(--border); padding-top:1rem;';
 
@@ -424,7 +400,7 @@ function renderStoragePanel(session, refresh) {
     card.style.cssText = `
       background: color-mix(in srgb, var(--text-muted) 8%, transparent);
       border: 1px solid color-mix(in srgb, var(--text-muted) 20%, transparent);
-      border-radius: 0.5rem; padding: 1rem 1.25rem;
+      border-radius:var(--r-card); padding: 1rem 1.25rem;
       display: flex; flex-direction: column; gap: 0.5rem;
     `;
     card.innerHTML = `
@@ -460,7 +436,7 @@ function renderStoragePanel(session, refresh) {
   card.style.cssText = `
     background: ${bgColor};
     border: 1px solid ${borderColor};
-    border-radius: 0.5rem; padding: 1rem 1.25rem;
+    border-radius:var(--r-card); padding: 1rem 1.25rem;
     display: flex; flex-direction: column; gap: 0.75rem;
   `;
 
@@ -490,7 +466,7 @@ function renderStoragePanel(session, refresh) {
   extendBtn.textContent = 'Estender prazo';
   extendBtn.style.cssText = `
     background: var(--accent); color: var(--bg-base); border: none;
-    padding: 0.375rem 0.75rem; border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem; border-radius:var(--r-field);
     cursor: pointer; font-size: 0.8125rem; font-weight: 500; white-space:nowrap;
   `;
   extendBtn.onclick = async () => {
@@ -516,7 +492,7 @@ function renderStoragePanel(session, refresh) {
   archiveBtn.style.cssText = `
     background: transparent; color: var(--text-primary);
     border: 1px solid var(--border);
-    padding: 0.375rem 0.75rem; border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem; border-radius:var(--r-field);
     cursor: pointer; font-size: 0.8125rem; font-weight: 500;
   `;
   archiveBtn.onclick = () => _confirmWithDownloadCheck(session, 'Arquivar mesmo assim', async () => {
@@ -541,7 +517,7 @@ function renderStoragePanel(session, refresh) {
   deleteBtn.style.cssText = `
     background: transparent; color: var(--red);
     border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
-    padding: 0.375rem 0.75rem; border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem; border-radius:var(--r-field);
     cursor: pointer; font-size: 0.8125rem; font-weight: 500;
   `;
   deleteBtn.onclick = () => _confirmWithDownloadCheck(session, 'Deletar mesmo assim', async () => {
@@ -563,11 +539,41 @@ function renderStoragePanel(session, refresh) {
   return panel;
 }
 
+export function renderDeliveryHistorySection(session) {
+  if (!Array.isArray(session.deliveryHistory) || session.deliveryHistory.length === 0) {
+    return document.createDocumentFragment();
+  }
+  const histSection = document.createElement('div');
+  histSection.style.cssText = 'border-top:1px solid var(--border); padding-top:1rem;';
+  const histTitle = document.createElement('div');
+  histTitle.textContent = 'Histórico';
+  histTitle.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.5rem;';
+  histSection.appendChild(histTitle);
+
+  session.deliveryHistory.slice().reverse().forEach((entry, idx) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 0.5rem 0.75rem; border-left: 2px solid var(--green);
+      margin-bottom: 0.5rem; background: var(--bg-surface);
+      border-radius: 0 0.25rem 0.25rem 0; font-size: 0.8125rem;
+    `;
+    const when = entry.deliveredAt ? new Date(entry.deliveredAt).toLocaleString('pt-BR') : '—';
+    let html = `<strong>Entrega #${session.deliveryHistory.length - idx}</strong> · ${when}`;
+    if (entry.selectedCount) html += ` · ${entry.selectedCount} fotos`;
+    if (entry.reopenedAt) html += `<br><span style="color:var(--orange);">↻ Reaberta em ${new Date(entry.reopenedAt).toLocaleString('pt-BR')}</span>`;
+    if (entry.reopenReason) html += `<br><span style="color:var(--text-muted); font-size:0.75rem;">"${entry.reopenReason}"</span>`;
+    item.innerHTML = html;
+    histSection.appendChild(item);
+  });
+
+  return histSection;
+}
+
 // ============================================================================
 // MULTI-SELEÇÃO — entrega por participante
 // ============================================================================
 
-function renderMultiDeliverHeader(session) {
+export function renderMultiDeliverHeader(session) {
   const ps = session.participants || [];
   const submitted = ps.filter(p => p.selectionStatus === 'submitted').length;
   const delivered = ps.filter(p => p.selectionStatus === 'delivered').length;
@@ -575,6 +581,7 @@ function renderMultiDeliverHeader(session) {
   const allDelivered = delivered === ps.length && ps.length > 0;
 
   const header = document.createElement('div');
+  header.style.cssText = 'text-align:center; display:flex; flex-direction:column; align-items:center;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">
       ${allDelivered ? 'Todos os participantes entregues' : 'Entregar participantes'}
@@ -588,11 +595,11 @@ function renderMultiDeliverHeader(session) {
   return header;
 }
 
-function renderParticipantsDeliveryTable(session, refresh) {
+export function renderParticipantsDeliveryTable(session, refresh) {
   const wrap = document.createElement('div');
   wrap.style.cssText = `
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: 0.5rem; overflow: hidden;
+    border-radius:var(--r-card); overflow: hidden;
   `;
 
   const participants = session.participants || [];
@@ -602,11 +609,12 @@ function renderParticipantsDeliveryTable(session, refresh) {
   head.style.cssText = `
     padding: 0.625rem 0.875rem;
     border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 0.75rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    text-align: center;
   `;
   const headTitle = document.createElement('div');
   headTitle.textContent = 'Participantes';
-  headTitle.style.cssText = 'flex:1; font-size:0.75rem; font-weight:600; color:var(--text-secondary); letter-spacing:0.05em; text-transform:uppercase;';
+  headTitle.style.cssText = 'font-size:0.75rem; font-weight:600; color:var(--text-secondary); letter-spacing:0.05em; text-transform:uppercase; text-align: center;';
   head.appendChild(headTitle);
 
   const readyForBulk = participants.filter(p => p.selectionStatus === 'submitted');
@@ -614,7 +622,7 @@ function renderParticipantsDeliveryTable(session, refresh) {
     const bulkBtn = document.createElement('button');
     bulkBtn.type = 'button';
     bulkBtn.textContent = `✅ Entregar todos (${readyForBulk.length})`;
-    bulkBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:500;`;
+    bulkBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.375rem 0.75rem; border-radius:var(--r-field); cursor:pointer; font-size:0.75rem; font-weight:500;`;
     bulkBtn.onclick = async () => {
       const ok = await window.showConfirm?.(`Entregar para ${readyForBulk.length} participantes prontos?`, { confirmText: 'Entregar todos', cancelText: 'Cancelar' });
       if (!ok) return;
@@ -652,13 +660,13 @@ function renderParticipantsDeliveryTable(session, refresh) {
 
     const row = document.createElement('div');
     row.style.cssText = `
-      padding: 0.625rem 0.875rem;
-      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      padding: 0.875rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;
       ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}
     `;
 
     const info = document.createElement('div');
-    info.style.cssText = 'flex:1; min-width:160px;';
+    info.style.cssText = 'text-align: center;';
     info.innerHTML = `
       <div style="font-weight:500; color:var(--text-primary); font-size:0.875rem;">${escapeHtml(p.name)}</div>
       <div style="font-size:0.6875rem; color:var(--text-muted);">
@@ -668,16 +676,26 @@ function renderParticipantsDeliveryTable(session, refresh) {
     row.appendChild(info);
 
     const badge = document.createElement('div');
-    badge.style.cssText = `font-size:0.75rem; color:${statusInfo.color}; font-weight:500; white-space:nowrap;`;
+    badge.style.cssText = `font-size:0.75rem; color:${statusInfo.color}; font-weight:500; white-space:nowrap; margin-bottom: 0.25rem;`;
     badge.textContent = statusInfo.label;
     row.appendChild(badge);
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.style.cssText = 'display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap;';
 
     // Botão Entregar (só se submitted)
     if (status === 'submitted') {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = '✅ Entregar';
-      btn.style.cssText = `background:var(--green); color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:500;`;
+      btn.className = 'header-expand-btn';
+      btn.title = `Entregar fotos para ${p.name}`;
+      btn.style.cssText = 'cursor:pointer;';
+      btn.innerHTML = `
+        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
+          ${icon('checkCircle', 16)}
+        </span>
+        <span class="header-expand-label">Entregar</span>
+      `;
       btn.onclick = async () => {
         const ok = await window.showConfirm?.(`Entregar fotos para ${p.name}?`, { confirmText: 'Entregar', cancelText: 'Cancelar' });
         if (!ok) return;
@@ -687,18 +705,24 @@ function renderParticipantsDeliveryTable(session, refresh) {
           await refresh();
         } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
       };
-      row.appendChild(btn);
+      actionsDiv.appendChild(btn);
     }
 
     // WhatsApp individual: disponível tanto antes (alinhar expectativa) quanto depois (reforço)
     if (status === 'submitted' || status === 'delivered') {
       const waBtn = document.createElement('button');
       waBtn.type = 'button';
+      waBtn.className = 'header-expand-btn';
       waBtn.title = p.phone
         ? 'Abrir WhatsApp com mensagem de entrega'
         : 'Telefone não cadastrado — abre o WhatsApp sem número';
-      waBtn.innerHTML = '💬 WhatsApp';
-      waBtn.style.cssText = `background:#25D366; color:white; border:none; padding:0.375rem 0.75rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem; font-weight:500;`;
+      waBtn.style.cssText = 'cursor:pointer;';
+      waBtn.innerHTML = `
+        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
+          ${icon('whatsapp', 16)}
+        </span>
+        <span class="header-expand-label">WhatsApp</span>
+      `;
       waBtn.onclick = () => {
         const orgName = appState.appData?.organization?.name || 'CliqueZoom';
         const url = buildWhatsAppDeliveryLink({
@@ -710,20 +734,31 @@ function renderParticipantsDeliveryTable(session, refresh) {
         });
         window.open(url, '_blank');
       };
-      row.appendChild(waBtn);
+      actionsDiv.appendChild(waBtn);
 
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
-      copyBtn.textContent = '🔗 Link';
+      copyBtn.className = 'header-expand-btn';
       copyBtn.title = 'Copiar link da galeria deste participante';
-      copyBtn.style.cssText = `background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); padding:0.375rem 0.75rem; border-radius:0.375rem; cursor:pointer; font-size:0.75rem;`;
+      copyBtn.style.cssText = 'cursor:pointer;';
+      copyBtn.innerHTML = `
+        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
+          ${icon('link', 16)}
+        </span>
+        <span class="header-expand-label">Link</span>
+      `;
       copyBtn.onclick = async () => {
         await navigator.clipboard.writeText(buildGalleryUrlForCode(session, p.accessCode));
-        const prev = copyBtn.textContent;
-        copyBtn.textContent = '✓';
-        setTimeout(() => { copyBtn.textContent = prev; }, 1500);
+        const labelSpan = copyBtn.querySelector('.header-expand-label');
+        const prevText = labelSpan.textContent;
+        labelSpan.textContent = 'Copiado!';
+        setTimeout(() => { labelSpan.textContent = prevText; }, 1500);
       };
-      row.appendChild(copyBtn);
+      actionsDiv.appendChild(copyBtn);
+    }
+
+    if (actionsDiv.children.length > 0) {
+      row.appendChild(actionsDiv);
     }
 
     list.appendChild(row);

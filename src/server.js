@@ -356,6 +356,11 @@ app.use('/api', require('./routes/landing'));
 app.use('/api', require('./routes/saasAdmin'));
 app.use('/api', require('./routes/tutorials'));
 app.use('/api', require('./routes/manual'));
+app.use('/api', require('./routes/partnerBanners'));
+app.use('/api', require('./routes/announcements'));
+app.use('/api', require('./routes/platformUpdates'));
+app.use('/api', require('./routes/dashboardCards'));
+app.use('/api', require('./routes/sessionCardBackgrounds'));
 app.use('/api', require('./routes/tickets'));
 app.use('/api', require('./routes/saasSystem'));
 

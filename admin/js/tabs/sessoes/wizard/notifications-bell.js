@@ -34,24 +34,19 @@ export function mountWizardBell(rootEl, currentSessionId) {
   const bell = document.createElement('button');
   bell.type = 'button';
   bell.id = 'wizardNotifBell';
+  bell.className = 'header-expand-btn';
   bell.title = 'Notificações';
-  bell.style.cssText = `
-    position: relative;
-    background: transparent; border: 1px solid var(--border);
-    color: var(--text-secondary); width: 32px; height: 32px;
-    border-radius: 0.375rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-  `;
+  bell.style.cssText = 'cursor: pointer; overflow: visible !important;';
   bell.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    <span id="wizardNotifBadge" style="display:none; position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 4px; background:var(--red); color:#fff; font-size:0.625rem; font-weight:700; border-radius:9999px; align-items:center; justify-content:center; line-height:1;"></span>
+    <span class="header-expand-icon" style="position:relative; display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span id="wizardNotifBadge" style="display:none; position:absolute; top:-2px; right:-2px; min-width:14px; height:14px; padding:0 3px; background:var(--red); color:#fff; font-size:9px; font-weight:700; border-radius:50%; align-items:center; justify-content:center; line-height:14px;"></span>
+    </span>
+    <span class="header-expand-label">Notificações</span>
   `;
-  bell.onmouseenter = () => { bell.style.background = 'var(--bg-hover)'; };
-  bell.onmouseleave = () => { bell.style.background = 'transparent'; };
 
   const dropdown = document.createElement('div');
   dropdown.id = 'wizardNotifDropdown';
@@ -60,7 +55,7 @@ export function mountWizardBell(rootEl, currentSessionId) {
     position: absolute; top: 44px; right: 0;
     width: 320px; max-height: 420px;
     background: var(--bg-elevated); border: 1px solid var(--border);
-    border-radius: 0.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    border-radius:var(--r-card); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     z-index: 1200; display: none; flex-direction: column;
   `;
 
@@ -310,7 +305,7 @@ function _actionBtn(label, title, color) {
   b.style.cssText = `
     background: transparent; border: 1px solid var(--border);
     color: ${color}; width: 24px; height: 24px;
-    border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem;
+    border-radius:var(--r-chip); cursor: pointer; font-size: 0.75rem;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.1s;
   `;

@@ -56,3 +56,8 @@ test-results/*
 .env.production.local
 .env*.local
 .vercel/
+
+# Handoffs e protótipos (não versionar — dumps fora de produção)
+handoff-frontend/
+handoff-frontend.zip
+novocliquezoom/

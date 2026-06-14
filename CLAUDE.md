@@ -205,6 +205,13 @@
 - Aba "Segurança" no SaaS Admin exibe IPs detectados
 - TTL index: logs expiram em 30 dias
 
+### Privacidade e Acesso de Suporte (SaaS Admin)
+- Superadmin **NÃO PODE** acessar contas de fotógrafos ("Entrar como") sem autorização explícita, devido à sensibilidade dos dados (fotos de clientes).
+- O fotógrafo deve ativar a flag em **Configurações › Privacidade** (`supportAccess.enabled = true`).
+- Acesso negado retorna **403** (`consent_required`) no `POST /api/admin/organizations/:id/impersonate` e envia notificação `support_request` ao fotógrafo.
+- O `apiRequest` do SaaS Admin (`saas-admin/js/core.js`) deve propagar o erro 403 com `code` (não tratar como sessão expirada).
+- Acessos autorizados geram logs na auditoria e uma notificação de transparência (`support_access`) para o fotógrafo.
+
 ### CRM — Automação de Vendas (src/utils/salesAutomator.js)
 - Gatilhos de escassez: 15d (sem cupom), 7d, 3d, 1d (com cupom)
 - Idempotência via `session.salesAutomation.sentTriggers`
@@ -359,6 +366,19 @@ Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pend
 - **Removido:** o `salesAutomator` (escassez pré-entrega COM cupom) era conceitualmente errado (dava desconto antes da entrega) — apagado, junto dos `sendScarcity*` e do bloco `salesAutomator.scarcity`.
 - [ ] **UI dos dias do pós-entrega:** `postDelivery.daysSchedule` é configurável no backend, mas a UI em `configuracoes.js` só edita o **desconto** de cada dia (15/7/1), não os dias em si.
 
+### Serviços Extras (Ajuda) + Criador de Implantação Guiada
+**Atual (implementado):** aba **Serviços Extras** em `admin/js/tabs/ajuda.js` (`ajudaView === 'servicos'`), no padrão Bling. Catálogo **orientado a dados** (`SERVICOS_EXTRAS`) com duas telas: grid de cards (`renderServicosGridHTML`) e tela de detalhe rica (`renderServicoDetalheHTML` — hero verde + descrição + 3 benefícios). CTA = **lead via WhatsApp** (humano fecha), link montado em `buildServicoWaLink` a partir da constante `SUPPORT_WHATSAPP` (número da plataforma; vazio → cai no Fala Conosco). Hoje há **1 serviço hardcodado** no array: *Implantação Guiada* (R$ 300, pagamento único). Identidade aprovada pelo usuário (pill verde, botão verde, ícones Lucide) — preservar.
+
+**PRÓXIMO PASSO (planejado — NÃO implementar até o usuário pedir):** **Criador de Implantação Guiada no SaaS Admin**, espelhando o **Criador de Manual** (model `ManualModule` + editor visual no `saas-admin`). Objetivo: o superadmin cria **vários** serviços de implantação manualmente — ex.: *só Sessões*, *só Meu Site*, *só CRM*, *Completa* — cada um com **valor**, **WhatsApp próprio** e **texto/descrição/benefícios** configuráveis. O front do fotógrafo (`ajuda.js`) deixa de ter o array hardcodado e passa a **consumir uma API** (ex.: `GET /api/servicos-extras`), renderizando o mesmo grid + tela de detalhe atuais (mantendo a identidade visual). Fallback total para o estático se o banco estiver vazio (mesmo padrão do Manual). Sugestão de model: `ServicoExtra { titulo, resumo, preco, precoNota, icon, descricao, beneficios[], whatsapp, ativo, ordem }`.
+
+### Venda de Domínios — Concierge (Fase 1, implementado)
+Painel **"Registrar um domínio"** no topo da aba **Domínio** (`admin/js/tabs/dominio.js`), acima da seção "Domínio Personalizado" (conectar domínio existente, que segue intacta).
+- **Busca de disponibilidade roda dentro do app**, gratuita, via **RDAP** (substituto moderno do WHOIS, HTTP/JSON, sem conta de reseller) — `src/utils/domainAvailability.js`. `.br` → `rdap.registro.br`; demais TLDs → `rdap.org` (bootstrap IANA). Mapeia **200 = registrado/indisponível**, **404 = disponível**, resto/timeout = **não verificado**. Usa `fetch` nativo + `AbortController` (~4s), `Promise.allSettled`. TLDs default: `.com.br`, `.com`, `.fot.br`, `.photography` (com estimativa de preço display-only).
+- **Endpoint:** `GET /api/domains/check?name=<base>` (`authenticateToken`, **sem gating de plano** — busca aberta a todos como funil de venda). Normaliza o nome (lowercase, só o SLD se vier domínio completo, regex `[a-z0-9-]`); inválido → 400. Responde `{ success, results: [{domain, tld, status, priceEstimate}] }`.
+- **Fechamento manual (Concierge):** botão **"Quero este domínio"** nos disponíveis cria um chamado no **Fala Conosco** (`POST /api/tickets`, `subject: "Registrar domínio: <dominio>"`, `category: 'duvida'`) e redireciona pra aba Ajuda. **Não usa WhatsApp** (número da equipe ainda vazio).
+- **Ressalva honesta:** RDAP diz "registrado ou não", não garante a compra naquele preço (premium/pendentes). A UI mostra "disponibilidade aproximada — confirmamos no atendimento" + nota de que apontar ao site requer plano **Pro**. Identidade visual verde reaproveitada dos Serviços Extras (pill/botão `var(--green)`, ícones Lucide).
+- **Fase 2 (fora de escopo — NÃO implementar até o usuário pedir):** integração reseller (ResellerClub), registro + DNS automáticos, cobrança recorrente Mercado Pago, coleta de CPF/CNPJ.
+
 ### V2 — Funcionalidades ocultas aguardando desenvolvimento
 - **Prova de Álbuns:** fluxo completo de proofing (páginas, layouts, revisões, aprovação)
 - **Multi-Imediata + Face Search:** reconhecimento facial para entregar fotos por participante em eventos em tempo real
@@ -378,3 +398,13 @@ O ERP **Rhyno System** (pasta `/Users/macbook/Documents/ERP1`, repo `pach3c0/ERP
 - Aba **Clientes** oculta no menu (transição, reversível); `Client.rhynoCustomerId` mapeia a migração; `src/utils/migrateClientsToRhyno.js` migra Mongo→Rhyno (dry-run/--apply).
 - Config no `.env`: `SSO_SHARED_SECRET` (= ao do Rhyno), `RHYNO_BASE_URL`, `RHYNO_API_URL`, `RHYNO_POC_EMAIL`.
 - ⏸️ **PAUSADO** (sem créditos + ajustes locais pendentes). **Handoff completo: `skills/9_0_handoff-rhyno-integracao.md`.** Memória: `project_rhyno_integration`, `reference_rhyno_local_poc`.
+
+> ⚠️ **REGRA — Subir o Rhyno local (a aba Gestão fica em branco / "não funciona" sem isto):**
+> O container `rhyno-api` sobe com `Cmd: ["sleep","infinity"]` — **o uvicorn NÃO inicia sozinho**. Só `docker start rhyno-api` deixa a porta 8000 aceitando conexão e logo **resetando** ("Connection reset by peer"); a API está morta e o SSO do iframe falha. Sequência correta para subir o stack do zero (após reboot/`docker restart`):
+> ```bash
+> docker start rhyno-pg rhyno-api
+> docker exec -d rhyno-api sh -c "cd /app && uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1"
+> # frontend (na pasta ERP1/frontend, roda no host): npm run dev   → Vite :5173
+> ```
+> Verificar: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8000/docs` deve dar **200**. Logs: `docker exec rhyno-api tail -n 30 /tmp/uvicorn.log`.
+> Notas: o Vite escuta só em `[::1]:5173` (IPv6) — use `localhost`, não `127.0.0.1`. O `SSO_SHARED_SECRET` precisa ser IGUAL nos dois `.env` (`FsSaaS/.env` e `ERP1/backend/.env`). Detalhes em `reference_rhyno_local_poc`.

@@ -99,7 +99,7 @@
 [data-surface='admin'],
 .surface-admin {
   --ad-font-body: 'Inter', -apple-system, sans-serif;
-  --ad-font-display: 'Playfair Display', Georgia, serif;
+  --ad-font-display: 'Inter', sans-serif;
   --ad-font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   /* Status — functional, identical in both themes */

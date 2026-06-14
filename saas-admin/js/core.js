@@ -72,12 +72,17 @@ async function apiRequest(method, url, body = null) {
     body: body ? JSON.stringify(body) : null
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     if (_onUnauthorized) _onUnauthorized();
     throw new Error('Sessao expirada');
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    // 403 de consent (impersonate negado) não é sessão expirada — propaga o erro
+    if (res.status === 403 && !err.code) {
+      if (_onUnauthorized) _onUnauthorized();
+      throw new Error('Sessao expirada');
+    }
     throw new Error(err.error || `Erro ${res.status}`);
   }
   return res.json();

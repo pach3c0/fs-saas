@@ -1,11 +1,13 @@
 // Wizard de Sessões — entry point.
-// Abre um modal fullscreen com sidebar de etapas (stepper.js) à esquerda
-// e conteúdo do passo ativo à direita.
+// Abre um modal fullscreen com a barra de etapas (stepper.js) no header,
+// o conteúdo do passo ativo no centro e o painel de configurações (encolhível)
+// à direita.
 
 import { apiGet, apiPut, apiPost } from '../../../utils/api.js';
+import { icon } from '../../../utils/icons.js';
 import { wizardState, resetWizardState, stopWizardPolling } from './state.js';
-import { computeWizardSteps, renderStepper, injectWizardStyles } from './stepper.js';
-import { mountWizardBell, unmountWizardBell } from './notifications-bell.js';
+import { computeWizardSteps, renderHeaderStepper, injectWizardStyles } from './stepper.js';
+import { unmountWizardBell } from './notifications-bell.js';
 import { renderStepUpload } from './steps/1-upload.js';
 import { renderStepShare } from './steps/2-share.js';
 import { renderStepTracking } from './steps/4-tracking.js';
@@ -21,6 +23,14 @@ const STEP_RENDERERS = {
   5: renderStepEdited,
   6: renderStepDeliver
 };
+
+// Centraliza horizontalmente o conteúdo do passo dentro do #wizardContent.
+// Cada wrap de passo já tem seu próprio max-width; as margens automáticas o
+// centralizam quando a área é mais larga (e não fazem nada em telas estreitas).
+function centerInContent(el) {
+  if (el) { el.style.marginLeft = 'auto'; el.style.marginRight = 'auto'; }
+  return el;
+}
 
 // Abre o wizard para uma sessão específica.
 // Busca a sessão fresca da API, monta o modal e renderiza o primeiro passo aplicável.
@@ -71,8 +81,15 @@ function buildModal() {
   const modal = document.createElement('div');
   modal.id = 'sessionWizardModal';
   modal.style.cssText = `
-    position: fixed; inset: 0; z-index: 1100;
-    background: rgba(0,0,0,0.7);
+    position: fixed;
+    top: var(--header-h, 56px);
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 990;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex; align-items: stretch; justify-content: stretch;
   `;
 
@@ -84,26 +101,23 @@ function buildModal() {
     overflow: hidden;
   `;
 
-  // Header
+  // Header — título + ações (linha 1) e barra de etapas horizontal (linha 2)
   const header = document.createElement('div');
   header.id = 'wizardHeader';
   header.style.cssText = `
     flex-shrink: 0;
-    padding: 0.75rem 1.25rem;
+    padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
-    background: var(--bg-surface);
-    display: flex; align-items: center; gap: 0.75rem;
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(var(--glass-blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
   `;
   shell.appendChild(header);
 
-  // Body: sidebar + content
+  // Body: conteúdo + painel de configurações à direita (etapas agora vivem no header)
   const body = document.createElement('div');
   body.style.cssText = 'flex: 1; display: flex; min-height: 0; overflow: hidden;';
-
-  const sidebarSlot = document.createElement('div');
-  sidebarSlot.id = 'wizardSidebar';
-  sidebarSlot.style.cssText = 'display: flex; flex-shrink: 0;';
-  body.appendChild(sidebarSlot);
 
   const content = document.createElement('div');
   content.id = 'wizardContent';
@@ -137,29 +151,18 @@ function refreshWizard() {
   header.innerHTML = '';
   header.appendChild(buildHeader(session));
 
-  // Modo arquivado: sem stepper nem painel, conteúdo congelado
+  // Modo arquivado: sem etapas no header nem painel, conteúdo congelado
   if (session.archivedAt) {
-    modal.querySelector('#wizardSidebar').innerHTML = '';
     const configSlot = modal.querySelector('#wizardConfigSlot');
     if (configSlot) configSlot.innerHTML = '';
     const content = modal.querySelector('#wizardContent');
     content.innerHTML = '';
-    content.appendChild(buildArchivedView(session));
+    content.appendChild(centerInContent(buildArchivedView(session)));
     return;
   }
 
-  // Sidebar (etapas)
-  const sidebarSlot = modal.querySelector('#wizardSidebar');
-  sidebarSlot.innerHTML = '';
-  const steps = computeWizardSteps(session, wizardState.currentStepId);
-  sidebarSlot.appendChild(renderStepper(steps, switchStep));
-
-  // Sidebar direita (configurações da sessão — sempre visível)
-  const configSlot = modal.querySelector('#wizardConfigSlot');
-  if (configSlot) {
-    configSlot.innerHTML = '';
-    configSlot.appendChild(renderConfigPanel({ session, onChange: refreshWizard }));
-  }
+  // Painel direito (configurações da sessão — encolhível, sempre abre aberto)
+  renderConfigSlot();
 
   // Content
   const content = modal.querySelector('#wizardContent');
@@ -171,7 +174,7 @@ function refreshWizard() {
     banner.style.cssText = `
       background: color-mix(in srgb, var(--red) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
-      border-radius: 0.5rem; padding: 0.625rem 1rem; margin-bottom: 1rem;
+      border-radius:var(--r-card); padding: 0.625rem 1rem; margin-bottom: 1rem;
       display: flex; align-items: center; gap: 0.5rem;
       font-size: 0.8125rem; color: var(--red); font-weight: 600;
     `;
@@ -181,7 +184,7 @@ function refreshWizard() {
 
   // Verifica se o conteúdo atual é o painel de histórico
   if (wizardState.currentStepId === 'history') {
-    content.appendChild(renderHistoryPanel(session));
+    content.appendChild(centerInContent(renderHistoryPanel(session)));
     return;
   }
 
@@ -192,10 +195,27 @@ function refreshWizard() {
       refresh: refreshWizardFromServer,
       switchStep
     });
-    if (stepEl) content.appendChild(stepEl);
+    if (stepEl) content.appendChild(centerInContent(stepEl));
   } else {
     content.textContent = 'Passo não implementado.';
   }
+}
+
+// (Re)desenha só o painel direito de configurações — respeita o estado encolhido
+// (wizardState.configCollapsed) e serve de callback do próprio botão de encolher,
+// evitando re-renderizar o wizard inteiro a cada toggle.
+function renderConfigSlot() {
+  const modal = wizardState.modalEl;
+  const session = wizardState.session;
+  if (!modal || !session) return;
+  const configSlot = modal.querySelector('#wizardConfigSlot');
+  if (!configSlot) return;
+  configSlot.innerHTML = '';
+  configSlot.appendChild(renderConfigPanel({
+    session,
+    onChange: refreshWizard,
+    onToggleCollapse: renderConfigSlot
+  }));
 }
 
 // Recarrega sessão do servidor e re-renderiza.
@@ -232,44 +252,45 @@ async function switchStep(stepId) {
   }
 }
 
-// Header do wizard: voltar, título da sessão, config, deletar, fechar.
+// Header do wizard: linha 1 = título + ações (sininho, bloqueio, histórico, excluir, fechar);
+// linha 2 = barra de etapas horizontal (movida da antiga sidebar lateral).
 function buildHeader(session) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; align-items:center; gap:0.75rem; width:100%;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1rem; width:100%; align-items:center;';
+
+  const topRow = document.createElement('div');
+  topRow.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.75rem; width:100%; text-align:center;';
 
   const title = document.createElement('div');
-  title.style.cssText = 'flex:1; display:flex; align-items:center; gap:0.5rem; min-width:0;';
+  title.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.5rem; min-width:0; flex-wrap:wrap;';
   const name = document.createElement('strong');
   name.textContent = session.name || 'Sessão';
-  name.style.cssText = 'font-size:1rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+  name.style.cssText = 'font-size:1.125rem; color:var(--text-primary); font-weight:700;';
   title.appendChild(name);
 
   const _clientName = session.clientId?.name || session.clientName;
   if (_clientName) {
     const sep = document.createElement('span');
     sep.textContent = '·';
-    sep.style.cssText = 'color:var(--text-muted);';
+    sep.style.cssText = 'color:var(--text-muted); font-size:1.125rem; font-weight:700;';
     const client = document.createElement('span');
     client.textContent = _clientName;
-    client.style.cssText = 'color:var(--text-secondary); font-size:0.875rem;';
+    client.style.cssText = 'color:var(--text-secondary); font-size:1.125rem; font-weight:500;';
     title.appendChild(sep);
     title.appendChild(client);
   }
 
-  wrap.appendChild(title);
+  topRow.appendChild(title);
 
-  // Botões à direita
+  // Botões à direita (agora centralizados abaixo do título)
   const actions = document.createElement('div');
-  actions.style.cssText = 'display:flex; gap:0.5rem; align-items:center; flex-shrink:0;';
-
-  // Sininho de notificações (próprio do wizard — o global fica atrás)
-  mountWizardBell(actions, session._id);
+  actions.style.cssText = 'display:flex; gap:0.5rem; align-items:center; justify-content:center; flex-wrap:wrap;';
 
   // Botão de bloqueio de emergência
   const isBlocked = Boolean(session.clientAccessBlocked);
   const lockBtn = makeIconButton(
-    isBlocked ? '🔒' : '🔓',
-    isBlocked ? 'Acesso do cliente BLOQUEADO — clique para desbloquear' : 'Bloquear acesso do cliente (emergência)',
+    isBlocked ? icon('cadeado') : icon('cadeadoAberto'),
+    isBlocked ? 'Liberar' : 'Bloquear',
     async () => {
       const action = isBlocked ? 'desbloquear' : 'bloquear';
       const msg = isBlocked
@@ -285,8 +306,11 @@ function buildHeader(session) {
       } catch (e) {
         window.showToast?.('Erro: ' + e.message, 'error');
       }
-    }
+    },
+    isBlocked ? 'blocked' : ''
   );
+  
+  // Customizações para o botão bloqueado
   if (isBlocked) {
     lockBtn.style.background = 'color-mix(in srgb, var(--red) 15%, transparent)';
     lockBtn.style.borderColor = 'var(--red)';
@@ -295,52 +319,86 @@ function buildHeader(session) {
   actions.appendChild(lockBtn);
 
   // Botão histórico — toggle: abre o painel ou volta ao passo atual
-  const histBtn = makeIconButton('📋', 'Histórico da sessão', () => {
-    if (wizardState.currentStepId === 'history') {
-      wizardState.currentStepId = pickInitialStep(session);
-    } else {
-      wizardState.currentStepId = 'history';
-    }
-    refreshWizard();
-  });
+  const histBtn = makeIconButton(
+    icon('historico'),
+    'Histórico',
+    () => {
+      if (wizardState.currentStepId === 'history') {
+        wizardState.currentStepId = pickInitialStep(session);
+      } else {
+        wizardState.currentStepId = 'history';
+      }
+      refreshWizard();
+    },
+    wizardState.currentStepId === 'history' ? 'active' : ''
+  );
   if (wizardState.currentStepId === 'history') {
     histBtn.style.background = 'var(--bg-hover)';
     histBtn.style.borderColor = 'var(--accent)';
   }
   actions.appendChild(histBtn);
 
-  // ⚙️ removida: as configurações da sessão vivem no painel lateral direito do wizard
-  // (autosave) e a capa também se ajusta lá — o modal de edição antigo foi aposentado.
-
-  actions.appendChild(makeIconButton('🗑️', 'Excluir sessão', async () => {
+  const deleteBtn = makeIconButton(icon('lixeira'), 'Excluir', async () => {
     const ok = await window.showConfirm?.(`Excluir a sessão "${session.name}"?`, {
       confirmText: 'Excluir', cancelText: 'Cancelar', danger: true
     });
     if (!ok) return;
     closeWizard();
     window.deleteSession?.(session._id);
-  }));
+  });
+  // Ação destrutiva → lixeira em vermelho (convenção do design system).
+  deleteBtn.style.color = 'var(--red)';
+  deleteBtn.style.borderColor = 'color-mix(in srgb, var(--red) 25%, transparent)';
+  deleteBtn.style.background = 'color-mix(in srgb, var(--red) 5%, transparent)';
+  actions.appendChild(deleteBtn);
 
   actions.appendChild(makeIconButton('✕', 'Fechar', closeWizard));
 
-  wrap.appendChild(actions);
+  topRow.appendChild(actions);
+  wrap.appendChild(topRow);
+
+  // Linha 2: barra de etapas horizontal (oculta em sessão arquivada).
+  if (!session.archivedAt) {
+    const steps = computeWizardSteps(session, wizardState.currentStepId);
+    wrap.appendChild(renderHeaderStepper(steps, switchStep));
+  }
+
   return wrap;
 }
 
-function makeIconButton(icon, title, onClick) {
+function makeIconButton(glyph, title, onClick, className = '') {
   const b = document.createElement('button');
   b.type = 'button';
+  b.className = 'header-expand-btn ' + className;
   b.title = title;
-  b.textContent = icon;
-  b.style.cssText = `
-    background: transparent; border: 1px solid var(--border);
-    color: var(--text-secondary); width: 32px; height: 32px;
-    border-radius: 0.375rem; cursor: pointer; font-size: 0.9rem;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-  `;
-  b.onmouseenter = () => { b.style.background = 'var(--bg-hover)'; };
-  b.onmouseleave = () => { b.style.background = 'transparent'; };
+  b.style.cssText = 'cursor: pointer;';
+
+  const iconWrap = document.createElement('span');
+  iconWrap.className = 'header-expand-icon';
+  iconWrap.style.cssText = 'display: flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important;';
+
+  if (typeof glyph === 'string' && glyph.trim().startsWith('<svg')) {
+    iconWrap.innerHTML = glyph;
+  } else {
+    iconWrap.textContent = glyph;
+  }
+
+  // Ajusta o SVG do ícone para tamanho 18
+  const svg = iconWrap.querySelector('svg');
+  if (svg) {
+    svg.setAttribute('width', '18');
+    svg.setAttribute('height', '18');
+    svg.style.display = 'block';
+    svg.style.margin = 'auto';
+  }
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'header-expand-label';
+  labelSpan.textContent = title;
+
+  b.appendChild(iconWrap);
+  b.appendChild(labelSpan);
+
   b.onclick = onClick;
   return b;
 }
@@ -356,7 +414,7 @@ function buildArchivedView(session) {
   badge.style.cssText = `
     display:inline-flex; align-items:center; gap:0.5rem;
     background:#6b728022; border:1px solid #6b7280;
-    border-radius:0.5rem; padding:0.5rem 1rem; width:fit-content;
+    border-radius:var(--r-card); padding:0.5rem 1rem; width:fit-content;
   `;
   badge.innerHTML = `<span style="font-size:1rem;">📦</span><span style="font-size:0.875rem; font-weight:600; color:var(--text-secondary);">Sessão arquivada em ${new Date(session.archivedAt).toLocaleDateString('pt-BR')}</span>`;
   wrap.appendChild(badge);
@@ -372,7 +430,7 @@ function buildArchivedView(session) {
     const linkCard = document.createElement('div');
     linkCard.style.cssText = `
       background:var(--bg-surface); border:1px solid var(--border);
-      border-radius:0.625rem; padding:1rem 1.25rem;
+      border-radius:var(--r-card); padding:1rem 1.25rem;
       display:flex; flex-direction:column; gap:0.5rem;
     `;
     const linkTitle = document.createElement('strong');

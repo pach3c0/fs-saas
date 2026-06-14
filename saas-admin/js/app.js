@@ -13,6 +13,11 @@ import { loadEventos } from './tabs/eventos.js';
 import { loadSistema } from './tabs/sistema.js';
 import { loadTutorials } from './tabs/tutoriais.js';
 import { loadManual } from './tabs/manual.js';
+import { loadBanners } from './tabs/banners.js';
+import { loadAnnouncements } from './tabs/comunicados.js';
+import { loadPlatformUpdates } from './tabs/novidades.js';
+import { loadDashboardCards } from './tabs/dashboardCards.js';
+import { loadSessionBackgrounds } from './tabs/sessionBackgrounds.js';
 
 function showLogin() {
   document.getElementById('loginScreen').style.display = 'flex';
@@ -94,6 +99,21 @@ window.switchTab = (tab) => {
   } else if (tab === 'manual') {
     document.getElementById('tabManual').classList.add('active');
     loadManual();
+  } else if (tab === 'banners') {
+    document.getElementById('tabBanners').classList.add('active');
+    loadBanners();
+  } else if (tab === 'comunicados') {
+    document.getElementById('tabComunicados').classList.add('active');
+    loadAnnouncements();
+  } else if (tab === 'novidades') {
+    document.getElementById('tabNovidades').classList.add('active');
+    loadPlatformUpdates();
+  } else if (tab === 'dashboardCards') {
+    document.getElementById('tabDashboardCards').classList.add('active');
+    loadDashboardCards();
+  } else if (tab === 'sessionBackgrounds') {
+    document.getElementById('tabSessionBackgrounds').classList.add('active');
+    loadSessionBackgrounds();
   } else if (tab === 'security') {
     document.getElementById('tabSecurity').classList.add('active');
     loadSecurityLogs();

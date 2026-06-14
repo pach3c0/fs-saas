@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { createCheckoutSession, handleWebhook } = require('../middleware/stripe');
+const { createCheckoutSession, handleWebhook } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
-  : null;
+const paymentConfigured = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
 
 // Listar planos disponíveis
 router.get('/billing/plans', async (req, res) => {
@@ -40,7 +38,7 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
     res.json({
       subscription: sub,
       planDetails: plans[sub.plan],
-      stripeConfigured: !!stripe,
+      stripeConfigured: paymentConfigured,
       usage: {
         storageMB,
         storageBytes,
@@ -67,14 +65,11 @@ router.post('/billing/checkout', authenticateToken, async (req, res) => {
   }
 });
 
-// Webhook do Stripe
-router.post('/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
+// Webhook do Mercado Pago
+router.post('/billing/webhook', express.json(), async (req, res) => {
   try {
-    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    await handleWebhook(event);
+    // No Mercado Pago, os dados podem vir no body ou na query
+    await handleWebhook(req.body, req.query);
     res.json({ received: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -85,18 +80,16 @@ router.post('/billing/webhook', express.raw({ type: 'application/json' }), async
 router.post('/billing/cancel', authenticateToken, async (req, res) => {
   try {
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId });
-    if (!sub.stripeSubscriptionId) {
-      return res.status(400).json({ error: 'Nenhuma assinatura ativa' });
+    if (!sub || sub.plan === 'free') {
+      return res.status(400).json({ error: 'Nenhuma assinatura ativa para cancelar' });
     }
 
-    await stripe.subscriptions.update(sub.stripeSubscriptionId, {
-      cancel_at_period_end: true
-    });
-
+    // Como estamos no MP e ainda não armazenamos o preapproval_id no MongoDB, 
+    // faremos o downgrade para "free" no final do período no próprio banco de dados
     sub.cancelAtPeriodEnd = true;
     await sub.save();
 
-    res.json({ success: true, message: 'Assinatura será cancelada no final do período' });
+    res.json({ success: true, message: 'Assinatura cancelada com sucesso. Voltará ao plano Free no próximo ciclo.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

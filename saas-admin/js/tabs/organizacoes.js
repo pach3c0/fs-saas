@@ -430,7 +430,12 @@ async function impersonateOrg(orgId) {
     saasToast(`Modo suporte: ${data.orgName} (30 min)`, 'success');
     window.open('/admin/?impersonate=' + encodeURIComponent(data.token), '_blank');
   } catch (err) {
-    saasToast('Erro: ' + err.message, 'error');
+    // Verifica se é falta de consentimento (notificação já foi enviada ao fotógrafo)
+    if (err.message?.includes('não liberou') || err.message?.includes('consent')) {
+      saasToast('📩 Notificação enviada ao fotógrafo pedindo a liberação do acesso. Tente novamente quando ele autorizar.', 'warning');
+    } else {
+      saasToast('Erro: ' + err.message, 'error');
+    }
   }
 }
 

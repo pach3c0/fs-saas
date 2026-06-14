@@ -122,6 +122,26 @@ router.put('/organization/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/organization/onboarding - Atualizar progresso do Onboarding Guiado
+router.post('/organization/onboarding', authenticateToken, async (req, res) => {
+  try {
+    const { guidedStep, skipped, completed } = req.body;
+    const org = await Organization.findById(req.user.organizationId);
+
+    if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+    if (guidedStep !== undefined) org.onboarding.guidedStep = guidedStep;
+    if (skipped !== undefined) org.onboarding.skipped = skipped;
+    if (completed !== undefined) org.onboarding.completed = completed;
+
+    await org.save();
+    res.json({ success: true, onboarding: org.onboarding });
+  } catch (error) {
+    req.logger.error('Erro ao salvar onboarding', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/organization/public - Dados publicos da org (para galeria do cliente)
 router.get('/organization/public', async (req, res) => {
   try {
@@ -288,11 +308,41 @@ router.post('/onboarding/dismiss', authenticateToken, async (req, res) => {
 // GET /api/organization/preferences - Configurações personalizáveis do fotógrafo
 router.get('/organization/preferences', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId).select('preferences').lean();
+    const org = await Organization.findById(req.user.organizationId).select('preferences supportAccess').lean();
     if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
-    res.json({ success: true, preferences: org.preferences || {} });
+    res.json({
+      success: true,
+      preferences: org.preferences || {},
+      supportAccess: { enabled: org.supportAccess?.enabled === true }
+    });
   } catch (error) {
     req.logger.error('Erro ao buscar preferences', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/organization/support-access - Consentimento do fotógrafo para o
+// suporte acessar o painel dele ("Entrar como"). Endpoint dedicado (fora da
+// whitelist de preferences) por ser uma flag de segurança/privacidade.
+router.put('/organization/support-access', authenticateToken, async (req, res) => {
+  try {
+    const enabled = req.body.enabled === true;
+    const org = await Organization.findByIdAndUpdate(
+      req.user.organizationId,
+      { $set: { 'supportAccess.enabled': enabled, 'supportAccess.updatedAt': new Date() } },
+      { returnDocument: 'after' }
+    ).select('supportAccess').lean();
+    if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
+
+    trackEvent(req.user.organizationId, req.user.userId, 'feature_configured', {
+      feature: 'support_access',
+      enabled
+    });
+    req.logger.info('Acesso de suporte alterado', { enabled });
+
+    res.json({ success: true, supportAccess: { enabled: org.supportAccess.enabled } });
+  } catch (error) {
+    req.logger.error('Erro ao alterar acesso de suporte', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

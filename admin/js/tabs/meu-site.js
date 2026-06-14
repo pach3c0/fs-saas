@@ -59,49 +59,35 @@ async function renderSiteContent(container, builderTabsEl) {
         </div>
       </div>` : ''}
 
-      <div id="siteStatusCard" style="background:#1f2937; padding:1rem; border-radius:0.5rem; border:1px solid #374151; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-        <div style="flex:1;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <h3 style="color:#f3f4f6; font-weight:600; margin:0;">Status do Site</h3>
-              <span id="siteStatusBadge" style="display:none; font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px; background:#7f1d1d; color:#fca5a5;">● DESATIVADO</span>
-            </div>
-            <p style="color:#9ca3af; font-size:0.875rem; margin:0.25rem 0 0;">Quando desativado, visitantes veem uma página de "Em breve".</p>
-        </div>
-        <label style="position:relative; display:inline-block; width:3.5rem; height:1.75rem; flex-shrink:0;">
-            <input type="checkbox" id="siteEnabledToggle" style="opacity:0; width:0; height:0;">
-            <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#374151; transition:.4s; border-radius:9999px;"></span>
-            <span style="position:absolute; content:''; height:1.25rem; width:1.25rem; left:0.25rem; bottom:0.25rem; background-color:white; transition:.4s; border-radius:50%;" id="toggleKnob"></span>
-        </label>
-        <style>
-            #siteEnabledToggle:checked + span { background-color: #16a34a; }
-            #siteEnabledToggle:checked + span + span { transform: translateX(1.75rem); }
-        </style>
-      </div>
-
       <!-- Layout: nav vertical + conteúdo -->
       <div style="display:flex; gap:0; flex:1; min-height:0;">
 
-        <!-- Nav vertical -->
-        <div style="width:110px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border,#30363d); padding-right:0.5rem;">
-          <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span>Geral</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span>Seções</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span>Capa</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-sobre"><span class="material-symbols-outlined">person</span>Sobre</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-portfolio"><span class="material-symbols-outlined">collections</span>Portfólio</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-servicos"><span class="material-symbols-outlined">handyman</span>Serviços</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-depoimentos"><span class="material-symbols-outlined">chat</span>Depoimentos</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-albuns"><span class="material-symbols-outlined">photo_library</span>Álbuns</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-estudio"><span class="material-symbols-outlined">apartment</span>Estúdio</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-contato"><span class="material-symbols-outlined">mail</span>Contato</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-faq"><span class="material-symbols-outlined">help</span>FAQ</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-rodape"><span class="material-symbols-outlined">bottom_app_bar</span>Rodapé</button>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-cliente"><span class="material-symbols-outlined">group</span>Área do Cliente</button>
-          <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
-          <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span>Personalizar</button>
+        <!-- Nav vertical (Morph compacta) -->
+        <div style="width:46px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; align-items:flex-start; border-right:1px solid var(--border,#30363d); padding:0 5px; overflow:visible; z-index:10;">
+          <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span><span class="builder-nav-label">Geral</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span><span class="builder-nav-label">Seções</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span><span class="builder-nav-label">Capa</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-sobre"><span class="material-symbols-outlined">person</span><span class="builder-nav-label">Sobre</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-portfolio"><span class="material-symbols-outlined">collections</span><span class="builder-nav-label">Portfólio</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-servicos"><span class="material-symbols-outlined">handyman</span><span class="builder-nav-label">Serviços</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-depoimentos"><span class="material-symbols-outlined">chat</span><span class="builder-nav-label">Depoimentos</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-albuns"><span class="material-symbols-outlined">photo_library</span><span class="builder-nav-label">Álbuns</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-estudio"><span class="material-symbols-outlined">apartment</span><span class="builder-nav-label">Estúdio</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-contato"><span class="material-symbols-outlined">mail</span><span class="builder-nav-label">Contato</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-faq"><span class="material-symbols-outlined">help</span><span class="builder-nav-label">FAQ</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-rodape"><span class="material-symbols-outlined">bottom_app_bar</span><span class="builder-nav-label">Rodapé</span></button>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-cliente"><span class="material-symbols-outlined">group</span><span class="builder-nav-label">Área do Cliente</span></button>
+          <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
+          <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span><span class="builder-nav-label" style="color:var(--purple,#bc8cff);">Personalizar</span></button>
           <div id="adminTemplateNavItem" style="display:none;">
-            <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem;"></div>
-            <button class="sub-tab-btn builder-nav-item" data-target="config-default-template" style="color:#f59e0b;"><span class="material-symbols-outlined" style="color:#f59e0b;">admin_panel_settings</span>Padrão</button>
+            <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
+            <button class="sub-tab-btn builder-nav-item" data-target="config-default-template" style="color:#f59e0b;"><span class="material-symbols-outlined" style="color:#f59e0b;">admin_panel_settings</span><span class="builder-nav-label" style="color:#f59e0b;">Padrão</span></button>
           </div>
+          <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
+          <button class="sub-tab-btn builder-nav-item" id="siteStatusToggleBtn" style="transition: color 0.15s;">
+            <span class="material-symbols-outlined" id="siteStatusIcon" style="transition: color 0.15s;">visibility</span>
+            <span class="builder-nav-label" id="siteStatusLabel">Ativar Site</span>
+          </button>
         </div>
 
         <!-- Conteúdo das Abas -->
@@ -109,23 +95,41 @@ async function renderSiteContent(container, builderTabsEl) {
           <style>#subTabContent::-webkit-scrollbar { display: none; }</style>
         <!-- Geral -->
         <div id="config-geral" class="sub-tab-content">
-            <div style="display:flex; flex-direction:column; gap:2rem;">
-                <div>
-                    <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem;">Escolha o Tema do Seu Site</h3>
-                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
-                    <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem;">
+            <div style="display:flex; flex-direction:column; gap:2rem; text-align:center; align-items:center;">
+                <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                    <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem; text-align:center;">Escolha o Tema do Seu Site</h3>
+                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem; text-align:center; max-width:320px;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
+                    <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem; width:100%; text-align:left;">
                         <!-- Templates inseridos via JS -->
                     </div>
                     <input type="hidden" id="siteTheme">
                 </div>
-                <div>
-                    <button id="saveGeralBtn" class="builder-save-btn">Salvar Tema</button>
+                <div style="width:100%; display:flex; justify-content:center;">
+                    <button id="saveGeralBtn" class="header-expand-btn" title="Salvar Tema" style="border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important;">
+                      <span class="header-expand-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save">
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                          <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                      </span>
+                      <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Salvar Tema</span>
+                    </button>
                 </div>
                 <!-- Restaurar conteúdo de exemplo -->
-                <div style="padding:1rem; background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem;">
-                    <p style="font-weight:600; color:#f3f4f6; margin:0 0 0.25rem; font-size:0.9rem;">Restaurar conteúdo de exemplo</p>
-                    <p style="font-size:0.78rem; color:#9ca3af; margin:0 0 0.75rem;">Preenche seu site com textos, serviços e FAQ de exemplo para você visualizar como ficará. O conteúdo atual será substituído.</p>
-                    <button id="applyDefaultTemplateBtn" style="background:transparent; border:1px solid #4b5563; color:#d1d5db; padding:0.4rem 0.9rem; border-radius:0.375rem; cursor:pointer; font-size:0.8125rem;">Aplicar Exemplo</button>
+                <div style="padding:1.25rem 1rem; background:rgba(255,255,255,0.03); border:1px solid var(--border,#30363d); border-radius:var(--radius-lg, 0.5rem); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; width:100%; box-sizing:border-box;">
+                    <p style="font-weight:600; color:#f3f4f6; margin:0; font-size:0.9rem; text-align:center;">Restaurar conteúdo de exemplo</p>
+                    <p style="font-size:0.78rem; color:#9ca3af; margin:0 0 0.25rem; text-align:center; line-height:1.4;">Preenche seu site com textos, serviços e FAQ de exemplo para você visualizar como ficará. O conteúdo atual será substituído.</p>
+                    <button id="applyDefaultTemplateBtn" class="header-expand-btn" title="Aplicar Exemplo" style="border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important;">
+                      <span class="header-expand-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles">
+                          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"></path>
+                          <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"></path>
+                          <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z"></path>
+                        </svg>
+                      </span>
+                      <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Aplicar Exemplo</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -180,9 +184,17 @@ async function renderSiteContent(container, builderTabsEl) {
 
   // Carregar dados
   let configData = {};
+  let defaultTmpl = {};
   try {
-    configData = (await apiGet('/api/site/admin/config')) || {};
-  } catch (e) { console.error(e); }
+    const [cfgRes, tmplRes] = await Promise.all([
+      apiGet('/api/site/admin/config'),
+      apiGet('/api/site/default-template')
+    ]);
+    configData = cfgRes || {};
+    defaultTmpl = tmplRes?.template || {};
+  } catch (e) {
+    console.error(e);
+  }
   // Disponibilizar para sub-módulos (portfolio.js, etc.)
   appState.configData = configData;
 
@@ -204,13 +216,15 @@ async function renderSiteContent(container, builderTabsEl) {
   // Tema selecionado no momento (pode mudar sem salvar)
   let selectedTheme = siteTheme || 'elegante';
 
+  const themeBackgrounds = defaultTmpl.siteStyle?.themeBackgrounds || {};
+
   // Renderizar galeria de templates
   const templates = [
-    { id: 'elegante', name: 'Elegante', desc: 'Clássico com dourado e serif', colors: ['#c9a962', '#2c2c2c', '#f5f5f5'] },
-    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco', colors: ['#000000', '#666666', '#ffffff'] },
-    { id: 'moderno', name: 'Moderno', desc: 'Azul com gradientes e cards', colors: ['#3b82f6', '#667eea', '#f8fafc'] },
-    { id: 'escuro', name: 'Escuro', desc: 'Dark mode com laranja', colors: ['#ff9500', '#0a0a0a', '#1a1a1a'] },
-    { id: 'galeria', name: 'Galeria', desc: 'Masonry grid foco em fotos', colors: ['#8b7355', '#2c2c2c', '#fafafa'] }
+    { id: 'elegante', name: 'Elegante', desc: 'Clássico com dourado e serif', colors: ['#c9a962', '#2c2c2c', '#f5f5f5'], bgImage: themeBackgrounds.elegante || '' },
+    { id: 'minimalista', name: 'Minimalista', desc: 'Clean com muito espaço branco', colors: ['#000000', '#666666', '#ffffff'], bgImage: themeBackgrounds.minimalista || '' },
+    { id: 'moderno', name: 'Moderno', desc: 'Azul com gradientes e cards', colors: ['#3b82f6', '#667eea', '#f8fafc'], bgImage: themeBackgrounds.moderno || '' },
+    { id: 'escuro', name: 'Escuro', desc: 'Dark mode com laranja', colors: ['#ff9500', '#0a0a0a', '#1a1a1a'], bgImage: themeBackgrounds.escuro || '' },
+    { id: 'galeria', name: 'Galeria', desc: 'Masonry grid foco em fotos', colors: ['#8b7355', '#2c2c2c', '#fafafa'], bgImage: themeBackgrounds.galeria || '' }
   ];
 
   function buildPreviewUrl(themeId) {
@@ -224,27 +238,46 @@ async function renderSiteContent(container, builderTabsEl) {
       const isActive = siteTheme === t.id;
       const isSelected = selectedTheme === t.id;
       return `
-        <div class="template-card builder-theme-card ${isSelected ? 'active' : ''}" data-theme="${t.id}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
-            <div>
-              <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0 0 0.2rem;">${t.name}</h4>
-              <p style="color:var(--text-secondary,#8b949e); font-size:0.75rem; margin:0;">${t.desc}</p>
-            </div>
-            ${isActive ? `<span class="material-symbols-outlined" style="color:var(--green,#3fb950); font-size:20px; font-variation-settings:&quot;FILL&quot; 1;">check_circle</span>` : ''}
+        <div class="template-card builder-theme-card ${isSelected ? 'active' : ''}" 
+             data-theme="${t.id}"
+             style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.75rem; padding: 1.25rem; border-radius: var(--radius-lg, 0.5rem); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; min-height: 140px; background-size: cover; background-position: center; ${t.bgImage ? `background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${t.bgImage}');` : 'background: rgba(49, 53, 60, 0.3);'}">
+          
+          <!-- Ícone de Check do Tema Ativo (Padrão Lucide) -->
+          ${isActive ? `
+            <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(63, 185, 80, 0.15); border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(63, 185, 80, 0.25);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green,#3fb950)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>` : ''}
+
+          <!-- Textos Centralizados -->
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;">
+            <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0;">${t.name}</h4>
+            <p style="color:var(--text-secondary,#8b949e); font-size:0.75rem; margin:0; line-height: 1.3;">${t.desc}</p>
           </div>
 
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="display:flex; gap:0.375rem;">
-              ${t.colors.map(c => `<div style="width:1rem; height:1rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.1);"></div>`).join('')}
-            </div>
+          <!-- Cores do Tema -->
+          <div style="display:flex; gap:0.375rem; justify-content: center;">
+            ${t.colors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 4px rgba(0,0,0,0.25);"></div>`).join('')}
+          </div>
+
+          <!-- Botão Visualizar (Morph com Lucide) -->
+          <div style="margin-top: 0.25rem;">
             <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
               onclick="event.stopPropagation()"
-              style="padding:0.3rem 0.875rem; background:var(--bg-elevated,#1c2128); color:var(--text-secondary,#8b949e); border-radius:999px; font-size:0.75rem; font-weight:600; text-decoration:none; border:1px solid var(--border,#30363d); transition:color 0.15s, border-color 0.15s;"
-              onmouseenter="this.style.color='var(--text-primary,#e6edf3)'; this.style.borderColor='var(--accent,#2f81f7)'"
-              onmouseleave="this.style.color='var(--text-secondary,#8b949e)'; this.style.borderColor='var(--border,#30363d)'">
-              Visualizar
+              class="header-expand-btn"
+              title="Visualizar"
+              style="text-decoration: none; border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important;">
+              <span class="header-expand-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </span>
+              <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Visualizar</span>
             </a>
           </div>
+
         </div>
       `;
     }).join('');
@@ -269,32 +302,56 @@ async function renderSiteContent(container, builderTabsEl) {
     _themeLabel.textContent = `Tema: ${_themeName}`;
   }
 
-  // Status Toggle
-  const toggle = container.querySelector('#siteEnabledToggle');
-  const statusBadge = container.querySelector('#siteStatusBadge');
-  const statusCard = container.querySelector('#siteStatusCard');
+  // Status do Site na Sidebar
+  let currentSiteEnabled = !!siteEnabled;
+  const statusBtn = container.querySelector('#siteStatusToggleBtn');
+  const statusIcon = container.querySelector('#siteStatusIcon');
+  const statusLabel = container.querySelector('#siteStatusLabel');
 
-  const updateStatusUI = (enabled) => {
-    if (statusBadge) statusBadge.style.display = enabled ? 'none' : 'inline-block';
-    if (statusCard) statusCard.style.borderColor = enabled ? '#374151' : '#7f1d1d';
-  };
-
-  toggle.checked = !!siteEnabled;
-  updateStatusUI(!!siteEnabled);
-
-  toggle.onchange = async () => {
-    try {
-      await apiPut('/api/site/admin/config', { siteEnabled: toggle.checked });
-      configData.siteEnabled = toggle.checked;
-      updateStatusUI(toggle.checked);
-      window.showToast?.(toggle.checked ? 'Site ativado! Visitantes já podem acessar.' : 'Site desativado. Visitantes verão "Em breve".', toggle.checked ? 'success' : 'warning');
-      liveRefresh({});
-    } catch (e) {
-      window.showToast?.('Erro ao salvar status do site', 'error');
-      toggle.checked = !toggle.checked;
-      updateStatusUI(toggle.checked);
+  const updateStatusBtnUI = (enabled) => {
+    if (statusBtn && statusIcon && statusLabel) {
+      if (enabled) {
+        statusBtn.style.color = 'var(--green,#3fb950)';
+        statusIcon.style.color = 'var(--green,#3fb950)';
+        statusIcon.textContent = 'visibility';
+        statusLabel.textContent = 'Site Ativo';
+      } else {
+        statusBtn.style.color = 'var(--red,#f85149)';
+        statusIcon.style.color = 'var(--red,#f85149)';
+        statusIcon.textContent = 'visibility_off';
+        statusLabel.textContent = 'Site Inativo';
+      }
     }
   };
+
+  if (statusBtn) {
+    updateStatusBtnUI(currentSiteEnabled);
+
+    statusBtn.onclick = async (e) => {
+      e.stopPropagation();
+      
+      const targetStatus = !currentSiteEnabled;
+      const actionText = targetStatus ? 'ativar' : 'desativar';
+      
+      const ok = await window.showConfirm?.(`Deseja ${actionText} o seu site público?`, {
+        title: targetStatus ? 'Ativar Site' : 'Desativar Site',
+        confirmText: targetStatus ? 'Ativar' : 'Desativar',
+        cancelText: 'Cancelar'
+      });
+      if (!ok) return;
+      
+      try {
+        await apiPut('/api/site/admin/config', { siteEnabled: targetStatus });
+        configData.siteEnabled = targetStatus;
+        currentSiteEnabled = targetStatus;
+        updateStatusBtnUI(targetStatus);
+        window.showToast?.(targetStatus ? 'Site ativado! Visitantes já podem acessar.' : 'Site desativado. Visitantes verão "Em breve".', targetStatus ? 'success' : 'warning');
+        liveRefresh({});
+      } catch (err) {
+        window.showToast?.('Erro ao alterar status do site', 'error');
+      }
+    };
+  }
 
   // Links (only in non-builder mode)
   // URL pública usa subdomínio: joao.cliquezoom.com.br/site
@@ -577,13 +634,16 @@ async function renderSiteContent(container, builderTabsEl) {
     if (sectionMap[target]) scrollToSection(sectionMap[target]);
 
     tabs.forEach(t => {
-      t.style.background = 'none';
-      t.style.color = t.dataset.target === 'config-personalizar' ? '#c084fc' : '#9ca3af';
-      t.style.fontWeight = t.dataset.target === 'config-personalizar' ? '600' : 'normal';
+      if (t.id === 'siteStatusToggleBtn') return;
+      t.classList.remove('active');
+      t.style.background = '';
+      t.style.color = '';
+      t.style.fontWeight = '';
     });
-    btn.style.background = '#1e3a5f';
-    btn.style.color = '#93c5fd';
-    btn.style.fontWeight = '600';
+    btn.classList.add('active');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.fontWeight = '';
     contents.forEach(c => c.style.display = 'none');
     targetContainer.style.display = 'block';
 
@@ -624,6 +684,7 @@ async function renderSiteContent(container, builderTabsEl) {
   }
 
   tabs.forEach(btn => {
+    if (btn.id === 'siteStatusToggleBtn') return;
     btn.onclick = async () => {
       const targetContainer = container.querySelector(`#${btn.dataset.target}`);
       await checkDirtyBeforeSwitch();
@@ -1817,6 +1878,15 @@ async function _renderDefaultTemplateAdmin(el, rootContainer) {
   const sections = tmpl.siteSections || [];
   let _dtHeroImageUrl = cfg.heroImage || '';
 
+  const cfgThemeBgs = tmpl.siteStyle?.themeBackgrounds || {};
+  const _themeBgUrls = {
+    elegante: cfgThemeBgs.elegante || '',
+    minimalista: cfgThemeBgs.minimalista || '',
+    moderno: cfgThemeBgs.moderno || '',
+    escuro: cfgThemeBgs.escuro || '',
+    galeria: cfgThemeBgs.galeria || ''
+  };
+
   const SECTION_OPTIONS = ['hero','portfolio','albuns','servicos','estudio','depoimentos','contato','sobre','faq'];
 
   const _svcItem = (s, i) => `
@@ -1914,6 +1984,89 @@ async function _renderDefaultTemplateAdmin(el, rootContainer) {
         </div>
       </div>
 
+      <!-- Imagens de Fundo dos Temas -->
+      <div style="border-top:1px solid #374151; padding-top:1.25rem;">
+        <label style="color:#9ca3af; font-size:0.85rem; display:block; margin-bottom:0.375rem; font-weight:600;">Imagens de Fundo dos Temas (Galeria Geral)</label>
+        <p style="color:#6b7280; font-size:0.75rem; margin:0 0 1rem;">Envie as imagens de fundo que aparecerão nos cards de seleção de tema para os fotógrafos.</p>
+        
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem;">
+          ${['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'].map(themeId => {
+            const themeName = themeId.charAt(0).toUpperCase() + themeId.slice(1);
+            const currentImg = _themeBgUrls[themeId];
+            const hasImage = !!currentImg;
+            
+            const themeColors = {
+              elegante: ['#c9a962', '#2c2c2c', '#f5f5f5'],
+              minimalista: ['#000000', '#666666', '#ffffff'],
+              moderno: ['#3b82f6', '#667eea', '#f8fafc'],
+              escuro: ['#ff9500', '#0a0a0a', '#1a1a1a'],
+              galeria: ['#8b7355', '#2c2c2c', '#fafafa']
+            }[themeId];
+
+            return `
+              <div style="background:#1b1f24; border:1px solid #30363d; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+                <!-- nome -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                  <strong style="color:#f1f5f9; font-size:0.9rem;">${themeName}</strong>
+                </div>
+
+                <!-- Preview real do Card -->
+                <div id="dt-themeBgPreview-${themeId}" class="template-card builder-theme-card" 
+                     style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.75rem; padding: 1.25rem; border-radius: var(--radius-lg, 0.5rem); min-height: 140px; background-size: cover; background-position: center; border: 1px solid rgba(139, 144, 159, 0.15); position: relative; overflow: hidden; ${currentImg ? `background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${currentImg}');` : 'background: rgba(49, 53, 60, 0.3);'}">
+                  
+                  <!-- Check do tema ativo -->
+                  <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(63, 185, 80, 0.15); border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(63, 185, 80, 0.25);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green,#3fb950)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+
+                  <!-- Nome do Tema -->
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;">
+                    <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0;">${themeName}</h4>
+                  </div>
+
+                  <!-- Cores -->
+                  <div style="display:flex; gap:0.375rem; justify-content: center;">
+                    ${themeColors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 4px rgba(0,0,0,0.25);"></div>`).join('')}
+                  </div>
+
+                  <!-- Botão Visualizar fake (estático para o preview) -->
+                  <div style="margin-top: 0.25rem;">
+                    <div class="header-expand-btn" style="text-decoration: none; border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important; pointer-events: none; opacity: 0.85;">
+                      <span class="header-expand-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </span>
+                      <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Visualizar</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Progresso de Upload -->
+                <div id="dt-themeBgProgress-${themeId}" style="margin-top: -0.25rem;"></div>
+
+                <!-- Ações -->
+                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.25rem;" class="dt-theme-actions">
+                  <label class="header-expand-btn" title="Enviar Imagem" style="background:#1e3a5f; color:#93c5fd; border:1px solid #2563eb; border-radius:0.375rem !important; padding:0.4rem 0.9rem !important; height:auto !important; min-width:0 !important; font-size:0.78rem; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:0.3rem;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>${hasImage ? 'Trocar imagem' : 'Upload imagem'}</span>
+                    <input type="file" class="dt-themeBgFile" data-theme="${themeId}" accept="image/*" style="display:none;">
+                  </label>
+                  ${hasImage ? `
+                    <button type="button" class="dt-themeBgRemove" data-theme="${themeId}" style="background:#450a0a; color:#fca5a5; border:none; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600; transition:background 0.15s;" onmouseenter="this.style.background='#681010'" onmouseleave="this.style.background='#450a0a'">
+                      Remover
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
       <div>
         <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Chave de Administrador</label>
         <input id="dt-adminKey" type="password" placeholder="Chave secreta da plataforma" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
@@ -1965,6 +2118,77 @@ async function _renderDefaultTemplateAdmin(el, rootContainer) {
     el.querySelector('#dt-heroImgPreview').innerHTML = `<span style="color:#4b5563; font-size:0.8rem;">Sem imagem</span>`;
   };
 
+  // Lógica para atrelar evento ao botão Remover
+  const _bindRemoveBtn = (btn) => {
+    btn.onclick = () => {
+      const themeId = btn.dataset.theme;
+      _themeBgUrls[themeId] = '';
+      
+      // Reseta o preview do card para o estilo sólido
+      const previewEl = el.querySelector(`#dt-themeBgPreview-${themeId}`);
+      if (previewEl) {
+        previewEl.style.backgroundImage = '';
+        previewEl.style.background = 'rgba(49, 53, 60, 0.3)';
+      }
+
+      // Altera o texto de upload de volta
+      const actionsContainer = btn.closest('.dt-theme-actions');
+      const uploadLabelSpan = actionsContainer?.querySelector('label span');
+      if (uploadLabelSpan) uploadLabelSpan.textContent = 'Upload imagem';
+
+      // Remove o botão remover
+      btn.remove();
+    };
+  };
+
+  // Upload imagens de temas
+  el.querySelectorAll('.dt-themeBgFile').forEach(input => {
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const themeId = input.dataset.theme;
+      const progressContainer = el.querySelector(`#dt-themeBgProgress-${themeId}`);
+      if (progressContainer) progressContainer.style.display = 'block';
+
+      try {
+        const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress(`dt-themeBgProgress-${themeId}`, p));
+        _themeBgUrls[themeId] = result.url;
+        
+        // Atualiza o preview real do card com overlay
+        const previewEl = el.querySelector(`#dt-themeBgPreview-${themeId}`);
+        if (previewEl) {
+          previewEl.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${result.url}')`;
+        }
+
+        // Atualiza as ações: altera texto de upload e adiciona botão remover
+        const actionsContainer = input.closest('.dt-theme-actions');
+        const uploadLabelSpan = actionsContainer?.querySelector('label span');
+        if (uploadLabelSpan) uploadLabelSpan.textContent = 'Trocar imagem';
+
+        let removeBtn = actionsContainer?.querySelector('.dt-themeBgRemove');
+        if (actionsContainer && !removeBtn) {
+          const btnHtml = `
+            <button type="button" class="dt-themeBgRemove" data-theme="${themeId}" style="background:#450a0a; color:#fca5a5; border:none; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600; transition:background 0.15s;" onmouseenter="this.style.background='#681010'" onmouseleave="this.style.background='#450a0a'">
+              Remover
+            </button>
+          `;
+          actionsContainer.insertAdjacentHTML('beforeend', btnHtml);
+          _bindRemoveBtn(actionsContainer.querySelector('.dt-themeBgRemove'));
+        }
+      } catch (err) {
+        window.showToast?.('Erro ao enviar imagem: ' + err.message, 'error');
+      } finally {
+        if (progressContainer) {
+          setTimeout(() => { progressContainer.style.display = 'none'; }, 2000);
+        }
+        input.value = '';
+      }
+    };
+  });
+
+  // Bind inicial para os botões de remover existentes
+  el.querySelectorAll('.dt-themeBgRemove').forEach(_bindRemoveBtn);
+
   // Salvar
   el.querySelector('#dt-saveBtn').onclick = async (e) => {
     const btn = e.currentTarget;
@@ -2008,6 +2232,9 @@ async function _renderDefaultTemplateAdmin(el, rootContainer) {
             contato: { title: el.querySelector('#dt-contatoTitle').value, text: el.querySelector('#dt-contatoText').value },
             servicos: svcItems,
             faq: faqItems
+          },
+          siteStyle: {
+            themeBackgrounds: _themeBgUrls
           },
           siteSections: checkedSections
         })

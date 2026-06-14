@@ -7,6 +7,7 @@ import { appState } from '../state.js';
 import { apiGet, apiPut } from '../utils/api.js';
 
 let prefs = {};
+let supportAccess = { enabled: false }; // consentimento p/ suporte acessar o painel
 let salesCfg = {};      // integrations.salesAutomator (postDelivery, couponPrefix, ...)
 let deadlineCfg = {};   // integrations.deadlineAutomation (lembrete de seleção)
 let currentSection = 'mensagens';
@@ -41,7 +42,8 @@ const SECTIONS = [
   { id: 'sessoes',       label: 'Sessões' },
   { id: 'entrega',       label: 'Entrega' },
   { id: 'notificacoes',  label: 'Notificações' },
-  { id: 'vendas',        label: 'Escassês & Vendas' }
+  { id: 'vendas',        label: 'Escassês & Vendas' },
+  { id: 'privacidade',   label: 'Privacidade' }
 ];
 
 // Variáveis disponíveis nas mensagens de venda (pós-entrega, com cupom)
@@ -67,11 +69,13 @@ export async function renderConfiguracoes(container) {
       apiGet('/api/organization/integrations')
     ]);
     prefs = resPrefs.preferences || {};
+    supportAccess = resPrefs.supportAccess || { enabled: false };
     salesCfg = resInteg.integrations?.salesAutomator || {};
     deadlineCfg = resInteg.integrations?.deadlineAutomation || {};
   } catch (err) {
     window.showToast?.('Erro ao carregar configurações: ' + err.message, 'error');
     prefs = {};
+    supportAccess = { enabled: false };
     salesCfg = {};
     deadlineCfg = {};
   }
@@ -106,6 +110,7 @@ function renderLayout(container) {
   if (currentSection === 'entrega')      content.appendChild(renderEntrega());
   if (currentSection === 'notificacoes') content.appendChild(renderNotificacoes());
   if (currentSection === 'vendas')       content.appendChild(renderVendas());
+  if (currentSection === 'privacidade')  content.appendChild(renderPrivacidade());
   root.appendChild(content);
 
   container.appendChild(root);
@@ -652,4 +657,69 @@ function interpolateSalesSample(tpl) {
     .replace(/\{desconto\}/g, '15')
     .replace(/\{preco_extra\}/g, '25')
     .replace(/\{link\}/g, 'https://galeria.exemplo.com/AB12CD');
+}
+
+// ── Seção Privacidade ────────────────────────────────────────────────────────
+// "Ativar usuário de suporte": o superadmin SÓ consegue entrar no painel deste
+// fotógrafo (modo suporte) se este toggle estiver ligado. Default: desligado.
+function renderPrivacidade() {
+  const { card } = sectionCard(
+    'Privacidade & Acesso de Suporte',
+    'Controle quem pode acessar o seu painel além de você.'
+  );
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; padding:1rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.625rem;';
+
+  const info = document.createElement('div');
+  info.innerHTML = `
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+      <span style="font-size:1rem;">🛡️</span>
+      <span style="font-weight:700; color:var(--text-primary); font-size:0.9375rem;">Ativar o usuário de suporte</span>
+    </div>
+    <p style="margin:0; font-size:0.8125rem; color:var(--text-secondary); line-height:1.55;">
+      Libera o acesso temporário da equipe CliqueZoom ao seu painel para te ajudar a resolver problemas.
+      Com isto <strong>desligado, ninguém do suporte consegue entrar na sua conta</strong> — nem visualizar suas fotos e clientes.
+    </p>
+    <p style="margin:0.4rem 0 0; font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+      Você pode desligar a qualquer momento. Todo acesso do suporte expira em 30 minutos,
+      fica registrado em auditoria e você é avisado no sininho 🔔.
+    </p>
+  `;
+
+  // Switch visual (pill) no padrão dual-theme
+  const switchWrap = document.createElement('button');
+  switchWrap.type = 'button';
+  const paint = () => {
+    const on = supportAccess.enabled === true;
+    switchWrap.style.cssText = `flex-shrink:0; width:48px; height:26px; border-radius:9999px; border:1px solid ${on ? 'var(--green)' : 'var(--border)'}; background:${on ? 'var(--green)' : 'var(--bg-surface)'}; position:relative; cursor:pointer; transition:all 0.2s; padding:0;`;
+    switchWrap.innerHTML = `<span style="position:absolute; top:2px; ${on ? 'right:2px' : 'left:2px'}; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.3); transition:all 0.2s;"></span>`;
+    switchWrap.setAttribute('aria-checked', on);
+    switchWrap.title = on ? 'Acesso de suporte ATIVO — clique para desligar' : 'Acesso de suporte desligado — clique para liberar';
+  };
+  paint();
+
+  switchWrap.onclick = async () => {
+    const ligar = supportAccess.enabled !== true;
+    if (ligar) {
+      const ok = await window.showConfirm(
+        'Você está liberando o acesso da equipe de suporte CliqueZoom ao seu painel — incluindo sessões, fotos e clientes. O acesso é auditado, expira em 30 minutos por sessão e você pode desligar quando quiser. Continuar?',
+        { title: 'Liberar acesso de suporte', confirmText: 'Liberar acesso' }
+      );
+      if (!ok) return;
+    }
+    try {
+      const res = await apiPut('/api/organization/support-access', { enabled: ligar });
+      supportAccess = res.supportAccess || { enabled: ligar };
+      paint();
+      window.showToast?.(ligar ? 'Acesso de suporte liberado' : 'Acesso de suporte desligado', 'success');
+    } catch (err) {
+      window.showToast?.('Erro ao salvar: ' + err.message, 'error');
+    }
+  };
+
+  row.appendChild(info);
+  row.appendChild(switchWrap);
+  card.appendChild(row);
+  return card;
 }

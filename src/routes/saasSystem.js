@@ -107,10 +107,30 @@ router.get('/admin/saas/audit', authenticateToken, requireSuperadmin, async (req
 // impersonatedBy — toda ação na sessão de suporte fica rastreável nos logs.
 router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
-    const org = await Organization.findById(req.params.id).select('name slug isActive deletedAt').lean();
+    const org = await Organization.findById(req.params.id).select('name slug isActive deletedAt supportAccess').lean();
     if (!org) return res.status(404).json({ success: false, error: 'Organização não encontrada' });
     if (!org.isActive || org.deletedAt) {
       return res.status(400).json({ success: false, error: 'Organização inativa ou na lixeira — reative antes de entrar como ela' });
+    }
+
+    // Consentimento obrigatório (privacidade — fotos sensíveis dos clientes):
+    // o fotógrafo precisa ter ligado "Ativar usuário de suporte" em Configurações
+    if (org.supportAccess?.enabled !== true) {
+      audit(req, 'impersonate_denied', org._id, { reason: 'sem consentimento' });
+
+      // Envia notificação ao fotógrafo pedindo para liberar o acesso
+      const Notification = require('../models/Notification');
+      Notification.create({
+        type: 'support_request',
+        message: 'A equipe CliqueZoom precisa acessar seu painel para te ajudar. Ative o acesso de suporte em Configurações → Privacidade.',
+        organizationId: org._id
+      }).catch(() => { /* fire-and-forget */ });
+
+      return res.status(403).json({
+        success: false,
+        code: 'consent_required',
+        error: 'O fotógrafo ainda não liberou o acesso de suporte. Uma notificação foi enviada pedindo a liberação.'
+      });
     }
 
     const owner = await User.findOne({ organizationId: org._id, role: 'admin' }).select('_id email').lean();
@@ -132,6 +152,14 @@ router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSu
 
     audit(req, 'impersonate', org._id, { ownerEmail: owner.email });
     req.logger.info('Impersonação iniciada', { targetOrg: org.slug });
+
+    // Transparência: o fotógrafo vê no sininho que o suporte acessou o painel dele
+    const Notification = require('../models/Notification');
+    Notification.create({
+      type: 'support_access',
+      message: 'O suporte CliqueZoom acessou seu painel (modo suporte autorizado por você)',
+      organizationId: org._id
+    }).catch(() => { /* fire-and-forget */ });
 
     res.json({ success: true, token, orgName: org.name, orgSlug: org.slug });
   } catch (error) {

@@ -8,6 +8,7 @@ import { apiGet, apiPut } from '../../../../utils/api.js';
 import { resolveImagePath, escapeHtml } from '../../../../utils/helpers.js';
 import { wizardState, stopWizardPolling } from '../state.js';
 import { openOverlayModal } from '../utils.js';
+import { icon } from '../../../../utils/icons.js';
 
 const POLL_DEFAULT_MS = 30000;       // sem atividade recente
 const POLL_FAST_MS = 10000;          // janela "quente" após mudança
@@ -65,10 +66,10 @@ export function renderStepTracking({ session, refresh }) {
 
   // Header + botão "Atualizar agora"
   const headerRow = document.createElement('div');
-  headerRow.style.cssText = 'display:flex; align-items:flex-start; gap:1rem; flex-wrap:wrap;';
+  headerRow.style.cssText = 'position:relative; display:flex; justify-content:center; align-items:center; width:100%; min-height:44px;';
 
   const header = document.createElement('div');
-  header.style.cssText = 'flex:1; min-width:240px;';
+  header.style.cssText = 'text-align:center; width:100%; padding:0 3.5rem;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">
       Acompanhar ${isMulti ? 'Participantes' : 'Seleção'}
@@ -90,17 +91,17 @@ export function renderStepTracking({ session, refresh }) {
     const refreshBtn = document.createElement('button');
     refreshBtn.type = 'button';
     refreshBtn.title = 'Forçar atualização agora';
-    refreshBtn.innerHTML = '🔄 Atualizar';
-    refreshBtn.style.cssText = `
-      background: var(--bg-surface); border: 1px solid var(--border);
-      color: var(--text-primary);
-      padding: 0.5rem 0.875rem; border-radius: 0.375rem;
-      cursor: pointer; font-size: 0.8125rem; font-weight: 500;
-      align-self: flex-start;
+    refreshBtn.className = 'header-expand-btn';
+    refreshBtn.style.cssText = 'position:absolute; right:0; top:50%; transform:translateY(-50%); cursor:pointer;';
+    refreshBtn.innerHTML = `
+      <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;">
+        ${icon('reabrir', 18)}
+      </span>
+      <span class="header-expand-label">Atualizar</span>
     `;
     refreshBtn.onclick = async () => {
       refreshBtn.disabled = true;
-      refreshBtn.innerHTML = '⏳ Atualizando…';
+      refreshBtn.style.opacity = '0.6';
       try {
         await refresh();
       } finally {
@@ -116,13 +117,16 @@ export function renderStepTracking({ session, refresh }) {
     const reopenBtn = document.createElement('button');
     reopenBtn.type = 'button';
     reopenBtn.title = 'Reabrir a seleção para o cliente alterar as fotos';
-    reopenBtn.innerHTML = '🔓 Reabrir seleção';
-    reopenBtn.style.cssText = `
-      background: transparent; border: 1px solid var(--orange);
-      color: var(--orange);
-      padding: 0.5rem 0.875rem; border-radius: 0.375rem;
-      cursor: pointer; font-size: 0.8125rem; font-weight: 600;
-      align-self: flex-start;
+    reopenBtn.className = 'header-expand-btn';
+    reopenBtn.style.cssText = 'position:absolute; right:0; top:50%; transform:translateY(-50%); cursor:pointer;';
+    reopenBtn.style.borderColor = 'var(--orange)';
+    reopenBtn.style.color = 'var(--orange)';
+    reopenBtn.style.background = 'color-mix(in srgb, var(--orange) 6%, transparent)';
+    reopenBtn.innerHTML = `
+      <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;">
+        ${icon('reabrir', 18)}
+      </span>
+      <span class="header-expand-label">Reabrir seleção</span>
     `;
     reopenBtn.onclick = () => reopenSelection(session, refresh);
     headerRow.appendChild(reopenBtn);
@@ -231,7 +235,7 @@ function renderStatsBar(stats, isSubmitted, isMulti) {
     const c = document.createElement('div');
     c.style.cssText = `
       background: var(--bg-surface); border: 1px solid var(--border);
-      border-radius: 0.5rem; padding: 0.75rem 1rem;
+      border-radius:var(--r-card); padding: 0.75rem 1rem;
     `;
     c.innerHTML = `
       <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.25rem;">${label}</div>
@@ -248,7 +252,11 @@ function renderStatsBar(stats, isSubmitted, isMulti) {
   }
   bar.appendChild(stat('Fotos na galeria', String(stats.photosCount)));
   bar.appendChild(stat('Mensagens', String(stats.totalComments), stats.totalComments > 0 ? 'var(--green)' : 'var(--text-muted)'));
-  bar.appendChild(stat('Status', isSubmitted ? '✓ Finalizada' : '⏳ Aguardando', isSubmitted ? 'var(--green)' : 'var(--yellow)'));
+  const statusHtml = isSubmitted
+    ? `<span style="display:inline-flex; align-items:center; gap:0.375rem; vertical-align:middle;">${icon('checkCircle', 18)} Finalizada</span>`
+    : `<span style="display:inline-flex; align-items:center; gap:0.375rem; vertical-align:middle;">${icon('relogio', 18)} Aguardando</span>`;
+
+  bar.appendChild(stat('Status', statusHtml, isSubmitted ? 'var(--green)' : 'var(--yellow)'));
 
   return bar;
 }
@@ -258,7 +266,7 @@ function renderParticipantsProgress(session, refresh) {
   const wrap = document.createElement('div');
   wrap.style.cssText = `
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: 0.5rem; overflow: hidden;
+    border-radius:var(--r-card); overflow: hidden;
   `;
   const head = document.createElement('div');
   head.style.cssText = `
@@ -316,12 +324,17 @@ function renderParticipantsProgress(session, refresh) {
         const reopenBtn = document.createElement('button');
         reopenBtn.type = 'button';
         reopenBtn.title = `Reabrir a seleção de ${p.name}`;
-        reopenBtn.innerHTML = '🔓 Reabrir';
-        reopenBtn.style.cssText = `
-          background: transparent; border: 1px solid var(--orange);
-          color: var(--orange);
-          padding: 0.25rem 0.625rem; border-radius: 0.375rem;
-          cursor: pointer; font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+        reopenBtn.className = 'header-expand-btn';
+        reopenBtn.style.borderColor = 'var(--orange)';
+        reopenBtn.style.color = 'var(--orange)';
+        reopenBtn.style.background = 'color-mix(in srgb, var(--orange) 6%, transparent)';
+        reopenBtn.style.height = '30px';
+        reopenBtn.style.minWidth = '30px';
+        reopenBtn.innerHTML = `
+          <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:28px!important;height:28px!important;">
+            ${icon('reabrir', 14)}
+          </span>
+          <span class="header-expand-label">Reabrir</span>
         `;
         reopenBtn.onclick = () => reopenSelection(session, refresh, p._id, p.name);
         row.appendChild(reopenBtn);
@@ -336,11 +349,15 @@ function renderParticipantsProgress(session, refresh) {
 }
 
 function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
+  // ── Wrapper flex centralizado (padrão círculo morph) ──────────────────
   const grid = document.createElement('div');
   grid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1.25rem;
+    width: 100%;
   `;
 
   // Em multi, mapeia foto → array de participantes que a selecionaram.
@@ -357,13 +374,35 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
     const isSelected = selectedSet.has(photo.id);
     const selectorNames = isMulti && isSelected ? photoSelectors.get(photo.id) : null;
 
+    // Calcula aspect ratio para o tamanho do hover
+    const w = photo.width;
+    const h = photo.height;
+    const aspect = (w && h) ? (w / h) : 1.5;
+    const hoverHeight = 200;
+    const hoverWidth = Math.round(hoverHeight * aspect);
+
+    // Cor da borda: verde se selecionada/finalizada, amarela se pendente, padrão se sem comentários
+    const borderColor = hasComments
+      ? 'var(--green)'
+      : isSelected
+        ? (isSubmitted ? 'var(--green)' : 'var(--accent)')
+        : 'var(--border)';
+
     const cell = document.createElement('div');
     cell.style.cssText = `
-      position: relative; aspect-ratio: 3/2;
-      background: var(--bg-surface); border-radius: 0.375rem;
+      position: relative;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--bg-surface);
       overflow: hidden;
-      ${hasComments ? 'animation: wizardChatPulse 2s ease-in-out infinite;' : 'border: 1px solid var(--border);'}
-      ${photo.hidden ? 'opacity: 0.3;' : ''}
+      border: 2px solid ${borderColor};
+      ${photo.hidden ? 'opacity: 0.35;' : ''}
+      ${hasComments ? 'animation: wizardChatPulse 2s ease-in-out infinite;' : ''}
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  border-color 0.15s;
     `;
 
     const img = document.createElement('img');
@@ -373,7 +412,7 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
     img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;';
     cell.appendChild(img);
 
-    // Película: só aplica se NÃO finalizado E NÃO tem comentários
+    // Película escura (não selecionada ou aguardando) — visível antes de submeter
     if (!isSubmitted && !hasComments) {
       const film = document.createElement('div');
       film.style.cssText = `
@@ -382,59 +421,68 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
         display: flex; align-items: ${isMulti && isSelected ? 'flex-end' : 'center'}; justify-content: center;
         color: rgba(255,255,255,0.85); font-size: 0.6875rem; font-weight: 600;
         pointer-events: none; padding: 4px;
+        opacity: 0; transition: opacity 0.18s;
       `;
+      film.dataset.film = '1';
       if (isMulti && isSelected) {
-        // Em multi, lista os participantes que selecionaram (até 3, depois "+N")
         film.innerHTML = renderSelectorChips(selectorNames);
       } else {
-        film.textContent = isSelected ? '✓ Selecionada' : '🔒';
+        film.textContent = isSelected ? '✓' : '🔒';
       }
       cell.appendChild(film);
     }
 
-    // Badge "selecionada" sempre visível quando isSubmitted (sem película)
-    if (isSubmitted && isSelected) {
-      if (isMulti) {
-        // Múltiplos selecionadores: badge com nomes no fundo
-        const sel = document.createElement('div');
-        sel.style.cssText = `
-          position: absolute; bottom: 0; left: 0; right: 0;
-          background: linear-gradient(transparent, rgba(0,0,0,0.7));
-          color: white; padding: 8px 6px 6px;
-          font-size: 0.6875rem; font-weight: 600;
-          display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;
-        `;
-        sel.innerHTML = renderSelectorChips(selectorNames);
-        cell.appendChild(sel);
-      } else {
-        const sel = document.createElement('div');
-        sel.textContent = '✓';
-        sel.style.cssText = `
-          position: absolute; top: 4px; right: 4px;
-          background: var(--green); color: white;
-          width: 22px; height: 22px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 0.75rem; font-weight: 700;
-        `;
-        cell.appendChild(sel);
-      }
+    // Badge check verde (selecionada e submetida) — canto superior direito
+    if (isSubmitted && isSelected && !isMulti) {
+      const sel = document.createElement('div');
+      sel.textContent = '✓';
+      sel.style.cssText = `
+        position: absolute; top: 4px; right: 4px;
+        background: var(--green); color: white;
+        width: 18px; height: 18px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.625rem; font-weight: 700;
+        transition: top 0.3s cubic-bezier(0.4,0,0.2,1), right 0.3s cubic-bezier(0.4,0,0.2,1);
+      `;
+      sel.dataset.badge = 'check';
+      cell.appendChild(sel);
     }
 
-    // Badge de mensagens (sempre visível se tiver)
+    // Multi: chips de participantes — aparecem no hover
+    if (isSubmitted && isSelected && isMulti) {
+      const sel = document.createElement('div');
+      sel.style.cssText = `
+        position: absolute; bottom: 0; left: 0; right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.7));
+        color: white; padding: 8px 6px 6px;
+        font-size: 0.5625rem; font-weight: 600;
+        display: flex; flex-wrap: wrap; gap: 2px; justify-content: center;
+        opacity: 0; transition: opacity 0.18s;
+      `;
+      sel.dataset.selchips = '1';
+      sel.innerHTML = renderSelectorChips(selectorNames);
+      cell.appendChild(sel);
+    }
+
+    // Badge de mensagens (sempre visível quando hover; ativo se tem comentários)
     if (hasComments) {
       const chat = document.createElement('button');
       chat.type = 'button';
       chat.style.cssText = `
-        position: absolute; bottom: 4px; left: 4px;
+        position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
         background: var(--green); color: white;
-        padding: 3px 8px; border: none; border-radius: 999px;
-        font-size: 0.6875rem; font-weight: 600;
+        padding: 2px 8px; border: none; border-radius: 999px;
+        font-size: 0.5625rem; font-weight: 700;
         cursor: pointer; display: flex; align-items: center; gap: 3px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        white-space: nowrap; opacity: 0;
+        transition: opacity 0.18s, bottom 0.3s cubic-bezier(0.4,0,0.2,1);
       `;
       chat.innerHTML = `💬 ${photo.comments.length}`;
       chat.title = 'Abrir mensagens';
-      chat.onclick = () => {
+      chat.dataset.chat = '1';
+      chat.onclick = (e) => {
+        e.stopPropagation();
         if (!window.openComments) return;
         openOverlayModal({
           modalSelector: '#commentsModal',
@@ -444,12 +492,49 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
       cell.appendChild(chat);
     }
 
+    // ── Hover: expand círculo → retângulo ────────────────────────────
+    cell.addEventListener('mouseenter', () => {
+      cell.style.width = `${hoverWidth}px`;
+      cell.style.height = `${hoverHeight}px`;
+      cell.style.borderRadius = 'var(--r-field)';
+
+      const film = cell.querySelector('[data-film]');
+      if (film) film.style.opacity = '1';
+
+      const selChips = cell.querySelector('[data-selchips]');
+      if (selChips) selChips.style.opacity = '1';
+
+      const chat = cell.querySelector('[data-chat]');
+      if (chat) { chat.style.opacity = '1'; chat.style.bottom = '6px'; }
+
+      const badge = cell.querySelector('[data-badge="check"]');
+      if (badge) { badge.style.top = '6px'; badge.style.right = '6px'; }
+    });
+
+    cell.addEventListener('mouseleave', () => {
+      cell.style.width = '120px';
+      cell.style.height = '120px';
+      cell.style.borderRadius = '50%';
+
+      const film = cell.querySelector('[data-film]');
+      if (film) film.style.opacity = '0';
+
+      const selChips = cell.querySelector('[data-selchips]');
+      if (selChips) selChips.style.opacity = '0';
+
+      const chat = cell.querySelector('[data-chat]');
+      if (chat) { chat.style.opacity = '0'; }
+
+      const badge = cell.querySelector('[data-badge="check"]');
+      if (badge) { badge.style.top = '4px'; badge.style.right = '4px'; }
+    });
+
     grid.appendChild(cell);
   });
 
   if ((session.photos || []).length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:2rem; text-align:center; color:var(--text-muted); font-size:0.875rem; grid-column:1/-1;';
+    empty.style.cssText = 'padding:2rem; text-align:center; color:var(--text-muted); font-size:0.875rem; width:100%';
     empty.textContent = 'Nenhuma foto na sessão.';
     grid.appendChild(empty);
   }

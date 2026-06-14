@@ -3,6 +3,7 @@ const router = express.Router();
 const Organization = require('../models/Organization');
 const { authenticateToken } = require('../middleware/auth');
 const { verifyDomain } = require('../utils/dnsVerifier');
+const { checkAvailability, DEFAULT_TLDS, PRICE_ESTIMATES } = require('../utils/domainAvailability');
 const { execFile } = require('child_process');
 const path = require('path');
 
@@ -115,6 +116,33 @@ router.delete('/domains', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verificar disponibilidade de um nome em várias extensões (RDAP, sem gating de plano —
+// a busca é aberta como funil de venda; conectar o domínio ao site segue sendo Pro).
+router.get('/domains/check', authenticateToken, async (req, res) => {
+  try {
+    // Normaliza: lowercase, trim. Se vier um domínio completo (com ponto), usa só o
+    // primeiro label (SLD). Aceita apenas [a-z0-9-].
+    let name = String(req.query.name || '').trim().toLowerCase();
+    if (name.includes('.')) name = name.split('.')[0];
+
+    if (!name || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) {
+      return res.status(400).json({ error: 'Nome inválido. Use apenas letras, números e hífen.' });
+    }
+
+    const found = await checkAvailability(name, DEFAULT_TLDS);
+    const results = found.map(r => ({
+      ...r,
+      priceEstimate: PRICE_ESTIMATES[r.tld] || null
+    }));
+
+    req.logger.info('Busca de disponibilidade de domínio', { name, count: results.length });
+    res.json({ success: true, results });
+  } catch (error) {
+    req.logger.error('Erro na busca de disponibilidade de domínio', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

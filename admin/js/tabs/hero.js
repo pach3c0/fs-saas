@@ -328,9 +328,9 @@ export async function renderHero(container) {
         let finalUrl = url;
         // Tenta converter link de visualização do Google Drive para link direto
         if (url.includes('drive.google.com/file/d/')) {
-           const match = url.match(/\\/d\\/(.*?)\\//) || url.match(/\\/d\\/(.*?)$/);
+           const match = url.match(/\/d\/(.*?)\//) || url.match(/\/d\/(.*?)$/);
            if (match && match[1]) {
-             finalUrl = \`https://drive.google.com/uc?export=view&id=\${match[1]}\`;
+             finalUrl = `https://drive.google.com/uc?export=view&id=${match[1]}`;
            }
         }
         

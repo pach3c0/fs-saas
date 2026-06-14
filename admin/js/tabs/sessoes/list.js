@@ -1,5 +1,6 @@
 import { formatDate, resolveImagePath } from '../../utils/helpers.js';
 import { apiGet } from '../../utils/api.js';
+import { icon } from '../../utils/icons.js';
 
 const EVENT_LABELS = {
   aniversario: 'Aniversário', casamento: 'Casamento', formatura: 'Formatura',
@@ -26,10 +27,20 @@ const GALLERY_STATUS_LABELS = {
   expired: { text: 'Expirado', class: 'badge-danger' }
 };
 
+// Fundos por modo de sessão configurados pelo Superadmin (SaaS Admin › Fundo das Sessões).
+// { selection?: {imageUrl, opacity}, gallery?: {...}, multi_selection?: {...} }.
+// Vazio => cada card cai no tint sólido padrão. Persistido em nível de módulo para não
+// refazer o fetch a cada filtro (filterAndRender/renderList rodam várias vezes).
+let sessionBackgrounds = {};
+
 export async function loadSessions(container, state) {
   try {
-    const result = await apiGet('/api/sessions');
+    const [result, bgRes] = await Promise.all([
+      apiGet('/api/sessions'),
+      apiGet('/api/session-card-backgrounds').catch(() => ({ backgrounds: {} })),
+    ]);
     state.sessionsData = result.sessions || [];
+    sessionBackgrounds = bgRes.backgrounds || {};
     filterAndRender(container, state);
   } catch (error) {
     const list = container.querySelector('#sessionsList');
@@ -172,13 +183,13 @@ function renderProgressStepper(session) {
 
   const chips = {
     action: { bg: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: 'color-mix(in srgb, var(--accent) 30%, transparent)', color: 'var(--text-primary)', icon: '→' },
-    wait:   { bg: 'color-mix(in srgb, var(--yellow) 12%, transparent)', border: 'color-mix(in srgb, var(--yellow) 30%, transparent)', color: 'var(--yellow)',       icon: '⏳' },
+    wait:   { bg: 'var(--bg-hover)', border: 'var(--border)', color: 'var(--text-secondary)',       icon: '⏳' },
     done:   { bg: 'color-mix(in srgb, var(--green) 12%, transparent)',  border: 'color-mix(in srgb, var(--green) 30%, transparent)',  color: 'var(--green)',        icon: '✓' },
     warn:   { bg: 'color-mix(in srgb, var(--red) 12%, transparent)',    border: 'color-mix(in srgb, var(--red) 30%, transparent)',    color: 'var(--red)',          icon: '⚠' },
   };
   const c = chips[nextType] || chips.action;
 
-  return `<div style="border-top:1px solid var(--border);margin-top:0.625rem;padding-top:0.5rem;"><div style="display:flex;align-items:flex-start;margin-bottom:0.4rem;">${parts.join('')}</div><span style="font-size:0.6875rem;background:${c.bg};border:1px solid ${c.border};color:${c.color};padding:0.15rem 0.5rem;border-radius:0.25rem;font-weight:500;">${c.icon} ${nextAction}</span></div>`;
+  return `<div style="border-top:1px solid var(--border);margin-top:0.625rem;padding-top:0.5rem;"><div style="display:flex;align-items:flex-start;margin-bottom:0.4rem;">${parts.join('')}</div><span style="font-size:0.6875rem;background:${c.bg};border:1px solid ${c.border};color:${c.color};padding:0.15rem 0.5rem;border-radius:var(--r-chip);font-weight:500;">${c.icon} ${nextAction}</span></div>`;
 }
 
 function renderList(container, items) {
@@ -223,32 +234,41 @@ function renderList(container, items) {
       cardBorder = 'color-mix(in srgb, var(--red) 35%, transparent)';
     }
 
+    // Fundo configurado pelo Superadmin para este modo (imagem atrás do conteúdo).
+    // Sem imagem => bgLayer vazio, o card mantém só o tint sólido.
+    const modeBg = sessionBackgrounds[mode];
+    const bgLayer = (modeBg && modeBg.imageUrl)
+      ? `<div style="position:absolute; inset:0; background-image:url('${resolveImagePath(modeBg.imageUrl)}'); background-size:cover; background-position:center; opacity:${modeBg.opacity ?? 0.18}; pointer-events:none; z-index:0;"></div>`
+      : '';
+
     return `
       <div onclick="window.openSessionWizard?.('${session._id}')"
            title="Clique para abrir a sessão"
-           style="border:1px solid ${cardBorder}; border-radius:0.75rem; padding:1rem; background:${cardBg}; cursor:pointer; transition: box-shadow 0.15s, transform 0.15s;"
-           onmouseenter="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)';"
+           style="position:relative; overflow:hidden; border:1px solid ${cardBorder}; border-radius:var(--r-card); padding:1.25rem; background:${cardBg}; cursor:pointer; transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;"
+           onmouseenter="this.style.boxShadow='var(--cz-lift)'; this.style.transform='translateY(-2px)';"
            onmouseleave="this.style.boxShadow='none'; this.style.transform='none';">
-        <div style="display:flex; gap:1rem; align-items:flex-start;">
-          <div style="width:80px; height:80px; flex-shrink:0; border-radius:0.5rem; overflow:hidden; background:var(--bg-base); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
+        ${bgLayer}
+        <div style="position:relative; z-index:1;">
+        <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.75rem;">
+          <div style="width:80px; height:80px; flex-shrink:0; border-radius:50%; overflow:hidden; background:var(--bg-base); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
             ${session.coverPhoto
         ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">`
         : `<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>`}
           </div>
-          <div style="flex:1; min-width:0;">
-            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:wrap; width:100%;">
               <span style="color:var(--text-primary); font-size:1.125rem; font-weight:700; text-decoration: underline; text-decoration-style: dotted; text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent); text-underline-offset: 4px;">${session.name}</span>
               ${session.clientId
                 ? `<button onclick="event.stopPropagation(); window._pendingOpenClientId='${session.clientId._id}'; window.switchTab?.('clientes');" style="background:none; border:none; cursor:pointer; color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; padding:0; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px;" title="Ir para o cadastro do cliente"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</button>`
                 : (session.clientName ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente do Rhyno"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientName}</span>` : '')}
               <span class="badge ${status.class}">${status.text}</span>
-              ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.45rem; border-radius:0.25rem; font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
+              ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:var(--r-chip); font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
               ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
-              ${session.reopenRequested ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
-              ${session.clientAccessBlocked ? `<span style="background:color-mix(in srgb, var(--red) 15%, transparent);border:1px solid color-mix(in srgb, var(--red) 35%, transparent);color:var(--red);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:600;">🔒 Acesso bloqueado</span>` : ''}
-              ${session.archivedAt ? `<span style="background:color-mix(in srgb, var(--text-muted) 15%, transparent);border:1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);color:var(--text-muted);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:500;">📦 Arquivada</span>` : (() => { const ret = session.storageRetentionUntil ? new Date(session.storageRetentionUntil) : null; if (!ret) return ''; const daysLeft = Math.ceil((ret - now) / 86400000); if (daysLeft > 30) return ''; const label = daysLeft <= 0 ? '⏳ Storage vencido' : `⏳ Storage expira ${ret.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`; const color = daysLeft <= 7 ? 'var(--red)' : 'var(--orange)'; return `<span style="background:color-mix(in srgb, ${color} 15%, transparent);border:1px solid color-mix(in srgb, ${color} 35%, transparent);color:${color};font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:0.25rem;font-weight:500;">${label}</span>`; })()}
+              ${session.reopenRequested ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
+              ${session.clientAccessBlocked ? `<span style="background:color-mix(in srgb, var(--red) 15%, transparent);border:1px solid color-mix(in srgb, var(--red) 35%, transparent);color:var(--red);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">🔒 Acesso bloqueado</span>` : ''}
+              ${session.archivedAt ? `<span style="background:color-mix(in srgb, var(--text-muted) 15%, transparent);border:1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);color:var(--text-muted);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:500;">📦 Arquivada</span>` : (() => { const ret = session.storageRetentionUntil ? new Date(session.storageRetentionUntil) : null; if (!ret) return ''; const daysLeft = Math.ceil((ret - now) / 86400000); if (daysLeft > 30) return ''; const label = daysLeft <= 0 ? '⏳ Storage vencido' : `⏳ Storage expira ${ret.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`; const color = daysLeft <= 7 ? 'var(--red)' : 'var(--orange)'; return `<span style="background:color-mix(in srgb, ${color} 15%, transparent);border:1px solid color-mix(in srgb, ${color} 35%, transparent);color:${color};font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:500;">${label}</span>`; })()}
             </div>
-            <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem;">
+            <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem; text-align:center;">
               ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
               ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : (isMulti ? ` • ${(session.participants || []).length} participantes` : '')}
               ${deadline ? ` • ${mode === 'gallery' ? 'Acesso até' : 'Prazo'}: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
@@ -257,16 +277,26 @@ function renderList(container, items) {
           </div>
         </div>
         ${renderProgressStepper(session)}
-        <div style="display:flex; justify-content:flex-end; gap:0.375rem; margin-top:0.5rem; padding-top:0.375rem; border-top:1px solid var(--border);">
+        <div class="card-actions-container">
           <button onclick="event.stopPropagation(); window.toggleSessionAccessFromList?.('${session._id}')"
             title="${session.clientAccessBlocked ? 'Liberar acesso do cliente' : 'Bloquear acesso do cliente'}"
-            style="background:${session.clientAccessBlocked ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'var(--bg-base)'}; border:1px solid ${session.clientAccessBlocked ? 'color-mix(in srgb, var(--red) 30%, transparent)' : 'var(--border)'}; color:${session.clientAccessBlocked ? 'var(--red)' : 'var(--text-secondary)'}; padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">${session.clientAccessBlocked ? '🔓' : '🔒'}</button>
+            class="card-action-btn ${session.clientAccessBlocked ? 'blocked' : ''}">
+            <span class="card-action-icon">${session.clientAccessBlocked ? icon('cadeadoAberto', 16) : icon('cadeado', 16)}</span>
+            <span class="card-action-label">${session.clientAccessBlocked ? 'Liberar' : 'Bloquear'}</span>
+          </button>
           <button onclick="event.stopPropagation(); window.openSessionWizardHistory?.('${session._id}')"
             title="Histórico da sessão"
-            style="background:var(--bg-base); border:1px solid var(--border); color:var(--text-secondary); padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">📋</button>
+            class="card-action-btn">
+            <span class="card-action-icon">${icon('historico', 16)}</span>
+            <span class="card-action-label">Histórico</span>
+          </button>
           <button onclick="event.stopPropagation(); window.deleteSession?.('${session._id}')"
             title="Deletar sessão"
-            style="background:color-mix(in srgb, var(--red) 8%, transparent); border:1px solid color-mix(in srgb, var(--red) 25%, transparent); color:var(--red); padding:0.25rem 0.5rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; line-height:1;">🗑️</button>
+            class="card-action-btn danger">
+            <span class="card-action-icon">${icon('lixeira', 16)}</span>
+            <span class="card-action-label">Deletar</span>
+          </button>
+        </div>
         </div>
       </div>
     `;

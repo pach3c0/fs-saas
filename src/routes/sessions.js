@@ -62,21 +62,22 @@ router.post('/client/verify-code', async (req, res) => {
 
     if (!session) return res.status(401).json({ error: 'Código inválido' });
 
+    // Preview do fotógrafo: _ap é o JWT do próprio dono da sessão.
+    // Quando válido, o acesso não conta como acesso do cliente (não grava firstAccessAt nem notifica).
+    let adminPreview = false;
+    const apToken = req.body?._ap;
+    if (apToken) {
+      try {
+        const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
+        const orgId = session.organizationId?._id || session.organizationId;
+        adminPreview = payload.organizationId?.toString() === orgId.toString();
+      } catch (_) {}
+    }
+
     // Bloqueio de emergência ativado pelo fotógrafo.
-    // Bypass permitido quando _ap é o JWT do próprio fotógrafo dono da sessão (preview admin).
-    if (session.clientAccessBlocked) {
-      let adminPreview = false;
-      const apToken = req.body?._ap;
-      if (apToken) {
-        try {
-          const payload = jwt.verify(apToken, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
-          const orgId = session.organizationId?._id || session.organizationId;
-          adminPreview = payload.organizationId?.toString() === orgId.toString();
-        } catch (_) {}
-      }
-      if (!adminPreview) {
-        return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
-      }
+    // Bypass permitido quando é preview admin (_ap válido do dono da sessão).
+    if (session.clientAccessBlocked && !adminPreview) {
+      return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
     }
 
     // Bloquear acesso a galeria entregue com prazo vencido
@@ -89,22 +90,25 @@ router.post('/client/verify-code', async (req, res) => {
       return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
     }
 
-    // Registrar primeiro acesso do cliente
-    if (!session.firstAccessAt) {
-      session.firstAccessAt = new Date();
-      await session.save();
-    }
+    // Preview do fotógrafo não registra acesso nem notifica — só o acesso real do cliente conta.
+    if (!adminPreview) {
+      // Registrar primeiro acesso do cliente
+      if (!session.firstAccessAt) {
+        session.firstAccessAt = new Date();
+        await session.save();
+      }
 
-    // Notificar admin
-    try {
-      await Notification.create({
-        type: 'session_accessed',
-        sessionId: session._id,
-        sessionName: participant ? `${participant.name} (${session.name})` : session.name,
-        message: `${participant ? participant.name : session.name} acessou a galeria`,
-        organizationId: session.organizationId
-      });
-    } catch (e) { }
+      // Notificar admin
+      try {
+        await Notification.create({
+          type: 'session_accessed',
+          sessionId: session._id,
+          sessionName: participant ? `${participant.name} (${session.name})` : session.name,
+          message: `${participant ? participant.name : session.name} acessou a galeria`,
+          organizationId: session.organizationId
+        });
+      } catch (e) { }
+    }
 
     // Buscar dados do cliente CRM se vinculado
     let clientData = null;
@@ -278,7 +282,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         id: session.organizationId._id,
         name: session.organizationId.name,
         logo: session.organizationId.logo,
-        watermark: session.organizationId.watermarkType ? {
+        watermark: {
           watermarkType: session.organizationId.watermarkType,
           watermarkText: session.organizationId.watermarkText,
           watermarkOpacity: session.organizationId.watermarkOpacity,
@@ -295,7 +299,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
           watermarkImageFilter: session.organizationId.watermarkImageFilter,
           watermarkImageOpacity: session.organizationId.watermarkImageOpacity,
           watermarkLayers: session.organizationId.watermarkLayers || []
-        } : null
+        }
       } : null
     });
   } catch (error) {
@@ -1604,8 +1608,8 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
       extrasCount: extrasDelivered.length
     });
 
-    // Notificar cliente por e-mail
-    if (session.clientEmail) {
+    // Notificar cliente por e-mail (se não pular)
+    if (session.clientEmail && !req.body.skipEmail) {
       const org = await Organization.findById(session.organizationId).select('name slug');
       const recipientName = session.clientName || session.name;
       sendPhotosDeliveredEmail(session.clientEmail, recipientName, session.accessCode, org?.name || 'Fotógrafo', org?.slug, customEmailIntro).catch(() => { });

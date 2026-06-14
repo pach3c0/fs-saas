@@ -8,6 +8,7 @@ import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
 import { apiGet } from './utils/api.js';
+import { GRUPOS } from './tabs/gestao.js';
 
 const tabModules = {};
 let previewOpen = false;
@@ -414,7 +415,108 @@ function setupNavigation() {
   document.querySelectorAll('[data-tab]').forEach(tab => {
     tab.onclick = () => switchTab(tab.dataset.tab);
   });
+  
+  setupHeaderDropdowns();
+  setupSearch();
 }
+
+function setupHeaderDropdowns() {
+  const dropdownContainers = document.querySelectorAll('.header-dropdown-container');
+  
+  // Popula o dropdown de Gestão dinamicamente
+  const gestaoMenu = document.getElementById('dropdown-gestao');
+  if (gestaoMenu) {
+    gestaoMenu.innerHTML = GRUPOS.map(g => `
+      <div class="pop-head">${g.grupo}</div>
+      ${g.itens.map(item => `
+        <button class="nav-item dropdown-item" onclick="openGestao('${item.path}')">
+          <svg class="pop-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${item.icon || ''}</svg>
+          <span class="dropdown-label">${item.label}</span>
+        </button>
+      `).join('')}
+    `).join('<div class="pop-sep"></div>');
+  }
+
+  // Comportamento de abrir/fechar
+  dropdownContainers.forEach(container => {
+    const btn = container.querySelector('.header-dropdown-btn');
+    const menu = container.querySelector('.header-dropdown-menu');
+    if (!btn || !menu) return;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOursOpen = menu.classList.contains('open');
+
+      // Fecha todos os outros
+      document.querySelectorAll('.header-dropdown-menu').forEach(m => m.classList.remove('open'));
+
+      // Toggle o nosso (visibilidade + animação via classe .open)
+      if (!isOursOpen) menu.classList.add('open');
+    });
+  });
+
+  // Fecha dropdowns se clicar fora
+  document.addEventListener('click', (e) => {
+    const isClickInsideDropdown = e.target.closest('.header-dropdown-menu');
+    const isClickOnToggleBtn = e.target.closest('.header-dropdown-btn') || e.target.closest('#notificationBell');
+    if (!isClickInsideDropdown && !isClickOnToggleBtn) {
+      document.querySelectorAll('.header-dropdown-menu').forEach(m => m.classList.remove('open'));
+    }
+  });
+
+  // Intercepta cliques dentro do menu para não fechar acidentalmente (mas fecha ao clicar num botão data-tab ou onclick)
+  document.querySelectorAll('.header-dropdown-menu').forEach(menu => {
+    menu.addEventListener('click', (e) => {
+      if (e.target.closest('.nav-item') || e.target.closest('button')) {
+        menu.classList.remove('open'); // Fecha ao clicar em um item válido
+      } else {
+        e.stopPropagation(); // Mantém aberto ao clicar em texto vazio
+      }
+    });
+  });
+}
+
+function setupSearch() {
+  const searchInput = document.getElementById('topbar-search');
+  if (!searchInput) return;
+
+  // Busca simples: Enter para ir
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const val = searchInput.value.toLowerCase().trim();
+      if (!val) return;
+      
+      // Procura nas tabs
+      for (const [key, title] of Object.entries(TAB_TITLES)) {
+        if (title.toLowerCase().includes(val) || key.toLowerCase().includes(val)) {
+          switchTab(key);
+          searchInput.value = '';
+          return;
+        }
+      }
+      
+      // Procura em Gestão
+      for (const g of GRUPOS) {
+        for (const item of g.itens) {
+          if (item.label.toLowerCase().includes(val)) {
+            openGestao(item.path);
+            searchInput.value = '';
+            return;
+          }
+        }
+      }
+      
+      showToast('Nenhum módulo encontrado.', 'info');
+    }
+  });
+}
+
+window.openGestao = async function(path) {
+  // RHYNO_DESLIGADO: aba Gestão (ERP) desativada em produção até o SSO do Rhyno
+  // estar montado. Todo acesso à Gestão cai no CRM Mongo legado (aba Clientes).
+  // Reverter para a navegação original do iframe no deploy 2.
+  await switchTab('clientes');
+};
 
 // Atalhos de teclado globais
 function setupKeyboardShortcuts() {
@@ -612,7 +714,9 @@ async function loadOrgSlug() {
     });
     if (res.ok) {
       const data = await res.json();
-      const slug = data.data?.slug || data.slug;
+      const orgData = data.data || data;
+      const slug = orgData.slug;
+      appState.orgData = orgData;
       if (slug) {
         appState.orgSlug = slug;
         localStorage.setItem('orgSlug', slug);
@@ -622,8 +726,16 @@ async function loadOrgSlug() {
         const urlBar = document.getElementById('preview-url-bar');
         if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${slug}`;
       }
+      
+      // Preencher o menu de usuário da nova Header
+      const name = orgData.name || 'Meu Estúdio';
+      const initials = name.substring(0, 2).toUpperCase();
+      const avatarText = document.getElementById('user-avatar-text');
+      if (avatarText) avatarText.textContent = initials;
+      const orgNameLabel = document.getElementById('user-org-name');
+      if (orgNameLabel) orgNameLabel.textContent = name;
     }
-  } catch (e) { /* silencioso */ }
+  } catch (e) { console.error('Erro ao buscar profile:', e); }
 }
 
 // ── Welcome banner ────────────────────────────────────────────────────────
@@ -837,6 +949,12 @@ export async function switchTab(tabName) {
   appState.currentTab = tabName;
   const container = document.getElementById('tabContent');
   if (!container) return;
+
+  // Se o wizard de sessão estiver aberto, fecha-o antes de navegar
+  // Isso resolve o problema onde os botões do header ficavam bloqueados pelo wizard
+  if (document.getElementById('sessionWizardModal')) {
+    window.closeSessionWizard?.();
+  }
 
   // Update nav active state
   document.querySelectorAll('[data-tab]').forEach(btn => {

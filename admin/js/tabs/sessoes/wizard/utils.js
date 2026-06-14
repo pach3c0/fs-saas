@@ -1,6 +1,7 @@
 // Utilitários compartilhados entre os passos do wizard.
 
 import { appState } from '../../../state.js';
+import { icon } from '../../../utils/icons.js';
 
 // Constrói a URL da galeria para um código específico (sessão ou participante).
 // Em produção: usa subdomínio (slug.cliquezoom.com.br).
@@ -34,12 +35,12 @@ const WA_OPENINGS = {
   formatura: name => `Olá ${name}! 🎓 As fotos da sua formatura já estão prontas. Bora celebrar essa conquista!`,
   corporativo: name => `Olá ${name}! As fotos do evento já estão disponíveis para visualização.`,
   show: name => `Olá ${name}! 🎤 As fotos do show já estão na sua galeria.`,
-  ensaio: name => `Olá ${name}! 📸 As fotos do seu ensaio já estão prontas — vem ver!`,
+  ensaio: name => `Olá ${name}! As fotos do seu ensaio já estão prontas — vem ver!`,
   gestante: name => `Olá ${name}! 🤰 As fotos do seu ensaio gestante já estão disponíveis.`,
   newborn: name => `Olá ${name}! 👶 As fotos do ensaio newborn já estão prontas.`,
   debutante: name => `Olá ${name}! 👑 As fotos dos seus 15 anos já estão na sua galeria.`,
   batizado: name => `Olá ${name}! ⛪ As fotos do batizado já estão disponíveis.`,
-  outro: name => `Olá ${name}! 📸 Suas fotos já estão prontas para você visualizar.`
+  outro: name => `Olá ${name}! Suas fotos já estão prontas para você visualizar.`
 };
 
 // Templates de saudação WhatsApp para entrega final (cliente baixa as fotos editadas).
@@ -50,12 +51,12 @@ const WA_DELIVERY_OPENINGS = {
   formatura: name => `Olá ${name}! 🎓 As fotos da formatura estão prontas — pode baixar todas em alta resolução.`,
   corporativo: name => `Olá ${name}! As fotos do evento estão prontas para download.`,
   show: name => `Olá ${name}! 🎤 As fotos do show estão prontas para você baixar.`,
-  ensaio: name => `Olá ${name}! 📸 Seu ensaio está pronto — fotos editadas disponíveis para download.`,
+  ensaio: name => `Olá ${name}! Seu ensaio está pronto — fotos editadas disponíveis para download.`,
   gestante: name => `Olá ${name}! 🤰 As fotos do seu ensaio gestante estão prontas para baixar.`,
   newborn: name => `Olá ${name}! 👶 As fotos do newborn estão prontas para download.`,
   debutante: name => `Olá ${name}! 👑 Suas fotos dos 15 anos estão prontas para baixar.`,
   batizado: name => `Olá ${name}! ⛪ As fotos do batizado estão prontas para download.`,
-  outro: name => `Olá ${name}! 📸 Suas fotos editadas estão prontas para download.`
+  outro: name => `Olá ${name}! Suas fotos editadas estão prontas para download.`
 };
 
 // Abre um modal antigo (do sessoes/) escondendo o wizard temporariamente.
@@ -221,7 +222,7 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   const toggleBtn = document.createElement('button');
   toggleBtn.type = 'button';
   let expanded = true;
-  toggleBtn.textContent = `✏️ ${label} ▲`;
+  toggleBtn.innerHTML = `<span style="display:flex;align-items:center;gap:0.375rem;">${icon('editar', 14)} ${label} ▲</span>`;
   toggleBtn.style.cssText = `
     background: transparent; border: none; padding: 0; cursor: pointer;
     color: var(--text-muted); font-size: 0.75rem; text-align: left;
@@ -245,7 +246,7 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   textarea.style.cssText = `
     width: 100%; box-sizing: border-box; resize: vertical; margin-top: 0.25rem;
     background: var(--bg-base); border: 1px solid var(--border);
-    border-radius: 0.375rem; padding: 0.5rem 0.625rem;
+    border-radius:var(--r-field); padding: 0.5rem 0.625rem;
     color: var(--text-primary); font-size: 0.8125rem;
     font-family: inherit; line-height: 1.5;
   `;
@@ -276,7 +277,7 @@ export function buildMessageCustomizer({ label, defaultText, onTextareaReady, on
   toggleBtn.onclick = () => {
     expanded = !expanded;
     textareaWrap.style.display = expanded ? 'block' : 'none';
-    toggleBtn.textContent = `✏️ ${label} ${expanded ? '▲' : '▼'}`;
+    toggleBtn.innerHTML = `<span style="display:flex;align-items:center;gap:0.375rem;">${icon('editar', 14)} ${label} ${expanded ? '▲' : '▼'}</span>`;
   };
 
   section.appendChild(textareaWrap);

@@ -19,7 +19,9 @@ const NOTIF_ICONS = {
   depoimento_pendente:    '⭐',
   storage_expiring:       '⏰',
   storage_deleted:        '📦',
-  ticket_reply:           '✉️'
+  ticket_reply:           '✉️',
+  support_request:        '🛡️',
+  support_access:         '🛡️'
 };
 
 let pollingInterval = null;
@@ -61,12 +63,22 @@ function _updateBadge(count) {
   }
 }
 
-export async function toggleNotifications() {
+export async function toggleNotifications(e) {
+  if (e) e.stopPropagation();
   const dropdown = document.getElementById('notifDropdown');
   if (!dropdown) return;
-  dropdownOpen = !dropdownOpen;
-  dropdown.style.display = dropdownOpen ? 'block' : 'none';
-  if (dropdownOpen) await _renderList();
+  dropdownOpen = !dropdown.classList.contains('open');
+  
+  if (dropdownOpen) {
+    // Fecha outros dropdowns que usam class open
+    document.querySelectorAll('.header-dropdown-menu').forEach(m => {
+      if (m !== dropdown) m.classList.remove('open');
+    });
+    dropdown.classList.add('open');
+    await _renderList();
+  } else {
+    dropdown.classList.remove('open');
+  }
 }
 
 async function _renderList() {
@@ -247,6 +259,14 @@ function _navigate(n) {
   } else if (type === 'ticket_reply') {
     window.switchTab?.('ajuda');
     setTimeout(() => window._setAjudaView?.('fala-conosco'), 300);
+  } else if (type === 'support_request' || type === 'support_access') {
+    // Navega para Configurações → Privacidade
+    window.switchTab?.('configuracoes');
+    // Aguarda a aba renderizar e clica na sub-aba Privacidade
+    setTimeout(() => {
+      const privBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Privacidade');
+      if (privBtn) privBtn.click();
+    }, 500);
   } else if (type === 'storage_expiring') {
     window.switchTab?.('sessoes');
     if (sessionId) setTimeout(() => window.openStorageRetentionModal?.(sessionId), 300);
@@ -267,7 +287,7 @@ function _navigate(n) {
 
 function _closeDropdown() {
   const dropdown = document.getElementById('notifDropdown');
-  if (dropdown) dropdown.style.display = 'none';
+  if (dropdown) dropdown.classList.remove('open');
   dropdownOpen = false;
 }
 
@@ -301,15 +321,6 @@ function _esc(s) {
   return String(s || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 }
 
-// Fechar dropdown ao clicar fora
-document.addEventListener('click', (e) => {
-  if (!dropdownOpen) return;
-  const bell = document.getElementById('notificationBell');
-  const dropdown = document.getElementById('notifDropdown');
-  if (bell && !bell.contains(e.target) && dropdown && !dropdown.contains(e.target)) {
-    _closeDropdown();
-  }
-});
 
 // Expor para os onclick="" do HTML
 window.toggleNotifications = toggleNotifications;

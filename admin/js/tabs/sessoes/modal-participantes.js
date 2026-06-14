@@ -1,6 +1,7 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api.js';
 import { appState } from '../../state.js';
 import { escapeHtml } from '../../utils/helpers.js';
+import { icon } from '../../utils/icons.js';
 
 const STATUS_LABELS = {
   pending: { text: 'Pendente', class: 'badge-neutral' },
@@ -73,7 +74,7 @@ export function setupParticipantes(container, state, renderSessoes) {
       const count = (p.selectedPhotos || []).length;
       const phoneInfo = p.phone ? ` · ${escapeHtml(p.phone)}` : '';
       return `
-        <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+        <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
           <div style="min-width:0; flex:1;">
             <div style="color:var(--text-primary); font-weight:600; margin-bottom:0.25rem;">${escapeHtml(p.name)}</div>
             <div style="color:var(--text-muted); font-size:0.75rem; display:flex; flex-wrap:wrap; gap:0.375rem; align-items:center;">
@@ -84,11 +85,21 @@ export function setupParticipantes(container, state, renderSessoes) {
               <span class="badge ${status.class}">${status.text}</span>
             </div>
           </div>
-          <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+          <div style="display:flex; gap:0.5rem; flex-shrink:0; align-items:center;">
             ${p.selectionStatus === 'submitted' ? `
-            <button onclick="deliverParticipant('${p._id}')" class="btn btn-sm btn-success">Entregar</button>
+            <button onclick="deliverParticipant('${p._id}')" class="header-expand-btn" title="Entregar" style="cursor: pointer;">
+              <span class="header-expand-icon" style="display: flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important;">
+                ${icon('enviar', 16)}
+              </span>
+              <span class="header-expand-label">Entregar</span>
+            </button>
             ` : ''}
-            <button onclick="deleteParticipant('${p._id}')" class="btn btn-sm btn-danger">Remover</button>
+            <button onclick="deleteParticipant('${p._id}')" class="header-expand-btn" title="Remover" style="cursor: pointer; color: var(--red); border-color: color-mix(in srgb, var(--red) 25%, transparent); background: color-mix(in srgb, var(--red) 5%, transparent);">
+              <span class="header-expand-icon" style="display: flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important;">
+                ${icon('lixeira', 16)}
+              </span>
+              <span class="header-expand-label">Remover</span>
+            </button>
           </div>
         </div>
       `;

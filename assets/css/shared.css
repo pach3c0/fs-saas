@@ -1,7 +1,7 @@
 /* Fonts */
 :root {
   --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-serif: 'Inter', sans-serif;
 }
 
 body { font-family: var(--font-sans); }

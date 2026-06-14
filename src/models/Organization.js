@@ -246,9 +246,18 @@ const OrganizationSchema = new mongoose.Schema({
       couponDiscountPercent: { type: Number, default: 10 }
     }
   },
+  // Acesso de suporte (impersonação): o superadmin SÓ pode entrar no painel
+  // do fotógrafo se ele autorizar aqui (privacidade — fotos sensíveis).
+  // Default false: sem consentimento explícito, sem acesso.
+  supportAccess: {
+    enabled: { type: Boolean, default: false },
+    updatedAt: { type: Date, default: null }
+  },
   // Onboarding
   onboarding: {
     completed: { type: Boolean, default: false },
+    guidedStep: { type: Number, default: 1 },
+    skipped: { type: Boolean, default: false },
     steps: {
       sessionCreated:  { type: Boolean, default: false },
       photosUploaded:  { type: Boolean, default: false },

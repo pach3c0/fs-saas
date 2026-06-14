@@ -1,5 +1,7 @@
-// Stepper vertical lateral do wizard.
+// Stepper do wizard — vive no header (horizontal).
 // Computa estado de cada passo (done/locked/active) baseado na sessão.
+
+import { icon } from '../../../utils/icons.js';
 
 const STEP_DEFS = {
   1: { label: 'Upload', desc: 'Suba as fotos brutas' },
@@ -15,12 +17,11 @@ export function galleryDirect(session) {
 }
 
 // Define a ordem dos passos por modo da sessão.
-// Galeria prévia: Upload → Compartilhar → Entregar.
-// Galeria direta: Upload → Entregar → Compartilhar (compartilha o link de download pós-entrega).
-// Multi-Seleção / Seleção: fluxo completo.
+// Galeria: Upload → Compartilhar (e Entregar tudo no próprio passo 2).
+// Seleção / Multi-Seleção / Multi-Instant: Upload → Compartilhar → Acompanhar → Editadas.
 export function stepIdsForMode(mode, opts = {}) {
-  if (mode === 'gallery') return opts.galleryDirect ? [1, 6, 2] : [1, 2, 6];
-  return [1, 2, 4, 5, 6];
+  if (mode === 'gallery') return [1, 2];
+  return [1, 2, 4, 5];
 }
 
 // Retorna o próximo passo aplicável após currentId, ou null se for o último.
@@ -95,28 +96,28 @@ export function computeWizardSteps(session, currentStepId) {
   });
 }
 
-// Renderiza a sidebar vertical com os passos.
+// Renderiza a barra de etapas horizontal que vive no header do wizard.
 // onStepClick: (stepId) => void — só chamado se o passo não estiver locked.
-export function renderStepper(steps, onStepClick) {
-  const sidebar = document.createElement('div');
-  sidebar.style.cssText = `
-    width: 240px; flex-shrink: 0;
-    background: var(--bg-surface);
-    border-right: 1px solid var(--border);
-    padding: 1.25rem 0.75rem;
-    overflow-y: auto;
-    display: flex; flex-direction: column; gap: 0.25rem;
+export function renderHeaderStepper(steps, onStepClick) {
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    display: flex; align-items: center; gap: 0;
+    width: 100%; max-width: 540px; margin: 0 auto;
+    overflow-x: auto; padding-bottom: 2px;
   `;
-
-  const title = document.createElement('div');
-  title.textContent = 'ETAPAS';
-  title.style.cssText = `
-    font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em;
-    color: var(--text-muted); padding: 0 0.75rem 0.75rem; text-transform: uppercase;
-  `;
-  sidebar.appendChild(title);
 
   steps.forEach((step, idx) => {
+    // Conector entre passos: verde se o passo anterior já está concluído.
+    if (idx > 0) {
+      const conn = document.createElement('div');
+      const prevDone = steps[idx - 1].done;
+      conn.style.cssText = `
+        flex: 1 1 14px; min-width: 14px; height: 2px; border-radius: 2px;
+        background: ${prevDone ? 'var(--green)' : 'var(--border)'};
+      `;
+      bar.appendChild(conn);
+    }
+
     const item = document.createElement('button');
     item.type = 'button';
     item.disabled = step.locked;
@@ -154,12 +155,11 @@ export function renderStepper(steps, onStepClick) {
     }
 
     item.style.cssText = `
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.625rem 0.75rem; border-radius: 0.5rem;
+      display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;
+      padding: 0.3rem 0.625rem 0.3rem 0.3rem; border-radius: var(--r-chip);
       background: ${bg}; border: ${border};
       cursor: ${isLocked ? 'not-allowed' : 'pointer'};
-      transition: background 0.15s;
-      text-align: left; width: 100%; font: inherit;
+      transition: background 0.15s; font: inherit; white-space: nowrap;
     `;
 
     // Hover só se desbloqueado e não atual
@@ -168,52 +168,37 @@ export function renderStepper(steps, onStepClick) {
       item.onmouseleave = () => { item.style.background = bg; };
     }
 
-    // Círculo (número, check ou cadeado)
+    // Círculo (número, check ou cadeado de linha)
     const circle = document.createElement('div');
     circle.style.cssText = `
-      width: 28px; height: 28px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
       background: ${circleBg}; color: ${circleColor}; border: ${circleBorder};
       font-size: 0.75rem; font-weight: 600;
       ${isCurrent && !isDone ? 'animation: wizardPulse 2s ease-in-out infinite;' : ''}
     `;
     if (isDone) circle.textContent = '✓';
-    else if (isLocked) circle.textContent = '🔒';
+    else if (isLocked) circle.innerHTML = icon('cadeado', 13);
     else circle.textContent = String(idx + 1);
 
-    // Texto (label + descrição)
-    const textWrap = document.createElement('div');
-    textWrap.style.cssText = 'display:flex; flex-direction:column; gap:0.125rem; min-width:0;';
-    const label = document.createElement('div');
+    const label = document.createElement('span');
     label.textContent = step.label;
-    label.style.cssText = `font-size: 0.875rem; font-weight: 500; color: ${textColor};`;
-    const desc = document.createElement('div');
-    desc.textContent = step.desc;
-    desc.style.cssText = `font-size: 0.6875rem; color: var(--text-muted); line-height: 1.3;`;
-    textWrap.appendChild(label);
-    textWrap.appendChild(desc);
+    label.style.cssText = `font-size: 0.8125rem; font-weight: 500; color: ${textColor};`;
 
     item.appendChild(circle);
-    item.appendChild(textWrap);
+    item.appendChild(label);
 
     if (isLocked) {
-      item.title = 'Conclua o passo anterior para liberar';
+      item.title = `${step.label} — conclua o passo anterior para liberar`;
     } else {
+      item.title = step.desc;
       item.onclick = () => onStepClick(step.id);
     }
 
-    sidebar.appendChild(item);
+    bar.appendChild(item);
   });
 
-  // Linha de progresso conectando os passos (visual sutil)
-  const footer = document.createElement('div');
-  footer.style.cssText = 'margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;';
-  const doneCount = steps.filter(s => s.done).length;
-  footer.textContent = `${doneCount} de ${steps.length} concluído(s)`;
-  sidebar.appendChild(footer);
-
-  return sidebar;
+  return bar;
 }
 
 // Injeta keyframes uma única vez no head (pulso do passo ativo).

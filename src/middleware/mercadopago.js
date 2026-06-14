@@ -1,4 +1,4 @@
-const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
+const { MercadoPagoConfig, Preference, Payment, PreApprovalPlan, PreApproval } = require('mercadopago');
 const Subscription = require('../models/Subscription');
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
@@ -19,33 +19,26 @@ async function createCheckoutSession(organizationId, planName) {
         throw new Error('Plano inválido');
     }
 
-    // Cria a preferência de pagamento (Checkout Pro)
-    const preference = new Preference(client);
+    // Cria a preferência de assinatura (PreApprovalPlan)
+    const planObj = new PreApprovalPlan(client);
 
-    const response = await preference.create({
+    const priceAmount = plan.price > 1000 ? plan.price / 100 : plan.price;
+
+    const response = await planObj.create({
         body: {
-            items: [
-                {
-                    id: planName,
-                    title: `Plano ${planName} - CliqueZoom`,
-                    quantity: 1,
-                    // Converte de centavos (padrão Stripe no plans.js) para decimal, se for o caso
-                    unit_price: plan.price > 1000 ? plan.price / 100 : plan.price,
-                    currency_id: 'BRL',
-                }
-            ],
-            external_reference: organizationId.toString(), // Salva a Org para recuperar no webhook
-            back_urls: {
-                success: `${process.env.BASE_URL}/admin?payment=success`,
-                failure: `${process.env.BASE_URL}/admin?payment=canceled`,
-                pending: `${process.env.BASE_URL}/admin?payment=pending`
+            reason: `Plano ${planName} - CliqueZoom`,
+            auto_recurring: {
+                frequency: 1,
+                frequency_type: 'months',
+                transaction_amount: priceAmount,
+                currency_id: 'BRL'
             },
-            auto_return: 'approved',
-            // notification_url: `${process.env.BASE_URL}/api/billing/webhook/mercadopago`
+            back_url: process.env.BASE_URL.includes('localhost') ? `https://app.cliquezoom.com.br/admin?payment=success` : `${process.env.BASE_URL}/admin?payment=success`,
+            external_reference: organizationId.toString()
         }
     });
 
-    // Retorna a URL de pagamento do Mercado Pago (init_point)
+    // Retorna a URL de assinatura do Mercado Pago (init_point)
     return response.init_point;
 }
 
@@ -56,6 +49,33 @@ async function handleWebhook(eventBody, eventQuery) {
         const paymentId = eventBody?.data?.id || eventQuery?.id;
         const type = eventBody?.type || eventQuery?.topic;
 
+        // --- MANIPULAÇÃO DE ASSINATURAS (SUBSCRIPTIONS) ---
+        if (type === 'subscription_preapproval' && paymentId) {
+            const preApproval = new PreApproval(client);
+            const subscriptionData = await preApproval.get({ id: paymentId });
+            
+            const orgId = subscriptionData.external_reference;
+            const status = subscriptionData.status; // 'authorized', 'paused', 'cancelled'
+            
+            // Tenta deduzir qual plano foi assinado a partir da descrição ("Plano basic - CliqueZoom")
+            let planName = 'basic';
+            if (subscriptionData.reason && subscriptionData.reason.includes('pro')) planName = 'pro';
+
+            if (orgId && status) {
+                await Subscription.findOneAndUpdate(
+                    { organizationId: orgId },
+                    {
+                        plan: planName,
+                        status: status === 'authorized' ? 'active' : status,
+                        limits: plans[planName]?.limits
+                    },
+                    { upsert: true }
+                );
+            }
+            return; // Webhook tratado
+        }
+
+        // --- MANIPULAÇÃO DE PAGAMENTOS ÚNICOS OU FATURAS DE ASSINATURA ---
         if (type === 'payment' && paymentId) {
             const payment = new Payment(client);
             const paymentData = await payment.get({ id: paymentId });
@@ -89,19 +109,13 @@ async function handleWebhook(eventBody, eventQuery) {
                         });
                     }
                 }
-                // Caso 2: Assinatura de Plano (apenas orgId)
+                // Caso 2: Pagamento de fatura de Assinatura (apenas orgId)
                 else {
                     const orgId = extRef;
-                    const planName = paymentData.additional_info?.items?.[0]?.id || 'basic';
-
+                    // Se for pagamento atrelado a um plano (Subscription invoice), confirmamos que está ativo
                     await Subscription.findOneAndUpdate(
                         { organizationId: orgId },
-                        {
-                            plan: planName,
-                            status: 'active',
-                            // Atualizar limites conforme plano
-                            limits: plans[planName]?.limits
-                        },
+                        { status: 'active' },
                         { upsert: true }
                     );
                 }

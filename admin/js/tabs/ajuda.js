@@ -25,6 +25,7 @@ let activeManualModules = [];
 let allTickets = [];
 let ticketListView = 'list'; // 'list' | 'thread'
 let activeTicketId = null;
+let activeServico = null; // null = grid de serviços | id = tela de detalhe
 
 export async function renderAjuda(container) {
   container.innerHTML = `
@@ -92,6 +93,10 @@ function renderLayout(container) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
       Fala Conosco
     </button>
+    <button onclick="window._setAjudaView('servicos')" style="${ajudaView === 'servicos' ? btnActive : btnIdle}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Serviços Extras
+    </button>
   `;
   root.appendChild(subNav);
 
@@ -102,6 +107,17 @@ function renderLayout(container) {
     root.appendChild(ticketsEl);
     container.appendChild(root);
     renderFalaConosco(ticketsEl);
+    return;
+  }
+
+  // Renderizar Serviços Extras
+  if (ajudaView === 'servicos') {
+    const servicosEl = document.createElement('div');
+    servicosEl.innerHTML = activeServico
+      ? renderServicoDetalheHTML(activeServico)
+      : renderServicosGridHTML();
+    root.appendChild(servicosEl);
+    container.appendChild(root);
     return;
   }
 
@@ -2260,6 +2276,7 @@ function renderManualHTML() {
 
 window._setAjudaView = function(view) {
   ajudaView = view;
+  activeServico = null; // ao trocar de sub-aba, sempre volta ao grid de serviços
   const container = document.getElementById('tabContent');
   if (container) renderLayout(container);
 };
@@ -2771,5 +2788,192 @@ window._openTutorialHelpReal = function(category, queryText = '') {
   const container = document.getElementById('tabContent');
   if (container && appState.currentTab === 'ajuda') {
     renderLayout(container);
+  }
+};
+
+// ─── Serviços Adicionais (Upsell) ─────────────────────────────────────────────
+
+// WhatsApp da equipe CliqueZoom (vendas/suporte) usado para contratar os serviços
+// extras. É um número da PLATAFORMA (não do fotógrafo) — manter centralizado aqui.
+// Formato: somente dígitos com DDI/DDD, ex: '5511988887777'.
+const SUPPORT_WHATSAPP = '';
+
+// Catálogo de serviços extras. Estrutura orientada a dados: adicionar um serviço
+// é adicionar um item neste array (o grid e a tela de detalhe se montam sozinhos).
+const SERVICOS_EXTRAS = [
+  {
+    id: 'implantacao-guiada',
+    titulo: 'Implantação guiada',
+    resumo: 'Apoio inicial com um profissional especializado.',
+    preco: 'R$ 300,00',
+    precoNota: 'pagamento único',
+    destaque: true,
+    // Ícone Lucide (clipboard-check) — pill verde
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>',
+    descricao: 'Quer ajuda para começar? Agende um treinamento online exclusivo, por chamada de vídeo, com um especialista CliqueZoom. Em cerca de 2 horas, configuramos o seu negócio junto com você e deixamos tudo pronto para você começar a vender suas fotos.',
+    beneficios: [
+      {
+        titulo: 'Acompanhamento especializado',
+        texto: 'Você aprende a configurar a marca d\'água, criar a sua primeira sessão, montar o seu site e enviar a galeria para o cliente.'
+      },
+      {
+        titulo: 'Configuração completa',
+        texto: 'Deixamos o seu painel, o seu site público e a sua primeira galeria prontos junto com você, ao vivo, sem você travar no caminho.'
+      },
+      {
+        titulo: 'Mais autonomia',
+        texto: 'Ao final, você entende o fluxo da plataforma de ponta a ponta e ganha confiança para seguir sozinho(a) no dia a dia.'
+      }
+    ],
+    waMessage: 'Olá! Gostaria de contratar a Implantação Guiada do CliqueZoom.'
+  }
+];
+
+function getServico(id) {
+  return SERVICOS_EXTRAS.find(s => s.id === id) || null;
+}
+
+// Monta o link wa.me do serviço. Sem número configurado, retorna '' e o CTA
+// cai para o Fala Conosco (ver window._contratarServico).
+function buildServicoWaLink(servico) {
+  if (!SUPPORT_WHATSAPP) return '';
+  const msg = encodeURIComponent(servico?.waMessage || 'Olá! Gostaria de saber mais sobre os serviços extras do CliqueZoom.');
+  return `https://wa.me/${SUPPORT_WHATSAPP}?text=${msg}`;
+}
+
+function renderServicosHeaderHTML() {
+  return `
+    <div style="border-bottom:1px solid var(--border); padding-bottom:1.5rem; margin-bottom:2rem;">
+      <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary); margin:0 0 0.375rem 0; font-family:inherit;">Serviços Extras</h2>
+      <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">Dê um upgrade no seu negócio com a ajuda dos nossos especialistas.</p>
+    </div>
+  `;
+}
+
+// Grid de cards (visão de lista)
+function renderServicosGridHTML() {
+  const cards = SERVICOS_EXTRAS.map(s => `
+    <button type="button" onclick="window._openServico('${s.id}')"
+      style="text-align:left; background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:0; display:flex; flex-direction:column; position:relative; overflow:hidden; cursor:pointer; font-family:inherit; transition:border-color 0.2s, transform 0.2s;"
+      onmouseover="this.style.borderColor='var(--green)'; this.style.transform='translateY(-2px)';"
+      onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none';">
+      ${s.destaque ? '<span style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--green);"></span>' : ''}
+      <div style="padding:1.5rem; display:flex; flex-direction:column; flex:1;">
+        <div style="width:40px; height:40px; border-radius:10px; background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center; margin-bottom:1rem;">
+          ${s.icon}
+        </div>
+        <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0 0 0.5rem 0;">${s.titulo}</h3>
+        <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.5; margin:0 0 1.5rem 0; flex:1;">${s.resumo}</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:1.25rem;">
+          <div>
+            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.125rem;">${s.precoNota || 'Por'}</span>
+            <span style="font-size:1.125rem; font-weight:800; color:var(--green);">${s.preco}</span>
+          </div>
+          <span style="display:inline-flex; align-items:center; gap:0.375rem; color:var(--text-secondary); font-size:0.8125rem; font-weight:600;">
+            Saiba mais
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </span>
+        </div>
+      </div>
+    </button>
+  `).join('');
+
+  return `
+    <div style="display:flex; flex-direction:column;">
+      ${renderServicosHeaderHTML()}
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:1.5rem;">
+        ${cards}
+      </div>
+    </div>
+  `;
+}
+
+// Tela de detalhe (visão expandida — ilustração + descrição + 3 benefícios + CTA)
+function renderServicoDetalheHTML(id) {
+  const s = getServico(id);
+  if (!s) {
+    activeServico = null;
+    return renderServicosGridHTML();
+  }
+
+  const beneficios = (s.beneficios || []).map(b => `
+    <div style="display:flex; gap:1rem; align-items:flex-start;">
+      <div style="flex-shrink:0; width:36px; height:36px; border-radius:50%; background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div>
+        <h4 style="font-size:0.9375rem; font-weight:700; color:var(--text-primary); margin:0 0 0.25rem 0;">${b.titulo}</h4>
+        <p style="font-size:0.875rem; color:var(--text-secondary); line-height:1.6; margin:0;">${b.texto}</p>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div style="display:flex; flex-direction:column;">
+      <button type="button" onclick="window._backToServicos()"
+        style="align-self:flex-start; display:inline-flex; align-items:center; gap:0.5rem; margin-bottom:1.5rem; padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-weight:600; font-size:0.875rem; color:var(--text-primary); font-family:inherit; transition:background 0.2s;"
+        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Voltar aos serviços
+      </button>
+
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; max-width:760px;">
+        <!-- Hero -->
+        <div style="background:linear-gradient(135deg, rgba(63,185,80,0.18), rgba(63,185,80,0.04)); padding:2.5rem 2rem; display:flex; align-items:center; gap:1.5rem;">
+          <div style="flex-shrink:0; width:64px; height:64px; border-radius:16px; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center;">
+            ${s.icon}
+          </div>
+          <div>
+            <h2 style="font-size:1.5rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0; font-family:inherit;">${s.titulo}</h2>
+            <p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">${s.resumo}</p>
+          </div>
+        </div>
+
+        <div style="padding:2rem;">
+          <p style="font-size:0.9375rem; color:var(--text-secondary); line-height:1.7; margin:0 0 2rem 0;">${s.descricao}</p>
+
+          <div style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:2rem;">
+            ${beneficios}
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; border-top:1px solid var(--border); padding-top:1.5rem;">
+            <div>
+              <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.125rem;">${s.precoNota || 'Por'}</span>
+              <span style="font-size:1.5rem; font-weight:800; color:var(--green);">${s.preco}</span>
+            </div>
+            <button type="button" onclick="window._contratarServico('${s.id}')"
+              style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--green); border:none; color:#fff; font-size:0.9375rem; font-weight:700; padding:0.75rem 1.5rem; border-radius:8px; cursor:pointer; font-family:inherit; transition:opacity 0.2s;"
+              onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
+              Contratar pelo WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window._openServico = function(id) {
+  activeServico = id;
+  const container = document.getElementById('tabContent');
+  if (container) renderLayout(container);
+};
+
+window._backToServicos = function() {
+  activeServico = null;
+  const container = document.getElementById('tabContent');
+  if (container) renderLayout(container);
+};
+
+window._contratarServico = function(id) {
+  const s = getServico(id);
+  const link = buildServicoWaLink(s);
+  if (link) {
+    window.open(link, '_blank');
+  } else {
+    // Sem WhatsApp configurado: encaminha para o Fala Conosco
+    window.showToast('Abra um chamado no Fala Conosco para contratar este serviço.', 'info');
+    window._setAjudaView('fala-conosco');
   }
 };

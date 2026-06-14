@@ -1,22 +1,25 @@
 // Painel de histórico/timeline da sessão.
 // Mescla eventos reais (session.events[]) com eventos sintéticos derivados dos timestamps existentes.
 
+import { icon } from '../../../utils/icons.js';
+
+// `icon` aqui é o NOME do ícone de linha (utils/icons.js), renderizado via SVG no dot.
 const EVENT_CONFIG = {
-  session_created:      { icon: '📋', label: 'Sessão criada',                   color: '#3b82f6' },
-  photos_uploaded:      { icon: '📤', label: 'Fotos enviadas pelo fotógrafo',    color: '#6366f1' },
-  uploads_completed:    { icon: '✅', label: 'Upload marcado como concluído',    color: '#3fb950' },
-  code_sent:            { icon: '📨', label: 'Código/link enviado ao cliente',   color: '#0ea5e9' },
-  client_first_access:  { icon: '👁',  label: 'Cliente acessou a galeria',       color: '#8b5cf6' },
-  selection_submitted:  { icon: '✋', label: 'Seleção enviada pelo cliente',     color: '#3fb950' },
-  reopen_requested:     { icon: '🔄', label: 'Reabertura solicitada pelo cliente', color: '#ffa657' },
-  reopen_accepted:      { icon: '✔',  label: 'Reabertura aceita pelo fotógrafo', color: '#3fb950' },
-  reopen_dismissed:     { icon: '✗',  label: 'Reabertura recusada',             color: '#f85149' },
-  edited_uploaded:      { icon: '✨', label: 'Fotos editadas enviadas',          color: '#a855f7' },
-  client_downloaded:    { icon: '⬇',  label: 'Cliente fez download',            color: '#0ea5e9' },
-  delivered:            { icon: '🎉', label: 'Sessão entregue ao cliente',       color: '#3fb950' },
-  archived:             { icon: '📦', label: 'Sessão arquivada',                 color: '#6b7280' },
-  photos_deleted:       { icon: '🗑',  label: 'Fotos excluídas do servidor',     color: '#f85149' },
-  retention_set:        { icon: '⏰', label: 'Prazo de armazenamento definido',  color: '#d29922' }
+  session_created:      { icon: 'camera',      label: 'Sessão criada',                   color: '#3b82f6' },
+  photos_uploaded:      { icon: 'upload',      label: 'Fotos enviadas pelo fotógrafo',    color: '#6366f1' },
+  uploads_completed:    { icon: 'checkCircle', label: 'Upload marcado como concluído',    color: '#3fb950' },
+  code_sent:            { icon: 'enviar',      label: 'Código/link enviado ao cliente',   color: '#0ea5e9' },
+  client_first_access:  { icon: 'olho',        label: 'Cliente acessou a galeria',       color: '#8b5cf6' },
+  selection_submitted:  { icon: 'selecao',     label: 'Seleção enviada pelo cliente',     color: '#3fb950' },
+  reopen_requested:     { icon: 'reabrir',     label: 'Reabertura solicitada pelo cliente', color: '#ffa657' },
+  reopen_accepted:      { icon: 'check',       label: 'Reabertura aceita pelo fotógrafo', color: '#3fb950' },
+  reopen_dismissed:     { icon: 'x',           label: 'Reabertura recusada',             color: '#f85149' },
+  edited_uploaded:      { icon: 'brilho',      label: 'Fotos editadas enviadas',          color: '#a855f7' },
+  client_downloaded:    { icon: 'download',    label: 'Cliente fez download',            color: '#0ea5e9' },
+  delivered:            { icon: 'presente',    label: 'Sessão entregue ao cliente',       color: '#3fb950' },
+  archived:             { icon: 'arquivo',     label: 'Sessão arquivada',                 color: '#6b7280' },
+  photos_deleted:       { icon: 'lixeira',     label: 'Fotos excluídas do servidor',     color: '#f85149' },
+  retention_set:        { icon: 'relogio',     label: 'Prazo de armazenamento definido',  color: '#d29922' }
 };
 
 // Gera eventos sintéticos a partir dos timestamps já existentes na sessão.
@@ -167,7 +170,7 @@ export function renderHistoryPanel(session) {
       const chip = document.createElement('div');
       chip.style.cssText = `
         background:var(--bg-surface); border:1px solid var(--border);
-        border-radius:0.5rem; padding:0.5rem 0.875rem;
+        border-radius:var(--r-card); padding:0.5rem 0.875rem;
         display:flex; flex-direction:column; gap:0.125rem;
       `;
       const lbl = document.createElement('span');
@@ -204,7 +207,7 @@ export function renderHistoryPanel(session) {
   timeline.appendChild(line);
 
   all.forEach((ev, idx) => {
-    const cfg = EVENT_CONFIG[ev.type] || { icon: '•', label: ev.type, color: '#6b7280' };
+    const cfg = EVENT_CONFIG[ev.type] || { icon: '', label: ev.type, color: '#6b7280' };
     const meta = _buildMeta(ev);
 
     const row = document.createElement('div');
@@ -213,15 +216,17 @@ export function renderHistoryPanel(session) {
       position:relative;
     `;
 
-    // Dot
+    // Dot — ícone de linha (currentColor herda a cor do evento via `color`).
     const dot = document.createElement('div');
     dot.style.cssText = `
-      width:24px; height:24px; border-radius:50%;
-      background:${cfg.color}22; border:2px solid ${cfg.color};
+      width:26px; height:26px; border-radius:50%;
+      background:${cfg.color}22; border:2px solid ${cfg.color}; color:${cfg.color};
       display:flex; align-items:center; justify-content:center;
-      font-size:0.75rem; flex-shrink:0; position:relative; z-index:1;
+      flex-shrink:0; position:relative; z-index:1;
     `;
-    dot.textContent = cfg.icon;
+    const svgMarkup = icon(cfg.icon, 14);
+    if (svgMarkup) dot.innerHTML = svgMarkup;
+    else { dot.textContent = '•'; dot.style.fontSize = '0.75rem'; }
     row.appendChild(dot);
 
     // Content

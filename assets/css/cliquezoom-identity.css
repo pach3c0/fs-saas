@@ -1,0 +1,362 @@
+/* ============================================================================
+   CliqueZoom — Identidade Visual (drop-in)
+   ----------------------------------------------------------------------------
+   COMO USAR: carregue este arquivo no admin-index.html LOGO APÓS o tokens.css:
+
+     <link rel="stylesheet" href="/css/tokens.css">
+     <link rel="stylesheet" href="/css/cliquezoom-identity.css">   <!-- AQUI -->
+     <link rel="stylesheet" href="/css/shared.css">
+
+   Ele NÃO inventa cores — só usa os tokens que já existem (--accent, --border,
+   --bg-*, --text-*). Define a linguagem arredondada "oo" + glass contido.
+   Presets fixos da decisão do produto: Arredondamento FORTE · Vidro SUTIL.
+   ============================================================================ */
+
+:root {
+  /* ---- Sistema de raio (identidade "oo") — preset FORTE ---- */
+  --r-card: 32px;   /* cards, painéis, modais grandes */
+  --r-panel: 36px;  /* superfícies grandes */
+  --r-field: 18px;  /* inputs, tiles internos, thumbs */
+  --r-tile: 20px;   /* tiles de ícone */
+  --r-chip: 9999px; /* botões, badges, busca, abas-pílula */
+
+  /* ---- Glass contido — preset SUTIL ---- */
+  --glass-blur: 18px;
+  --glass-alpha: 0.72;
+  --glass-bg: color-mix(in srgb, var(--bg-surface) calc(var(--glass-alpha) * 100%), transparent);
+
+  /* ---- Elevação suave (Apple-like) ---- */
+  --cz-lift: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -12px rgba(0,0,0,0.18);
+}
+[data-theme='dark'] {
+  --cz-lift: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.6);
+}
+
+/* ============================================================================
+   CARDS DE MÉTRICA  (gerados por dashboard.js → renderMetricCard)
+   .cz-metric          = card sólido padrão
+   .cz-metric--photo   = card com imagem de fundo vinda do Super Admin
+   ============================================================================ */
+.cz-metric {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.cz-metric:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-muted);
+  box-shadow: var(--cz-lift);
+}
+.cz-metric__tile {
+  width: 44px; height: 44px;
+  border-radius: var(--r-tile);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative; z-index: 2;
+}
+.cz-metric__body { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 0.1rem; }
+.cz-metric__label { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500; }
+.cz-metric__value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+
+/* --- variante com foto de fundo (Super Admin) --- */
+.cz-metric--photo {
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+}
+.cz-metric--photo .cz-metric__veil {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.62) 100%);
+}
+.cz-metric--photo .cz-metric__tile {
+  background: rgba(255,255,255,0.92);
+  border-color: rgba(255,255,255,0.5);
+  color: #1a1a1a;
+}
+.cz-metric--photo .cz-metric__label {
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+}
+.cz-metric--photo .cz-metric__value {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+}
+
+/* ============================================================================
+   ARREDONDAMENTO DO CHROME (admin)
+   Sobrescreve raios fixos antigos do shell. Mantido em escopo do admin.
+   Se você trocar os inline border-radius por var(--r-*) no HTML, pode remover
+   estes !important — eles existem só para cobrir o que ainda está inline.
+   ============================================================================ */
+.admin-shell .btn,
+.admin-shell button.btn,
+.admin-shell .badge,
+.admin-shell .pill { border-radius: var(--r-chip) !important; }
+
+.admin-shell .card,
+.admin-shell .panel,
+.admin-shell .modal,
+.admin-shell .surface { border-radius: var(--r-card) !important; }
+
+.admin-shell .input,
+.admin-shell input[type="text"],
+.admin-shell input[type="email"],
+.admin-shell input[type="date"],
+.admin-shell select,
+.admin-shell textarea { border-radius: var(--r-field) !important; }
+
+/* avatares e botões de ícone redondos */
+.admin-shell .avatar,
+.admin-shell .icon-btn { border-radius: 50% !important; }
+
+/* banners e thumbs no padrão squircle */
+.banner-card { border-radius: var(--r-card) !important; }
+.news-card { border-radius: var(--r-card) !important; }
+.news-icon-wrapper { border-radius: var(--r-tile) !important; }
+
+/* ============================================================================
+   TOPBAR — glass contido (aplicar a classe .glass na barra fixa do admin)
+   ============================================================================ */
+.admin-topbar.glass,
+.glass-bar {
+  background: var(--glass-bg) !important;
+  backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  /* O backdrop-filter cria um stacking context na barra. Sem isto, os dropdowns
+     do topo (Gestão/Site, busca, notificações) ficam presos atrás do conteúdo.
+     z-index alto o bastante para cobrir o conteúdo, mas abaixo dos modais (9000). */
+  position: relative;
+  z-index: 1000;
+}
+
+/* ============================================================================
+   LOGO DE LENTE "Z(oo)m"  — use no lugar do wordmark atual:
+   <span class="cz-lens-logo">
+     <svg class="cz-lens" viewBox="0 0 32 32">…anéis…</svg>
+     Clique<span class="oo">Zoom</span>
+   </span>
+   ============================================================================ */
+.cz-lens-logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); }
+.cz-lens { width: 26px; height: 26px; flex-shrink: 0; }
+.cz-lens circle { stroke: var(--accent); fill: none; }
+.cz-lens .ring-inner { opacity: 0.55; }
+.cz-lens .ring-dot { fill: var(--accent); stroke: none; }
+.cz-lens-logo:hover .cz-lens { animation: czLensSpin 1.1s cubic-bezier(0.22,1,0.36,1); }
+@keyframes czLensSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+/* ============================================================================
+   DROPDOWN DO HEADER (Gestão / Site) — squircle + animação + ícones de traço
+   Estiliza os menus .header-dropdown-menu já existentes. Visibilidade via classe
+   .open (alternada no app.js). Itens são botões em flex com ícone SVG de linha
+   (estilo Lucide). Sem cores novas — só tokens.
+   ============================================================================ */
+.admin-shell .header-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 60;
+  margin-top: 0.5rem;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--glass-bg) !important;
+  backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--ad-shadow-lg, 0 24px 60px -18px rgba(0,0,0,0.35));
+  /* animação de abertura suave */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top left;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 160ms;
+}
+.admin-shell .header-dropdown-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* itens do menu */
+.admin-shell .header-dropdown-menu .nav-item,
+.admin-shell .header-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--r-field);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+.admin-shell .header-dropdown-menu .nav-item:hover,
+.admin-shell .header-dropdown-menu .dropdown-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+/* ícone discreto que herda foco no hover */
+.admin-shell .header-dropdown-menu .pop-ic {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.admin-shell .header-dropdown-menu .nav-item:hover .pop-ic,
+.admin-shell .header-dropdown-menu .dropdown-item:hover .pop-ic {
+  color: var(--text-primary);
+}
+
+/* cabeçalho de grupo + divisória (menu Gestão) */
+.admin-shell .header-dropdown-menu .pop-head {
+  padding: 8px 11px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.admin-shell .header-dropdown-menu .pop-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 5px;
+}
+
+/* ============================================================================
+   HOVER DE LINHA DE LISTA CLICÁVEL (.session)
+   Borda transparente reservada que vira --border no hover + fundo elevado,
+   sem "pular" o layout. Reaproveitável em qualquer item de lista clicável.
+   ============================================================================ */
+.session {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-card);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+/* No painel Sessões Recentes o hover fica translúcido para a imagem de fundo aparecer. */
+.session:hover {
+  background: var(--glass-bg);
+  backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  border-color: var(--border);
+}
+
+/* ============================================================================
+   DROPDOWN MORPH (Abordagem B)
+   O menu abre de forma ultra-estreita (apenas ícones) e se expande suavemente
+   lateralmente no hover do container.
+   ============================================================================ */
+.admin-shell .header-dropdown-menu.cz-morph-dropdown {
+  min-width: 56px !important;
+  width: 56px !important;
+  max-width: 56px !important;
+  padding: 8px 6px !important;
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 160ms, transform 160ms;
+}
+
+.admin-shell .header-dropdown-menu.cz-morph-dropdown.open:hover {
+  width: 220px !important;
+  max-width: 220px !important;
+}
+
+/* Itens de menu dentro do morph dropdown */
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .nav-item,
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .dropdown-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  padding: 9px 12px !important;
+  width: 100% !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Centralizar o ícone quando recolhido */
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .pop-ic {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+  margin: 0 auto;
+  transition: margin 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-shell .header-dropdown-menu.cz-morph-dropdown.open:hover .pop-ic {
+  margin: 0;
+}
+
+/* Label textual com reveal transition */
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .dropdown-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+  transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease, padding-left 0.28s;
+}
+
+.admin-shell .header-dropdown-menu.cz-morph-dropdown.open:hover .dropdown-label {
+  max-width: 12rem;
+  opacity: 1;
+  padding-left: 10px;
+}
+
+/* Cabeçalhos de grupo (pop-head) e divisores (pop-sep) sumindo no estado recolhido */
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .pop-head {
+  opacity: 0;
+  font-size: 0px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.15s, font-size 0.28s, padding 0.28s, margin 0.28s;
+}
+.admin-shell .header-dropdown-menu.cz-morph-dropdown.open:hover .pop-head {
+  opacity: 1;
+  font-size: 11px !important;
+  padding: 8px 12px 4px !important;
+}
+
+.admin-shell .header-dropdown-menu.cz-morph-dropdown .pop-sep {
+  opacity: 0;
+  height: 0px !important;
+  margin: 0 !important;
+  transition: opacity 0.15s, height 0.28s, margin 0.28s;
+}
+.admin-shell .header-dropdown-menu.cz-morph-dropdown.open:hover .pop-sep {
+  opacity: 1;
+  height: 1px !important;
+  margin: 6px 5px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-metric { transition: none; }
+  .cz-lens-logo:hover .cz-lens { animation: none; }
+  .admin-shell .header-dropdown-menu { transform: none; transition: opacity 160ms, visibility 160ms; }
+  .admin-shell .header-dropdown-menu.open { transform: none; }
+}
