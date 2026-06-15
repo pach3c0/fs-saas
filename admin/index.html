@@ -966,18 +966,7 @@
             border-color: var(--purple,#bc8cff);
             color: var(--purple,#bc8cff);
         }
-        
-        .builder-nav-item[data-target="config-default-template"] {
-            color: #f59e0b;
-        }
-        .builder-nav-item[data-target="config-default-template"] .material-symbols-outlined {
-            color: #f59e0b;
-        }
-        .builder-nav-item[data-target="config-default-template"].active {
-            border-color: #f59e0b;
-            color: #f59e0b;
-        }
-        
+
         /* Botão de Status do Site */
         #siteStatusToggleBtn:hover {
             color: inherit !important;
@@ -1355,19 +1344,6 @@
 
         <!-- Builder layout (visible only in builder-mode) -->
         <div id="builder-props" style="display:none;">
-            <div id="builder-props-header">
-                <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Meu Site</span>
-                <div style="display:flex; align-items:center; gap:var(--sp-2);">
-                    <span id="builder-save-indicator" style="font-size:0.75rem; color:var(--text-muted); display:none; align-items:center;">
-                        <span class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>
-                        Salvando...
-                    </span>
-                    <button onclick="exitBuilderMode()" title="Sair do editor (Esc)" class="btn btn-ghost btn-sm">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        Sair
-                    </button>
-                </div>
-            </div>
             <div id="builder-props-tabs"></div>
             <div id="builder-props-content"></div>
         </div>
@@ -1377,6 +1353,10 @@
                 <div style="display:flex; align-items:center; gap:var(--sp-3);">
                     <span class="builder-preview-badge">Preview Ativo</span>
                     <span style="font-size:0.8125rem; color:var(--text-secondary);" id="builder-preview-theme-label">Visualização do Site</span>
+                    <span id="builder-save-indicator" style="font-size:0.75rem; color:var(--text-muted); display:none; align-items:center;">
+                        <span class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>
+                        Salvando...
+                    </span>
                 </div>
                 <div id="builder-device-btns">
                     <button class="bd-btn active" data-device="desktop" onclick="builderSetDevice('desktop')">

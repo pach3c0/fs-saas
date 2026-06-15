@@ -15,7 +15,12 @@ O botão expansível deve ser desenhado para anular conflitos com layouts flexbo
 2. **Prevenção de Compressão/Estiramento**: Deve conter as propriedades `width: auto !important` e `flex-shrink: 0 !important` para que cresça sob demanda acompanhando a label e nunca seja esmagado pelo flexbox pai.
 3. **Estilo Ativo (`.active`)**: A aba ativa deve ter realce discreto utilizando as cores escuras do tema (`background: var(--bg-hover)`, `border-color: var(--accent)` e `color: var(--text-primary)`). **Nunca mude o fundo para branco** ou azul gritante no estado ativo, mantendo o conforto visual escuro.
 
-### 1.2 Regras da Animação do Morph (Rótulo)
+### 1.2 Restrição de Uso (Quando NÃO usar Morph Buttons)
+Para garantir a melhor experiência do usuário e usabilidade óbvia, os botões Morph **nunca** devem ser usados para ações primárias dentro de seções de conteúdo (ex: "Adicionar Foto", "Novo Álbum", "Criar FAQ"). 
+- **Onde USAR Morph Buttons:** Header superior, menu lateral (sidebar compacta) ou toolbars utilitárias com espaço restrito.
+- **Onde NÃO USAR:** Ações de páginas internas (Tabs). Nesses casos, utilize o botão estilo "Pill" tradicional (`class="btn"`) com o texto *sempre visível* (ex: `<button class="btn" style="border-radius:9999px; ..."><svg>...</svg> Novo</button>`).
+
+### 1.3 Regras da Animação do Morph (Rótulo)
 A animação consiste em ocultar a label (texto) por padrão e revelá-la no hover alterando seu `max-width` de forma acelerada e suave:
 
 ```css
@@ -148,6 +153,11 @@ Para criar uma experiência de usuário focada, simétrica e minimalista no pain
 ### 4.3 Listagens e Tabelas de Controle Internas
 * **Centralização de Metadados**: Em tabelas ou painéis de controle secundários (como exportações de Lightroom e tabelas de entregas por participante), o título do painel, legendas de descrição e dados de cada linha (nomes, status, contadores) devem ser centralizados horizontalmente (`text-align: center`, `flex-direction: column`, `align-items: center`).
 * **Disposição de Ações em Bloco Centralizado**: Os botões de ações dessas linhas (como Entregar, WhatsApp, Copiar Link) devem ser mantidos lado a lado horizontalmente dentro de um container flex centralizado (`display: flex; gap: 0.5rem; justify-content: center;`), posicionado logo abaixo das informações textuais para um visual limpo e simétrico.
+
+### 4.4 Painéis de Configuração e Editores Laterais (Sidebar / Builder)
+* **Cabeçalhos de Grupo e Títulos**: Os títulos dos grupos de propriedades, cabeçalhos de seção de controle (`.hc-section-head`) e sanfonas de ajuste (`summary`) devem ter o texto e os ícones de setas inteiramente centralizados horizontalmente (`justify-content: center`, `text-align: center`).
+* **Rótulos de Parâmetros e Inputs**: Os rótulos ou labels dos sliders e campos de entrada (`.hc-label` como ZOOM, Posição, etc.) devem ser exibidos de forma empilhada e centralizada (`text-align: center; display: block; width: 100%;`).
+* **Sliders, Controles e Botões**: Os controles de ajuste deslizante (sliders/ranges) devem ser centralizados em conjunto com seus displays de valores em linhas flex simétricas (`display: flex; justify-content: center;`). Botões de ação e uploads da barra lateral devem seguir o mesmo alinhamento de forma a manter o visual limpo, coerente e com foco no centro.
 
 ---
 

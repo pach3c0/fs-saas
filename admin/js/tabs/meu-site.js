@@ -63,7 +63,7 @@ async function renderSiteContent(container, builderTabsEl) {
       <div style="display:flex; gap:0; flex:1; min-height:0;">
 
         <!-- Nav vertical (Morph compacta) -->
-        <div style="width:46px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; align-items:flex-start; border-right:1px solid var(--border,#30363d); padding:0 5px; overflow:visible; z-index:10;">
+        <div style="width:46px; height:100%; box-sizing:border-box; padding-bottom:8px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; align-items:flex-start; border-right:1px solid var(--border,#30363d); padding:0 5px 8px 5px; overflow:visible; z-index:10;">
           <button class="sub-tab-btn builder-nav-item active" data-target="config-geral"><span class="material-symbols-outlined">tune</span><span class="builder-nav-label">Geral</span></button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-secoes"><span class="material-symbols-outlined">layers</span><span class="builder-nav-label">Seções</span></button>
           <button class="sub-tab-btn builder-nav-item" data-target="config-hero"><span class="material-symbols-outlined">view_carousel</span><span class="builder-nav-label">Capa</span></button>
@@ -79,15 +79,13 @@ async function renderSiteContent(container, builderTabsEl) {
           <button class="sub-tab-btn builder-nav-item" data-target="config-cliente"><span class="material-symbols-outlined">group</span><span class="builder-nav-label">Área do Cliente</span></button>
           <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
           <button class="sub-tab-btn builder-nav-item" data-target="config-personalizar" style="color:var(--purple,#bc8cff);"><span class="material-symbols-outlined" style="color:var(--purple,#bc8cff);">palette</span><span class="builder-nav-label" style="color:var(--purple,#bc8cff);">Personalizar</span></button>
-          <div id="adminTemplateNavItem" style="display:none;">
-            <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
-            <button class="sub-tab-btn builder-nav-item" data-target="config-default-template" style="color:#f59e0b;"><span class="material-symbols-outlined" style="color:#f59e0b;">admin_panel_settings</span><span class="builder-nav-label" style="color:#f59e0b;">Padrão</span></button>
-          </div>
           <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0;"></div>
           <button class="sub-tab-btn builder-nav-item" id="siteStatusToggleBtn" style="transition: color 0.15s;">
             <span class="material-symbols-outlined" id="siteStatusIcon" style="transition: color 0.15s;">visibility</span>
             <span class="builder-nav-label" id="siteStatusLabel">Ativar Site</span>
           </button>
+          <div style="height:1px; background:var(--border,#30363d); margin:0.25rem 0.25rem; flex-shrink:0; margin-top: auto;"></div>
+
         </div>
 
         <!-- Conteúdo das Abas -->
@@ -99,7 +97,7 @@ async function renderSiteContent(container, builderTabsEl) {
                 <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
                     <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem; text-align:center;">Escolha o Tema do Seu Site</h3>
                     <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem; text-align:center; max-width:320px;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
-                    <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem; width:100%; text-align:left;">
+                    <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem; width:100%; text-align:center; align-items:center;">
                         <!-- Templates inseridos via JS -->
                     </div>
                     <input type="hidden" id="siteTheme">
@@ -172,9 +170,6 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <!-- Personalizar -->
         <div id="config-personalizar" class="sub-tab-content" style="display:none;"></div>
-
-        <!-- Template Padrão (admin CliqueZoom only) -->
-        <div id="config-default-template" class="sub-tab-content" style="display:none;"></div>
       </div>
       <!-- fim subTabContent -->
       </div>
@@ -240,42 +235,48 @@ async function renderSiteContent(container, builderTabsEl) {
       return `
         <div class="template-card builder-theme-card ${isSelected ? 'active' : ''}" 
              data-theme="${t.id}"
-             style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.75rem; padding: 1.25rem; border-radius: var(--radius-lg, 0.5rem); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; min-height: 140px; background-size: cover; background-position: center; ${t.bgImage ? `background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${t.bgImage}');` : 'background: rgba(49, 53, 60, 0.3);'}">
+             style="display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}; border-radius: var(--radius-lg, 0.75rem); cursor: pointer; transition: all 0.2s ease; overflow: hidden; padding: 0.5rem; gap: 0.5rem; width: 100%; max-width: 280px; margin: 0 auto; box-sizing: border-box;">
           
-          <!-- Ícone de Check do Tema Ativo (Padrão Lucide) -->
-          ${isActive ? `
-            <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(63, 185, 80, 0.15); border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(63, 185, 80, 0.25);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green,#3fb950)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>` : ''}
-
-          <!-- Textos Centralizados -->
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;">
-            <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0;">${t.name}</h4>
-            <p style="color:var(--text-secondary,#8b949e); font-size:0.75rem; margin:0; line-height: 1.3;">${t.desc}</p>
-          </div>
-
-          <!-- Cores do Tema -->
-          <div style="display:flex; gap:0.375rem; justify-content: center;">
-            ${t.colors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 4px rgba(0,0,0,0.25);"></div>`).join('')}
-          </div>
-
-          <!-- Botão Visualizar (Morph com Lucide) -->
-          <div style="margin-top: 0.25rem;">
-            <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
-              onclick="event.stopPropagation()"
-              class="header-expand-btn"
-              title="Visualizar"
-              style="text-decoration: none; border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important;">
-              <span class="header-expand-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
+          <!-- Miniatura de Preview (Prioridade para Imagem - altura aumentada para 150px) -->
+          <div style="width: 100%; height: 150px; border-radius: 0.5rem; background-size: cover; background-position: center; position: relative; overflow: hidden; ${t.bgImage ? `background-image: url('${t.bgImage}');` : 'background: rgba(49, 53, 60, 0.4); border: 1px dashed var(--border);'}">
+            <!-- Ícone de Check se ativo -->
+            ${isActive ? `
+              <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--green,#2ea043); border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-surface); box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check">
+                  <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-              </span>
-              <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Visualizar</span>
-            </a>
+              </div>` : ''}
+          </div>
+
+          <!-- Informações fora da imagem (Espaço otimizado e centralizado) -->
+          <div style="display: flex; flex-direction: column; gap: 0.35rem; padding: 0.25rem; text-align: center; align-items: center; justify-content: center;">
+            <h4 style="color: var(--text-primary,#e6edf3); font-weight: 700; font-size: 0.875rem; margin: 0;">${t.name}</h4>
+            
+            <!-- Cores do Tema (Centralizadas) -->
+            <div style="display: flex; gap: 0.25rem; justify-content: center; align-items: center;">
+              ${t.colors.map(c => `<div style="width: 0.65rem; height: 0.65rem; background: ${c}; border-radius: 50%; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 1px 2px rgba(0,0,0,0.25);"></div>`).join('')}
+            </div>
+            
+            <p style="color: var(--text-secondary,#8b949e); font-size: 0.72rem; margin: 0; line-height: 1.25; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${t.desc}">
+              ${t.desc}
+            </p>
+
+            <!-- Botão Visualizar Centralizado -->
+            <div style="margin-top: 0.15rem; display: flex; justify-content: center; width: 100%;">
+              <a href="${buildPreviewUrl(t.id)}" target="_blank" rel="noopener"
+                onclick="event.stopPropagation()"
+                class="header-expand-btn"
+                title="Visualizar Tema"
+                style="text-decoration: none; border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important; font-size: 0.7rem; padding: 0.25rem 0.5rem; gap: 0.25rem; border: 1px solid var(--border,#30363d); background: transparent;">
+                <span class="header-expand-icon" style="display: flex; align-items: center;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </span>
+                <span class="header-expand-label" style="font-weight: 600; font-size: 0.65rem; padding-left: 1px;">Ver</span>
+              </a>
+            </div>
           </div>
 
         </div>
@@ -697,6 +698,14 @@ async function renderSiteContent(container, builderTabsEl) {
     builderTabsEl.innerHTML = '';
   }
 
+  const exitBtn = container.querySelector('#exitBuilderBtn');
+  if (exitBtn) {
+    exitBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.exitBuilderMode?.();
+    };
+  }
+
   // --- GERAL ---
   container.querySelector('#saveGeralBtn').onclick = async (e) => {
     await withBtnLoading(e.currentTarget, async () => {
@@ -741,22 +750,7 @@ async function renderSiteContent(container, builderTabsEl) {
     };
   }
 
-  // --- ADMIN: TEMPLATE PADRÃO (só para superadmin) ---
-  const adminNavItem = container.querySelector('#adminTemplateNavItem');
-  let isSuperadmin = false;
-  try {
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      isSuperadmin = payload.role === 'superadmin';
-    }
-  } catch (_) {}
 
-  if (isSuperadmin && adminNavItem) {
-    adminNavItem.style.display = 'block';
-    const adminTabEl = container.querySelector('#config-default-template');
-    if (adminTabEl) _renderDefaultTemplateAdmin(adminTabEl, container);
-  }
 
   // --- SOBRE --- (canvas editor — setup feito por sobre.js ao abrir a sub-aba)
 
@@ -826,20 +820,18 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-sidebar::-webkit-scrollbar { width:4px; }
         .hc-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
         .hc-section { border-bottom:1px solid #1f2937; }
-        .hc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:space-between; }
+        .hc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:center; text-align:center; }
         .hc-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
-        .hc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+        .hc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; display:block; width:100%; }
         .hc-input { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; }
         .hc-input:focus { border-color:#3b82f6; }
         .hc-range { width:100%; accent-color:#3b82f6; }
-        .hc-range-row { display:flex; align-items:center; gap:0.4rem; }
+        .hc-range-row { display:flex; align-items:center; justify-content:center; gap:0.4rem; width:100%; }
         .hc-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.2rem; text-align:right; }
         .hc-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:#d1d5db; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
         .hc-btn:hover { background:#374151; color:#fff; }
         .hc-btn.primary { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
         .hc-btn.primary:hover { background:#2563eb; }
-        .hc-btn.success { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
-        .hc-btn.success:hover { background:#15803d; }
         .hc-layer-item { margin:0 0.5rem 0.35rem; padding:0.4rem 0.6rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.75rem; color:#d1d5db; }
         .hc-layer-item:hover { background:#2d3748; }
         .hc-layer-item.active { border-color:#3b82f6; background:#172554; }
@@ -854,22 +846,38 @@ async function renderSiteContent(container, builderTabsEl) {
         <!-- ADICIONAR -->
         <div class="hc-section">
           <div class="hc-section-head">Adicionar</div>
-          <div style="display:flex; gap:0.35rem; padding:0.4rem 0.75rem;">
-            <button class="hc-btn primary" id="hcAddText" style="flex:1;">+ Texto</button>
+          <div style="display:flex; gap:0.5rem; padding:0.4rem 0.75rem; align-items:center; justify-content:center;">
+            <button class="header-expand-btn" id="hcAddText" title="Adicionar Texto" style="border:1px solid var(--border);">
+              <span class="header-expand-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="12" y2="12"></line>
+                </svg>
+              </span>
+              <span class="header-expand-label" style="font-weight: 600;">+ Texto</span>
+            </button>
           </div>
         </div>
 
         <!-- FUNDO -->
         <div class="hc-section">
           <div class="hc-section-head">Imagem de Fundo</div>
-          <div style="display:flex; gap:0.35rem; padding:0.4rem 0.75rem;">
-            <label class="hc-btn primary" style="flex:1; cursor:pointer;">
-              Upload <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
+          <div style="display:flex; gap:0.5rem; padding:0.4rem 0.75rem; align-items:center; justify-content:center;">
+            <label class="header-expand-btn" style="cursor:pointer;" title="Upload de Imagem">
+              <span class="header-expand-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </span>
+              <span class="header-expand-label" style="font-weight: 600;">Upload</span>
+              <input type="file" id="hcBgUpload" accept="image/*" style="display:none;">
             </label>
           </div>
           <div id="hcBgProgress"></div>
           <details style="margin:0;" open>
-            <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between;">
+            <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
               Ajustes da Imagem <span style="font-size:0.6rem; opacity:0.6;">▼</span>
             </summary>
             <div class="hc-row">
@@ -915,35 +923,55 @@ async function renderSiteContent(container, builderTabsEl) {
           <div id="hcLayerList"></div>
         </div>
 
-        <!-- SALVAR -->
-        <div style="padding:1rem 0.75rem; margin-top:auto;">
-          <button class="hc-btn success" id="hcSaveBtn" style="width:100%; padding:0.75rem;">Salvar</button>
-          <button class="hc-btn" id="hcRestoreBtn" style="width:100%; margin-top:0.5rem; background:none; border:none; font-size:0.7rem;">Restaurar Padrão</button>
+        <!-- RESTAURAR PADRÃO (Sem botão Salvar) -->
+        <div style="padding:1rem 0.75rem; margin-top:auto; display:flex; justify-content:center;">
+          <button class="hc-btn" id="hcRestoreBtn" style="width:100%; background:none; border:none; font-size:0.75rem; color:var(--text-secondary); cursor:pointer;">Restaurar Padrão</button>
         </div>
       </div>
     `;
 
-    // ── Funções de Estado e Preview ──
-    const liveNotify = () => {
-      markDirty('config-hero', 'Capa');
-      window._meuSitePostPreview?.();
+    // ── Função de Auto-Salvar ──
+    const saveHeroData = async () => {
+      try {
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Salvando...';
+          indicator.style.opacity = '1';
+        }
+        await apiPut('/api/site/admin/config', { siteConfig: cfg });
+        Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
+        if (indicator) {
+          indicator.textContent = 'Salvo!';
+          setTimeout(() => {
+            indicator.style.opacity = '0';
+          }, 1500);
+        }
+      } catch (err) {
+        console.error('Erro ao salvar Hero auto-save:', err);
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Erro ao salvar!';
+          indicator.style.color = 'var(--red)';
+        }
+      }
     };
 
-    const updateConfigFromUI = () => {
+    const updateConfigFromUI = async () => {
       cfg.heroScale = parseFloat(heroContainer.querySelector('#hcBgScale').value);
       cfg.heroPosX = parseInt(heroContainer.querySelector('#hcBgPosX').value);
       cfg.heroPosY = parseInt(heroContainer.querySelector('#hcBgPosY').value);
       cfg.overlayOpacity = parseInt(heroContainer.querySelector('#hcBgOverlayOpacity').value);
-      liveNotify();
+      window._meuSitePostPreview?.();
+      await saveHeroData();
     };
 
     // ── Sliders Bind ──
     ['hcBgScale', 'hcBgPosX', 'hcBgPosY', 'hcBgOverlayOpacity'].forEach(id => {
-      heroContainer.querySelector('#' + id).oninput = (e) => {
+      heroContainer.querySelector('#' + id).oninput = async (e) => {
         const val = e.target.value;
         const suffix = id === 'hcBgScale' ? 'x' : '%';
         heroContainer.querySelector('#' + id + 'Val').textContent = (id === 'hcBgScale' ? parseFloat(val).toFixed(1) : val) + suffix;
-        updateConfigFromUI();
+        await updateConfigFromUI();
       };
     });
 
@@ -955,17 +983,19 @@ async function renderSiteContent(container, builderTabsEl) {
         const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('hcBgProgress', p));
         cfg.heroImage = result.url;
         _heroImageUrlForPreview = result.url;
-        liveNotify();
+        window._meuSitePostPreview?.();
+        await saveHeroData();
       } catch (err) { window.showToast?.('Erro no upload', 'error'); }
     };
 
     // ── Camadas ──
     const getLayer = (id) => cfg.heroLayers.find(l => l.id === id);
-    const updateLayer = (id, props) => {
+    const updateLayer = async (id, props) => {
       const l = getLayer(id);
       if (!l) return;
       Object.assign(l, props);
-      liveNotify();
+      window._meuSitePostPreview?.();
+      await saveHeroData();
     };
 
     const renderLayerList = () => {
@@ -996,7 +1026,7 @@ async function renderSiteContent(container, builderTabsEl) {
         el.addEventListener('dragend', () => { el.style.opacity = '1'; list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = ''); });
         el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.borderTop = '2px solid #3b82f6'; });
         el.addEventListener('dragleave', () => { el.style.borderTop = ''; });
-        el.addEventListener('drop', (e) => {
+        el.addEventListener('drop', async (e) => {
           e.preventDefault();
           el.style.borderTop = '';
           const targetIdx = parseInt(el.dataset.idx);
@@ -1008,16 +1038,18 @@ async function renderSiteContent(container, builderTabsEl) {
           cfg.heroLayers.splice(realTarget, 0, moved);
           dragLayerIdx = null;
           renderLayerList();
-          liveNotify();
+          window._meuSitePostPreview?.();
+          await saveHeroData();
         });
 
-        el.addEventListener('click', (e) => {
+        el.addEventListener('click', async (e) => {
           if (e.target.classList.contains('layer-del')) {
             cfg.heroLayers = cfg.heroLayers.filter(l => l.id !== el.dataset.id);
             if (_heroSelectedLayerId === el.dataset.id) _heroSelectedLayerId = null;
             renderLayerList();
             renderPropsForLayer(null);
-            liveNotify();
+            window._meuSitePostPreview?.();
+            await saveHeroData();
             return;
           }
           if (e.target.classList.contains('layer-drag')) return;
@@ -1054,11 +1086,12 @@ async function renderSiteContent(container, builderTabsEl) {
           </select>
         </div>
       `;
-      heroContainer.querySelector('#lpText').oninput = (e) => {
+      heroContainer.querySelector('#lpText').oninput = async (e) => {
         l.text = e.target.value;
         l.name = e.target.value ? e.target.value.substring(0, 20) : 'Texto';
         renderLayerList();
-        liveNotify();
+        window._meuSitePostPreview?.();
+        await saveHeroData();
       };
       heroContainer.querySelector('#lpX').oninput = (e) => updateLayer(l.id, { x: parseInt(e.target.value) });
       heroContainer.querySelector('#lpY').oninput = (e) => updateLayer(l.id, { y: parseInt(e.target.value) });
@@ -1067,27 +1100,19 @@ async function renderSiteContent(container, builderTabsEl) {
         heroContainer.querySelector('#lpSizeVal').textContent = val + 'px';
         updateLayer(l.id, { fontSize: val });
       };
-      heroContainer.querySelector('#lpColor').onchange = (e) => updateLayer(l.id, { color: e.target.value });
+      heroContainer.querySelector('#lpColor').oninput = (e) => updateLayer(l.id, { color: e.target.value });
       heroContainer.querySelector('#lpAlign').onchange = (e) => updateLayer(l.id, { align: e.target.value });
     };
 
     // ── Botões Adicionar ──
-    heroContainer.querySelector('#hcAddText').onclick = () => {
+    heroContainer.querySelector('#hcAddText').onclick = async () => {
       cfg.heroLayers.push({ id: 'l_' + Date.now(), type: 'text', name: 'Novo Texto', text: 'Novo Texto', x: 50, y: 50, fontSize: 40, color: '#ffffff', align: 'center', shadow: true });
       renderLayerList();
-      liveNotify();
+      window._meuSitePostPreview?.();
+      await saveHeroData();
     };
 
-    // ── Salvar / Restaurar ──
-    heroContainer.querySelector('#hcSaveBtn').onclick = async (e) => {
-      await withBtnLoading(e.currentTarget, async () => {
-        await apiPut('/api/site/admin/config', { siteConfig: cfg });
-        Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
-        clearDirty();
-        window.showToast?.('Capa salva!', 'success');
-        liveRefresh({ siteConfig: cfg });
-      });
-    };
+    // ── Restaurar Padrão ──
     heroContainer.querySelector('#hcRestoreBtn').onclick = async () => {
       if (!await window.showConfirm?.('Restaurar padrão? As camadas, imagem de fundo e ajustes serão removidos.', { title: 'Restaurar Padrão', confirmText: 'Restaurar', danger: true })) return;
       cfg.heroLayers = [];
@@ -1104,8 +1129,7 @@ async function renderSiteContent(container, builderTabsEl) {
       try {
         await apiPut('/api/site/admin/config', { siteConfig: cfg });
         Object.assign(configData.siteConfig, JSON.parse(JSON.stringify(cfg)));
-        clearDirty();
-        liveRefresh({ siteConfig: cfg });
+        window._meuSitePostPreview?.();
         window.showToast?.('Padrão restaurado!', 'success');
       } catch (err) { window.showToast?.('Erro ao salvar. Tente novamente.', 'error'); }
     };
@@ -1141,52 +1165,85 @@ async function renderSiteContent(container, builderTabsEl) {
     ];
     let activeSet = new Set(saved);
 
+    // Função interna para Auto-Salvar
+    const autoSaveSections = async () => {
+      const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
+      try {
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Salvando...';
+          indicator.style.opacity = '1';
+        }
+        await apiPut('/api/site/admin/config', { siteSections: selected });
+        configData.siteSections = [...selected];
+        if (indicator) {
+          indicator.textContent = 'Salvo!';
+          setTimeout(() => {
+            indicator.style.opacity = '0';
+          }, 1500);
+        }
+        liveRefresh({ siteSections: selected });
+      } catch (err) {
+        console.error('Erro ao salvar seções auto-save:', err);
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Erro ao salvar!';
+          indicator.style.color = 'var(--red,#f85149)';
+        }
+      }
+    };
+
     const renderList = () => {
       secoesContainer.innerHTML = `
-        <div style="max-width:580px;">
-          <div style="margin-bottom:1.25rem;">
-            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem;">Seções do Site</h3>
-            <p style="color:#9ca3af; font-size:0.875rem;">Ative/desative e arraste para reordenar as seções.</p>
+        <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center;">
+          <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center;">
+            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Seções do Site</h3>
+            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Ative/desative e arraste para reordenar as seções.</p>
           </div>
 
-          <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
             ${ordered.map((sec, idx) => {
         const active = activeSet.has(sec.id);
         return `
                 <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
-                  style="display:flex; align-items:center; gap:0.625rem; background:${active ? '#1f2937' : '#161e2a'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? '#374151' : '#1f2937'}; transition:all 0.15s; user-select:none; min-width:0; overflow:hidden;">
+                  style="display:flex; align-items:center; gap:0.625rem; background:${active ? 'var(--bg-elevated)' : 'transparent'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? 'var(--accent)' : 'var(--border)'}; opacity:${active ? '1' : '0.55'}; transition:all 0.15s; user-select:none; min-width:0; overflow:hidden;">
                   <span style="cursor:grab; color:#4b5563; font-size:1rem; flex-shrink:0;">⠿</span>
                   <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:14px; height:14px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
                   <span style="flex:1; min-width:0; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
                   <div style="display:flex; gap:0.25rem; flex-shrink:0;">
-                    <button onclick="moveSection(${idx}, -1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === 0 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▲</button>
-                    <button onclick="moveSection(${idx}, 1)" style="background:#374151; border:none; color:#9ca3af; width:1.5rem; height:1.5rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>▼</button>
+                    <button onclick="moveSection(${idx}, -1)" class="header-expand-btn" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-elevated); border:1px solid var(--border);" ${idx === 0 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                    </button>
+                    <button onclick="moveSection(${idx}, 1)" class="header-expand-btn" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-elevated); border:1px solid var(--border);" ${idx === ordered.length - 1 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
                   </div>
                 </div>
               `;
       }).join('')}
           </div>
 
-          <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
-            <button id="saveSectionsBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; flex:1;">Salvar</button>
-            <button id="restoreSectionsBtn" style="background:transparent; color:#9ca3af; padding:0.75rem 1rem; border:1px solid #374151; border-radius:0.375rem; font-weight:500; cursor:pointer; font-size:0.8125rem;">Restaurar</button>
+          <div style="padding:1.25rem 0.75rem; display:flex; justify-content:center; width:100%;">
+            <button id="restoreSectionsBtn" style="background:none; border:none; font-size:0.75rem; color:var(--text-secondary); cursor:pointer;">Restaurar Padrão</button>
           </div>
         </div>
       `;
 
       // Botões mover
-      window.moveSection = (idx, dir) => {
+      window.moveSection = async (idx, dir) => {
         const newIdx = idx + dir;
         if (newIdx < 0 || newIdx >= ordered.length) return;
         [ordered[idx], ordered[newIdx]] = [ordered[newIdx], ordered[idx]];
         renderList();
+        await autoSaveSections();
       };
 
       // Toggle ativo
-      window.toggleSection = (id) => {
+      window.toggleSection = async (id) => {
         if (activeSet.has(id)) activeSet.delete(id);
         else activeSet.add(id);
         renderList();
+        await autoSaveSections();
       };
 
       // Drag & drop com indicador visual
@@ -1206,14 +1263,13 @@ async function renderSiteContent(container, builderTabsEl) {
         item.addEventListener('dragover', (e) => { 
           e.preventDefault(); 
           e.dataTransfer.dropEffect = 'move';
-          // Indicador visual de drop
           secoesContainer.querySelectorAll('.sec-drag-item').forEach(el => el.style.borderTop = '');
           item.style.borderTop = '2px solid var(--accent, #2f81f7)';
         });
         item.addEventListener('dragleave', () => {
           item.style.borderTop = '';
         });
-        item.addEventListener('drop', (e) => {
+        item.addEventListener('drop', async (e) => {
           e.preventDefault();
           item.style.borderTop = '';
           const targetIdx = parseInt(item.dataset.secIdx);
@@ -1222,18 +1278,9 @@ async function renderSiteContent(container, builderTabsEl) {
           ordered.splice(targetIdx, 0, moved);
           dragIdx = null;
           renderList();
+          await autoSaveSections();
         });
       });
-
-      // Salvar
-      secoesContainer.querySelector('#saveSectionsBtn').onclick = async (e) => {
-        await withBtnLoading(e.currentTarget, async () => {
-          const selected = ordered.filter(s => activeSet.has(s.id)).map(s => s.id);
-          await apiPut('/api/site/admin/config', { siteSections: selected });
-          window.showToast?.('Seções salvas!', 'success');
-          liveRefresh({ siteSections: selected });
-        });
-      };
 
       // Restaurar
       secoesContainer.querySelector('#restoreSectionsBtn').onclick = async () => {
@@ -1252,14 +1299,7 @@ async function renderSiteContent(container, builderTabsEl) {
           ...allSectionDefs.filter(s => !DEFAULTS.includes(s.id))
         ];
         renderList();
-        try {
-          await apiPut('/api/site/admin/config', { siteSections: DEFAULTS });
-          configData.siteSections = [...DEFAULTS];
-          liveRefresh({ siteSections: DEFAULTS });
-          window.showToast?.('Padrão restaurado!', 'success');
-        } catch (err) {
-          window.showToast?.('Erro ao salvar. Tente novamente.', 'error');
-        }
+        await autoSaveSections();
       };
     };
 
@@ -1273,54 +1313,98 @@ async function renderSiteContent(container, builderTabsEl) {
 
     const renderList = () => {
       const list = servicos.map((srv, idx) => `
-        <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
           <div style="display:flex; flex-direction:column; gap:0.75rem;">
-            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Título</label>
-                <input type="text" id="srv-title-${idx}" class="input" value="${srv.title || ''}" data-srv-title="${idx}">
-              </div>
-              <button onclick="deleteServico(${idx})" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+              <input type="text" id="srv-title-${idx}" class="input" value="${(srv.title || '').replace(/"/g, '&quot;')}" data-srv-title="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Descrição</label>
-              <textarea rows="2" id="srv-desc-${idx}" class="input" data-srv-desc="${idx}">${srv.description || ''}</textarea>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
+              <textarea rows="2" id="srv-desc-${idx}" class="input" data-srv-desc="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${srv.description || ''}</textarea>
             </div>
-            <div style="display:flex; gap:0.75rem;">
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Ícone (Emoji ou nome do Lucide)</label>
-                <input type="text" id="srv-icon-${idx}" class="input" value="${srv.icon || '📸'}" data-srv-icon="${idx}" placeholder="Ex: camera, gem, baby, heart ou 📸">
-              </div>
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Preço (opcional)</label>
-                <input type="text" id="srv-price-${idx}" class="input" value="${srv.price || ''}" data-srv-price="${idx}" placeholder="R$ 500">
-              </div>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Preço (opcional)</label>
+              <input type="text" id="srv-price-${idx}" class="input" value="${(srv.price || '').replace(/"/g, '&quot;')}" data-srv-price="${idx}" placeholder="Ex: Consulte ou R$ 500" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+            </div>
+            
+            <div style="display:flex; justify-content:center; margin-top:0.5rem; width:100%;">
+              <button onclick="event.stopPropagation(); deleteServico(${idx})" class="p-action-btn header-expand-btn" title="Remover Serviço" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-surface); border:1px solid var(--border); color:var(--red,#f85149);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
           </div>
         </div>
       `).join('');
 
       servicosContainer.innerHTML = `
-        <div style="max-width:700px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <div>
-              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Serviços</h3>
-              <p style="color:#9ca3af; font-size:0.875rem;">Adicione os serviços que você oferece</p>
-            </div>
-            <button id="addServicoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">+ Adicionar</button>
+        <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+          <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Serviços</h3>
+            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Adicione os serviços que você oferece no site.</p>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
-            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum serviço adicionado</p>'}
+          <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
+            <button id="addServicoBtn" class="header-expand-btn" title="Adicionar Serviço">
+              <span class="header-expand-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </span>
+              <span class="header-expand-label" style="font-weight: 600;">Adicionar Serviço</span>
+            </button>
           </div>
 
-          <button id="saveServicosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Serviços</button>
+          <div id="srvListWrapper" style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem; width:100%;">
+            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:rgba(0,0,0,0.2); border:1px dashed var(--border); border-radius:0.5rem; font-size:0.8rem; width:100%; box-sizing:border-box;">Nenhum serviço adicionado</p>'}
+          </div>
         </div>
       `;
 
-      servicosContainer.querySelector('#addServicoBtn').onclick = () => {
-        servicos.push({ title: 'Novo Serviço', description: '', icon: '📸', price: '' });
-        renderList(); // re-render para gerar novos IDs
+      // Função central para Auto-Salvar Serviços
+      const autoSaveServicos = async () => {
+        try {
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Salvando...';
+            indicator.style.opacity = '1';
+          }
+          const updated = [];
+          servicos.forEach((_, idx) => {
+            updated.push({
+              title: servicosContainer.querySelector(`[data-srv-title="${idx}"]`)?.value || '',
+              description: servicosContainer.querySelector(`[data-srv-desc="${idx}"]`)?.value || '',
+              price: servicosContainer.querySelector(`[data-srv-price="${idx}"]`)?.value || ''
+            });
+          });
+          await apiPut('/api/site/admin/config', { siteContent: { ...configData.siteContent, servicos: updated } });
+          configData.siteContent.servicos = updated;
+          if (indicator) {
+            indicator.textContent = 'Salvo!';
+            setTimeout(() => {
+              if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+            }, 1500);
+          }
+          liveRefresh({ siteContent: { servicos: updated } });
+        } catch (err) {
+          console.error('Erro no auto-save de serviços:', err);
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Erro ao salvar!';
+            indicator.style.color = 'var(--red,#f85149)';
+          }
+        }
+      };
+
+      // Adiciona eventos oninput/onchange para auto-salvar qualquer alteração nos inputs
+      servicosContainer.querySelectorAll('input, textarea').forEach(el => {
+        el.oninput = autoSaveServicos;
+      });
+
+      servicosContainer.querySelector('#addServicoBtn').onclick = async () => {
+        servicos.push({ title: 'Novo Serviço', description: '', price: '' });
+        renderList(); // re-render para mostrar novos campos
+        await autoSaveServicos(); // salva o novo serviço no banco
       };
 
       window.deleteServico = async (idx) => {
@@ -1328,32 +1412,8 @@ async function renderSiteContent(container, builderTabsEl) {
         if (!ok) return;
         servicos.splice(idx, 1);
         renderList();
+        await autoSaveServicos(); // salva a remoção no banco
       };
-
-      // Setup dirty tracking após renderizar inputs
-      captureOriginalValues('config-servicos', servicosContainer);
-      setupDirtyTracking('config-servicos', 'Serviços', servicosContainer);
-
-      const saveBtn = servicosContainer.querySelector('#saveServicosBtn');
-      if (saveBtn) {
-        saveBtn.onclick = async () => {
-          const updated = [];
-          servicos.forEach((_, idx) => {
-            updated.push({
-              title: servicosContainer.querySelector(`[data-srv-title="${idx}"]`)?.value || '',
-              description: servicosContainer.querySelector(`[data-srv-desc="${idx}"]`)?.value || '',
-              icon: servicosContainer.querySelector(`[data-srv-icon="${idx}"]`)?.value || '📸',
-              price: servicosContainer.querySelector(`[data-srv-price="${idx}"]`)?.value || ''
-            });
-          });
-          await apiPut('/api/site/admin/config', { siteContent: { ...siteContent, servicos: updated } });
-          clearDirty();
-          // Recapturar valores originais após salvar
-          captureOriginalValues('config-servicos', servicosContainer);
-          window.showToast?.('Serviços salvos!', 'success');
-          liveRefresh({ siteContent: { servicos: updated } });
-        };
-      }
     };
 
     renderList();
@@ -1419,79 +1479,124 @@ async function renderSiteContent(container, builderTabsEl) {
       } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
     };
 
+      // Função central para Auto-Salvar Depoimentos
+      const autoSaveDepoimentos = async () => {
+        try {
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Salvando...';
+            indicator.style.opacity = '1';
+          }
+          const updated = [];
+          depoimentos.forEach((_, idx) => {
+            updated.push({
+              name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
+              text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
+              photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || depoimentos[idx].photo || '',
+              rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5),
+              socialLink: depoContainer.querySelector(`[data-dep-social="${idx}"]`)?.value || ''
+            });
+          });
+          await apiPut('/api/site/admin/config', { siteContent: { ...configData.siteContent, depoimentos: updated } });
+          if (!configData.siteContent) configData.siteContent = {};
+          configData.siteContent.depoimentos = updated;
+          if (indicator) {
+            indicator.textContent = 'Salvo!';
+            setTimeout(() => {
+              if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+            }, 1500);
+          }
+          liveRefresh({ siteContent: { depoimentos: updated } });
+        } catch (err) {
+          console.error('Erro no auto-save de depoimentos:', err);
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Erro ao salvar!';
+            indicator.style.color = 'var(--red,#f85149)';
+          }
+        }
+      };
+
     const renderList = () => {
       const list = depoimentos.map((dep, idx) => `
-        <div style="background:var(--bg-surface); padding:1rem; border-radius:0.5rem; border:1px solid var(--border);">
+        <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
           <div style="display:flex; flex-direction:column; gap:0.75rem;">
 
-            <!-- Nome + deletar -->
-            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Nome do Cliente</label>
-                <input type="text" class="input" value="${dep.name || ''}" data-dep-name="${idx}">
-              </div>
-              <button onclick="deleteDepoimento(${idx})" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nome do Cliente</label>
+              <input type="text" class="input" value="${(dep.name || '').replace(/"/g, '&quot;')}" data-dep-name="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
 
-            <!-- Texto -->
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Depoimento</label>
-              <textarea rows="3" class="input" data-dep-text="${idx}">${dep.text || ''}</textarea>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Depoimento</label>
+              <textarea rows="3" class="input" data-dep-text="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${dep.text || ''}</textarea>
             </div>
 
-            <!-- Foto + nota -->
-            <div style="display:flex; gap:0.75rem; align-items:flex-end;">
-              <!-- Preview da foto -->
-              <div style="width:56px; height:56px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0;">
-                ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.5rem;">👤</div>'}
-              </div>
-              <div class="input-group" style="margin-bottom:0;">
-                <label>Foto do Cliente</label>
-                <label class="btn btn-primary btn-sm" style="margin:0; cursor:pointer;">
-                  Upload
+            <div style="display:flex; gap:0.75rem; justify-content:center; align-items:flex-end;">
+              <div style="display:flex; flex-direction:column; align-items:center;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Foto</label>
+                <div style="width:48px; height:48px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0; margin-bottom:0.25rem;">
+                  ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.2rem;">👤</div>'}
+                </div>
+                <label style="font-size:0.7rem; color:var(--accent); cursor:pointer; font-weight:600;">
+                  Alterar
                   <input type="file" accept="image/*" data-dep-photo-upload="${idx}" style="display:none;">
                 </label>
                 <input type="hidden" data-dep-photo="${idx}" value="${dep.photo || ''}">
               </div>
               <div class="input-group" style="margin-bottom:0;">
-                <label>Nota (1-5)</label>
-                <input type="number" class="input" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="width:70px;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nota</label>
+                <input type="number" class="input" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="text-align:center; width:60px; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
             </div>
 
-            <!-- Link social -->
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Link Instagram ou Facebook (opcional)</label>
-              <input type="text" class="input" value="${dep.socialLink || ''}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente">
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Link Social (opcional)</label>
+              <input type="text" class="input" value="${(dep.socialLink || '').replace(/"/g, '&quot;')}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
 
+            <div style="display:flex; justify-content:center; margin-top:0.5rem; width:100%;">
+              <button onclick="event.stopPropagation(); deleteDepoimento(${idx})" class="p-action-btn header-expand-btn" title="Remover Depoimento" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-surface); border:1px solid var(--border); color:var(--red,#f85149);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       `).join('');
 
       depoContainer.innerHTML = `
-        <div style="max-width:700px;">
+        <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
           ${renderPendentes()}
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <div>
-              <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6;">Depoimentos Publicados</h3>
-              <p style="color:#9ca3af; font-size:0.875rem;">Adicione ou gerencie depoimentos visíveis no site</p>
-            </div>
-            <button id="addDepoimentoBtn" style="background:#2563eb; color:white; padding:0.5rem 1rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">+ Adicionar</button>
+          <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Depoimentos Publicados</h3>
+            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Adicione ou gerencie depoimentos visíveis no site.</p>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
-            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:#1f2937; border-radius:0.5rem;">Nenhum depoimento adicionado</p>'}
+          <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
+            <button id="addDepoimentoBtn" class="btn" style="border-radius:9999px; padding:0.5rem 1.25rem; font-weight:600;" title="Adicionar Depoimento">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Adicionar Depoimento
+            </button>
           </div>
 
-          <button id="saveDepoimentosBtn" style="background:#16a34a; color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer;">Salvar Depoimentos</button>
+          <div style="display:flex; flex-direction:column; gap:1rem; width:100%;">
+            ${list || '<p style="color:#9ca3af; text-align:center; padding:2rem; background:rgba(0,0,0,0.2); border:1px dashed var(--border); border-radius:0.5rem; font-size:0.8rem; width:100%; box-sizing:border-box;">Nenhum depoimento adicionado</p>'}
+          </div>
         </div>
       `;
 
-      depoContainer.querySelector('#addDepoimentoBtn').onclick = () => {
+      // Auto-save bindings
+      depoContainer.querySelectorAll('input:not([type="file"]), textarea').forEach(el => {
+        el.oninput = autoSaveDepoimentos;
+      });
+
+      depoContainer.querySelector('#addDepoimentoBtn').onclick = async () => {
         depoimentos.push({ name: 'Cliente', text: '', photo: '', rating: 5, socialLink: '' });
         renderList();
+        await autoSaveDepoimentos();
       };
 
       // Upload de foto por depoimento
@@ -1504,6 +1609,7 @@ async function renderSiteContent(container, builderTabsEl) {
             const result = await uploadImage(file, appState.authToken);
             depoimentos[idx].photo = result.url;
             renderList();
+            await autoSaveDepoimentos();
           } catch (err) {
             window.showToast?.('Erro: ' + err.message, 'error');
           }
@@ -1515,29 +1621,8 @@ async function renderSiteContent(container, builderTabsEl) {
         if (!ok) return;
         depoimentos.splice(idx, 1);
         renderList();
+        await autoSaveDepoimentos();
       };
-
-      depoContainer.querySelector('#saveDepoimentosBtn').onclick = async () => {
-        const updated = [];
-        depoimentos.forEach((dep, idx) => {
-          updated.push({
-            name: depoContainer.querySelector(`[data-dep-name="${idx}"]`)?.value || '',
-            text: depoContainer.querySelector(`[data-dep-text="${idx}"]`)?.value || '',
-            photo: depoContainer.querySelector(`[data-dep-photo="${idx}"]`)?.value || dep.photo || '',
-            rating: parseInt(depoContainer.querySelector(`[data-dep-rating="${idx}"]`)?.value || 5),
-            socialLink: depoContainer.querySelector(`[data-dep-social="${idx}"]`)?.value || ''
-          });
-        });
-        await apiPut('/api/site/admin/config', { siteContent: { depoimentos: updated } });
-        clearDirty();
-        captureOriginalValues('config-depoimentos', depoContainer);
-        window.showToast?.('Depoimentos salvos!', 'success');
-        liveRefresh({ siteContent: { depoimentos: updated } });
-      };
-
-      // Capturar valores originais e setup dirty tracking
-      captureOriginalValues('config-depoimentos', depoContainer);
-      setupDirtyTracking('config-depoimentos', 'Depoimentos', depoContainer);
     };
 
     renderList();
@@ -1559,63 +1644,94 @@ async function renderSiteContent(container, builderTabsEl) {
       { value: "Georgia, serif", label: 'Georgia (Serif)' },
     ];
 
+    // Função central para Auto-Salvar Estilo
+    const autoSaveEstilo = async () => {
+      try {
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Salvando...';
+          indicator.style.opacity = '1';
+        }
+        const newStyle = {
+          accentColor: accentInput?.value || '',
+          bgColor: bgInput?.value || '',
+          textColor: textInput?.value || '',
+          fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
+        };
+        await apiPut('/api/site/admin/config', { siteStyle: newStyle });
+        configData.siteStyle = newStyle;
+        if (indicator) {
+          indicator.textContent = 'Salvo!';
+          setTimeout(() => {
+            if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+          }, 1500);
+        }
+        liveRefresh({ siteStyle: newStyle });
+      } catch (err) {
+        console.error('Erro no auto-save de estilo:', err);
+        const indicator = document.getElementById('builder-save-indicator');
+        if (indicator) {
+          indicator.textContent = 'Erro ao salvar!';
+          indicator.style.color = 'var(--red,#f85149)';
+        }
+      }
+    };
+
     personalizarContainer.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:2rem; max-width:720px;">
+      <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+
+        <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+          <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Estilo Visual do Site</h3>
+          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite cores e fontes. As alterações são salvas automaticamente.</p>
+        </div>
 
         <!-- Estilo Global -->
-        <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem;">
-          <h3 style="font-size:1rem; font-weight:700; color:var(--purple); margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
-            ✦ Estilo Visual do Site
-          </h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
-            <div>
-              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor Principal (Accent)</label>
-              <div style="display:flex; gap:0.5rem; align-items:center;">
-                <input type="color" id="styleAccentColor" value="${style.accentColor || '#c9a96e'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+        <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; width:100%; box-sizing:border-box; display:flex; flex-direction:column; align-items:center;">
+          <div style="display:grid; grid-template-columns:1fr; gap:1.25rem; margin-bottom:1.5rem; width:100%;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.65rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center;">Cor Principal (Accent)</label>
+              <div style="display:flex; gap:0.75rem; align-items:center; background:var(--bg-surface); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.5rem;">
+                <input type="color" id="styleAccentColor" value="${style.accentColor || '#c9a96e'}" style="width:2rem; height:2rem; border:none; border-radius:50%; background:none; cursor:pointer; padding:0;">
                 <span id="styleAccentColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.accentColor || '#c9a96e'}</span>
               </div>
             </div>
-            <div>
-              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor de Fundo</label>
-              <div style="display:flex; gap:0.5rem; align-items:center;">
-                <input type="color" id="styleBgColor" value="${style.bgColor || '#fafafa'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.65rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center;">Cor de Fundo</label>
+              <div style="display:flex; gap:0.75rem; align-items:center; background:var(--bg-surface); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.5rem;">
+                <input type="color" id="styleBgColor" value="${style.bgColor || '#fafafa'}" style="width:2rem; height:2rem; border:none; border-radius:50%; background:none; cursor:pointer; padding:0;">
                 <span id="styleBgColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.bgColor || '#fafafa'}</span>
               </div>
             </div>
-            <div>
-              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Cor do Texto</label>
-              <div style="display:flex; gap:0.5rem; align-items:center;">
-                <input type="color" id="styleTextColor" value="${style.textColor || '#111827'}" style="width:3rem; height:2.5rem; border:1px solid var(--border); border-radius:0.5rem; background:none; cursor:pointer;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.65rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center;">Cor do Texto</label>
+              <div style="display:flex; gap:0.75rem; align-items:center; background:var(--bg-surface); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.5rem;">
+                <input type="color" id="styleTextColor" value="${style.textColor || '#111827'}" style="width:2rem; height:2rem; border:none; border-radius:50%; background:none; cursor:pointer; padding:0;">
                 <span id="styleTextColorText" style="color:var(--text-primary); font-size:0.875rem; font-family:monospace;">${style.textColor || '#111827'}</span>
               </div>
             </div>
-            <div>
-              <label style="display:block; color:var(--text-secondary); font-size:0.75rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Fonte do Site</label>
-              <select id="styleFontFamily" class="select">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <label style="display:block; color:var(--text-secondary); font-size:0.65rem; margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center;">Fonte do Site</label>
+              <select id="styleFontFamily" class="select" style="text-align:center; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.85rem; outline:none; max-width:240px;">
                 ${FONTS.map(f => `<option value="${f.value}" ${style.fontFamily === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
               </select>
             </div>
           </div>
           <!-- Preview da paleta -->
-          <div id="stylePalettePreview" style="border-radius:0.5rem; overflow:hidden; margin-bottom:1.25rem;">
+          <div id="stylePalettePreview" style="border-radius:0.5rem; overflow:hidden; margin-bottom:1.5rem; width:100%; max-width:320px; text-align:center; border:1px solid var(--border);">
             <div style="background:${style.accentColor || '#c9a96e'}; padding:0.75rem 1rem;">
               <span style="color:#fff; font-weight:700; font-size:0.9rem;">Cor Principal</span>
             </div>
-            <div style="background:${style.bgColor || '#fafafa'}; padding:0.75rem 1rem; border:1px solid var(--border);">
+            <div style="background:${style.bgColor || '#fafafa'}; padding:0.75rem 1rem;">
               <span style="color:${style.textColor || '#111827'}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
             </div>
           </div>
-          <button id="saveStyleBtn" style="background:var(--purple); color:#fff; padding:0.625rem 1.5rem; border:none; border-radius:0.375rem; font-weight:700; cursor:pointer;">Salvar Estilo</button>
-          <button id="resetStyleBtn" style="background:none; border:1px solid var(--border); color:var(--text-secondary); padding:0.625rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-left:0.5rem;">Resetar Padrão</button>
+          
+          <button id="resetStyleBtn" class="p-action-btn" style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary); padding:0.5rem 1rem; border-radius:0.375rem; font-weight:600; cursor:pointer; font-size:0.8rem;">Restaurar Padrão do Tema</button>
         </div>
       </div>
     `;
 
-    // Capturar snapshot original para dirty tracking
-    captureOriginalValues('config-personalizar', personalizarContainer);
-    setupDirtyTracking('config-personalizar', 'Personalizar', personalizarContainer);
-
-    // Live preview da paleta
+    // Live preview da paleta e auto-save
     const accentInput = personalizarContainer.querySelector('#styleAccentColor');
     const bgInput = personalizarContainer.querySelector('#styleBgColor');
     const textInput = personalizarContainer.querySelector('#styleTextColor');
@@ -1624,10 +1740,10 @@ async function renderSiteContent(container, builderTabsEl) {
       const preview = personalizarContainer.querySelector('#stylePalettePreview');
       if (preview) {
         preview.innerHTML = `
-          <div style="background:${accentInput.value}; padding:0.75rem 1rem; border-radius:0.5rem 0.5rem 0 0;">
+          <div style="background:${accentInput.value}; padding:0.75rem 1rem;">
             <span style="color:#fff; font-weight:700; font-size:0.9rem;">Cor Principal</span>
           </div>
-          <div style="background:${bgInput.value}; padding:0.75rem 1rem; border:1px solid var(--border); border-radius:0 0 0.5rem 0.5rem;">
+          <div style="background:${bgInput.value}; padding:0.75rem 1rem;">
             <span style="color:${textInput.value}; font-size:0.9rem;">Texto do site com sua paleta de cores</span>
           </div>
         `;
@@ -1637,30 +1753,11 @@ async function renderSiteContent(container, builderTabsEl) {
       personalizarContainer.querySelector('#styleTextColorText').textContent = textInput.value;
     }
 
-    if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-    if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
-    if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); };
+    if (accentInput) accentInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); autoSaveEstilo(); };
+    if (bgInput) bgInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); autoSaveEstilo(); };
+    if (textInput) textInput.oninput = () => { updatePalettePreview(); window._meuSitePostPreview?.(); autoSaveEstilo(); };
     const fontFamilyInput = personalizarContainer.querySelector('#styleFontFamily');
-    if (fontFamilyInput) fontFamilyInput.onchange = () => { window._meuSitePostPreview?.(); };
-
-    // Salvar estilo
-    const saveStyleBtn = personalizarContainer.querySelector('#saveStyleBtn');
-    if (saveStyleBtn) {
-      saveStyleBtn.onclick = async () => {
-        const newStyle = {
-          accentColor: accentInput?.value || '',
-          bgColor: bgInput?.value || '',
-          textColor: textInput?.value || '',
-          fontFamily: personalizarContainer.querySelector('#styleFontFamily')?.value || ''
-        };
-        await apiPut('/api/site/admin/config', { siteStyle: newStyle });
-        clearDirty();
-        captureOriginalValues('config-personalizar', personalizarContainer);
-        saveStyleBtn.textContent = '✓ Salvo!';
-        setTimeout(() => { saveStyleBtn.textContent = 'Salvar Estilo'; }, 2000);
-        liveRefresh({ siteStyle: newStyle });
-      };
-    }
+    if (fontFamilyInput) fontFamilyInput.onchange = () => { window._meuSitePostPreview?.(); autoSaveEstilo(); };
 
     // Resetar estilo
     const resetStyleBtn = personalizarContainer.querySelector('#resetStyleBtn');
@@ -1681,53 +1778,72 @@ async function renderSiteContent(container, builderTabsEl) {
     const contatoContainer = container.querySelector('#config-contato');
     const contato = configData.siteContent?.contato || {};
 
+      // Função central para Auto-Salvar Contato
+      const autoSaveContato = async () => {
+        try {
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Salvando...';
+            indicator.style.opacity = '1';
+          }
+          const newContato = {
+            title: contatoContainer.querySelector('#contatoTitle').value,
+            text: contatoContainer.querySelector('#contatoText').value,
+            address: contatoContainer.querySelector('#contatoAddress').value
+          };
+          await apiPut('/api/site/admin/config', { siteContent: { ...configData.siteContent, contato: newContato } });
+          if (!configData.siteContent) configData.siteContent = {};
+          configData.siteContent.contato = newContato;
+          if (indicator) {
+            indicator.textContent = 'Salvo!';
+            setTimeout(() => {
+              if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+            }, 1500);
+          }
+          liveRefresh({ siteContent: { contato: newContato } });
+        } catch (err) {
+          console.error('Erro no auto-save de contato:', err);
+          const indicator = document.getElementById('builder-save-indicator');
+          if (indicator) {
+            indicator.textContent = 'Erro ao salvar!';
+            indicator.style.color = 'var(--red,#f85149)';
+          }
+        }
+      };
+
     contatoContainer.innerHTML = `
-      <div style="max-width:600px;">
-        <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:1.5rem;">Seção de Contato</h3>
+      <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+        <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+          <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Seção de Contato</h3>
+          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações de contato visíveis no site.</p>
+        </div>
 
-        <div style="display:flex; flex-direction:column; gap:1rem;">
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Título</label>
-            <input type="text" id="contatoTitle" class="input" value="${contato.title || 'Entre em Contato'}">
+        <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
+          <div class="input-group" style="margin-bottom:0; width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+            <input type="text" id="contatoTitle" class="input" value="${(contato.title || 'Entre em Contato').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
 
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Texto</label>
-            <textarea id="contatoText" class="input" rows="3">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
+          <div class="input-group" style="margin-bottom:0; width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Texto</label>
+            <textarea id="contatoText" class="input" rows="3" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
           </div>
 
-          <div class="input-group" style="margin-bottom:0;">
-            <label>Endereço (opcional)</label>
-            <input type="text" id="contatoAddress" class="input" value="${contato.address || ''}" placeholder="Rua Exemplo, 123 - São Paulo/SP">
+          <div class="input-group" style="margin-bottom:0; width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço (opcional)</label>
+            <input type="text" id="contatoAddress" class="input" value="${(contato.address || '').replace(/"/g, '&quot;')}" placeholder="Rua Exemplo, 123 - São Paulo/SP" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
-
-          <button id="saveContatoBtn" style="background:var(--green); color:white; padding:0.75rem 1.5rem; border:none; border-radius:0.375rem; font-weight:600; cursor:pointer; margin-top:0.5rem;">Salvar Contato</button>
         </div>
       </div>
     `;
 
-    // Capturar valores originais e setup dirty tracking
-    captureOriginalValues('config-contato', contatoContainer);
-    setupDirtyTracking('config-contato', 'Contato', contatoContainer);
-
-    // Preview em tempo real
-    contatoContainer.querySelector('#contatoTitle').oninput = () => { window._meuSitePostPreview?.(); };
-    contatoContainer.querySelector('#contatoText').oninput = () => { window._meuSitePostPreview?.(); };
-    contatoContainer.querySelector('#contatoAddress').oninput = () => { window._meuSitePostPreview?.(); };
-
-    contatoContainer.querySelector('#saveContatoBtn').onclick = async () => {
-      const newContato = {
-        title: contatoContainer.querySelector('#contatoTitle').value,
-        text: contatoContainer.querySelector('#contatoText').value,
-        address: contatoContainer.querySelector('#contatoAddress').value
+    // Preview em tempo real e auto-save
+    contatoContainer.querySelectorAll('input, textarea').forEach(el => {
+      el.oninput = () => {
+        window._meuSitePostPreview?.();
+        autoSaveContato();
       };
-      await apiPut('/api/site/admin/config', { siteContent: { contato: newContato } });
-      clearDirty();
-      // Recapturar valores originais após salvar
-      captureOriginalValues('config-contato', contatoContainer);
-      window.showToast?.('Contato salvo!', 'success');
-      liveRefresh({ siteContent: { contato: newContato } });
-    };
+    });
   };
 
   // --- RODAPÉ ---
@@ -1766,71 +1882,99 @@ async function renderSiteContent(container, builderTabsEl) {
     };
 
     const buildLinksHtml = (quickLinks) => quickLinks.map((link, idx) => `
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input type="text" class="input" data-link-label="${idx}" value="${link.label || ''}" placeholder="Texto do link">
-        <input type="text" class="input" data-link-url="${idx}" value="${link.url || ''}" placeholder="URL (ex: #portfolio)">
-        <button data-remove-link="${idx}" class="btn btn-ghost" style="color:var(--red);" title="Remover">🗑️</button>
+      <div style="display:flex; gap:0.5rem; align-items:center; width:100%;">
+        <div class="input-group" style="margin-bottom:0; flex:1;">
+          <input type="text" class="input" data-link-label="${idx}" value="${(link.label || '').replace(/"/g, '&quot;')}" placeholder="Texto do link" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+        </div>
+        <div class="input-group" style="margin-bottom:0; flex:1;">
+          <input type="text" class="input" data-link-url="${idx}" value="${(link.url || '').replace(/"/g, '&quot;')}" placeholder="URL (ex: #portfolio)" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+        </div>
+        <button data-remove-link="${idx}" class="p-action-btn header-expand-btn" title="Remover Link" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-surface); border:1px solid var(--border); color:var(--red,#f85149); flex-shrink:0;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     `).join('');
 
     const renderList = () => {
     rodapeContainer.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:640px;">
-        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-          <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Copyright</h3>
-          <div class="input-group" style="margin-bottom:0;">
-            <input type="text" id="rodapeCopyright" class="input" value="${_rodape.copyright}" placeholder="Ex: © 2026 Studio. Todos os direitos reservados.">
-          </div>
+      <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+        
+        <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+          <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Seção de Rodapé</h3>
+          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite o copyright, redes sociais e links do rodapé.</p>
         </div>
 
-        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-          <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Redes Sociais</h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Instagram</label>
-              <input type="text" id="socialInstagram" class="input" value="${_rodape.socialMedia.instagram || ''}" placeholder="https://instagram.com/...">
+        <div style="display:flex; flex-direction:column; gap:1.5rem; width:100%;">
+          <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
+            <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-align:center; margin-bottom:0.25rem;">Copyright</h3>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <input type="text" id="rodapeCopyright" class="input" value="${(_rodape.copyright || '').replace(/"/g, '&quot;')}" placeholder="Ex: © 2026 Studio. Todos os direitos reservados." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Facebook</label>
-              <input type="text" id="socialFacebook" class="input" value="${_rodape.socialMedia.facebook || ''}" placeholder="https://facebook.com/...">
+          </div>
+
+          <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
+            <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-align:center; margin-bottom:0.25rem;">Redes Sociais</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Instagram</label>
+                <input type="text" id="socialInstagram" class="input" value="${(_rodape.socialMedia.instagram || '').replace(/"/g, '&quot;')}" placeholder="https://instagram.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Facebook</label>
+                <input type="text" id="socialFacebook" class="input" value="${(_rodape.socialMedia.facebook || '').replace(/"/g, '&quot;')}" placeholder="https://facebook.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">LinkedIn</label>
+                <input type="text" id="socialLinkedin" class="input" value="${(_rodape.socialMedia.linkedin || '').replace(/"/g, '&quot;')}" placeholder="https://linkedin.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">TikTok</label>
+                <input type="text" id="socialTiktok" class="input" value="${(_rodape.socialMedia.tiktok || '').replace(/"/g, '&quot;')}" placeholder="https://tiktok.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">YouTube</label>
+                <input type="text" id="socialYoutube" class="input" value="${(_rodape.socialMedia.youtube || '').replace(/"/g, '&quot;')}" placeholder="https://youtube.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
+              <div class="input-group" style="margin-bottom:0; width:100%;">
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Email</label>
+                <input type="email" id="socialEmail" class="input" value="${(_rodape.socialMedia.email || '').replace(/"/g, '&quot;')}" placeholder="contato@exemplo.com" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+              </div>
             </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>LinkedIn</label>
-              <input type="text" id="socialLinkedin" class="input" value="${_rodape.socialMedia.linkedin || ''}" placeholder="https://linkedin.com/...">
+          </div>
+
+          <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
+            <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:0.5rem; gap:0.5rem;">
+              <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-align:center; margin-bottom:0;">Links Úteis</h3>
+              <button id="addRodapeLinkBtn" class="header-expand-btn" title="Adicionar Link">
+                <span class="header-expand-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </span>
+                <span class="header-expand-label" style="font-weight: 600;">Adicionar Link</span>
+              </button>
             </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>TikTok</label>
-              <input type="text" id="socialTiktok" class="input" value="${_rodape.socialMedia.tiktok || ''}" placeholder="https://tiktok.com/...">
-            </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>YouTube</label>
-              <input type="text" id="socialYoutube" class="input" value="${_rodape.socialMedia.youtube || ''}" placeholder="https://youtube.com/...">
-            </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Email</label>
-              <input type="email" id="socialEmail" class="input" value="${_rodape.socialMedia.email || ''}" placeholder="contato@exemplo.com">
+            <div id="rodapeLinksList" style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
+              ${buildLinksHtml(_rodape.quickLinks) || '<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; width:100%; box-sizing:border-box; padding:1rem; border:1px dashed var(--border); border-radius:0.5rem;">Nenhum link adicionado</p>'}
             </div>
           </div>
         </div>
-
-        <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="font-size:1rem; font-weight:600; color:var(--text-secondary);">Links Úteis</h3>
-            <button id="addRodapeLinkBtn" style="background:var(--accent); color:white; padding:0.25rem 0.75rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.75rem; font-weight:500;">+ Adicionar</button>
-          </div>
-          <div id="rodapeLinksList" style="display:flex; flex-direction:column; gap:0.5rem;">
-            ${buildLinksHtml(_rodape.quickLinks) || '<p style="color:var(--text-muted); font-size:0.875rem;">Nenhum link adicionado</p>'}
-          </div>
-        </div>
-
-        <button id="saveRodapeBtn" style="background:var(--accent); color:white; padding:0.5rem 1.5rem; border-radius:0.375rem; border:none; font-weight:600; cursor:pointer;">Salvar Rodapé</button>
       </div>
     `;
 
-    rodapeContainer.querySelector('#addRodapeLinkBtn').onclick = () => {
+    rodapeContainer.querySelectorAll('input').forEach(input => {
+      input.oninput = async () => {
+        lerInputs();
+        await saveRodape(true); // silent
+        window._meuSitePostPreview?.();
+      };
+    });
+
+    rodapeContainer.querySelector('#addRodapeLinkBtn').onclick = async () => {
       lerInputs(); // preserva o que já foi digitado antes do re-render
       _rodape.quickLinks.push({ label: '', url: '' });
       renderList();
+      await saveRodape(true);
     };
 
     rodapeContainer.querySelectorAll('[data-remove-link]').forEach(btn => {
@@ -1844,409 +1988,8 @@ async function renderSiteContent(container, builderTabsEl) {
         renderList();
       };
     });
-
-    rodapeContainer.querySelector('#saveRodapeBtn').onclick = async () => {
-      lerInputs();
-      await saveRodape();
-    };
     };
 
     renderList();
-  };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN: Editor do Template Padrão da Plataforma
-// Visível apenas para contato@cliquezoom.com.br
-// ─────────────────────────────────────────────────────────────────────────────
-async function _renderDefaultTemplateAdmin(el, rootContainer) {
-  el.innerHTML = `<div style="color:#9ca3af; font-size:0.8rem; padding:0.5rem;">Carregando template...</div>`;
-
-  let tmpl = {};
-  try {
-    const res = await apiGet('/api/site/default-template');
-    tmpl = res.template || {};
-  } catch (e) {
-    el.innerHTML = `<div style="color:#f85149;">Erro ao carregar: ${e.message}</div>`;
-    return;
-  }
-
-  const cfg = tmpl.siteConfig || {};
-  const cnt = tmpl.siteContent || {};
-  const servicos = cnt.servicos || [];
-  const faq = cnt.faq || [];
-  const sections = tmpl.siteSections || [];
-  let _dtHeroImageUrl = cfg.heroImage || '';
-
-  const cfgThemeBgs = tmpl.siteStyle?.themeBackgrounds || {};
-  const _themeBgUrls = {
-    elegante: cfgThemeBgs.elegante || '',
-    minimalista: cfgThemeBgs.minimalista || '',
-    moderno: cfgThemeBgs.moderno || '',
-    escuro: cfgThemeBgs.escuro || '',
-    galeria: cfgThemeBgs.galeria || ''
-  };
-
-  const SECTION_OPTIONS = ['hero','portfolio','albuns','servicos','estudio','depoimentos','contato','sobre','faq'];
-
-  const _svcItem = (s, i) => `
-    <div class="dt-svc-item" data-idx="${i}" style="background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.625rem; display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.5rem;">
-      <div style="display:flex; gap:0.5rem;">
-        <input class="dt-svc-icon" value="${s.icon||'📸'}" style="width:2.5rem; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem; font-size:1rem; text-align:center;">
-        <input class="dt-svc-title" placeholder="Título" value="${s.title||''}" style="flex:1; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.85rem;">
-        <button class="dt-svc-remove" style="background:none; border:none; color:#f85149; cursor:pointer; font-size:1rem; padding:0 0.25rem;">✕</button>
-      </div>
-      <input class="dt-svc-desc" placeholder="Descrição" value="${s.description||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem;">
-      <input class="dt-svc-price" placeholder="Preço (ex: A partir de R$ 350)" value="${s.price||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem;">
-    </div>`;
-
-  const _faqItem = (f, i) => `
-    <div class="dt-faq-item" data-idx="${i}" style="background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.625rem; display:flex; flex-direction:column; gap:0.375rem; margin-bottom:0.5rem;">
-      <div style="display:flex; gap:0.5rem;">
-        <input class="dt-faq-q" placeholder="Pergunta" value="${f.question||''}" style="flex:1; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.85rem;">
-        <button class="dt-faq-remove" style="background:none; border:none; color:#f85149; cursor:pointer; font-size:1rem; padding:0 0.25rem;">✕</button>
-      </div>
-      <textarea class="dt-faq-a" placeholder="Resposta" rows="2" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.25rem; padding:0.25rem 0.5rem; font-size:0.8rem; resize:vertical;">${f.answer||''}</textarea>
-    </div>`;
-
-  el.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:1.25rem; padding-bottom:2rem;">
-      <div style="background:#f59e0b22; border:1px solid #f59e0b55; border-radius:0.375rem; padding:0.625rem 0.75rem;">
-        <p style="color:#f59e0b; font-size:0.8rem; margin:0; font-weight:600;">⚙ Conteúdo Padrão da Plataforma</p>
-        <p style="color:#9ca3af; font-size:0.75rem; margin:0.25rem 0 0;">Este conteúdo é aplicado automaticamente em novos cadastros e pode ser restaurado por qualquer fotógrafo.</p>
-      </div>
-
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título do Hero</label>
-        <input id="dt-heroTitle" value="${cfg.heroTitle||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Subtítulo do Hero</label>
-        <input id="dt-heroSubtitle" value="${cfg.heroSubtitle||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Imagem de Fundo do Hero</label>
-        <div id="dt-heroImgPreview" style="width:100%; height:7rem; background:#111827; border:1px solid #374151; border-radius:0.375rem; margin-bottom:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-          ${cfg.heroImage
-            ? `<img src="${cfg.heroImage}" style="width:100%; height:100%; object-fit:cover;">`
-            : `<span style="color:#4b5563; font-size:0.8rem;">Sem imagem</span>`}
-        </div>
-        <div id="dt-heroBgProgress" style="margin-bottom:0.375rem;"></div>
-        <div style="display:flex; gap:0.5rem;">
-          <label style="cursor:pointer; background:#1f2937; border:1px solid #374151; color:#d1d5db; padding:0.3rem 0.75rem; border-radius:0.25rem; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.3rem;">
-            <span class="material-symbols-outlined" style="font-size:1rem;">upload</span>Enviar Imagem
-            <input type="file" id="dt-heroBgFile" accept="image/*" style="display:none;">
-          </label>
-          <button id="dt-heroBgRemove" style="background:none; border:1px solid #374151; color:#f85149; padding:0.3rem 0.75rem; border-radius:0.25rem; font-size:0.8rem; cursor:pointer;">Remover</button>
-        </div>
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título — Sobre</label>
-        <input id="dt-sobreTitle" value="${cnt.sobre?.title||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Texto — Sobre</label>
-        <textarea id="dt-sobreText" rows="3" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem; resize:vertical;">${cnt.sobre?.text||''}</textarea>
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Título — Contato</label>
-        <input id="dt-contatoTitle" value="${cnt.contato?.title||''}" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
-      </div>
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Texto — Contato</label>
-        <textarea id="dt-contatoText" rows="2" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem; resize:vertical;">${cnt.contato?.text||''}</textarea>
-      </div>
-
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-          <label style="color:#9ca3af; font-size:0.8rem;">Serviços de Exemplo</label>
-          <button id="dt-addSvc" style="background:none; border:1px solid #374151; color:#d1d5db; padding:0.2rem 0.6rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;">+ Adicionar</button>
-        </div>
-        <div id="dt-svcList">${servicos.map(_svcItem).join('')}</div>
-      </div>
-
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-          <label style="color:#9ca3af; font-size:0.8rem;">FAQ de Exemplo</label>
-          <button id="dt-addFaq" style="background:none; border:1px solid #374151; color:#d1d5db; padding:0.2rem 0.6rem; border-radius:0.25rem; cursor:pointer; font-size:0.75rem;">+ Adicionar</button>
-        </div>
-        <div id="dt-faqList">${faq.map(_faqItem).join('')}</div>
-      </div>
-
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.5rem;">Seções Ativas por Default</label>
-        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-          ${SECTION_OPTIONS.map(s => `
-            <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; background:rgba(255,255,255,0.04); border:1px solid #374151; border-radius:0.375rem; padding:0.25rem 0.6rem;">
-              <input type="checkbox" class="dt-section-chk" value="${s}" ${sections.includes(s)?'checked':''}>
-              <span style="color:#d1d5db; font-size:0.8rem;">${s}</span>
-            </label>`).join('')}
-        </div>
-      </div>
-
-      <!-- Imagens de Fundo dos Temas -->
-      <div style="border-top:1px solid #374151; padding-top:1.25rem;">
-        <label style="color:#9ca3af; font-size:0.85rem; display:block; margin-bottom:0.375rem; font-weight:600;">Imagens de Fundo dos Temas (Galeria Geral)</label>
-        <p style="color:#6b7280; font-size:0.75rem; margin:0 0 1rem;">Envie as imagens de fundo que aparecerão nos cards de seleção de tema para os fotógrafos.</p>
-        
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem;">
-          ${['elegante', 'minimalista', 'moderno', 'escuro', 'galeria'].map(themeId => {
-            const themeName = themeId.charAt(0).toUpperCase() + themeId.slice(1);
-            const currentImg = _themeBgUrls[themeId];
-            const hasImage = !!currentImg;
-            
-            const themeColors = {
-              elegante: ['#c9a962', '#2c2c2c', '#f5f5f5'],
-              minimalista: ['#000000', '#666666', '#ffffff'],
-              moderno: ['#3b82f6', '#667eea', '#f8fafc'],
-              escuro: ['#ff9500', '#0a0a0a', '#1a1a1a'],
-              galeria: ['#8b7355', '#2c2c2c', '#fafafa']
-            }[themeId];
-
-            return `
-              <div style="background:#1b1f24; border:1px solid #30363d; border-radius:0.5rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-                <!-- nome -->
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
-                  <strong style="color:#f1f5f9; font-size:0.9rem;">${themeName}</strong>
-                </div>
-
-                <!-- Preview real do Card -->
-                <div id="dt-themeBgPreview-${themeId}" class="template-card builder-theme-card" 
-                     style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.75rem; padding: 1.25rem; border-radius: var(--radius-lg, 0.5rem); min-height: 140px; background-size: cover; background-position: center; border: 1px solid rgba(139, 144, 159, 0.15); position: relative; overflow: hidden; ${currentImg ? `background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${currentImg}');` : 'background: rgba(49, 53, 60, 0.3);'}">
-                  
-                  <!-- Check do tema ativo -->
-                  <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(63, 185, 80, 0.15); border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(63, 185, 80, 0.25);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green,#3fb950)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-
-                  <!-- Nome do Tema -->
-                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;">
-                    <h4 style="color:var(--text-primary,#e6edf3); font-weight:700; font-size:0.9375rem; margin:0;">${themeName}</h4>
-                  </div>
-
-                  <!-- Cores -->
-                  <div style="display:flex; gap:0.375rem; justify-content: center;">
-                    ${themeColors.map(c => `<div style="width:0.875rem; height:0.875rem; background:${c}; border-radius:50%; border:1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 4px rgba(0,0,0,0.25);"></div>`).join('')}
-                  </div>
-
-                  <!-- Botão Visualizar fake (estático para o preview) -->
-                  <div style="margin-top: 0.25rem;">
-                    <div class="header-expand-btn" style="text-decoration: none; border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important; pointer-events: none; opacity: 0.85;">
-                      <span class="header-expand-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </span>
-                      <span class="header-expand-label" style="font-weight: 600; padding-left: 2px;">Visualizar</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Progresso de Upload -->
-                <div id="dt-themeBgProgress-${themeId}" style="margin-top: -0.25rem;"></div>
-
-                <!-- Ações -->
-                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.25rem;" class="dt-theme-actions">
-                  <label class="header-expand-btn" title="Enviar Imagem" style="background:#1e3a5f; color:#93c5fd; border:1px solid #2563eb; border-radius:0.375rem !important; padding:0.4rem 0.9rem !important; height:auto !important; min-width:0 !important; font-size:0.78rem; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:0.3rem;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span>${hasImage ? 'Trocar imagem' : 'Upload imagem'}</span>
-                    <input type="file" class="dt-themeBgFile" data-theme="${themeId}" accept="image/*" style="display:none;">
-                  </label>
-                  ${hasImage ? `
-                    <button type="button" class="dt-themeBgRemove" data-theme="${themeId}" style="background:#450a0a; color:#fca5a5; border:none; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600; transition:background 0.15s;" onmouseenter="this.style.background='#681010'" onmouseleave="this.style.background='#450a0a'">
-                      Remover
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      <div>
-        <label style="color:#9ca3af; font-size:0.8rem; display:block; margin-bottom:0.375rem;">Chave de Administrador</label>
-        <input id="dt-adminKey" type="password" placeholder="Chave secreta da plataforma" style="width:100%; box-sizing:border-box; background:#1f2937; border:1px solid #374151; color:#f3f4f6; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.875rem;">
-      </div>
-
-      <button id="dt-saveBtn" style="background:#f59e0b; color:#000; font-weight:700; border:none; padding:0.6rem 1.25rem; border-radius:0.375rem; cursor:pointer; font-size:0.9rem; align-self:flex-start;">Salvar como Padrão</button>
-    </div>`;
-
-  // Adicionar serviço
-  el.querySelector('#dt-addSvc').onclick = () => {
-    const list = el.querySelector('#dt-svcList');
-    const idx = list.querySelectorAll('.dt-svc-item').length;
-    list.insertAdjacentHTML('beforeend', _svcItem({ icon:'📸', title:'', description:'', price:'' }, idx));
-    _bindRemove(list, '.dt-svc-remove', '.dt-svc-item');
-  };
-
-  // Adicionar FAQ
-  el.querySelector('#dt-addFaq').onclick = () => {
-    const list = el.querySelector('#dt-faqList');
-    const idx = list.querySelectorAll('.dt-faq-item').length;
-    list.insertAdjacentHTML('beforeend', _faqItem({ question:'', answer:'' }, idx));
-    _bindRemove(list, '.dt-faq-remove', '.dt-faq-item');
-  };
-
-  function _bindRemove(list, btnSel, itemSel) {
-    list.querySelectorAll(btnSel).forEach(btn => {
-      btn.onclick = () => btn.closest(itemSel).remove();
-    });
-  }
-
-  _bindRemove(el.querySelector('#dt-svcList'), '.dt-svc-remove', '.dt-svc-item');
-  _bindRemove(el.querySelector('#dt-faqList'), '.dt-faq-remove', '.dt-faq-item');
-
-  // Upload imagem hero
-  el.querySelector('#dt-heroBgFile').onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress('dt-heroBgProgress', p));
-      _dtHeroImageUrl = result.url;
-      el.querySelector('#dt-heroImgPreview').innerHTML = `<img src="${result.url}" style="width:100%; height:100%; object-fit:cover;">`;
-    } catch (err) {
-      window.showToast?.('Erro ao enviar imagem: ' + err.message, 'error');
-    }
-  };
-
-  el.querySelector('#dt-heroBgRemove').onclick = () => {
-    _dtHeroImageUrl = '';
-    el.querySelector('#dt-heroImgPreview').innerHTML = `<span style="color:#4b5563; font-size:0.8rem;">Sem imagem</span>`;
-  };
-
-  // Lógica para atrelar evento ao botão Remover
-  const _bindRemoveBtn = (btn) => {
-    btn.onclick = () => {
-      const themeId = btn.dataset.theme;
-      _themeBgUrls[themeId] = '';
-      
-      // Reseta o preview do card para o estilo sólido
-      const previewEl = el.querySelector(`#dt-themeBgPreview-${themeId}`);
-      if (previewEl) {
-        previewEl.style.backgroundImage = '';
-        previewEl.style.background = 'rgba(49, 53, 60, 0.3)';
-      }
-
-      // Altera o texto de upload de volta
-      const actionsContainer = btn.closest('.dt-theme-actions');
-      const uploadLabelSpan = actionsContainer?.querySelector('label span');
-      if (uploadLabelSpan) uploadLabelSpan.textContent = 'Upload imagem';
-
-      // Remove o botão remover
-      btn.remove();
-    };
-  };
-
-  // Upload imagens de temas
-  el.querySelectorAll('.dt-themeBgFile').forEach(input => {
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const themeId = input.dataset.theme;
-      const progressContainer = el.querySelector(`#dt-themeBgProgress-${themeId}`);
-      if (progressContainer) progressContainer.style.display = 'block';
-
-      try {
-        const result = await uploadImage(file, appState.authToken, (p) => showUploadProgress(`dt-themeBgProgress-${themeId}`, p));
-        _themeBgUrls[themeId] = result.url;
-        
-        // Atualiza o preview real do card com overlay
-        const previewEl = el.querySelector(`#dt-themeBgPreview-${themeId}`);
-        if (previewEl) {
-          previewEl.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.7)), url('${result.url}')`;
-        }
-
-        // Atualiza as ações: altera texto de upload e adiciona botão remover
-        const actionsContainer = input.closest('.dt-theme-actions');
-        const uploadLabelSpan = actionsContainer?.querySelector('label span');
-        if (uploadLabelSpan) uploadLabelSpan.textContent = 'Trocar imagem';
-
-        let removeBtn = actionsContainer?.querySelector('.dt-themeBgRemove');
-        if (actionsContainer && !removeBtn) {
-          const btnHtml = `
-            <button type="button" class="dt-themeBgRemove" data-theme="${themeId}" style="background:#450a0a; color:#fca5a5; border:none; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600; transition:background 0.15s;" onmouseenter="this.style.background='#681010'" onmouseleave="this.style.background='#450a0a'">
-              Remover
-            </button>
-          `;
-          actionsContainer.insertAdjacentHTML('beforeend', btnHtml);
-          _bindRemoveBtn(actionsContainer.querySelector('.dt-themeBgRemove'));
-        }
-      } catch (err) {
-        window.showToast?.('Erro ao enviar imagem: ' + err.message, 'error');
-      } finally {
-        if (progressContainer) {
-          setTimeout(() => { progressContainer.style.display = 'none'; }, 2000);
-        }
-        input.value = '';
-      }
-    };
-  });
-
-  // Bind inicial para os botões de remover existentes
-  el.querySelectorAll('.dt-themeBgRemove').forEach(_bindRemoveBtn);
-
-  // Salvar
-  el.querySelector('#dt-saveBtn').onclick = async (e) => {
-    const btn = e.currentTarget;
-    btn.textContent = 'Salvando...';
-    btn.disabled = true;
-
-    const svcItems = [...el.querySelectorAll('.dt-svc-item')].map((item, i) => ({
-      id: `svc-${i+1}`,
-      icon:        item.querySelector('.dt-svc-icon').value,
-      title:       item.querySelector('.dt-svc-title').value,
-      description: item.querySelector('.dt-svc-desc').value,
-      price:       item.querySelector('.dt-svc-price').value
-    }));
-
-    const faqItems = [...el.querySelectorAll('.dt-faq-item')].map((item, i) => ({
-      id: `faq-${i+1}`,
-      question: item.querySelector('.dt-faq-q').value,
-      answer:   item.querySelector('.dt-faq-a').value
-    }));
-
-    const checkedSections = [...el.querySelectorAll('.dt-section-chk:checked')].map(c => c.value);
-    const adminKey = el.querySelector('#dt-adminKey').value.trim();
-    if (!adminKey) { window.showToast?.('Insira a chave de administrador.', 'error'); btn.textContent = 'Salvar como Padrão'; btn.disabled = false; return; }
-
-    try {
-      await fetch('/api/site/default-template', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'X-Admin-Key': adminKey
-        },
-        body: JSON.stringify({
-          siteConfig: {
-            heroTitle:    el.querySelector('#dt-heroTitle').value,
-            heroSubtitle: el.querySelector('#dt-heroSubtitle').value,
-            heroImage:    _dtHeroImageUrl
-          },
-          siteContent: {
-            sobre:   { title: el.querySelector('#dt-sobreTitle').value, text: el.querySelector('#dt-sobreText').value },
-            contato: { title: el.querySelector('#dt-contatoTitle').value, text: el.querySelector('#dt-contatoText').value },
-            servicos: svcItems,
-            faq: faqItems
-          },
-          siteStyle: {
-            themeBackgrounds: _themeBgUrls
-          },
-          siteSections: checkedSections
-        })
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error || r.statusText);
-        window.showToast?.('Template padrão salvo!', 'success');
-      });
-    } catch (err) {
-      window.showToast?.('Erro: ' + err.message, 'error');
-    } finally {
-      btn.textContent = 'Salvar como Padrão';
-      btn.disabled = false;
-    }
   };
 }

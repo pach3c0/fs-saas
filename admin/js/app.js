@@ -299,20 +299,29 @@ async function builderLoadPreview() {
   if (browserUrl && appState.orgSlug) browserUrl.textContent = `${appState.orgSlug}.cliquezoom.com.br`;
 
   builderIframeReady = false;
-  iframe.src = '';
-  requestAnimationFrame(() => {
-    iframe.src = siteUrl;
-    iframe.onload = () => {
-      if (loading) loading.classList.add('hidden');
-      builderApplyDevice(builderDevice);
-      setTimeout(() => {
-        if (!builderIframeReady) {
-          builderIframeReady = true;
-          window._meuSitePostPreview?.();
-        }
-      }, 2000);
-    };
-  });
+
+  // Handler anexado ANTES de navegar — garante que o evento de load não seja
+  // perdido (atribuir onload depois do src abria uma corrida).
+  iframe.onload = () => {
+    if (loading) loading.classList.add('hidden');
+    builderApplyDevice(builderDevice);
+    setTimeout(() => {
+      if (!builderIframeReady) {
+        builderIframeReady = true;
+        window._meuSitePostPreview?.();
+      }
+    }, 2000);
+  };
+
+  // Navega direto com cache-bust: força o reload mesmo quando a URL é idêntica
+  // (botão Recarregar) e elimina a corrida do antigo truque src=''+rAF, que
+  // deixava o preview EM BRANCO ao abrir o builder — exigindo clicar em
+  // "Recarregar". Agora carrega automaticamente ao entrar em Meu Site.
+  iframe.src = siteUrl + (siteUrl.includes('?') ? '&' : '?') + '_cz=' + Date.now();
+
+  // Rede de segurança: se o load não disparar (navegação bloqueada), some com
+  // o spinner mesmo assim para não travar o preview em "Carregando…".
+  setTimeout(() => { if (loading) loading.classList.add('hidden'); }, 8000);
 
   builderApplyDevice(builderDevice);
 }

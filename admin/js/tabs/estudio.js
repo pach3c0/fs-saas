@@ -12,9 +12,28 @@ let _studio = null;
 let _studioSelectedLayerId = null;
 
 async function saveEstudio(silent = false) {
-  await apiPut('/api/site/admin/config', { siteContent: { studio: _studio } });
-  if (!silent) window.showToast?.('Estúdio salvo!', 'success');
-  window._meuSitePostPreview?.();
+  try {
+    const indicator = document.getElementById('builder-save-indicator');
+    if (indicator && !silent) {
+      indicator.textContent = 'Salvando...';
+      indicator.style.opacity = '1';
+    }
+    await apiPut('/api/site/admin/config', { siteContent: { studio: _studio } });
+    if (indicator && !silent) {
+      indicator.textContent = 'Salvo!';
+      setTimeout(() => {
+        if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+      }, 1500);
+    }
+    if (!silent) window._meuSitePostPreview?.();
+  } catch (err) {
+    console.error('Erro no auto-save de estudio:', err);
+    const indicator = document.getElementById('builder-save-indicator');
+    if (indicator) {
+      indicator.textContent = 'Erro ao salvar!';
+      indicator.style.color = 'var(--red,#f85149)';
+    }
+  }
 }
 
 function getCurrentStudio(container, overrides = {}) {
@@ -57,20 +76,21 @@ export async function renderEstudio(container) {
   if (!_studio.whatsappMessages) _studio.whatsappMessages = [{ text: 'Olá! Como posso ajudar você hoje?', delay: 5 }];
 
   const whatsappHtml = _studio.whatsappMessages.map((msg, idx) => `
-    <div style="display:flex; gap:0.75rem; align-items:flex-start; padding:1rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
+    <div style="display:flex; gap:0.75rem; align-items:flex-start; padding:1.25rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
       <div style="width:2rem; height:2rem; background:var(--green); color:white; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.875rem; flex-shrink:0;">
         ${idx + 1}
       </div>
-      <div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">
-        <textarea class="input" rows="2"
-          data-whatsapp-text="${idx}" placeholder="Digite a mensagem...">${msg.text}</textarea>
+      <div style="flex:1; display:flex; flex-direction:column; gap:0.75rem;">
+        <textarea class="input" rows="2" data-whatsapp-text="${idx}" placeholder="Digite a mensagem..." style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${msg.text}</textarea>
         <div style="display:flex; align-items:center; gap:0.5rem;">
-          <label style="font-size:0.75rem; color:var(--text-secondary);">Delay (seg):</label>
+          <label style="font-size:0.75rem; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Delay (seg):</label>
           <input type="number" data-whatsapp-delay="${idx}" value="${msg.delay}" min="1" max="60"
-            style="width:4rem; padding:0.25rem 0.5rem; border:1px solid var(--border); border-radius:0.25rem; background:var(--bg-base); color:var(--text-primary); font-size:0.875rem;">
+            style="width:4rem; padding:0.4rem; border:1px solid var(--border); border-radius:0.375rem; background:var(--bg-surface); color:var(--text-primary); font-size:0.8rem; text-align:center; outline:none;">
         </div>
       </div>
-      <button onclick="removeWhatsappMessage(${idx})" class="btn btn-ghost btn-sm" style="color:var(--red);" title="Remover">🗑️</button>
+      <button onclick="removeWhatsappMessage(${idx})" class="p-action-btn" title="Remover" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-surface); border:1px solid var(--border); color:var(--red,#f85149);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
   `).join('');
 
@@ -100,144 +120,166 @@ export async function renderEstudio(container) {
       .se-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.35rem; }
     </style>
 
-    <div style="display:flex; flex-direction:column; gap:1.5rem; padding-bottom:2rem;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Estudio</h2>
-
-      <!-- APRESENTAÇÃO -->
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Apresentacao</h3>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Titulo</label>
-          <div id="studioTitleWrap"></div>
-          <input type="text" id="studioTitle" class="se-input" style="display:none;"
-            value="${(_studio.title || '').replace(/"/g, '&quot;')}">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Descricao</label>
-          <div id="studioDescWrap"></div>
-          <textarea id="studioDesc" class="se-textarea" rows="3" style="display:none;">${_studio.description || ''}</textarea>
-        </div>
+    <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+      <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+        <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Estúdio</h3>
+        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações e imagens do seu estúdio.</p>
       </div>
 
-      <!-- INFORMAÇÕES -->
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Informacoes</h3>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Endereco</label>
-            <input type="text" id="studioAddress" class="se-input"
-              value="${(_studio.address || '').replace(/"/g, '&quot;')}">
+      <div style="display:flex; flex-direction:column; gap:1.5rem; width:100%;">
+        <!-- APRESENTAÇÃO -->
+        <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1.25rem; width:100%; box-sizing:border-box;">
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Apresentação</h3>
+          <div style="width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+            <div id="studioTitleWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
+            <input type="text" id="studioTitle" class="se-input" style="display:none;" value="${(_studio.title || '').replace(/"/g, '&quot;')}">
           </div>
-          <div>
-            <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">WhatsApp (com DDD)</label>
-            <input type="text" id="studioWhatsapp" class="se-input"
-              value="${_studio.whatsapp || ''}" placeholder="5511999999999">
+          <div style="width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
+            <div id="studioDescWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
+            <textarea id="studioDesc" class="se-textarea" rows="3" style="display:none;">${_studio.description || ''}</textarea>
           </div>
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Horario de Atendimento</label>
-          <div id="studioHoursWrap"></div>
-          <textarea id="studioHours" class="se-textarea" rows="2" style="display:none;">${_studio.hours || ''}</textarea>
-        </div>
-        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
-          <label style="position:relative; display:inline-block; width:2.5rem; height:1.375rem; flex-shrink:0; cursor:pointer;">
-            <input type="checkbox" id="studioMapEnabledToggle" ${_studio.mapEnabled !== false ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
-            <span id="studioMapToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.mapEnabled !== false ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
-              <span style="position:absolute; left:${_studio.mapEnabled !== false ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
-            </span>
-          </label>
-          <span style="font-size:0.875rem; color:var(--text-primary);">Exibir mapa interativo de localização no site</span>
-        </div>
-      </div>
-
-      <!-- FOTOS (CANVAS DE CAMADAS) -->
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); overflow:hidden;">
-        <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Fotos do Estudio</h3>
-            <p style="font-size:0.75rem; color:var(--text-secondary);">Composicao livre de camadas — maximo 4 fotos</p>
-          </div>
-          <div id="studioAddPhotoWrapper">
-            <label class="se-btn primary" style="cursor:pointer;">
-              📷 Adicionar Foto
-              <input type="file" accept=".jpg,.jpeg,.png" id="studioUploadInput" style="display:none;">
-            </label>
-          </div>
-        </div>
-        <div id="studioUploadProgress" style="padding:0 1rem;"></div>
-
-        <!-- Lista de camadas -->
-        <div class="se-section" style="border-bottom:none;">
-          <div class="se-section-head">Camadas</div>
-          <div id="studio-layer-list"></div>
         </div>
 
-        <!-- Painel de propriedades da camada selecionada -->
-        <div id="studio-layer-props" class="se-section" style="display:none; border-top:1px solid var(--border);">
-          <div class="se-section-head">⚙️ Ajustes da Foto</div>
-          <div id="studio-layer-props-content"></div>
-        </div>
-      </div>
-
-      <!-- MENSAGENS WHATSAPP -->
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Mensagens do WhatsApp</h3>
-            <p style="font-size:0.75rem; color:var(--text-secondary);">Mensagens que aparecem na bolha flutuante em sequencia</p>
+        <!-- INFORMAÇÕES -->
+        <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1.25rem; width:100%; box-sizing:border-box;">
+          <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Informações</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; width:100%;">
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço</label>
+              <input type="text" id="studioAddress" class="input" value="${(_studio.address || '').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+            </div>
+            <div class="input-group" style="margin-bottom:0; width:100%;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">WhatsApp (com DDD)</label>
+              <input type="text" id="studioWhatsapp" class="input" value="${_studio.whatsapp || ''}" placeholder="5511999999999" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
+            </div>
           </div>
-          <button id="addWhatsappMsgBtn" class="btn btn-success">
-            + Nova Mensagem
-          </button>
-        </div>
-        <div id="whatsappList" style="display:flex; flex-direction:column; gap:0.5rem;">
-          ${whatsappHtml}
-        </div>
-      </div>
-
-      <!-- VÍDEO -->
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary);">Video do Estudio</h3>
-            <p style="font-size:0.75rem; color:var(--text-secondary);">Exibido abaixo das fotos no site. Maximo 300MB.</p>
+          <div style="width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Horário de Atendimento</label>
+            <div id="studioHoursWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
+            <textarea id="studioHours" class="se-textarea" rows="2" style="display:none;">${_studio.hours || ''}</textarea>
           </div>
-          <div style="display:flex; gap:0.5rem; align-items:center;">
-            ${_studio.videoUrl ? `
-              <button id="removeVideoBtn" class="btn btn-danger">
-                Remover Video
-              </button>
-            ` : ''}
-            <label style="background:var(--accent); color:white; padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; font-weight:600; cursor:pointer;">
-              ${_studio.videoUrl ? 'Trocar Video' : 'Upload de Video'}
-              <input type="file" accept=".mp4,.mov,.webm" id="studioVideoInput" style="display:none;">
-            </label>
-          </div>
-        </div>
-        <div id="studioVideoProgress"></div>
-        ${_studio.videoUrl ? `
-          <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border-radius:0.5rem; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:center; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-surface); border-radius:0.5rem; border:1px solid var(--border); width:100%; box-sizing:border-box;">
             <label style="position:relative; display:inline-block; width:2.5rem; height:1.375rem; flex-shrink:0; cursor:pointer;">
-              <input type="checkbox" id="videoEnabledToggle" ${_studio.videoEnabled ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
-              <span id="videoToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.videoEnabled ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
-                <span style="position:absolute; left:${_studio.videoEnabled ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
+              <input type="checkbox" id="studioMapEnabledToggle" ${_studio.mapEnabled !== false ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
+              <span id="studioMapToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.mapEnabled !== false ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
+                <span style="position:absolute; left:${_studio.mapEnabled !== false ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
               </span>
             </label>
-            <span style="font-size:0.875rem; color:var(--text-primary);">Exibir video no site</span>
+            <span style="font-size:0.875rem; color:var(--text-primary);">Exibir mapa interativo no site</span>
           </div>
-          <div style="aspect-ratio:16/9; border-radius:0.5rem; overflow:hidden; background:#000;">
-            <video src="${resolveImagePath(_studio.videoUrl)}" controls style="width:100%; height:100%; object-fit:contain;"></video>
-          </div>
-        ` : '<p style="color:var(--text-secondary); text-align:center; padding:1.5rem;">Nenhum video. Use o botao acima para adicionar.</p>'}
-      </div>
+        </div>
 
-      <button id="saveStudioBtn" class="btn btn-primary">
-        Salvar Tudo
-      </button>
+        <!-- FOTOS (CANVAS DE CAMADAS) -->
+        <div style="background:var(--bg-elevated); border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; width:100%; box-sizing:border-box;">
+          <div style="padding:1.5rem; border-bottom:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1rem;">
+            <div style="text-align:center;">
+              <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Fotos do Estúdio</h3>
+              <p style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">Composição livre de camadas — máximo 4 fotos</p>
+            </div>
+            <div id="studioAddPhotoWrapper" style="display:flex; justify-content:center;">
+              <label class="btn" style="cursor:pointer; border-radius:9999px; padding:0.5rem 1.25rem; font-weight:600;" title="Adicionar Foto">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Adicionar Foto
+                <input type="file" accept=".jpg,.jpeg,.png" id="studioUploadInput" style="display:none;">
+              </label>
+            </div>
+          </div>
+          <div id="studioUploadProgress" style="padding:0 1.5rem;"></div>
+
+          <!-- Lista de camadas -->
+          <div class="se-section" style="border-bottom:none;">
+            <div class="se-section-head" style="justify-content:center;">Camadas</div>
+            <div id="studio-layer-list"></div>
+          </div>
+
+          <!-- Painel de propriedades da camada selecionada -->
+          <div id="studio-layer-props" class="se-section" style="display:none; border-top:1px solid var(--border);">
+            <div class="se-section-head" style="justify-content:center;">Ajustes da Foto</div>
+            <div id="studio-layer-props-content"></div>
+          </div>
+        </div>
+
+        <!-- MENSAGENS WHATSAPP -->
+        <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1.25rem; width:100%; box-sizing:border-box;">
+          <div style="text-align:center;">
+            <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Mensagens do WhatsApp</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">Mensagens que aparecem na bolha flutuante</p>
+          </div>
+          
+          <div style="display:flex; justify-content:center; width:100%;">
+            <button id="addWhatsappMsgBtn" class="btn" style="border-radius:9999px; padding:0.5rem 1.25rem; font-weight:600;" title="Nova Mensagem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Nova Mensagem
+            </button>
+          </div>
+
+          <div id="whatsappList" style="display:flex; flex-direction:column; gap:1rem; width:100%;">
+            ${whatsappHtml}
+          </div>
+        </div>
+
+        <!-- VÍDEO -->
+        <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1.25rem; width:100%; box-sizing:border-box;">
+          <div style="text-align:center;">
+            <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Vídeo do Estúdio</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">Exibido abaixo das fotos no site. Máximo 300MB.</p>
+          </div>
+          
+          <div style="display:flex; justify-content:center; gap:1rem; align-items:center;">
+            <label style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem 1rem; border-radius:0.375rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              ${_studio.videoUrl ? 'Trocar Vídeo' : 'Upload de Vídeo'}
+              <input type="file" accept=".mp4,.mov,.webm" id="studioVideoInput" style="display:none;">
+            </label>
+            ${_studio.videoUrl ? `
+              <button id="removeVideoBtn" class="p-action-btn" title="Remover Vídeo" style="width:32px !important; min-width:32px !important; height:32px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3); color:#f85149;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+              </button>
+            ` : ''}
+          </div>
+          
+          <div id="studioVideoProgress" style="width:100%;"></div>
+          
+          ${_studio.videoUrl ? `
+            <div style="display:flex; justify-content:center; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-surface); border-radius:0.5rem; border:1px solid var(--border); width:100%; box-sizing:border-box;">
+              <label style="position:relative; display:inline-block; width:2.5rem; height:1.375rem; flex-shrink:0; cursor:pointer;">
+                <input type="checkbox" id="videoEnabledToggle" ${_studio.videoEnabled ? 'checked' : ''} style="opacity:0; width:0; height:0; position:absolute;">
+                <span id="videoToggleTrack" style="position:absolute; inset:0; border-radius:9999px; background:${_studio.videoEnabled ? 'var(--accent)' : 'var(--border)'}; transition:background 0.2s;">
+                  <span style="position:absolute; left:${_studio.videoEnabled ? '1.125rem' : '0.125rem'}; top:0.125rem; width:1.125rem; height:1.125rem; border-radius:9999px; background:white; transition:left 0.2s;"></span>
+                </span>
+              </label>
+              <span style="font-size:0.875rem; color:var(--text-primary);">Exibir vídeo no site</span>
+            </div>
+            <div style="width:100%; aspect-ratio:16/9; border-radius:0.5rem; overflow:hidden; background:#000; border:1px solid var(--border);">
+              <video src="${resolveImagePath(_studio.videoUrl)}" controls style="width:100%; height:100%; object-fit:contain;"></video>
+            </div>
+          ` : '<p style="color:var(--text-secondary); text-align:center; padding:1.5rem; width:100%; border:1px dashed var(--border); border-radius:0.5rem; background:rgba(0,0,0,0.2);">Nenhum vídeo adicionado.</p>'}
+        </div>
+      </div>
     </div>
   `;
 
-  const liveNotify = () => window._meuSitePostPreview?.();
+  const doAutoSave = async () => {
+    _studio = {
+      ...getCurrentStudio(container, {
+        title: studioTitleRte?.getValue(),
+        description: studioDescRte?.getValue(),
+        hours: studioHoursRte?.getValue(),
+      }),
+    };
+    await saveEstudio();
+  };
+
+  const liveNotify = () => {
+    window._meuSitePostPreview?.();
+    doAutoSave();
+  };
   const layers = _studio.studioLayers;
 
   // ── Rich text editors ──
@@ -579,6 +621,7 @@ export async function renderEstudio(container) {
     _studio = getCurrentStudio(container);
     _studio.whatsappMessages.push({ text: '', delay: 5 });
     renderEstudio(container);
+    doAutoSave();
   };
 
   window.removeWhatsappMessage = async (idx) => {
@@ -589,15 +632,23 @@ export async function renderEstudio(container) {
     await saveEstudio(true);
     renderEstudio(container);
   };
-
-  container.querySelector('#saveStudioBtn').onclick = async () => {
-    _studio = {
-      ...getCurrentStudio(container, {
-        title: studioTitleRte?.getValue(),
-        description: studioDescRte?.getValue(),
-        hours: studioHoursRte?.getValue(),
-      }),
+  
+  // Auto-save WhatsApp changes
+  container.querySelectorAll('[data-whatsapp-text], [data-whatsapp-delay]').forEach(input => {
+    input.oninput = () => {
+      window._meuSitePostPreview?.();
+      doAutoSave();
     };
-    await saveEstudio();
-  };
+  });
+  
+  // Auto-save Endereco e WhatsApp inputs
+  const studioWhatsappInput = container.querySelector('#studioWhatsapp');
+  if (studioWhatsappInput) {
+    studioWhatsappInput.oninput = () => {
+      window._meuSitePostPreview?.();
+      doAutoSave();
+    };
+  }
+
+
 }

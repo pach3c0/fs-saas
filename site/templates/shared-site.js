@@ -714,7 +714,7 @@ function renderSite(data, opts = {}) {
   if (servicosGrid && content.servicos) {
     servicosGrid.innerHTML = content.servicos.map(s => `
       <div class="servico-card">
-        <div class="servico-icon" style="display:flex; align-items:center; justify-content:center;">${renderServicoIcon(s.icon)}</div>
+        ${s.icon ? `<div class="servico-icon" style="display:flex; align-items:center; justify-content:center;">${renderServicoIcon(s.icon)}</div>` : ''}
         <div class="servico-info">
           <h3>${esc(s.title)}</h3>
           <p>${esc(s.description)}</p>

@@ -56,15 +56,18 @@ export async function renderAlbuns(container) {
         <div class="a-photo-item" draggable="true" data-album-idx="${idx}" data-photo-idx="${photoIdx}" style="position:relative; aspect-ratio:3/4; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; cursor:grab;">
           <img src="${resolveImagePath(photoObj.url)}" alt="Foto ${photoIdx + 1}" style="width:100%; height:100%; object-fit:cover; object-position:${photoObj.transform.x}% ${photoObj.transform.y}%; transform:scale(${photoObj.transform.scale}); pointer-events:none;">
           <div class="album-photo-overlay" data-album="${idx}" data-photo="${photoIdx}"
-            style="position:absolute; inset:0; background:rgba(0,0,0,0.6); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem;">
-            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" class="btn btn-sm btn-primary" style="width:80%;" title="Definir como capa">
-              📷 Capa
+            style="position:absolute; inset:0; background:rgba(0,0,0,0.65); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; padding:1rem;">
+            <button onclick="event.stopPropagation(); setAlbumCover(${idx}, ${photoIdx})" style="width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; padding:0.4rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;" title="Definir como capa">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              Capa
             </button>
-            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" class="btn btn-sm" style="width:80%;" title="Editar">
-              ✏️ Editar
+            <button onclick="event.stopPropagation(); window.openAlbumPhotoEditor(${idx}, ${photoIdx})" style="width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; padding:0.4rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;" title="Editar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              Editar
             </button>
-            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" class="btn btn-sm btn-danger" style="width:80%; background:var(--red); color:white;" title="Remover">
-              🗑️ Remover
+            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="width:100%; background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3); color:#f85149; padding:0.4rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;" title="Remover">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+              Remover
             </button>
           </div>
         </div>
@@ -72,40 +75,45 @@ export async function renderAlbuns(container) {
     });
 
     albumsHtml += `
-      <div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
-        <div style="display:flex; gap:1rem; align-items:flex-start;">
-          <div style="flex:1; display:flex; flex-direction:column; gap:0.75rem;">
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Título do Álbum</label>
-              <input type="text" class="input" value="${album.title || ''}" data-album-title="${idx}">
-            </div>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Subtítulo</label>
-              <input type="text" class="input" value="${album.subtitle || ''}" data-album-subtitle="${idx}" placeholder="Ex: Ensaio completo">
-            </div>
+      <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <div class="input-group" style="margin-bottom:0; width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título do Álbum</label>
+            <input type="text" class="input" value="${(album.title || '').replace(/"/g, '&quot;')}" data-album-title="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
-          <div style="width:8rem; height:8rem; background:var(--bg-elevated); border-radius:0.5rem; overflow:hidden; flex-shrink:0;">
-            ${coverUrl ? `<img src="${resolveImagePath(coverUrl)}" alt="Capa" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:var(--text-secondary);">Sem capa</div>`}
+          <div class="input-group" style="margin-bottom:0; width:100%;">
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Subtítulo</label>
+            <input type="text" class="input" value="${(album.subtitle || '').replace(/"/g, '&quot;')}" data-album-subtitle="${idx}" placeholder="Ex: Ensaio completo" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
-          <button onclick="removeAlbum(${idx})" class="btn btn-ghost btn-sm" title="Remover álbum">
-            🗑️
-          </button>
+          
+          <div style="display:flex; justify-content:center; gap:1.5rem; align-items:flex-end; margin-top:0.5rem;">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Capa</label>
+              <div style="width:48px; height:48px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0;">
+                ${coverUrl ? `<img src="${resolveImagePath(coverUrl)}" alt="Capa" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; color:var(--text-secondary);">Sem capa</div>`}
+              </div>
+            </div>
+            <button onclick="removeAlbum(${idx})" class="p-action-btn header-expand-btn" title="Remover Álbum" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-surface); border:1px solid var(--border); color:var(--red,#f85149); margin-bottom:0.5rem;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:0.75rem; border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">Catálogo (${photos.length} fotos)</span>
-            <label style="background:var(--accent); color:white; padding:0.4rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.25rem;">
+            <label style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
               Upload
               <input type="file" accept=".jpg,.jpeg,.png" multiple class="albumUploadInput" data-album-idx="${idx}" style="display:none;">
             </label>
           </div>
           
-          <div style="display:flex; background:var(--bg-elevated); border-radius:0.375rem; overflow:hidden; border:1px solid var(--border); align-self:stretch;">
-            <button onclick="setAlbumGridStyle(${idx}, 'standard')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:500; cursor:pointer; border:none; background:${album.gridStyle !== 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle !== 'mixed' ? 'white' : 'var(--text-secondary)'};">
+          <div style="display:flex; background:var(--bg-surface); border-radius:0.375rem; overflow:hidden; border:1px solid var(--border); align-self:stretch;">
+            <button onclick="setAlbumGridStyle(${idx}, 'standard')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:600; cursor:pointer; border:none; background:${album.gridStyle !== 'mixed' ? 'var(--bg-elevated)' : 'transparent'}; color:${album.gridStyle !== 'mixed' ? 'var(--text-primary)' : 'var(--text-secondary)'}; transition:all 0.2s;">
               Grid Padrão
             </button>
-            <button onclick="setAlbumGridStyle(${idx}, 'mixed')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:500; cursor:pointer; border:none; background:${album.gridStyle === 'mixed' ? 'var(--accent)' : 'transparent'}; color:${album.gridStyle === 'mixed' ? 'white' : 'var(--text-secondary)'};">
+            <button onclick="setAlbumGridStyle(${idx}, 'mixed')" style="flex:1; padding:0.5rem; font-size:0.75rem; font-weight:600; cursor:pointer; border:none; background:${album.gridStyle === 'mixed' ? 'var(--bg-elevated)' : 'transparent'}; color:${album.gridStyle === 'mixed' ? 'var(--text-primary)' : 'var(--text-secondary)'}; transition:all 0.2s;">
               Grid Misto
             </button>
           </div>
@@ -113,7 +121,7 @@ export async function renderAlbuns(container) {
 
         <div id="albumUploadProgress${idx}"></div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:0.75rem; margin-top:0.5rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:0.5rem; margin-top:0.5rem;">
           ${photosGridHtml}
         </div>
       </div>
@@ -121,22 +129,24 @@ export async function renderAlbuns(container) {
   });
 
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:1.5rem;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Álbuns</h2>
-          <p style="font-size:0.875rem; color:var(--text-secondary);">Crie e gerencie os álbuns da galeria</p>
-        </div>
-        <button id="addAlbumBtn" class="btn btn-success">
-          + Criar Álbum
+    <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
+      <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
+        <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Álbuns</h3>
+        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Crie e gerencie os álbuns da galeria.</p>
+      </div>
+
+      <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
+        <button id="addAlbumBtn" class="btn" style="border-radius:9999px; padding:0.5rem 1.25rem; font-weight:600;" title="Criar Álbum">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Criar Álbum
         </button>
       </div>
 
-      <button id="saveAlbumsBtn" class="btn btn-primary">
-        Salvar Alterações
-      </button>
-
-      ${albumsHtml || `<div style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-surface); padding:3rem; text-align:center; color:var(--text-secondary); font-size:0.875rem;">Nenhum álbum criado ainda.</div>`}
+      <div style="display:flex; flex-direction:column; gap:1.5rem; width:100%;">
+        ${albumsHtml || `<div style="border:1px dashed var(--border); border-radius:0.5rem; background:rgba(0,0,0,0.2); padding:2rem; text-align:center; color:var(--text-secondary); font-size:0.875rem;">Nenhum álbum criado ainda.</div>`}
+      </div>
     </div>
   `;
 
@@ -190,20 +200,40 @@ export async function renderAlbuns(container) {
   };
 
   const saveAlbumFields = async (silent = true) => {
-    container.querySelectorAll('[data-album-title]').forEach((input, idx) => {
-      if (_albums[idx]) _albums[idx].title = input.value;
-    });
-    container.querySelectorAll('[data-album-subtitle]').forEach((input, idx) => {
-      if (_albums[idx]) _albums[idx].subtitle = input.value;
-    });
-    await saveAlbuns(silent);
+    try {
+      const indicator = document.getElementById('builder-save-indicator');
+      if (indicator && !silent) {
+        indicator.textContent = 'Salvando...';
+        indicator.style.opacity = '1';
+      }
+      container.querySelectorAll('[data-album-title]').forEach((input, idx) => {
+        if (_albums[idx]) _albums[idx].title = input.value;
+      });
+      container.querySelectorAll('[data-album-subtitle]').forEach((input, idx) => {
+        if (_albums[idx]) _albums[idx].subtitle = input.value;
+      });
+      await saveAlbuns(silent);
+      if (indicator && !silent) {
+        indicator.textContent = 'Salvo!';
+        setTimeout(() => {
+          if (indicator.textContent === 'Salvo!') indicator.style.opacity = '0';
+        }, 1500);
+      }
+    } catch (err) {
+      const indicator = document.getElementById('builder-save-indicator');
+      if (indicator) {
+        indicator.textContent = 'Erro ao salvar!';
+        indicator.style.color = 'var(--red,#f85149)';
+      }
+    }
   };
 
   container.querySelectorAll('[data-album-title], [data-album-subtitle]').forEach(input => {
-    input.onblur = () => saveAlbumFields(true);
+    input.oninput = () => {
+      window._meuSitePostPreview?.();
+      saveAlbumFields(true);
+    };
   });
-
-  container.querySelector('#saveAlbumsBtn').onclick = () => saveAlbumFields(false);
 
   window.setAlbumGridStyle = async (idx, style) => {
     _albums[idx].gridStyle = style;

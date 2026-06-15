@@ -51,33 +51,38 @@ export async function renderPortfolio(container) {
       
       /* Botões de ação na foto */
       .p-actions {
-        position: absolute; top: 4px; right: 4px; left: 4px;
+        position: absolute; top: 6px; right: 6px; left: 6px;
         display: flex; justify-content: space-between; align-items: flex-start;
         opacity: 0; transition: opacity 0.2s; z-index: 10;
       }
       .p-item:hover .p-actions { opacity: 1; }
       
       .p-action-btn {
-        width: 24px; height: 24px; border-radius: 50%; border: none;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 14px; cursor: pointer; color: white; transition: transform 0.1s;
+        width: 26px; height: 26px; border-radius: 50% !important; border: 1px solid var(--border) !important;
+        display: inline-flex !important; align-items: center; justify-content: center;
+        cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+        box-sizing: border-box !important; padding: 0 !important;
       }
       .p-action-btn:active { transform: scale(0.9); }
-      .p-btn-del { background: rgba(220,38,38,0.9); }
-      .p-btn-edit { background: rgba(37,99,235,0.9); }
+      .p-btn-del { background: var(--bg-elevated); color: var(--red,#f85149); }
+      .p-btn-del:hover { background: var(--bg-hover); border-color: var(--red,#f85149) !important; }
+      .p-btn-edit { background: var(--bg-elevated); color: var(--text-secondary); }
+      .p-btn-edit:hover { background: var(--bg-hover); border-color: var(--text-primary) !important; color: var(--text-primary); }
+      
       .p-btn-check { 
-        position: absolute; bottom: 4px; left: 4px; width: 20px; height: 20px; 
-        background: var(--bg-surface); border: 2px solid var(--border); border-radius: 4px;
+        position: absolute; bottom: 6px; left: 6px; width: 22px; height: 22px; 
+        background: rgba(0,0,0,0.6); border: 1.5px solid rgba(255,255,255,0.5); border-radius: 50%;
         display: flex; align-items: center; justify-content: center; cursor: pointer;
         opacity: 0; transition: all 0.2s; z-index: 10;
+        color: white;
       }
       .p-item:hover .p-btn-check, .p-item.selected .p-btn-check { opacity: 1; }
-      .p-item.selected .p-btn-check { background: var(--accent); border-color: var(--accent); }
-      .p-item.selected { border-color: var(--accent); border-width: 2px; }
+      .p-item.selected .p-btn-check { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-surface); }
+      .p-item.selected { border-color: var(--text-primary); border-width: 2px; }
 
       .p-empty {
         padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem;
-        grid-column: span 3; background: rgba(0,0,0,0.2);
+        grid-column: span 2; background: rgba(0,0,0,0.2);
         border: 1px dashed var(--border); border-radius: 8px;
       }
 
@@ -96,47 +101,57 @@ export async function renderPortfolio(container) {
       /* Barra de Ações em Massa */
       #pBulkActions {
         display: none; position: sticky; bottom: 1rem; left: 0; right: 0;
-        background: var(--accent); color: white; padding: 0.75rem 1rem;
-        border-radius: 0.5rem; justify-content: space-between; align-items: center;
+        background: var(--bg-elevated); color: var(--text-primary); padding: 0.75rem 1rem;
+        border: 1px solid var(--border); border-radius: 0.5rem; justify-content: space-between; align-items: center;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 100; margin-top: 1rem;
       }
     </style>
 
-    <div style="padding-bottom:2rem; position:relative;">
-      <div style="padding:1rem 0; border-bottom:1px solid var(--border); margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+    <div style="padding-bottom:2rem; position:relative; display:flex; flex-direction:column; align-items:center;">
+      <div style="padding:1rem 0; border-bottom:1px solid var(--border); margin-bottom:1.5rem; display:flex; flex-direction:column; align-items:center; gap:0.75rem; text-align:center; width:100%;">
         <div>
           <h2 style="font-size:1.1rem; font-weight:bold; color:var(--text-primary); margin:0;">Galeria de Portfólio</h2>
           <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.25rem 0 0;">Editor Avançado: Posição, Zoom e Formato Misto</p>
         </div>
         
-        <div style="display:flex; gap:0.25rem; background:var(--bg-surface); padding:0.25rem; border-radius:0.375rem; border:1px solid var(--border);">
-          <button id="styleStandardBtn" class="btn ${_gridStyle === 'standard' ? 'btn-primary' : 'btn-ghost'}">Padrão</button>
-          <button id="styleMixedBtn" class="btn ${_gridStyle === 'mixed' ? 'btn-primary' : 'btn-ghost'}">Misto (Dinâmico)</button>
+        <div style="display:inline-flex; gap:0.25rem; background:var(--bg-surface); padding:0.25rem; border-radius:0.375rem; border:1px solid var(--border); width:fit-content;">
+          <button id="styleStandardBtn" class="btn" style="padding:0.4rem 0.75rem; border-radius:0.25rem; border:none; font-size:0.75rem; cursor:pointer; font-weight:600; transition:all 0.15s; background:${_gridStyle === 'standard' ? 'var(--bg-hover)' : 'transparent'}; border:1px solid ${_gridStyle === 'standard' ? 'var(--text-primary)' : 'transparent'}; color:${_gridStyle === 'standard' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Padrão</button>
+          <button id="styleMixedBtn" class="btn" style="padding:0.4rem 0.75rem; border-radius:0.25rem; border:none; font-size:0.75rem; cursor:pointer; font-weight:600; transition:all 0.15s; background:${_gridStyle === 'mixed' ? 'var(--bg-hover)' : 'transparent'}; border:1px solid ${_gridStyle === 'mixed' ? 'var(--text-primary)' : 'transparent'}; color:${_gridStyle === 'mixed' ? 'var(--text-primary)' : 'var(--text-secondary)'};">Misto (Dinâmico)</button>
         </div>
       </div>
 
-      <label style="background:var(--accent); color:white; padding:0.75rem; border-radius:0.375rem;
-                    font-size:0.875rem; font-weight:600; cursor:pointer; display:flex;
-                    align-items:center; justify-content:center; gap:0.5rem; width:100%; box-sizing:border-box;">
-        <span class="material-symbols-outlined" style="font-size:20px;">add_photo_alternate</span>
-        Carregar Fotos
-        <input type="file" id="pUploadInput" multiple accept="image/*" style="display:none;">
-      </label>
-      <div id="pUploadProgress"></div>
+      <div style="display:flex; justify-content:center; width:100%; margin-bottom:0.5rem;">
+        <label class="header-expand-btn" style="cursor:pointer;" title="Carregar Fotos">
+          <span class="header-expand-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image-plus">
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
+              <line x1="16" y1="5" x2="22" y2="5"/>
+              <line x1="19" y1="2" x2="19" y2="8"/>
+              <circle cx="9" cy="11" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+          </span>
+          <span class="header-expand-label" style="font-weight: 600;">Carregar Fotos</span>
+          <input type="file" id="pUploadInput" multiple accept="image/*" style="display:none;">
+        </label>
+      </div>
+      <div id="pUploadProgress" style="width:100%; display:flex; justify-content:center;"></div>
 
-      <div id="pPhotoGrid" class="p-grid" style="margin-top:1.5rem;"></div>
+      <div id="pPhotoGrid" class="p-grid" style="margin-top:1.5rem; width:100%;"></div>
 
-      <div id="pBulkActions">
-        <span id="pBulkCount" style="font-size:0.85rem; font-weight:600;">0 selecionadas</span>
+      <div id="pBulkActions" style="width:100%; box-sizing:border-box;">
+        <span id="pBulkCount" style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">0 selecionadas</span>
         <div style="display:flex; gap:0.5rem;">
-          <button id="pBulkCancelBtn" class="btn btn-ghost" style="color:white;">Limpar</button>
-          <button id="pBulkDelBtn" class="btn btn-danger" style="background:var(--red); color:white; border-color:var(--red);">Excluir</button>
+          <button id="pBulkCancelBtn" class="btn" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.75rem; font-weight:600;">Limpar</button>
+          <button id="pBulkDelBtn" class="btn" style="background:var(--red,#f85149); border:none; color:white; padding:0.4rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer;">Excluir</button>
         </div>
       </div>
 
-      <button id="pClearBtn" class="btn btn-danger" style="display:none; margin-top:2rem; width:100%;">
-        Remover Todas as Fotos
-      </button>
+      <div style="display:flex; justify-content:center; width:100%; margin-top:2rem;">
+        <button id="pClearBtn" class="btn" style="display:none; background:transparent; border:none; color:var(--red,#f85149); font-size:0.75rem; font-weight:600; cursor:pointer; opacity:0.8; transition:opacity 0.15s; padding:0.5rem 1rem;">
+          Remover Todas as Fotos
+        </button>
+      </div>
     </div>
   `;
 
@@ -171,14 +186,16 @@ function renderPhotos(container) {
         <img src="${resolveImagePath(photo.url)}" alt="Foto ${i + 1}" loading="lazy" style="object-position:${transform.x}% ${transform.y}%; transform:scale(${transform.scale});">
         
         <div class="p-btn-check">
-          <span class="material-symbols-outlined" style="font-size:16px; color:white;">${isSelected ? 'check' : ''}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" style="display:${isSelected ? 'block' : 'none'};"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
 
         <div class="p-actions">
           <button class="p-action-btn p-btn-edit" data-index="${i}" title="Editar Imagem e Legenda">
-            <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
           </button>
-          <button class="p-action-btn p-btn-del" data-index="${i}" title="Remover foto">✕</button>
+          <button class="p-action-btn p-btn-del" data-index="${i}" title="Remover foto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </button>
         </div>
       </div>
     `;
@@ -291,9 +308,11 @@ function setupEvents(container) {
     styleStandardBtn.onclick = () => {
       _gridStyle = 'standard';
       updateAndSave();
-      styleStandardBtn.style.background = 'var(--accent)';
-      styleStandardBtn.style.color = 'white';
+      styleStandardBtn.style.background = 'var(--bg-hover)';
+      styleStandardBtn.style.borderColor = 'var(--text-primary)';
+      styleStandardBtn.style.color = 'var(--text-primary)';
       styleMixedBtn.style.background = 'transparent';
+      styleMixedBtn.style.borderColor = 'transparent';
       styleMixedBtn.style.color = 'var(--text-secondary)';
     };
   }
@@ -302,14 +321,14 @@ function setupEvents(container) {
     styleMixedBtn.onclick = () => {
       _gridStyle = 'mixed';
       updateAndSave();
-      styleMixedBtn.style.background = 'var(--accent)';
-      styleMixedBtn.style.color = 'white';
+      styleMixedBtn.style.background = 'var(--bg-hover)';
+      styleMixedBtn.style.borderColor = 'var(--text-primary)';
+      styleMixedBtn.style.color = 'var(--text-primary)';
       styleStandardBtn.style.background = 'transparent';
+      styleStandardBtn.style.borderColor = 'transparent';
       styleStandardBtn.style.color = 'var(--text-secondary)';
     };
   }
-
-  // Auto-saves delegados foram movidos para a Modal
 
   // Ações em Massa
   bulkCancelBtn.onclick = () => {
@@ -385,13 +404,12 @@ function openPhotoEditor(idx, container) {
       .p-modal-controls { width:100%; padding:1.5rem; overflow-y:auto; display:flex; flex-direction:column; gap:1.5rem; }
       @media (min-width: 768px) { .p-modal-controls { width:320px; border-left:1px solid var(--border); } }
       #pModalPreviewWrapper { max-width:100%; max-height:100%; width:100%; aspect-ratio:16/9; overflow:hidden; border:2px solid var(--border); border-radius:8px; transition:aspect-ratio 0.3s, width 0.3s, height 0.3s; }
-      /* Usa object-fit nativo da div com auto pra não forçar 100% quando estourar altura */
       .aspect-fit { width:auto !important; height:auto !important; min-width:0; min-height:0; }
     </style>
     <div style="background:var(--bg-surface); width:100%; max-width:1200px; height:90vh; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;">
       <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); flex-shrink:0;">
         <h3 style="margin:0; font-size:1.1rem; color:white;">Editar Foto</h3>
-        <button id="pModalClose" class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button id="pModalClose" class="btn btn-ghost btn-sm" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:4px;"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       
       <div class="p-modal-body">
@@ -403,41 +421,43 @@ function openPhotoEditor(idx, container) {
         </div>
         
         <!-- Controls area -->
-        <div class="p-modal-controls">
+        <div class="p-modal-controls" style="display:flex; flex-direction:column; gap:1.5rem; align-items:center; text-align:center; box-sizing:border-box;">
           
-          <div style="${_gridStyle === 'standard' ? 'display:none;' : ''}">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Formato no Grid Misto</label>
-            <div style="display:flex; gap:0.5rem;">
-              <button class="p-fmt-btn ${photo.format === '16/9' ? 'active' : ''}" data-fmt="16/9" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '16/9' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">16:9</button>
-              <button class="p-fmt-btn ${photo.format === '9/16' ? 'active' : ''}" data-fmt="9/16" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '9/16' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">9:16</button>
-              <button class="p-fmt-btn ${photo.format === '1/1' ? 'active' : ''}" data-fmt="1/1" style="flex:1; padding:0.5rem; background:var(--bg-elevated); border:1px solid ${photo.format === '1/1' ? 'var(--accent)' : 'var(--border)'}; border-radius:0.375rem; color:white; cursor:pointer;">1:1</button>
+          <div style="${_gridStyle === 'standard' ? 'display:none;' : ''} width:100%;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; width:100%;">Formato no Grid Misto</label>
+            <div style="display:flex; gap:0.5rem; justify-content:center; width:100%;">
+              <button class="p-fmt-btn ${photo.format === '16/9' ? 'active' : ''}" data-fmt="16/9" style="flex:1; max-width:80px; padding:0.4rem; background:${photo.format === '16/9' ? 'var(--bg-hover)' : 'var(--bg-elevated)'}; border:1px solid ${photo.format === '16/9' ? 'var(--text-primary)' : 'var(--border)'}; border-radius:0.375rem; color:${photo.format === '16/9' ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; font-weight:600; font-size:0.75rem; transition:all 0.15s;">16:9</button>
+              <button class="p-fmt-btn ${photo.format === '9/16' ? 'active' : ''}" data-fmt="9/16" style="flex:1; max-width:80px; padding:0.4rem; background:${photo.format === '9/16' ? 'var(--bg-hover)' : 'var(--bg-elevated)'}; border:1px solid ${photo.format === '9/16' ? 'var(--text-primary)' : 'var(--border)'}; border-radius:0.375rem; color:${photo.format === '9/16' ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; font-weight:600; font-size:0.75rem; transition:all 0.15s;">9:16</button>
+              <button class="p-fmt-btn ${photo.format === '1/1' ? 'active' : ''}" data-fmt="1/1" style="flex:1; max-width:80px; padding:0.4rem; background:${photo.format === '1/1' ? 'var(--bg-hover)' : 'var(--bg-elevated)'}; border:1px solid ${photo.format === '1/1' ? 'var(--text-primary)' : 'var(--border)'}; border-radius:0.375rem; color:${photo.format === '1/1' ? 'var(--text-primary)' : 'var(--text-secondary)'}; cursor:pointer; font-weight:600; font-size:0.75rem; transition:all 0.15s;">1:1</button>
             </div>
           </div>
 
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <label style="font-size:0.75rem; color:var(--text-secondary);">Zoom (<span id="pValZoom">${photo.transform.scale}</span>x)</label>
+          <div style="width:100%;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; width:100%;">Zoom (<span id="pValZoom">${photo.transform.scale}</span>x)</label>
+            <div style="display:flex; justify-content:center; width:100%;">
+              <input type="range" id="pSliderZoom" min="1" max="3" step="0.1" value="${photo.transform.scale}" style="width:100%; max-width:260px; accent-color:var(--text-primary);">
             </div>
-            <input type="range" id="pSliderZoom" min="1" max="3" step="0.1" value="${photo.transform.scale}" style="width:100%;">
           </div>
           
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <label style="font-size:0.75rem; color:var(--text-secondary);">Posição X (<span id="pValX">${photo.transform.x}</span>%)</label>
+          <div style="width:100%;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; width:100%;">Posição X (<span id="pValX">${photo.transform.x}</span>%)</label>
+            <div style="display:flex; justify-content:center; width:100%;">
+              <input type="range" id="pSliderX" min="0" max="100" step="1" value="${photo.transform.x}" style="width:100%; max-width:260px; accent-color:var(--text-primary);">
             </div>
-            <input type="range" id="pSliderX" min="0" max="100" step="1" value="${photo.transform.x}" style="width:100%;">
           </div>
           
-          <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <label style="font-size:0.75rem; color:var(--text-secondary);">Posição Y (<span id="pValY">${photo.transform.y}</span>%)</label>
+          <div style="width:100%;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; width:100%;">Posição Y (<span id="pValY">${photo.transform.y}</span>%)</label>
+            <div style="display:flex; justify-content:center; width:100%;">
+              <input type="range" id="pSliderY" min="0" max="100" step="1" value="${photo.transform.y}" style="width:100%; max-width:260px; accent-color:var(--text-primary);">
             </div>
-            <input type="range" id="pSliderY" min="0" max="100" step="1" value="${photo.transform.y}" style="width:100%;">
           </div>
           
-          <div style="margin-top:auto;">
-            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">Legenda (SEO)</label>
-            <input type="text" id="pInputCaption" class="input" value="${photo.caption || ''}" placeholder="Descreva a foto...">
+          <div style="margin-top:auto; width:100%;">
+            <label style="display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; width:100%;">Legenda (SEO)</label>
+            <div style="display:flex; justify-content:center; width:100%;">
+              <input type="text" id="pInputCaption" class="input" value="${photo.caption || ''}" placeholder="Descreva a foto..." style="width:100%; max-width:260px; text-align:center; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:var(--text-primary); padding:0.4rem; outline:none;">
+            </div>
           </div>
           
         </div>
@@ -482,12 +502,17 @@ function openPhotoEditor(idx, container) {
   
   modal.querySelectorAll('.p-fmt-btn').forEach(btn => {
     btn.onclick = (e) => {
-      modal.querySelectorAll('.p-fmt-btn').forEach(b => { b.style.borderColor = 'var(--border)'; });
-      e.target.style.borderColor = 'var(--accent)';
-      photo.format = e.target.dataset.fmt;
+      const clickedBtn = e.currentTarget;
+      modal.querySelectorAll('.p-fmt-btn').forEach(b => { 
+        b.style.background = 'var(--bg-elevated)';
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text-secondary)';
+      });
+      clickedBtn.style.background = 'var(--bg-hover)';
+      clickedBtn.style.borderColor = 'var(--text-primary)';
+      clickedBtn.style.color = 'var(--text-primary)';
+      photo.format = clickedBtn.dataset.fmt;
       updateVisuals();
-      // Não precisa renderPhotos(container) até fechar, pois window._meuSitePostPreview atualiza o site.
-      // Porém, o background da Modal esconde o preview. Quando fechar, renderizamos.
     };
   });
 

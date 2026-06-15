@@ -37,9 +37,9 @@ function createUploader(subdir, options = {}) {
     storage,
     limits,
     fileFilter: (req, file, cb) => {
-      const allowed = ['image/jpeg', 'image/png'];
+      const allowed = options.allowedTypes || ['image/jpeg', 'image/png'];
       if (allowed.includes(file.mimetype)) cb(null, true);
-      else cb(new Error('Apenas imagens JPEG e PNG são permitidas'), false);
+      else cb(new Error('Formato de arquivo não permitido'), false);
     }
   });
 }

@@ -18,6 +18,7 @@ import { loadAnnouncements } from './tabs/comunicados.js';
 import { loadPlatformUpdates } from './tabs/novidades.js';
 import { loadDashboardCards } from './tabs/dashboardCards.js';
 import { loadSessionBackgrounds } from './tabs/sessionBackgrounds.js';
+import { loadTemplatesEditor } from './tabs/templates.js';
 
 function showLogin() {
   document.getElementById('loginScreen').style.display = 'flex';
@@ -75,10 +76,13 @@ setUnauthorizedHandler(logout);
 window.switchTab = (tab) => {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
 
   const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${tab}'`));
   if (targetBtn) {
     targetBtn.classList.add('active');
+    const parentDropdown = targetBtn.closest('.dropdown');
+    if (parentDropdown) parentDropdown.classList.add('active');
   }
 
   if (tab === 'trash') {
@@ -90,9 +94,9 @@ window.switchTab = (tab) => {
   } else if (tab === 'landing') {
     document.getElementById('tabLanding').classList.add('active');
     loadLandingEditor();
-  } else if (tab === 'componentes') {
-    document.getElementById('tabComponentes').classList.add('active');
-    if (window.loadComponentesLibrary) window.loadComponentesLibrary();
+  } else if (tab === 'templates') {
+    document.getElementById('tabTemplates').classList.add('active');
+    loadTemplatesEditor();
   } else if (tab === 'tutorials') {
     document.getElementById('tabTutorials').classList.add('active');
     loadTutorials();
