@@ -389,17 +389,26 @@ Painel **"Registrar um domínio"** no topo da aba **Domínio** (`admin/js/tabs/d
 
 ---
 
-## INTEGRAÇÃO COM O RHYNO SYSTEM (ERP/CRM) — 2026-06 (POC local, NADA deployado)
+## INTEGRAÇÃO COM O RHYNO SYSTEM (ERP/CRM) — ✅ LIVE EM PRODUÇÃO (deploy 2026-06-15)
 
-O ERP **Rhyno System** (pasta `/Users/macbook/Documents/ERP1`, repo `pach3c0/ERP1`, prod `erp.cliquezoom.com.br`, FastAPI+Postgres+React) está sendo integrado como **CRM/financeiro principal**, via **iframe + SSO**. Tudo local, não commitado.
+O ERP **Rhyno System** (pasta `/Users/macbook/Documents/ERP1`, repo `pach3c0/ERP1`, FastAPI+Postgres+React) é o **CRM/financeiro principal**, integrado ao CliqueZoom via **iframe + SSO**. **Roda no MESMO servidor** (VPS Contabo `5.189.174.18`), vizinho do CliqueZoom: PM2 `erp-backend` (uvicorn `:8000`) + `erp-frontend` (vite preview `:4173`), público e HTTPS em **`https://erp.cliquezoom.com.br`** (nginx + Certbot). Pasta de prod do ERP: **`/var/www/rhyno-erp`**. A integração está **no ar e funcional** (SSO login único + seletor de cliente da sessão buscando no Rhyno + aba Gestão em iframe embed com identidade CliqueZoom).
 - Aba **Gestão** (`admin/js/tabs/gestao.js`) — iframe do Rhyno em modo embed, com login único (SSO).
 - `src/routes/gestao.js` — `GET /api/gestao/sso-url` (gera URL de SSO), `GET/POST /api/gestao/customers` (busca/cria customer no Rhyno, server-to-server via asserção assinada com `SSO_SHARED_SECRET`).
 - `Session.rhynoCustomerId` + snapshot `clientName`/`clientPhone` — a sessão referencia cliente do **Rhyno**; o seletor de cliente da sessão (`modal-form.js`) busca no Rhyno; o "+ Novo cliente" grava no Rhyno (`client-modal.js` com `options.target='rhyno'`).
 - Aba **Clientes** oculta no menu (transição, reversível); `Client.rhynoCustomerId` mapeia a migração; `src/utils/migrateClientsToRhyno.js` migra Mongo→Rhyno (dry-run/--apply).
 - Config no `.env`: `SSO_SHARED_SECRET` (= ao do Rhyno), `RHYNO_BASE_URL`, `RHYNO_API_URL`, `RHYNO_POC_EMAIL`.
-- ⏸️ **PAUSADO** (sem créditos + ajustes locais pendentes). **Handoff completo: `skills/9_0_handoff-rhyno-integracao.md`.** Memória: `project_rhyno_integration`, `reference_rhyno_local_poc`.
+### ⚠️ PONTOS DE ATENÇÃO (estado em 2026-06-15 — LER ANTES DE MEXER)
+- **Commits sincronizados (local = origin = produção):** CliqueZoom (`pach3c0/fs-saas`) em **`8d872b0`**; ERP1 (`pach3c0/ERP1`) em **`3b7ff3f`**.
+- **🚨 O working tree LOCAL do ERP1 tem trabalho NÃO commitado e NÃO deployado** (de propósito): `models.py`, `schemas.py`, `crm.py`, `crm_service.py`, `service_order_service.py`, `CRMCentral.tsx`, `Dashboard.tsx`, `ServiceOrderForm.tsx` + a migração Alembic `add_catalog_fk_to_serviceorderitem.py` (mudanças de **catálogo/CRM inacabadas**). **NUNCA dar `git add -A` / commitar o working tree inteiro do ERP1 às cegas** — só o que for intencional. Deployar a parte de catálogo exige **rodar a migração Alembic no Postgres de prod** e **re-selecionar itens em OS antigas** (quebra edição de OS legadas). Foi deliberadamente deixado de fora.
+- **SSO (montado e funcional):** `SSO_SHARED_SECRET` IGUAL nos dois `.env` (`/var/www/cz-saas/.env` e `/var/www/rhyno-erp/backend/.env`) — **gitignored, fora do git, sobrevive a `git pull`**. Mapeamento: a org da Flávia ("Fs Fotografias") tem `Organization.rhynoUserEmail=flavia.cristthina@gmail.com` → **tenant 2** do Rhyno; fallback `RHYNO_POC_EMAIL=pacheco@rhynosystem.com.br`. O front `gestao.js` aponta `RHYNO_BASE='https://erp.cliquezoom.com.br'` (era localhost no POC).
+- **Clientes:** os clientes reais da Flávia **já estão no tenant 2 do Rhyno** (compartilhado com o pacheco). **NÃO foi feita migração** Mongo→Rhyno (criaria duplicatas). Os `Client` do Mongo ficam de **legado** (sessões antigas usam o snapshot `clientName`/`clientPhone`). `migrateClientsToRhyno.js` existe mas **não rodar** sem necessidade.
+- **Deploy do ERP (≠ CliqueZoom):** o frontend é servido de um `dist/` buildado → **precisa `cd /var/www/rhyno-erp/frontend && npm run build` no servidor** após mudar o front (o `npm run start`/vite preview NÃO builda). `dist/` e `.env` são **gitignored** (reset/pull não os tocam). O git de prod do ERP está **limpo** (alinhado ao origin). Código SSO já commitado: `backend/routers/auth.py` (`POST /auth/sso-login`), `frontend/src/components/SSOLogin.tsx`, `utils/embedMode.ts`.
+- **Identidade do embed (white-label + tema CliqueZoom):** feita **centralizada**, sem tocar nos componentes do ERP — em `frontend/src/utils/embedMode.ts` (classe `cz-embed` no `<html>`, observer que remove "Rhyno-System" do texto, e **recolor** dos azuis inline/SVG do ERP `#0055A4`/`#3b82f6` → `#1a1a1a`) + `frontend/src/embed-theme.css` (overrides por classe). **Para ajustar a cara do iframe, mexer NESSES dois arquivos** (não nos componentes). Cores de status (verde/vermelho/etc.) são preservadas de propósito.
+- **🚨 SSH na VPS:** muitas conexões rápidas em sequência causam **throttling** (erro `255` no handshake) — vá devagar, poucas conexões. O **build do frontend do ERP leva ~1m30s** — usar timeout alto e **NÃO rodar em background nem interromper** (gera builds órfãos que travam o servidor).
+- **Backups deixados na prod:** ERP `auth.py.bak.*`, `backend/.env.bak.*`, `frontend/dist_backup_*`; CliqueZoom `.env.bak.rhyno.*`. Rollback rápido se preciso.
+- **Handoff completo: `skills/9_0_handoff-rhyno-integracao.md`.** Memórias: `project_rhyno_integration`, `reference_rhyno_local_poc`.
 
-> ⚠️ **REGRA — Subir o Rhyno local (a aba Gestão fica em branco / "não funciona" sem isto):**
+> ⚠️ **REGRA — Subir o Rhyno LOCAL para dev (NÃO é a produção — prod roda via PM2 em `/var/www/rhyno-erp`, ver acima).** Em dev local a aba Gestão fica em branco / "não funciona" sem isto:
 > O container `rhyno-api` sobe com `Cmd: ["sleep","infinity"]` — **o uvicorn NÃO inicia sozinho**. Só `docker start rhyno-api` deixa a porta 8000 aceitando conexão e logo **resetando** ("Connection reset by peer"); a API está morta e o SSO do iframe falha. Sequência correta para subir o stack do zero (após reboot/`docker restart`):
 > ```bash
 > docker start rhyno-pg rhyno-api
