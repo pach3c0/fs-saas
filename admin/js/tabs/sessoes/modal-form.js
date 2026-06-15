@@ -165,9 +165,9 @@ function _setupNewSessionModal(container, state, renderSessoes) {
           clientSearchInput.value = newClient.name;
           container.querySelector('#sessionClientId').value = newClient._id;
           if (!container.querySelector('#sessionName').value) container.querySelector('#sessionName').value = newClient.name;
-          clientSearchHint.textContent = `✓ Novo cliente cadastrado!`;
+          clientSearchHint.textContent = `✓ Novo cliente cadastrado no Rhyno!`;
           clientSearchHint.style.color = 'var(--green)';
-        }, { target: 'mongo' }); // RHYNO_DESLIGADO: cadastro no CRM Mongo legado (reverter p/ 'rhyno' no deploy 2)
+        }, { target: 'rhyno' });
       };
       clientSearchDropdown.appendChild(criar);
     }
@@ -187,8 +187,7 @@ function _setupNewSessionModal(container, state, renderSessoes) {
     }
     _searchTimer = setTimeout(async () => {
       try {
-        // RHYNO_DESLIGADO: busca no CRM Mongo legado (reverter p/ /api/gestao/customers?search= no deploy 2)
-        const data = await apiGet(`/api/clients/search?q=${encodeURIComponent(q)}`);
+        const data = await apiGet(`/api/gestao/customers?search=${encodeURIComponent(q)}`);
         renderClientDropdown(data.clients || [], q);
       } catch (e) { /* silencioso */ }
     }, 300);

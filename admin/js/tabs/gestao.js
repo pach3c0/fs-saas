@@ -6,8 +6,9 @@ import { apiGet } from '../utils/api.js';
 
 import { appState } from '../state.js';
 
-// POC: aponta para o Rhyno local. Em produção vira https://erp.cliquezoom.com.br
-const RHYNO_BASE = 'http://localhost:5173';
+// Produção: ERP Rhyno público (mesmo servidor, vizinho do CliqueZoom). Para POC local
+// use http://localhost:5173.
+const RHYNO_BASE = 'https://erp.cliquezoom.com.br';
 
 // `icon` = inner paths de um ícone Lucide (traço). Renderizado dentro de um <svg>
 // com stroke=currentColor no app.js, herdando a cor do texto do item.

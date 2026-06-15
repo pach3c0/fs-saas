@@ -512,10 +512,14 @@ function setupSearch() {
 }
 
 window.openGestao = async function(path) {
-  // RHYNO_DESLIGADO: aba Gestão (ERP) desativada em produção até o SSO do Rhyno
-  // estar montado. Todo acesso à Gestão cai no CRM Mongo legado (aba Clientes).
-  // Reverter para a navegação original do iframe no deploy 2.
-  await switchTab('clientes');
+  if (appState.currentTab !== 'gestao') {
+    appState.gestaoInitialPath = path;
+    await switchTab('gestao');
+  } else {
+    if (window.__gestaoGoTo) {
+      window.__gestaoGoTo(path);
+    }
+  }
 };
 
 // Atalhos de teclado globais
