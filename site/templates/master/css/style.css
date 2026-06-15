@@ -97,30 +97,34 @@ nav#siteNav {
   white-space: nowrap;
 }
 .nav-cta:hover { opacity: 0.85; }
-.nav-hamburger {
+/* Botão hambúrguer (visível só no mobile, controlado na media query abaixo) */
+.t-surface .nav-hamburger {
   display: none;
   background: none;
   border: none;
+  border-radius: 0;
+  padding: 0;
   font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
   color: var(--t-ink);
   margin-left: auto;
 }
 
-/* Mobile nav menu */
-.nav-links.open {
+/* Mobile nav menu (dropdown ao abrir o hambúrguer).
+   Markup usa .t-nav-links; o seletor precisa do prefixo t- e do escopo
+   .t-surface para vencer .t-surface .t-nav-links { display:flex }. */
+.t-surface .t-nav-links.open {
   display: flex;
   flex-direction: column;
   position: absolute;
-  top: 4rem;
+  top: 100%;
   left: 0; right: 0;
   background: var(--t-bg);
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid var(--t-border);
   padding: 1rem 1.5rem;
   gap: 1rem;
-}
-[data-theme="escuro"] .nav-links.open {
-  border-bottom-color: rgba(255,255,255,0.08);
+  z-index: 50;
 }
 
 /* ============================================
@@ -609,9 +613,10 @@ section { scroll-margin-top: 5rem; }
    RESPONSIVO
    ============================================ */
 @media (max-width: 768px) {
-  .nav-links:not(.open) { display: none; }
-  .nav-cta { display: none; }
-  .nav-hamburger { display: block; }
+  .t-surface .t-nav-links:not(.open) { display: none; }
+  /* !important vence o display inline que o JS aplica em #navCta */
+  .t-surface #navCta { display: none !important; }
+  .t-surface .nav-hamburger { display: block; }
 
   .sobre-grid,
   .contato-grid { grid-template-columns: 1fr; gap: 2rem; }
