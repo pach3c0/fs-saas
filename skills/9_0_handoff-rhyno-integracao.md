@@ -1,5 +1,11 @@
 # Handoff — Integração CliqueZoom ↔ Rhyno System (ERP/CRM)
 
+> 🛑 **DESATUALIZADO / HISTÓRICO (este doc é de 2026-06-10, fase POC).**
+> A integração **JÁ FOI DEPLOYADA e está LIVE em produção desde 2026-06-15.**
+> **Para o estado atual e os pontos de atenção, leia o `CLAUDE.md` (raiz) → seção
+> "INTEGRAÇÃO COM O RHYNO SYSTEM" → bloco "⚠️ PONTOS DE ATENÇÃO".**
+> O texto abaixo descreve o plano original do POC e serve só de referência histórica.
+
 > Estado em 2026-06-10. POC local funcionando. **NADA foi para o Git nem para a VPS.**
 > Objetivo: tornar o **Rhyno System** (ERP SaaS do usuário, pasta `/Users/macbook/Documents/ERP1`,
 > repo `pach3c0/ERP1`, prod `erp.cliquezoom.com.br`) o **CRM/financeiro principal** dentro do CliqueZoom.
