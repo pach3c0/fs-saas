@@ -5,18 +5,18 @@ let _pendentes = [];
 
 export async function renderMensagens(container) {
   container.innerHTML = `
-    <div style="max-width:720px;">
-      <div style="margin-bottom:2rem;">
-        <h2 style="font-size:1.25rem; font-weight:600; color:var(--ad-text);">Mensagens</h2>
-        <p style="font-size:0.8125rem; color:var(--ad-text-muted); margin-top:0.25rem;">Contatos e depoimentos recebidos pelo seu site</p>
+    <div style="max-width:720px; margin:0 auto;">
+      <div style="padding:1rem 0 1.5rem; border-bottom:1px solid var(--border); margin-bottom:1.5rem; display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.25rem;">
+        <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0;">Mensagens</h2>
+        <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0;">Contatos e depoimentos recebidos pelo seu site</p>
       </div>
 
       <!-- Depoimentos pendentes -->
       <div id="pendentesSection"></div>
 
       <!-- Contatos recebidos -->
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-        <h3 style="font-size:0.9375rem; font-weight:600; color:var(--ad-text);">📩 Contatos recebidos</h3>
+      <div style="display:flex; align-items:center; justify-content:center; gap:0.625rem; margin-bottom:1rem;">
+        <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary); margin:0;">Contatos recebidos</h3>
         <span id="msgUnreadBadge" class="badge badge-blue" style="display:none;"></span>
       </div>
       <div id="msgLista"></div>
@@ -50,27 +50,32 @@ function renderPendentes() {
   }
 
   section.innerHTML = `
-    <div style="background:var(--ad-bg-elevated); border:1px solid var(--ad-green); border-radius:8px; padding:1rem; margin-bottom:2rem;">
-      <h4 style="color:var(--ad-green); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem;">
-        ⭐ ${_pendentes.length} depoimento${_pendentes.length > 1 ? 's' : ''} aguardando aprovação
+    <div style="background:var(--bg-elevated); border:1px solid var(--border); border-left:3px solid var(--green); border-radius:var(--r-field); padding:1rem; margin-bottom:2rem;">
+      <h4 style="color:var(--text-primary); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--green)" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        ${_pendentes.length} depoimento${_pendentes.length > 1 ? 's' : ''} aguardando aprovação
       </h4>
       <div style="display:flex; flex-direction:column; gap:0.625rem;">
         ${_pendentes.map(p => `
-          <div style="background:var(--ad-bg-surface); padding:0.75rem; border-radius:6px; border:1px solid var(--ad-border);">
+          <div style="background:var(--bg-surface); padding:0.75rem; border-radius:var(--r-field); border:1px solid var(--border);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
               <div style="flex:1; min-width:0;">
-                <p style="font-size:0.875rem; font-weight:600; color:var(--ad-text);">${escHtml(p.name)}</p>
-                <p style="font-size:0.8125rem; color:var(--ad-text-muted); margin-top:0.25rem; line-height:1.5;">${escHtml(p.text)}</p>
-                <p style="font-size:0.75rem; color:var(--ad-text-dim); margin-top:0.375rem;">${'⭐'.repeat(clampNota(p.rating))} ${clampNota(p.rating)}/5${p.email ? ` · ${escHtml(p.email)}` : ''}</p>
+                <p style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${escHtml(p.name)}</p>
+                <p style="font-size:0.8125rem; color:var(--text-secondary); margin-top:0.25rem; line-height:1.5;">${escHtml(p.text)}</p>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.375rem;">${'★'.repeat(clampNota(p.rating))}${'☆'.repeat(5 - clampNota(p.rating))} ${clampNota(p.rating)}/5${p.email ? ` · ${escHtml(p.email)}` : ''}</p>
               </div>
               <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-                <button onclick="window._depAprovar('${p.id}')"
-                  style="background:var(--ad-green); color:#fff; border:none; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;">
-                  ✓ Aprovar
+                <button onclick="window._depAprovar('${p.id}')" title="Aprovar e publicar"
+                  style="display:inline-flex; align-items:center; gap:0.375rem; background:transparent; color:var(--green); border:1px solid color-mix(in srgb, var(--green) 35%, transparent); padding:0.375rem 0.75rem; border-radius:var(--r-chip); font-size:0.75rem; font-weight:600; cursor:pointer; font-family:inherit; transition:background 0.15s;"
+                  onmouseenter="this.style.background='color-mix(in srgb, var(--green) 12%, transparent)'" onmouseleave="this.style.background='transparent'">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Aprovar
                 </button>
-                <button onclick="window._depRejeitar('${p.id}')"
-                  style="background:var(--ad-red); color:#fff; border:none; padding:0.375rem 0.75rem; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer;">
-                  ✕ Rejeitar
+                <button onclick="window._depRejeitar('${p.id}')" title="Rejeitar e apagar"
+                  style="display:inline-flex; align-items:center; gap:0.375rem; background:transparent; color:var(--red); border:1px solid color-mix(in srgb, var(--red) 35%, transparent); padding:0.375rem 0.75rem; border-radius:var(--r-chip); font-size:0.75rem; font-weight:600; cursor:pointer; font-family:inherit; transition:background 0.15s;"
+                  onmouseenter="this.style.background='color-mix(in srgb, var(--red) 12%, transparent)'" onmouseleave="this.style.background='transparent'">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Rejeitar
                 </button>
               </div>
             </div>
@@ -112,7 +117,7 @@ async function loadMensagens() {
   const badge = document.getElementById('msgUnreadBadge');
   if (!lista) return;
 
-  lista.innerHTML = `<p style="color:var(--ad-text-dim); font-size:0.875rem;">Carregando...</p>`;
+  lista.innerHTML = `<p style="color:var(--text-muted); font-size:0.875rem; text-align:center;">Carregando...</p>`;
 
   try {
     const data = await apiGet('/api/notifications');
@@ -125,11 +130,7 @@ async function loadMensagens() {
     }
 
     if (_mensagens.length === 0) {
-      lista.innerHTML = `
-        <div style="text-align:center; padding:3rem 1rem; color:var(--ad-text-dim);">
-          <div style="font-size:2.5rem; margin-bottom:0.75rem;">✉️</div>
-          <p style="font-size:0.9375rem;">Nenhuma mensagem recebida ainda</p>
-        </div>`;
+      lista.innerHTML = emptyMessagesHtml();
       return;
     }
 
@@ -138,30 +139,30 @@ async function loadMensagens() {
       const unread = !n.read;
       const date = new Date(n.createdAt).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
       return `
-        <div id="msg-${n._id}" style="background:var(--ad-bg-surface); border:1px solid var(--ad-border); border-radius:8px; margin-bottom:0.75rem; overflow:hidden; ${unread ? 'border-left:3px solid var(--ad-accent);' : ''}">
+        <div id="msg-${n._id}" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-field); margin-bottom:0.75rem; overflow:hidden; ${unread ? 'border-left:3px solid var(--accent);' : ''}">
           <div style="display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem; cursor:pointer;"
                onclick="window._msgToggle('${n._id}')">
             <div style="display:flex; align-items:center; gap:0.75rem; min-width:0;">
-              ${unread ? `<span style="width:8px; height:8px; background:var(--ad-accent); border-radius:50%; flex-shrink:0;"></span>` : `<span style="width:8px; height:8px; flex-shrink:0;"></span>`}
+              ${unread ? `<span style="width:8px; height:8px; background:var(--accent); border-radius:50%; flex-shrink:0;"></span>` : `<span style="width:8px; height:8px; flex-shrink:0;"></span>`}
               <div style="min-width:0;">
-                <p style="font-size:0.875rem; font-weight:${unread ? '600' : '400'}; color:var(--ad-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                <p style="font-size:0.875rem; font-weight:${unread ? '600' : '400'}; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                   ${escHtml(parts.nome)}${parts.assunto ? ` — ${escHtml(parts.assunto)}` : ''}
                 </p>
-                <p style="font-size:0.75rem; color:var(--ad-text-dim); margin-top:0.125rem;">${date}</p>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.125rem;">${date}</p>
               </div>
             </div>
             <button onclick="event.stopPropagation(); window._msgDelete('${n._id}')"
-              style="background:none; border:none; cursor:pointer; color:var(--ad-text-dim); padding:0.25rem; border-radius:4px; flex-shrink:0;"
+              style="background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.25rem; border-radius:var(--r-chip); flex-shrink:0;"
               title="Excluir">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             </button>
           </div>
-          <div id="msg-body-${n._id}" style="display:none; padding:0 1rem 1rem; border-top:1px solid var(--ad-border);">
+          <div id="msg-body-${n._id}" style="display:none; padding:0 1rem 1rem; border-top:1px solid var(--border);">
             <div style="margin-top:0.875rem; display:flex; flex-direction:column; gap:0.5rem;">
-              ${parts.email ? `<p style="font-size:0.8125rem; color:var(--ad-text-muted);"><strong style="color:var(--ad-text);">E-mail:</strong> <a href="mailto:${escHtml(parts.email)}" style="color:var(--ad-accent);">${escHtml(parts.email)}</a></p>` : ''}
-              ${parts.assunto ? `<p style="font-size:0.8125rem; color:var(--ad-text-muted);"><strong style="color:var(--ad-text);">Assunto:</strong> ${escHtml(parts.assunto)}</p>` : ''}
-              <div style="background:var(--ad-bg-elevated); border-radius:6px; padding:0.75rem; margin-top:0.25rem;">
-                <p style="font-size:0.875rem; color:var(--ad-text); line-height:1.6; white-space:pre-wrap;">${escHtml(parts.mensagem)}</p>
+              ${parts.email ? `<p style="font-size:0.8125rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">E-mail:</strong> <a href="mailto:${escHtml(parts.email)}" style="color:var(--accent);">${escHtml(parts.email)}</a></p>` : ''}
+              ${parts.assunto ? `<p style="font-size:0.8125rem; color:var(--text-secondary);"><strong style="color:var(--text-primary);">Assunto:</strong> ${escHtml(parts.assunto)}</p>` : ''}
+              <div style="background:var(--bg-elevated); border-radius:var(--r-field); padding:0.75rem; margin-top:0.25rem;">
+                <p style="font-size:0.875rem; color:var(--text-primary); line-height:1.6; white-space:pre-wrap;">${escHtml(parts.mensagem)}</p>
               </div>
             </div>
           </div>
@@ -169,8 +170,17 @@ async function loadMensagens() {
     }).join('');
 
   } catch (e) {
-    lista.innerHTML = `<p style="color:var(--ad-red); font-size:0.875rem;">Erro ao carregar mensagens.</p>`;
+    lista.innerHTML = `<p style="color:var(--red); font-size:0.875rem; text-align:center;">Erro ao carregar mensagens.</p>`;
   }
+}
+
+// Estado vazio centralizado (reutilizado no carregamento e após excluir a última mensagem).
+function emptyMessagesHtml() {
+  return `
+    <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.75rem; opacity:0.7;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <p style="font-size:0.9375rem; margin:0;">Nenhuma mensagem recebida ainda</p>
+    </div>`;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -212,7 +222,7 @@ window._msgToggle = async function(id) {
         const card = document.getElementById(`msg-${id}`);
         if (card) {
           card.style.borderLeft = '';
-          const dot = card.querySelector('span[style*="background:var(--ad-accent)"]');
+          const dot = card.querySelector('span[style*="background:var(--accent)"]');
           if (dot) dot.style.background = 'transparent';
           const title = card.querySelector('p[style*="font-weight:600"]');
           if (title) title.style.fontWeight = '400';
@@ -251,11 +261,7 @@ window._msgDelete = async function(id) {
 
     if (_mensagens.length === 0) {
       const lista = document.getElementById('msgLista');
-      if (lista) lista.innerHTML = `
-        <div style="text-align:center; padding:3rem 1rem; color:var(--ad-text-dim);">
-          <div style="font-size:2.5rem; margin-bottom:0.75rem;">✉️</div>
-          <p style="font-size:0.9375rem;">Nenhuma mensagem recebida ainda</p>
-        </div>`;
+      if (lista) lista.innerHTML = emptyMessagesHtml();
     }
   } catch (e) {
     window.showToast('Erro ao excluir mensagem', 'error');

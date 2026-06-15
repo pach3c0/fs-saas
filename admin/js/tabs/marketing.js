@@ -13,7 +13,7 @@ const MODE_LABELS = {
 };
 
 export async function renderMarketing(container) {
-  container.innerHTML = `<div style="color:var(--ad-text);opacity:0.6;">Carregando...</div>`;
+  container.innerHTML = `<div style="color:var(--text-secondary);text-align:center;padding:2rem;">Carregando...</div>`;
 
   let data = null;
   try {
@@ -25,31 +25,39 @@ export async function renderMarketing(container) {
   } catch (e) { /* segue com null */ }
 
   if (!data) {
-    container.innerHTML = `<div style="color:var(--ad-red);">Erro ao carregar dados.</div>`;
+    container.innerHTML = `<div style="color:var(--red);text-align:center;padding:2rem;">Erro ao carregar dados.</div>`;
     return;
   }
 
   container.innerHTML = '';
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-direction:column;gap:1.25rem;max-width:900px;';
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;max-width:900px;margin:0 auto;';
 
-  // Toggle interno: Visão Geral (KPIs/funil) | Vendas Automáticas (motor de cupons — antigo "CRM")
-  const toggle = document.createElement('div');
-  toggle.style.cssText = 'display:inline-flex;gap:0.25rem;background:var(--ad-bg-surface);border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);border-radius:0.5rem;padding:0.25rem;align-self:flex-start;';
-  toggle.innerHTML = `
-    <button class="mkt-toggle" data-view="overview">Visão Geral</button>
-    <button class="mkt-toggle" data-view="vendas">Vendas Automáticas</button>
+  // Cabeçalho centralizado (padrão DS) + toggle segmentado monocromático logo abaixo.
+  const head = document.createElement('div');
+  head.style.cssText = 'padding:1rem 0 1.5rem;border-bottom:1px solid var(--border);display:flex;flex-direction:column;align-items:center;text-align:center;gap:1rem;';
+  head.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:0.25rem;">
+      <h2 style="font-size:1.25rem;font-weight:600;color:var(--text-primary);margin:0;">Marketing &amp; Performance</h2>
+      <p style="font-size:0.8125rem;color:var(--text-secondary);margin:0;">Dados reais do seu negócio</p>
+    </div>
+    <div class="mkt-toggle-group" style="display:inline-flex;gap:0.25rem;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-chip);padding:0.25rem;width:fit-content;">
+      <button class="mkt-toggle" data-view="overview">Visão Geral</button>
+      <button class="mkt-toggle" data-view="vendas">Vendas Automáticas</button>
+    </div>
   `;
-  wrap.appendChild(toggle);
+  wrap.appendChild(head);
+  const toggle = head.querySelector('.mkt-toggle-group');
 
   const content = document.createElement('div');
   wrap.appendChild(content);
   container.appendChild(wrap);
 
+  // Estilo selecionado monocromático (sem cor de fundo gritante): borda branca + texto brilhante.
   const setActive = (view) => {
     toggle.querySelectorAll('.mkt-toggle').forEach(b => {
       const active = b.dataset.view === view;
-      b.style.cssText = `padding:0.4rem 0.9rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:0;border-radius:0.375rem;transition:all .15s;background:${active ? 'var(--ad-accent)' : 'transparent'};color:${active ? 'var(--ad-bg-base)' : 'var(--ad-text)'};`;
+      b.style.cssText = `padding:0.45rem 1rem;font-size:0.8125rem;font-weight:600;cursor:pointer;font-family:inherit;border-radius:var(--r-chip);transition:all .15s;background:${active ? 'var(--bg-hover)' : 'transparent'};border:1px solid ${active ? 'var(--text-primary)' : 'transparent'};color:${active ? 'var(--text-primary)' : 'var(--text-secondary)'};`;
     });
   };
 
@@ -75,14 +83,6 @@ export async function renderMarketing(container) {
 function buildOverview(data) {
   const root = document.createElement('div');
   root.style.cssText = 'display:flex;flex-direction:column;gap:1.5rem;';
-
-  // Título
-  root.innerHTML = `
-    <div>
-      <h2 style="font-size:1.5rem;font-weight:bold;color:var(--ad-text);margin:0 0 0.25rem;">Marketing & Performance</h2>
-      <p style="color:var(--ad-text);opacity:0.6;font-size:0.875rem;margin:0;">Dados reais do seu negócio</p>
-    </div>
-  `;
 
   // KPI Cards
   root.appendChild(_kpiSection(data));
@@ -149,20 +149,20 @@ function _kpiSection(data) {
 
 function _kpiCard({ label, value, delta, sub }) {
   const d = document.createElement('div');
-  d.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.25rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
+  d.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.25rem;border:1px solid var(--border);`;
 
   let deltaHtml = '';
   if (delta !== null && delta !== undefined) {
-    const color = delta >= 0 ? 'var(--ad-green)' : 'var(--ad-red)';
+    const color = delta >= 0 ? 'var(--green)' : 'var(--red)';
     const sign  = delta >= 0 ? '+' : '';
     deltaHtml = `<span style="color:${color};font-size:0.75rem;">${sign}${delta}% vs mês anterior</span>`;
   }
 
   d.innerHTML = `
-    <p style="color:var(--ad-text);opacity:0.6;font-size:0.75rem;font-weight:600;text-transform:uppercase;margin:0 0 0.25rem;">${label}</p>
-    <p style="color:var(--ad-text);font-size:1.75rem;font-weight:bold;margin:0 0 0.25rem;">${value}</p>
+    <p style="color:var(--text-secondary);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;margin:0 0 0.25rem;">${label}</p>
+    <p style="color:var(--text-primary);font-size:1.75rem;font-weight:700;margin:0 0 0.25rem;">${value}</p>
     ${deltaHtml}
-    <p style="color:var(--ad-text);opacity:0.5;font-size:0.75rem;margin:${deltaHtml ? '0.25rem' : '0'} 0 0;">${sub}</p>
+    <p style="color:var(--text-muted);font-size:0.75rem;margin:${deltaHtml ? '0.25rem' : '0'} 0 0;">${sub}</p>
   `;
   return d;
 }
@@ -170,17 +170,19 @@ function _kpiCard({ label, value, delta, sub }) {
 // ─── Funil ───────────────────────────────────────────────────────────────────
 
 function _funnelSection({ totalSessions, codeSent, accessed, submitted, delivered, expired }) {
+  // Funil monocromático: accent com opacidade decrescente cria o degradê natural de afunilamento,
+  // sem o arco-íris de cores (sobriedade do tema escuro — ver skill 1_7, seção 3).
   const steps = [
-    { label: 'Sessões criadas',   value: totalSessions, color: 'var(--ad-accent)' },
-    { label: 'Código enviado',    value: codeSent,      color: '#3b82f6' },
-    { label: 'Cliente acessou',   value: accessed,      color: 'var(--ad-green)' },
-    { label: 'Seleção enviada',   value: submitted,     color: 'var(--ad-yellow)' },
-    { label: 'Entregue',          value: delivered,     color: '#a855f7' },
+    { label: 'Sessões criadas', value: totalSessions, op: 1 },
+    { label: 'Código enviado',  value: codeSent,      op: 0.82 },
+    { label: 'Cliente acessou', value: accessed,      op: 0.64 },
+    { label: 'Seleção enviada', value: submitted,     op: 0.46 },
+    { label: 'Entregue',        value: delivered,     op: 0.3 },
   ];
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
-  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 1.25rem;">Funil de Sessões</h3>`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);`;
+  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 1.25rem;">Funil de Sessões</h3>`;
 
   const max = totalSessions || 1;
   for (const step of steps) {
@@ -188,19 +190,19 @@ function _funnelSection({ totalSessions, codeSent, accessed, submitted, delivere
     const bar = document.createElement('div');
     bar.style.cssText = 'display:flex;align-items:center;gap:1rem;margin-bottom:0.6rem;';
     bar.innerHTML = `
-      <div style="width:9rem;text-align:right;font-size:0.8125rem;color:var(--ad-text);opacity:0.8;flex-shrink:0;">${step.label}</div>
-      <div style="flex:1;background:color-mix(in srgb,var(--ad-text) 8%,transparent);height:1.375rem;border-radius:0.25rem;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${step.color};transition:width 0.4s;border-radius:0.25rem;"></div>
+      <div style="width:9rem;text-align:right;font-size:0.8125rem;color:var(--text-secondary);flex-shrink:0;">${step.label}</div>
+      <div style="flex:1;background:var(--bg-elevated);height:1.375rem;border-radius:var(--r-field);overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:var(--accent);opacity:${step.op};transition:width 0.4s;border-radius:var(--r-field);"></div>
       </div>
-      <div style="width:3.5rem;font-size:0.8125rem;font-weight:600;color:var(--ad-text);">${step.value} <span style="opacity:0.5;font-weight:400;">(${pct}%)</span></div>
+      <div style="width:3.5rem;font-size:0.8125rem;font-weight:600;color:var(--text-primary);">${step.value} <span style="color:var(--text-muted);font-weight:400;">(${pct}%)</span></div>
     `;
     wrap.appendChild(bar);
   }
 
   if (expired > 0) {
     const note = document.createElement('p');
-    note.style.cssText = 'color:var(--ad-orange);font-size:0.75rem;margin:0.75rem 0 0;';
-    note.textContent = `⚠ ${expired} sessão(ões) com prazo expirado`;
+    note.style.cssText = 'color:var(--orange);font-size:0.75rem;margin:0.75rem 0 0;display:flex;align-items:center;gap:0.375rem;';
+    note.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${expired} sessão(ões) com prazo expirado`;
     wrap.appendChild(note);
   }
 
@@ -210,23 +212,24 @@ function _funnelSection({ totalSessions, codeSent, accessed, submitted, delivere
 // ─── Status atual ─────────────────────────────────────────────────────────────
 
 function _statusSection(statusCount) {
+  // Cor funcional só onde agrega significado (entregue=sucesso, expirado=alerta); o resto neutro.
   const items = [
-    { label: 'Aguardando',     key: 'pending',     color: 'var(--ad-text)' },
-    { label: 'Em andamento',   key: 'in_progress', color: 'var(--ad-yellow)' },
-    { label: 'Seleção enviada',key: 'submitted',   color: '#3b82f6' },
-    { label: 'Entregue',       key: 'delivered',   color: 'var(--ad-green)' },
-    { label: 'Expirado',       key: 'expired',     color: 'var(--ad-red)' },
+    { label: 'Aguardando',     key: 'pending',     color: 'var(--text-primary)' },
+    { label: 'Em andamento',   key: 'in_progress', color: 'var(--text-primary)' },
+    { label: 'Seleção enviada',key: 'submitted',   color: 'var(--text-primary)' },
+    { label: 'Entregue',       key: 'delivered',   color: 'var(--green)' },
+    { label: 'Expirado',       key: 'expired',     color: 'var(--red)' },
   ];
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
-  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 1rem;">Status das Sessões</h3>`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);`;
+  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 1rem;">Status das Sessões</h3>`;
 
   for (const item of items) {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.375rem 0;border-bottom:1px solid color-mix(in srgb,var(--ad-text) 8%,transparent);';
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.375rem 0;border-bottom:1px solid var(--border-muted);';
     row.innerHTML = `
-      <span style="font-size:0.875rem;color:var(--ad-text);opacity:0.8;">${item.label}</span>
+      <span style="font-size:0.875rem;color:var(--text-secondary);">${item.label}</span>
       <span style="font-size:0.875rem;font-weight:600;color:${item.color};">${statusCount[item.key] ?? 0}</span>
     `;
     wrap.appendChild(row);
@@ -239,17 +242,17 @@ function _statusSection(statusCount) {
 
 function _modesSection(byMode) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
-  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 1rem;">Modos de Sessão</h3>`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);`;
+  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 1rem;">Modos de Sessão</h3>`;
 
   const total = Object.values(byMode).reduce((a, b) => a + b, 0) || 1;
   for (const [mode, count] of Object.entries(byMode)) {
     const pct = Math.round((count / total) * 100);
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.375rem 0;border-bottom:1px solid color-mix(in srgb,var(--ad-text) 8%,transparent);';
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.375rem 0;border-bottom:1px solid var(--border-muted);';
     row.innerHTML = `
-      <span style="font-size:0.875rem;color:var(--ad-text);opacity:0.8;">${MODE_LABELS[mode] || mode}</span>
-      <span style="font-size:0.875rem;font-weight:600;color:var(--ad-text);">${count} <span style="opacity:0.5;font-weight:400;">(${pct}%)</span></span>
+      <span style="font-size:0.875rem;color:var(--text-secondary);">${MODE_LABELS[mode] || mode}</span>
+      <span style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">${count} <span style="color:var(--text-muted);font-weight:400;">(${pct}%)</span></span>
     `;
     wrap.appendChild(row);
   }
@@ -261,8 +264,8 @@ function _modesSection(byMode) {
 
 function _eventTypesSection(byEventType) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
-  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 1.25rem;">Sessões por Tipo de Evento</h3>`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);`;
+  wrap.innerHTML = `<h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 1.25rem;">Sessões por Tipo de Evento</h3>`;
 
   const max = byEventType[0]?.count || 1;
   for (const { type, count } of byEventType) {
@@ -270,11 +273,11 @@ function _eventTypesSection(byEventType) {
     const bar = document.createElement('div');
     bar.style.cssText = 'display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;';
     bar.innerHTML = `
-      <div style="width:7rem;text-align:right;font-size:0.8125rem;color:var(--ad-text);opacity:0.8;flex-shrink:0;">${EVENT_LABELS[type] || type}</div>
-      <div style="flex:1;background:color-mix(in srgb,var(--ad-text) 8%,transparent);height:1.25rem;border-radius:0.25rem;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:var(--ad-accent);opacity:0.8;border-radius:0.25rem;"></div>
+      <div style="width:7rem;text-align:right;font-size:0.8125rem;color:var(--text-secondary);flex-shrink:0;">${EVENT_LABELS[type] || type}</div>
+      <div style="flex:1;background:var(--bg-elevated);height:1.25rem;border-radius:var(--r-field);overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:var(--accent);opacity:0.8;border-radius:var(--r-field);"></div>
       </div>
-      <div style="width:2rem;font-size:0.8125rem;font-weight:600;color:var(--ad-text);">${count}</div>
+      <div style="width:2rem;font-size:0.8125rem;font-weight:600;color:var(--text-primary);">${count}</div>
     `;
     wrap.appendChild(bar);
   }
@@ -286,20 +289,20 @@ function _eventTypesSection(byEventType) {
 
 function _crmSection({ totalTriggers, redeemedCoupons }) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);display:flex;gap:2rem;align-items:center;`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);display:flex;gap:2rem;align-items:center;flex-wrap:wrap;`;
   wrap.innerHTML = `
     <div>
-      <h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 0.25rem;">Vendas automáticas</h3>
-      <p style="font-size:0.75rem;color:var(--ad-text);opacity:0.5;margin:0;">E-mails de lembrete e escassês disparados</p>
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 0.25rem;">Vendas automáticas</h3>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">E-mails de lembrete e escassês disparados</p>
     </div>
     <div style="display:flex;gap:2rem;margin-left:auto;">
       <div style="text-align:center;">
-        <p style="font-size:1.5rem;font-weight:bold;color:var(--ad-text);margin:0;">${totalTriggers}</p>
-        <p style="font-size:0.75rem;color:var(--ad-text);opacity:0.6;margin:0;">E-mails enviados</p>
+        <p style="font-size:1.5rem;font-weight:700;color:var(--text-primary);margin:0;">${totalTriggers}</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">E-mails enviados</p>
       </div>
       <div style="text-align:center;">
-        <p style="font-size:1.5rem;font-weight:bold;color:var(--ad-green);margin:0;">${redeemedCoupons}</p>
-        <p style="font-size:0.75rem;color:var(--ad-text);opacity:0.6;margin:0;">Cupons usados</p>
+        <p style="font-size:1.5rem;font-weight:700;color:var(--green);margin:0;">${redeemedCoupons}</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">Cupons usados</p>
       </div>
     </div>
   `;
@@ -310,16 +313,20 @@ function _crmSection({ totalTriggers, redeemedCoupons }) {
 
 function _gaSection({ configured, measurementId }) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = `background:var(--ad-bg-surface);border-radius:0.5rem;padding:1.5rem;border:1px solid color-mix(in srgb,var(--ad-text) 12%,transparent);`;
+  wrap.style.cssText = `background:var(--bg-surface);border-radius:var(--r-card);padding:1.5rem;border:1px solid var(--border);`;
+
+  const gaIcon = '<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>';
 
   if (!configured) {
     wrap.innerHTML = `
       <div style="display:flex;align-items:center;gap:1rem;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:color-mix(in srgb,var(--ad-yellow) 15%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.25rem;">📊</div>
+        <div style="width:2.5rem;height:2.5rem;border-radius:var(--r-field);background:var(--bg-elevated);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-secondary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${gaIcon}</svg>
+        </div>
         <div>
-          <h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 0.25rem;">Google Analytics não configurado</h3>
-          <p style="font-size:0.875rem;color:var(--ad-text);opacity:0.6;margin:0;">
-            Configure o Measurement ID na aba <strong style="color:var(--ad-text);">Integrações</strong> para ver visitas, origem de tráfego e demografia aqui.
+          <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 0.25rem;">Google Analytics não configurado</h3>
+          <p style="font-size:0.875rem;color:var(--text-secondary);margin:0;">
+            Configure o Measurement ID na aba <strong style="color:var(--text-primary);">Integrações</strong> para ver visitas, origem de tráfego e demografia aqui.
           </p>
         </div>
       </div>
@@ -327,16 +334,19 @@ function _gaSection({ configured, measurementId }) {
   } else {
     wrap.innerHTML = `
       <div style="display:flex;align-items:center;gap:1rem;">
-        <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:color-mix(in srgb,var(--ad-green) 15%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.25rem;">📊</div>
+        <div style="width:2.5rem;height:2.5rem;border-radius:var(--r-field);background:color-mix(in srgb,var(--green) 15%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--green);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${gaIcon}</svg>
+        </div>
         <div>
-          <h3 style="font-size:1rem;font-weight:600;color:var(--ad-text);margin:0 0 0.25rem;">Google Analytics conectado</h3>
-          <p style="font-size:0.875rem;color:var(--ad-text);opacity:0.6;margin:0 0 0.75rem;">
-            ID: <code style="background:color-mix(in srgb,var(--ad-text) 10%,transparent);padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.8125rem;">${measurementId}</code>
+          <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin:0 0 0.25rem;">Google Analytics conectado</h3>
+          <p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 0.75rem;">
+            ID: <code style="background:var(--bg-elevated);padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.8125rem;font-family:monospace;">${measurementId}</code>
             — dados de visitas disponíveis no painel do Google Analytics.
           </p>
-          <a href="https://analytics.google.com" target="_blank"
-            style="display:inline-flex;align-items:center;gap:0.375rem;background:var(--ad-accent);color:var(--ad-bg-base);padding:0.4rem 0.875rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;text-decoration:none;">
-            Abrir Google Analytics →
+          <a href="https://analytics.google.com" target="_blank" class="btn btn-primary"
+            style="display:inline-flex;align-items:center;gap:0.375rem;border-radius:var(--r-chip);padding:0.4rem 0.875rem;font-size:0.8125rem;font-weight:600;text-decoration:none;">
+            Abrir Google Analytics
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
         </div>
       </div>

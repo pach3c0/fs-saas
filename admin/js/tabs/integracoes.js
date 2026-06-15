@@ -1,7 +1,7 @@
 import { apiGet, apiPut } from '../utils/api.js';
 
 export async function renderIntegracoes(container) {
-  container.innerHTML = '<div style="color:var(--ad-text);">Carregando...</div>';
+  container.innerHTML = '<div style="color:var(--text-secondary); text-align:center; padding:2rem;">Carregando...</div>';
 
   try {
     const res = await apiGet('/api/organization/profile');
@@ -9,63 +9,58 @@ export async function renderIntegracoes(container) {
     const integrations = org.integrations || {};
     renderForm(container, integrations);
   } catch (error) {
-    container.innerHTML = `<div style="color:var(--ad-red);">Erro ao carregar: ${error.message}</div>`;
+    container.innerHTML = `<div style="color:var(--red); text-align:center; padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
 function renderForm(container, data) {
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:2rem; max-width:800px;">
-      <h2 style="font-size:1.5rem; font-weight:bold; color:var(--ad-text);">Integrações & Marketing</h2>
-
-      <!-- Google Analytics 4 -->
-      <div style="background:var(--ad-bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-text) 15%, transparent);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--ad-text); margin:0;">Google Analytics 4</h3>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="gaEnabled" ${data.googleAnalytics?.enabled ? 'checked' : ''}>
-            <span style="color:var(--ad-text);">Ativar</span>
-          </label>
-        </div>
-        <div>
-          <label style="display:block; color:var(--ad-text); opacity:0.7; margin-bottom:0.25rem; font-size:0.875rem;">Measurement ID (G-XXXXXXXX)</label>
-          <input type="text" id="gaId" value="${data.googleAnalytics?.measurementId || ''}" placeholder="G-ABC123456"
-            style="width:100%; background:var(--ad-bg-base); border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); color:var(--ad-text); padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.9375rem;">
-        </div>
+    <div style="display:flex; flex-direction:column; gap:1.75rem; max-width:720px; margin:0 auto;">
+      <div style="padding:1rem 0 1.5rem; border-bottom:1px solid var(--border); display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.25rem;">
+        <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0;">Integrações &amp; Marketing</h2>
+        <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0;">Conecte ferramentas de análise e rastreamento ao seu site</p>
       </div>
 
-      <!-- Meta Pixel (Facebook) -->
-      <div style="background:var(--ad-bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-text) 15%, transparent);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-          <h3 style="font-size:1.1rem; font-weight:bold; color:var(--ad-text); margin:0;">Meta Pixel (Facebook)</h3>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="checkbox" id="pixelEnabled" ${data.metaPixel?.enabled ? 'checked' : ''}>
-            <span style="color:var(--ad-text);">Ativar</span>
-          </label>
-        </div>
-        <div>
-          <label style="display:block; color:var(--ad-text); opacity:0.7; margin-bottom:0.25rem; font-size:0.875rem;">Pixel ID</label>
-          <input type="text" id="pixelId" value="${data.metaPixel?.pixelId || ''}" placeholder="1234567890"
-            style="width:100%; background:var(--ad-bg-base); border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); color:var(--ad-text); padding:0.5rem 0.75rem; border-radius:0.375rem; font-size:0.9375rem;">
-        </div>
-      </div>
+      ${integrationCard({
+        title: 'Google Analytics 4',
+        toggleId: 'gaEnabled',
+        enabled: data.googleAnalytics?.enabled,
+        fieldId: 'gaId',
+        fieldLabel: 'Measurement ID (G-XXXXXXXX)',
+        value: data.googleAnalytics?.measurementId || '',
+        placeholder: 'G-ABC123456',
+        icon: '<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>'
+      })}
 
-      <!-- Lembrete de prazo: movido para Configurações -->
-      <div style="background:var(--ad-bg-surface); padding:1rem 1.25rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-text) 15%, transparent); font-size:0.875rem; color:var(--ad-text);">
-        💡 O <strong>lembrete de prazo de seleção</strong> agora é configurado em
-        <a href="#" onclick="window.switchTab('configuracoes'); return false;" style="color:var(--ad-accent); font-weight:600; text-decoration:underline; cursor:pointer;">Configurações › Escassês &amp; Vendas</a>.
-      </div>
+      ${integrationCard({
+        title: 'Meta Pixel (Facebook)',
+        toggleId: 'pixelEnabled',
+        enabled: data.metaPixel?.enabled,
+        fieldId: 'pixelId',
+        fieldLabel: 'Pixel ID',
+        value: data.metaPixel?.pixelId || '',
+        placeholder: '1234567890',
+        icon: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>'
+      })}
 
-      <button id="saveBtn" style="background:var(--ad-accent); color:var(--ad-bg-base); padding:0.75rem 1.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold; font-size:1rem; align-self:flex-start;">
-        Salvar Configurações
-      </button>
+      <div style="display:flex; justify-content:center; margin-top:0.5rem;">
+        <button id="saveBtn" class="header-expand-btn" title="Salvar Configurações" style="cursor:pointer;">
+          <span class="header-expand-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </span>
+          <span class="header-expand-label" style="font-weight:600;">Salvar Configurações</span>
+        </button>
+      </div>
     </div>
   `;
 
   container.querySelector('#saveBtn').onclick = async () => {
     const btn = container.querySelector('#saveBtn');
-    btn.textContent = 'Salvando...';
+    const label = btn.querySelector('.header-expand-label');
+    const original = label.textContent;
+    label.textContent = 'Salvando...';
     btn.disabled = true;
+    btn.style.opacity = '0.6';
 
     const payload = {
       googleAnalytics: {
@@ -84,8 +79,33 @@ function renderForm(container, data) {
     } catch (error) {
       window.showToast('Erro: ' + error.message, 'error');
     } finally {
-      btn.textContent = 'Salvar Configurações';
+      label.textContent = original;
       btn.disabled = false;
+      btn.style.opacity = '';
     }
   };
+}
+
+// Card de integração reutilizável (GA4, Meta Pixel): cabeçalho com ícone + toggle
+// e um campo de ID. Mantém a identidade do DS (tokens, raios e fonte Inter herdada).
+function integrationCard({ title, toggleId, enabled, fieldId, fieldLabel, value, placeholder, icon }) {
+  return `
+    <div style="background:var(--bg-surface); padding:1.75rem 1.5rem; border-radius:var(--r-card); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.25rem;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem;">
+        <span style="width:44px; height:44px; border-radius:var(--r-field); background:var(--bg-elevated); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; color:var(--text-primary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+        </span>
+        <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">${title}</h3>
+        <label style="display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
+          <input type="checkbox" class="check" id="${toggleId}" ${enabled ? 'checked' : ''}>
+          <span style="color:var(--text-secondary); font-size:0.875rem;">Ativar</span>
+        </label>
+      </div>
+      <div style="width:100%; max-width:420px;">
+        <label class="form-label" for="${fieldId}" style="text-align:center;">${fieldLabel}</label>
+        <input type="text" id="${fieldId}" class="input" value="${value}" placeholder="${placeholder}"
+          style="width:100%; box-sizing:border-box; text-align:center;">
+      </div>
+    </div>
+  `;
 }

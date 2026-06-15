@@ -20,10 +20,13 @@ function renderContent(container, data) {
       ${renderRegisterDomainSection()}
 
       <div style="display:flex; flex-direction:column; gap:1.5rem;">
-        <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Domínio Personalizado</h2>
+        <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.25rem;">
+          <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0;">Domínio Personalizado</h2>
+          <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">Já tem um domínio? Conecte-o ao seu site.</p>
+        </div>
 
-        <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-          <p style="color:var(--text-secondary); margin-bottom:1rem;">
+        <div style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--r-card); border:1px solid var(--border);">
+          <p style="color:var(--text-secondary); margin-bottom:1rem; text-align:center;">
             Conecte seu próprio domínio (ex: www.seunome.com.br) ao seu site.
           </p>
 
@@ -102,18 +105,18 @@ function renderActiveDomain(domain, status) {
   const statusText = isVerified ? '✓ Verificado e Ativo' : '⏳ Aguardando verificação DNS';
 
   return `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:1rem; border-radius:0.375rem; border:1px solid var(--border);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; background:var(--bg-base); padding:1rem; border-radius:var(--r-field); border:1px solid var(--border);">
       <div>
-        <div style="font-size:1.1rem; font-weight:bold; color:var(--text-primary);">${domain}</div>
+        <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${domain}</div>
         <div style="color:${statusColor}; font-size:0.875rem; margin-top:0.25rem;">${statusText}</div>
       </div>
       <div style="display:flex; gap:0.5rem;">
         ${!isVerified ? `
-          <button id="btnVerify" style="background:var(--accent); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer;">
+          <button id="btnVerify" class="btn btn-primary" style="border-radius:var(--r-chip); padding:0.5rem 1rem; font-weight:600;">
             Verificar DNS
           </button>
         ` : ''}
-        <button id="btnRemove" style="background:var(--red); color:white; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer;">
+        <button id="btnRemove" class="btn btn-danger" style="border-radius:var(--r-chip); padding:0.5rem 1rem; font-weight:600;">
           Remover
         </button>
       </div>
@@ -123,11 +126,14 @@ function renderActiveDomain(domain, status) {
 
 function renderAddDomainForm() {
   return `
-    <div style="display:flex; gap:0.5rem;">
-      <input type="text" id="inputDomain" placeholder="ex: www.seunome.com.br"
-        style="flex:1; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); padding:0.75rem; border-radius:0.375rem;">
-      <button id="btnAdd" style="background:var(--accent); color:white; padding:0.75rem 1.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:bold;">
-        Adicionar
+    <div style="display:flex; flex-direction:column; gap:1rem; align-items:center;">
+      <input type="text" id="inputDomain" class="input" placeholder="ex: www.seunome.com.br"
+        style="width:100%; box-sizing:border-box;">
+      <button id="btnAdd" class="header-expand-btn" title="Adicionar domínio" style="cursor:pointer;">
+        <span class="header-expand-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <span class="header-expand-label" style="font-weight:600;">Adicionar</span>
       </button>
     </div>
   `;
@@ -135,8 +141,8 @@ function renderAddDomainForm() {
 
 function renderInstructions(domain, ip) {
   return `
-    <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-      <h3 style="color:var(--text-primary); font-weight:bold; margin-bottom:1rem;">Instruções de Configuração DNS</h3>
+    <div style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--r-card); border:1px solid var(--border);">
+      <h3 style="color:var(--text-primary); font-weight:600; margin-bottom:1rem;">Instruções de Configuração DNS</h3>
       <p style="color:var(--text-secondary); margin-bottom:1rem;">Acesse o painel onde comprou seu domínio (Hostinger, GoDaddy, Registro.br) e adicione o seguinte registro:</p>
 
       <table style="width:100%; text-align:left; border-collapse:collapse; color:var(--text-secondary);">
@@ -171,29 +177,30 @@ function renderInstructions(domain, ip) {
 function renderRegisterDomainSection() {
   return `
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
-      <div style="display:flex; align-items:center; gap:0.625rem;">
-        <div style="width:40px; height:40px; border-radius:10px; background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.5rem;">
+        <div style="width:48px; height:48px; border-radius:var(--r-field); background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         </div>
         <div>
-          <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin:0;">Registrar um domínio</h2>
+          <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0;">Registrar um domínio</h2>
           <p style="color:var(--text-secondary); font-size:0.875rem; margin:0.125rem 0 0;">Pesquise um nome e a gente registra pra você.</p>
         </div>
       </div>
 
       ${renderRegisterDomainBenefits()}
 
-      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border);">
-        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-          <input type="text" id="inputDomainSearch" placeholder="Digite o nome desejado"
-            style="flex:1; min-width:200px; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); padding:0.75rem; border-radius:0.375rem; font-family:inherit;">
-          <button id="btnDomainSearch"
-            style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--green); color:#fff; padding:0.75rem 1.5rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:700; font-family:inherit;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            Pesquisar
+      <div style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--r-card); border:1px solid var(--border);">
+        <div style="display:flex; flex-direction:column; gap:1rem; align-items:center;">
+          <input type="text" id="inputDomainSearch" class="input" placeholder="Digite o nome desejado"
+            style="width:100%; box-sizing:border-box;">
+          <button id="btnDomainSearch" class="header-expand-btn" title="Pesquisar domínio" style="cursor:pointer;">
+            <span class="header-expand-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <span class="header-expand-label" style="font-weight:600;">Pesquisar</span>
           </button>
         </div>
-        <p style="color:var(--text-muted); font-size:0.75rem; margin:0.75rem 0 0; line-height:1.5;">
+        <p style="color:var(--text-muted); font-size:0.75rem; margin:0.75rem 0 0; line-height:1.5; text-align:center;">
           Digite só o nome (sem ponto). Mostramos a disponibilidade em várias extensões.
         </p>
 
@@ -234,10 +241,10 @@ function renderRegisterDomainBenefits() {
   `).join('');
 
   return `
-    <div style="background:linear-gradient(135deg, rgba(63,185,80,0.10), rgba(63,185,80,0.02)); border:1px solid rgba(63,185,80,0.25); border-radius:0.5rem; padding:1.5rem;">
-      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1.25rem;">
+    <div style="background:linear-gradient(135deg, rgba(63,185,80,0.10), rgba(63,185,80,0.02)); border:1px solid rgba(63,185,80,0.25); border-radius:var(--r-card); padding:1.5rem;">
+      <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-bottom:1.25rem;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m6.41 6.41 2.83 2.83"/><path d="M2 12h4"/><path d="M9.24 14.76 6.41 17.59"/><path d="M12 22v-4"/><path d="m17.59 17.59-2.83-2.83"/><path d="M22 12h-4"/><path d="m14.76 9.24 2.83-2.83"/></svg>
-        <h3 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin:0;">Por que registrar pelo CliqueZoom?</h3>
+        <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); margin:0;">Por que registrar pelo CliqueZoom?</h3>
       </div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1.25rem;">
         ${itens}
@@ -296,12 +303,12 @@ function renderSearchResults(resultsEl, results) {
     const price = r.priceEstimate ? `<span style="color:var(--text-muted); font-size:0.75rem;">${r.priceEstimate} (estimativa)</span>` : '';
     const action = r.status === 'available'
       ? `<button class="btnWantDomain" data-domain="${r.domain}" data-tld="${r.tld}" data-price="${r.priceEstimate || ''}"
-           style="display:inline-flex; align-items:center; gap:0.375rem; background:var(--green); color:#fff; padding:0.5rem 0.875rem; border-radius:0.375rem; border:none; cursor:pointer; font-weight:600; font-size:0.8125rem; font-family:inherit; white-space:nowrap;">
+           style="display:inline-flex; align-items:center; gap:0.375rem; background:var(--green); color:#fff; padding:0.5rem 0.875rem; border-radius:var(--r-chip); border:none; cursor:pointer; font-weight:600; font-size:0.8125rem; font-family:inherit; white-space:nowrap;">
            Quero este domínio
          </button>`
       : `<span style="width:1px;"></span>`;
     return `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; background:var(--bg-base); border:1px solid var(--border); border-radius:0.375rem; padding:0.75rem 1rem;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; background:var(--bg-base); border:1px solid var(--border); border-radius:var(--r-field); padding:0.75rem 1rem;">
         <div style="display:flex; flex-direction:column; gap:0.25rem; min-width:0;">
           <span style="font-weight:600; color:var(--text-primary); font-size:0.9375rem;">${r.domain}</span>
           <span style="display:flex; align-items:center; gap:0.625rem; flex-wrap:wrap;">
