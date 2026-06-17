@@ -78,10 +78,11 @@ app.use('/album', express.static(path.join(__dirname, '../album')));
 // ============================================================================
 
 // Home (landing page de cadastro da plataforma CliqueZoom)
-// Se acessado via subdomínio de fotógrafo (ex: soraia.cliquezoom.com.br), redireciona para /site
-app.get('/', (req, res) => {
-  const baseDomain = process.env.BASE_DOMAIN || 'cliquezoom.com.br';
-  const host = (req.get('host') || '').split(':')[0];
+// Se acessado via subdomínio de fotógrafo ou domínio customizado, redireciona para /site
+app.get('/', async (req, res) => {
+  const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
+  const host = (req.get('host') || '').split(':')[0].toLowerCase();
+
   const isPhotographerSubdomain =
     host.endsWith(`.${baseDomain}`) &&
     host !== `www.${baseDomain}` &&
@@ -89,6 +90,30 @@ app.get('/', (req, res) => {
 
   if (isPhotographerSubdomain) {
     return res.redirect(301, '/site');
+  }
+
+  // Verificar se é domínio customizado (não pertence ao domínio base e não é localhost/IP)
+  const isPlatformDomain = 
+    host === baseDomain || 
+    host === `www.${baseDomain}` || 
+    host === `app.${baseDomain}` || 
+    host === `erp.${baseDomain}` || 
+    host === `crm.${baseDomain}` || 
+    host === `license.${baseDomain}` || 
+    host === `hub.${baseDomain}` ||
+    host.endsWith(`.${baseDomain}`) ||
+    host === 'localhost' ||
+    host === '127.0.0.1';
+
+  if (!isPlatformDomain) {
+    try {
+      const orgExists = await Organization.findOne({ customDomain: host, isActive: true }).select('_id').lean();
+      if (orgExists) {
+        return res.redirect(301, '/site');
+      }
+    } catch (err) {
+      logger.error('Erro ao verificar domínio customizado na raiz:', { message: err.message });
+    }
   }
 
   res.sendFile(path.join(__dirname, '../home/index.html'));

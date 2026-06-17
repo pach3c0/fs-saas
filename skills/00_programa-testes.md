@@ -311,7 +311,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · ⚠️ existe mas prec
   log acima): helper `criarSessao` com CPF válido (regressão Rhyno) + spec do onboarding 25%→33%.
 - 2026-06-10 (restart, execução — sessão 2) — **Dashboard CONCLUÍDO (3/3 artefatos).** Manual
   `MANUAL_MODULES[0]` refeito p/ a UI atual (onboarding 3 passos, 4 KPIs, Ações com "Ver meu Site") e
-  validado por screenshot; roteiro `skills/01_dasboard.md` revalidado/atualizado. Melhorias: "Espaço
+  validado por screenshot; roteiro `skills/01_dashboard.md` revalidado/atualizado. Melhorias: "Espaço
   Usado" em GB (`formatStorage`) + copy "estúdio"→"negócio".
 - 2026-06-10 (restart, execução — sessão 2) — **Sessões CONCLUÍDO (3/3 artefatos): 19/19 testes verdes**
   (`tests/local/0–9`, ~2.6min). Sem regressões além do CPF já corrigido. Manual revisado (current — "10 MB"

@@ -87,7 +87,7 @@ ler `localStorage.getItem('authToken')` e `fetch` com `Authorization: Bearer`.
 - **Dashboard** ✅ — **7 testes E2E verdes** (`tests/local/10_dashboard.spec.js`).
   **RE-VERIFICADO no restart pós-Rhyno (2026-06-10):** 2 correções — (a) regressão Rhyno no helper
   `criarSessao` (CPF válido via `gerarCPF()`); (b) spec do onboarding 25%→33% (checklist 4→3 passos).
-  **Falta: manual (refazer `MANUAL_MODULES[0]`) + validar roteiro (`skills/01_dasboard.md`)** — deferidos
+  **Falta: manual (refazer `MANUAL_MODULES[0]`) + validar roteiro (`skills/01_dashboard.md`)** — deferidos
   por orçamento de crédito.
 - **Mensagens** ✅ **COMPLETO (3/3) — 2026-06-11** — 14 testes E2E (`tests/local/11_mensagens.spec.js`),
   manual validado por screenshot, roteiro + doc em `skills/04_mensagens.md`. 2 bugs consertados

@@ -333,17 +333,21 @@ Refatorado em 2026-05-23 e consolidado em **5 passos** após a fusão dos antigo
 - Modo backup: manter só a capa local + campo `externalStorageUrl` (Drive/Dropbox) — sessão continua no painel, imagens vivem fora.
 - Drive externo como storage dinâmico (substituir uploads/): **usuário ainda em decisão** (provável V2 — OAuth, quotas, custo de banda).
 
-Ver `skills/8_0_handoff-2026-05-23.md` para o plano executado e os caminhos pendentes.
+Ver `skills/8_0_handoff-sessoes-ondas.md` para o plano executado e os caminhos pendentes.
 
 ### Achados do Dia 2 — Notas para manutenção futura
 - **Route names não óbvios:** `GET /api/organization/profile` (não `/api/organization`), `GET /api/billing/subscription` (não `/api/billing/plan`), login em `POST /api/login` (não `/api/auth/login`)
-- **resolveTenant em produção:** Lê tenant SOMENTE por subdomínio ou campo `customDomain`. O header `x-tenant` é ignorado pelo middleware. O parâmetro `_tenant` só funciona em localhost/preview. Rotas de cliente precisam de subdomínio válido em produção (ex: `audit-cz-2025.cliquezoom.com.br`)
+- **resolveTenant em produção:** Lê tenant SOMENTE por subdomínio ou campo `customDomain`. O header `x-tenant` é ignorado pelo middleware. O parâmetro `_tenant` só funciona em localhost/preview. Rotas de cliente precisam de subdomínio válido em produção (ex: `audit-cz-2025.cliquezoom.com.br`).
+- **Resolução de Domínios Customizados na Raiz (`/`):** 
+  - *Problema:* Originalmente, requisições à raiz de domínios customizados (ex: `https://www.fsfotografias.com.br/`) serviam a landing page da plataforma CliqueZoom (`/home/index.html`), pois o redirecionamento para `/site` em `app.get('/')` só cobria subdomínios de `cliquezoom.com.br`.
+  - *Correção:* A rota raiz `/` em `src/server.js` foi corrigida para detectar se a requisição é originada de um domínio customizado registrado no MongoDB (`Organization.findOne({ customDomain: host, isActive: true })`) e, em caso positivo, redirecionar com HTTP 301 para `/site`.
+  - *Nginx:* Configurações de backup `.bak` não devem ficar dentro de `/etc/nginx/sites-enabled/`, pois o Nginx lê todos os arquivos desse diretório e gera conflitos de portas/server names. Sempre mova os backups para `/etc/nginx/sites-available/`.
 - **DELETE idempotente:** `DELETE /api/sessions/:id` retorna `{success:true}` mesmo se a sessão não existe — comportamento intencional
 - **Inconsistência de campo:** `POST /site/contact` usa campos PT-BR (`nome`, `mensagem`); `POST /site/depoimento` usa campos EN (`name`, `text`) — menor, mas deve ser uniformizado no futuro
 - **Limite de upload:** Express JSON capped em 5MB. Multer (multipart) permite até 10MB por arquivo — são middlewares diferentes
 
 ### Pendências antes do lançamento ⚠️
-- [ ] **Validar Onda 4 em produção/local** — usuário ainda não confirmou o teste do WhatsApp na entrega (passo 6) — ver `skills/8_0_handoff-2026-05-23.md` para o checklist.
+- [ ] **Validar Onda 4 em produção/local** — usuário ainda não confirmou o teste do WhatsApp na entrega (passo 6) — ver `skills/8_0_handoff-sessoes-ondas.md` para o checklist.
 - [ ] **Validar Onda 1–4 em modo `gallery`** — todas as ondas foram focadas em `selection`. Confirmar fluxo da galeria após a fusão (Upload → Compartilhar → Entregar, 3 passos).
 - [ ] **Regra do mínimo de upload em multi-seleção** — modelar como tratar o `packageLimit` por participante. Hoje a validação só vale para `selection`.
 - [ ] **Template Padrão — fix 403:** Confirmar `PLATFORM_ADMIN_KEY` no runtime do PM2. Testar: `curl -X PUT https://app.cliquezoom.com.br/api/site/default-template -H "X-Admin-Key: <chave do .env da VPS>" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{}'`
@@ -408,12 +412,25 @@ O ERP **Rhyno System** (pasta `/Users/macbook/Documents/ERP1`, repo `pach3c0/ERP
 - **Backups deixados na prod:** ERP `auth.py.bak.*`, `backend/.env.bak.*`, `frontend/dist_backup_*`; CliqueZoom `.env.bak.rhyno.*`. Rollback rápido se preciso.
 - **Handoff completo: `skills/9_0_handoff-rhyno-integracao.md`.** Memórias: `project_rhyno_integration`, `reference_rhyno_local_poc`.
 
-> ⚠️ **REGRA — Subir o Rhyno LOCAL para dev (NÃO é a produção — prod roda via PM2 em `/var/www/rhyno-erp`, ver acima).** Em dev local a aba Gestão fica em branco / "não funciona" sem isto:
-> O container `rhyno-api` sobe com `Cmd: ["sleep","infinity"]` — **o uvicorn NÃO inicia sozinho**. Só `docker start rhyno-api` deixa a porta 8000 aceitando conexão e logo **resetando** ("Connection reset by peer"); a API está morta e o SSO do iframe falha. Sequência correta para subir o stack do zero (após reboot/`docker restart`):
+> ⚠️ **REGRA — Subir o ambiente LOCAL completo (CliqueZoom + Rhyno) para dev.** NÃO é produção (CliqueZoom prod = PM2 `cliquezoom-saas` em `/var/www/cz-saas`; Rhyno prod = PM2 em `/var/www/rhyno-erp`). O `.env` local é gitignored → rodar isto **não toca** em nada da produção. A aba **Gestão** (iframe do Rhyno) só funciona em dev se os DOIS estiverem no ar.
+>
+> **🚨 STACK CERTO × STACK ERRADO (a confusão clássica — leia antes de subir):** o stack da integração é **`rhyno-pg`** (Postgres) **+ `rhyno-api`** (uvicorn :8000) + frontend do Rhyno via `npm run dev` no host (Vite :5173). **NÃO confundir com o docker-compose `erp_backend` / `erp_frontend` / `erp_db`** (imagens `erp1-*`) — esse é um build SEPARADO do ERP1, **não tem o SSO/tenant da integração** e ainda **rouba as portas 8000/5173**. Se ele subir, o iframe da Gestão fica em branco / SSO falha. (Há também um `rhynoia-*` antigo parado — lixo, ignore.)
+>
+> **Sequência completa (copia e cola — sobe tudo do zero, após reboot/`docker restart`):**
 > ```bash
+> # 1) garantir que o compose ERRADO está parado (evita conflito de porta 8000/5173)
+> docker stop erp_backend erp_frontend erp_db 2>/dev/null
+>
+> # 2) Rhyno backend — stack CORRETO (rhyno-pg + rhyno-api)
 > docker start rhyno-pg rhyno-api
 > docker exec -d rhyno-api sh -c "cd /app && uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1"
-> # frontend (na pasta ERP1/frontend, roda no host): npm run dev   → Vite :5173
+>
+> # 3) Rhyno frontend — NO HOST (não em container)
+> cd /Users/macbook/Documents/ERP1/frontend && npm run dev    # Vite :5173
+>
+> # 4) CliqueZoom — na raiz do FsSaaS (npm install só na 1ª vez; build:css se mudou Tailwind)
+> cd /Users/macbook/Documents/ProjetoEstudio/FsSaaS && npm run dev   # porta 3051
 > ```
-> Verificar: `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8000/docs` deve dar **200**. Logs: `docker exec rhyno-api tail -n 30 /tmp/uvicorn.log`.
-> Notas: o Vite escuta só em `[::1]:5173` (IPv6) — use `localhost`, não `127.0.0.1`. O `SSO_SHARED_SECRET` precisa ser IGUAL nos dois `.env` (`FsSaaS/.env` e `ERP1/backend/.env`). Detalhes em `reference_rhyno_local_poc`.
+> **Verificar:** `curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8000/docs` deve dar **200**. Logs do Rhyno: `docker exec rhyno-api tail -n 30 /tmp/uvicorn.log`.
+> **URLs:** CliqueZoom `http://localhost:3051` (login de teste `teste@teste.com.br`, DB local `cliquezoom-dev`) · Rhyno API `http://localhost:8000/docs` · Rhyno front `http://localhost:5173`.
+> **Gotchas:** o `rhyno-api` roda `Cmd: ["sleep","infinity"]` → **o uvicorn NÃO sobe sozinho** (container sai com status 255 / "Connection reset"), precisa do `docker exec -d` do passo 2. O Vite escuta só em `[::1]:5173` (IPv6) → use `localhost`, **não** `127.0.0.1`. O `SSO_SHARED_SECRET` precisa ser IGUAL nos dois `.env` (`FsSaaS/.env` e `ERP1/backend/.env`). Rodar o CliqueZoom **sempre** da raiz do FsSaaS (cwd errado dá `MODULE_NOT_FOUND`). Detalhes: `reference_rhyno_local_poc`, `reference_local_e2e_setup`.

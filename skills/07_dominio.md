@@ -75,6 +75,22 @@ Fotógrafo clica "Verificar DNS" → POST /api/domains/verify
 - Dialogs `showToast`/`showConfirm` ✓ · tokens CSS inline (aliases `--bg-*`/`--text-*` do DS) ✓ ·
   logs via `req.logger` ✓ · reads com `.lean()` ✓
 
+## 4.1 Casos especiais / Migrações ativas em produção
+
+### Fsfotografias (Flávia — Org "Fs Fotografias")
+Domínio customizado configurado em **2026-06-15**.
+- **Nginx Config:** `/etc/nginx/sites-available/fsfotografias` (symlinked para `sites-enabled`)
+- **SSL Certificates:** Reaproveitados os certificados válidos existentes em `/etc/letsencrypt/live/fsfotografias.com.br/` (cobre `fsfotografias.com.br` e `www.fsfotografias.com.br`).
+- **Comportamento de Redirecionamento:**
+  - `http://fsfotografias.com.br` -> `https://www.fsfotografias.com.br` (301 via Nginx)
+  - `https://fsfotografias.com.br` -> `https://www.fsfotografias.com.br` (301 via Nginx)
+  - `https://www.fsfotografias.com.br/` (raiz) -> `/site` (301 via `server.js` do CliqueZoom para carregar o template do fotógrafo)
+- **Histórico de Erro & Correção:**
+  - *Problema:* Acessar `https://www.fsfotografias.com.br/` renderizava a Landing Page da plataforma CliqueZoom, e não o site da fotógrafa Flávia. Isso acontecia porque a rota raiz `/` no backend (`src/server.js`) não estava preparada para tratar e redirecionar domínios customizados para `/site`.
+  - *Correção:* A rota raiz `/` foi alterada no Express para consultar a existência do domínio customizado no banco de dados e redirecionar para `/site` (onde o `resolveTenant` funciona corretamente). Adicionalmente, arquivos de backup `.bak` gerados no Nginx foram retirados do diretório `sites-enabled` para evitar conflito de portas e domínios duplicados.
+
+---
+
 ## 5. Bugs encontrados e corrigidos (2026-06-11)
 
 1. **Remover domínio pela UI nunca funcionou** — `dominio.js` chamava

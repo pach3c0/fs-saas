@@ -44,6 +44,13 @@ export const GRUPOS = [
       { path: '/crm', label: 'CRM', icon: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>' },
     ],
   },
+  {
+    grupo: 'Produtividade',
+    itens: [
+      { path: '/tasks', label: 'Tarefas', icon: '<path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/>' },
+      { path: '/goals', label: 'Metas', icon: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
+    ],
+  },
 ];
 
 export async function renderGestao(container) {
@@ -61,9 +68,15 @@ export async function renderGestao(container) {
   const frame = container.querySelector('#gestaoFrame');
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
-  // Expor função para navegar o iframe sem refazer SSO
+  // Origem do ERP usada na navegação interna do iframe. Começa na produção, mas é
+  // sobrescrita pela origem REAL da URL de SSO (que respeita RHYNO_BASE_URL do backend
+  // — ex.: localhost:5173 em dev). Sem isso, navegar para outra origem que não a do SSO
+  // perderia o token (localStorage é por-origem) e mostraria a landing/login do ERP.
+  let erpOrigin = new URL(RHYNO_BASE).origin;
+
+  // Expor função para navegar o iframe sem refazer SSO (mesma origem → token persiste)
   window.__gestaoGoTo = (path) => {
-    frame.src = `${RHYNO_BASE}${path}?embed=1&theme=${theme}`;
+    frame.src = `${erpOrigin}${path}?embed=1&theme=${theme}`;
   };
 
   const initialPath = appState.gestaoInitialPath || '/dashboard';
@@ -71,10 +84,11 @@ export async function renderGestao(container) {
   // Carga inicial via SSO (login único)
   try {
     const resp = await apiGet(`/api/gestao/sso-url?redirect=${initialPath}`);
+    erpOrigin = new URL(resp.url).origin; // alinha a navegação interna à origem do SSO
     frame.src = resp.url.includes('?') ? `${resp.url}&theme=${theme}` : `${resp.url}?theme=${theme}`;
   } catch (err) {
     // Fallback: abre direto (vai mostrar a tela de login do Rhyno)
     console.error('Falha ao gerar SSO do Rhyno:', err);
-    frame.src = `${RHYNO_BASE}${initialPath}?embed=1&theme=${theme}`;
+    frame.src = `${erpOrigin}${initialPath}?embed=1&theme=${theme}`;
   }
 }

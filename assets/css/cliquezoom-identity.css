@@ -22,7 +22,7 @@
 
   /* ---- Glass contido — preset SUTIL ---- */
   --glass-blur: 18px;
-  --glass-alpha: 0.72;
+  --glass-alpha: 0.95;
   --glass-bg: color-mix(in srgb, var(--bg-surface) calc(var(--glass-alpha) * 100%), transparent);
 
   /* ---- Elevação suave (Apple-like) ---- */

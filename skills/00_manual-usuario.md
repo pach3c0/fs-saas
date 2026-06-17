@@ -64,7 +64,7 @@ Adicionar (ou atualizar) o item correspondente em `MANUAL_MODULES` em `ajuda.js`
 **Mini-preview:** HTML/CSS usando os mesmos tokens do design system (`var(--accent)`, `var(--bg-surface)`, etc.), com `pointer-events:none`. Deve representar o elemento visualmente, com dados de exemplo.
 
 ### Passo 3 — Atualizar o skill do módulo
-Adicionar referência ao manual no skill correspondente (ex: `skills/01_dasboard.md`).
+Adicionar referência ao manual no skill correspondente (ex: `skills/01_dashboard.md`).
 
 ### Passo 4 — Atualizar CLAUDE.md
 Marcar o módulo como documentado na lista de estado do projeto.
@@ -85,9 +85,9 @@ Marcar o módulo como documentado na lista de estado do projeto.
 
 | Módulo | id | Status | Skill |
 |---|---|---|---|
-| Dashboard | `dashboard` | ✅ Documentado | `skills/01_dasboard.md` |
+| Dashboard | `dashboard` | ✅ Documentado | `skills/01_dashboard.md` |
 | Sessões | `sessoes` | ⚠️ **Desatualizado** — manual descreve o fluxo de botões antigos. Após a refatoração para Wizard Guiado (2026-05-23), precisa ser reescrito para refletir os 6 passos. | `skills/02_sessoes.md` |
-| Clientes | `clientes` | ✅ Documentado | `skills/03_0_clientes.md` |
+| Clientes | `clientes` | ✅ Documentado | `skills/03_clientes.md` |
 | Mensagens | `mensagens` | 🔲 Placeholder | — |
 | Meu Site | `meu-site` | 🔲 Placeholder | — |
 
