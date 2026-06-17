@@ -27,9 +27,9 @@ const MSG_CHANNELS = [
 // Exemplos prontos (apenas ponto de partida — o fotógrafo edita à vontade).
 const STARTERS = {
   shareEmail:      'Olá {nome}! As fotos do seu {evento} já estão disponíveis para visualização. Use o código abaixo para acessar sua galeria.',
-  shareWhatsApp:   'Olá {nome}! 📸 As fotos do seu {evento} já estão prontas para você visualizar e escolher.\n\nAcesse sua galeria: {link}\n\nCódigo de acesso: {codigo}\n\n— {negocio}',
+  shareWhatsApp:   'Olá {nome}! As fotos do seu {evento} já estão prontas para você visualizar e escolher.\n\nAcesse sua galeria: {link}\n\nCódigo de acesso: {codigo}\n\n— {negocio}',
   deliverEmail:    'Olá {nome}! As fotos editadas do seu {evento} estão prontas para download em alta resolução.',
-  deliverWhatsApp: 'Olá {nome}! 📸 As fotos editadas do seu {evento} estão prontas para download em alta resolução!\n\nAcesse para baixar: {link}\n\nCódigo de acesso: {codigo}\n\n— {negocio}'
+  deliverWhatsApp: 'Olá {nome}! As fotos editadas do seu {evento} estão prontas para download em alta resolução!\n\nAcesse para baixar: {link}\n\nCódigo de acesso: {codigo}\n\n— {negocio}'
 };
 
 const VARS_BY_KIND = {
@@ -38,12 +38,12 @@ const VARS_BY_KIND = {
 };
 
 const SECTIONS = [
-  { id: 'mensagens',     label: 'Mensagens' },
-  { id: 'sessoes',       label: 'Sessões' },
-  { id: 'entrega',       label: 'Entrega' },
-  { id: 'notificacoes',  label: 'Notificações' },
-  { id: 'vendas',        label: 'Escassês & Vendas' },
-  { id: 'privacidade',   label: 'Privacidade' }
+  { id: 'mensagens',     label: 'Mensagens', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>' },
+  { id: 'sessoes',       label: 'Sessões', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>' },
+  { id: 'entrega',       label: 'Entrega', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x1="12" y1="15" y2="3"/></svg>' },
+  { id: 'notificacoes',  label: 'Notificações', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' },
+  { id: 'vendas',        label: 'Escassês & Vendas', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x1="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+  { id: 'privacidade',   label: 'Privacidade', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2-1 4-2 7-2 2.5 0 4.5 1 6.5 2a1 1 0 0 1 1 1v7z"/></svg>' }
 ];
 
 // Variáveis disponíveis nas mensagens de venda (pós-entrega, com cupom)
@@ -89,16 +89,16 @@ function renderLayout(container) {
 
   // Sub-navegação
   const nav = document.createElement('div');
-  nav.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
-  const btnBase = 'padding:0.5rem 1.125rem; border-radius:9999px; font-size:0.875rem; font-weight:600; cursor:pointer; border:1px solid; transition:all 0.2s; font-family:inherit;';
+  nav.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;';
   SECTIONS.forEach(s => {
     const btn = document.createElement('button');
     btn.type = 'button';
     const active = s.id === currentSection;
-    btn.style.cssText = btnBase + (active
-      ? 'background:var(--accent); color:#fff; border-color:var(--accent);'
-      : 'background:var(--bg-elevated); color:var(--text-secondary); border-color:var(--border);');
-    btn.textContent = s.label;
+    btn.className = 'header-expand-btn' + (active ? ' active' : '');
+    btn.innerHTML = `<span class="header-expand-icon">${s.icon}</span><span class="header-expand-label">${s.label}</span>`;
+    if (active) {
+      btn.style.cssText = 'border-color:var(--text-primary); color:var(--text-primary); background:var(--bg-hover); font-weight:600;';
+    }
     btn.onclick = () => { currentSection = s.id; renderLayout(container); };
     nav.appendChild(btn);
   });
@@ -159,7 +159,7 @@ function sectionCard(title, subtitle) {
   const card = document.createElement('div');
   card.style.cssText = 'background:var(--bg-surface); border:1px solid var(--border); border-radius:0.75rem; padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;';
   const head = document.createElement('div');
-  head.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:1rem;';
+  head.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; text-align:center;';
   const titleWrap = document.createElement('div');
   titleWrap.innerHTML = `
     <h2 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0;">${title}</h2>
@@ -175,7 +175,7 @@ function sectionCard(title, subtitle) {
 function fieldLabel(text) {
   const l = document.createElement('label');
   l.textContent = text;
-  l.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:0.375rem;';
+  l.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:0.375rem; text-align:center; width:100%;';
   return l;
 }
 
@@ -195,17 +195,17 @@ function renderMensagens() {
 
     const help = document.createElement('div');
     help.textContent = ch.help;
-    help.style.cssText = 'font-size:0.75rem; color:var(--text-muted); margin-top:-0.25rem;';
+    help.style.cssText = 'font-size:0.75rem; color:var(--text-muted); margin-top:-0.25rem; text-align:center;';
     block.appendChild(help);
 
     const textarea = document.createElement('textarea');
     textarea.value = tpls[ch.key] || '';
     textarea.placeholder = 'Usando a mensagem padrão do app…';
     textarea.rows = ch.kind === 'whatsapp' ? 7 : 4;
-    textarea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; line-height:1.5; resize:vertical;';
+    textarea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; line-height:1.5; resize:vertical; text-align:center;';
 
     const preview = document.createElement('div');
-    preview.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); background:var(--bg-base); border:1px dashed var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; white-space:pre-wrap; line-height:1.5;';
+    preview.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); background:var(--bg-base); border:1px dashed var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; white-space:pre-wrap; line-height:1.5; text-align:center;';
     const refreshPreview = () => {
       const raw = textarea.value.trim() || STARTERS[ch.key];
       preview.textContent = interpolateSample(raw);
@@ -218,7 +218,7 @@ function renderMensagens() {
 
     // Chips de variáveis
     const chips = document.createElement('div');
-    chips.style.cssText = 'display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center;';
+    chips.style.cssText = 'display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center; justify-content:center;';
     const chipsLabel = document.createElement('span');
     chipsLabel.textContent = 'Inserir:';
     chipsLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
@@ -226,8 +226,9 @@ function renderMensagens() {
     VARS_BY_KIND[ch.kind].forEach(v => {
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.textContent = v;
-      chip.style.cssText = 'font-family:monospace; font-size:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--accent); border-radius:0.375rem; padding:0.125rem 0.5rem; cursor:pointer;';
+      chip.className = 'header-expand-btn';
+      const varName = v.replace(/\{|\}/g, '');
+      chip.innerHTML = `<span class="header-expand-icon" style="font-family:monospace; font-size:12px; font-weight:bold; color:var(--accent);">{}</span><span class="header-expand-label" style="font-family:monospace; font-size:0.75rem; color:var(--accent);">${varName}</span>`;
       chip.onclick = () => {
         insertAtCursor(textarea, v);
         textarea.focus();
@@ -239,11 +240,11 @@ function renderMensagens() {
 
     // Ações: usar exemplo / restaurar padrão
     const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
+    actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;';
     const exampleBtn = document.createElement('button');
     exampleBtn.type = 'button';
-    exampleBtn.textContent = 'Usar exemplo';
-    exampleBtn.style.cssText = ghostBtnCss();
+    exampleBtn.className = 'header-expand-btn';
+    exampleBtn.innerHTML = `<span class="header-expand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x1="8" y1="13" y2="13"/><line x1="16" x1="8" y1="17" y2="17"/><line x1="10" x1="8" y1="9" y2="9"/></svg></span><span class="header-expand-label">Usar exemplo</span>`;
     exampleBtn.onclick = () => {
       textarea.value = STARTERS[ch.key];
       refreshPreview();
@@ -251,8 +252,8 @@ function renderMensagens() {
     };
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
-    resetBtn.textContent = 'Restaurar padrão do app';
-    resetBtn.style.cssText = ghostBtnCss();
+    resetBtn.className = 'header-expand-btn';
+    resetBtn.innerHTML = `<span class="header-expand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span><span class="header-expand-label">Restaurar padrão</span>`;
     resetBtn.onclick = () => {
       textarea.value = '';
       refreshPreview();
@@ -263,7 +264,7 @@ function renderMensagens() {
 
     const previewLabel = document.createElement('div');
     previewLabel.textContent = 'Pré-visualização';
-    previewLabel.style.cssText = 'font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); margin-top:0.25rem;';
+    previewLabel.style.cssText = 'font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); margin-top:0.25rem; text-align:center;';
 
     block.appendChild(chips);
     block.appendChild(textarea);
@@ -327,7 +328,7 @@ function renderEntrega() {
   opts.forEach(([val, label, desc]) => {
     const row = document.createElement('label');
     const active = current === val;
-    row.style.cssText = `display:flex; gap:0.75rem; align-items:flex-start; padding:0.875rem 1rem; border-radius:0.5rem; cursor:pointer; border:1px solid ${active ? 'var(--accent)' : 'var(--border)'}; background:var(--bg-base);`;
+    row.style.cssText = `display:flex; flex-direction:column; gap:0.5rem; align-items:center; padding:0.875rem 1rem; border-radius:0.5rem; cursor:pointer; border:1px solid ${active ? 'var(--accent)' : 'var(--border)'}; background:var(--bg-base); text-align:center;`;
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'galleryDeliveryDefault';
@@ -381,7 +382,7 @@ function numberField(label, value, min, max, onChange, isFloat = false) {
   input.value = value;
   input.min = min; input.max = max;
   if (isFloat) input.step = '0.01';
-  input.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem;';
+  input.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; text-align:center;';
   input.oninput = () => {
     const v = isFloat ? parseFloat(input.value) : parseInt(input.value);
     if (!isNaN(v)) onChange(v);
@@ -394,7 +395,7 @@ function selectField(label, value, options, onChange) {
   const wrap = document.createElement('div');
   wrap.appendChild(fieldLabel(label));
   const sel = document.createElement('select');
-  sel.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; cursor:pointer;';
+  sel.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; cursor:pointer; text-align:center;';
   options.forEach(([val, lbl]) => {
     const o = document.createElement('option');
     o.value = val; o.textContent = lbl;
@@ -408,7 +409,7 @@ function selectField(label, value, options, onChange) {
 
 function toggleField(label, checked, onChange) {
   const row = document.createElement('label');
-  row.style.cssText = 'display:flex; align-items:center; gap:0.625rem; cursor:pointer; font-size:0.875rem; color:var(--text-primary);';
+  row.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:0.625rem; cursor:pointer; font-size:0.875rem; color:var(--text-primary); text-align:center;';
   const cb = document.createElement('input');
   cb.type = 'checkbox';
   cb.checked = checked;
@@ -497,7 +498,7 @@ function renderVendas() {
     v => scheduleIntegrationsSave({ deadlineAutomation: { sendEmail: v } }, status, true)));
 
   const daysWrap = document.createElement('div');
-  daysWrap.style.maxWidth = '260px';
+  daysWrap.style.cssText = 'max-width:260px; width:100%; margin:0 auto;';
   daysWrap.appendChild(numberField('Avisar quantos dias antes do prazo', dl.daysWarning ?? 3, 1, 30,
     v => scheduleIntegrationsSave({ deadlineAutomation: { daysWarning: v } }, status)));
   preBlock.appendChild(daysWrap);
@@ -515,7 +516,7 @@ function renderVendas() {
     v => scheduleIntegrationsSave({ salesAutomator: { postDelivery: { enabled: v } } }, status, true)));
 
   const prefixWrap = document.createElement('div');
-  prefixWrap.style.maxWidth = '220px';
+  prefixWrap.style.cssText = 'max-width:220px; width:100%; margin:0 auto;';
   prefixWrap.appendChild(fieldLabel('Prefixo do cupom'));
   const prefixInput = document.createElement('input');
   prefixInput.type = 'text'; prefixInput.maxLength = 8;
@@ -541,7 +542,7 @@ function renderVendas() {
 
 function vendasSubBlock(title, desc) {
   const b = document.createElement('div');
-  b.style.cssText = 'display:flex; flex-direction:column; gap:0.625rem; padding-top:1.25rem; border-top:1px solid var(--border);';
+  b.style.cssText = 'display:flex; flex-direction:column; gap:0.625rem; padding-top:1.25rem; border-top:1px solid var(--border); text-align:center;';
   const h = document.createElement('div');
   h.innerHTML = `<div style="font-size:0.9375rem; font-weight:600; color:var(--text-primary);">${title}</div>
     <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.125rem;">${desc}</div>`;
@@ -559,8 +560,8 @@ function buildDeadlinesPanel() {
   ];
   items.forEach(([n, t, d]) => {
     const c = document.createElement('div');
-    c.style.cssText = 'background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.875rem 1rem;';
-    c.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.375rem;">
+    c.style.cssText = 'background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.875rem 1rem; text-align:center;';
+    c.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; margin-bottom:0.375rem;">
         <span style="width:1.25rem; height:1.25rem; border-radius:9999px; background:var(--accent); color:#fff; font-size:0.6875rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${n}</span>
         <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">${t}</span>
       </div>
@@ -573,7 +574,7 @@ function buildDeadlinesPanel() {
 function buildDiscountRow(daysList, discountMap, fallback, onChange) {
   const map = { ...(discountMap || {}) };
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap;';
+  wrap.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center;';
   daysList.forEach(day => {
     const key = String(day);
     const field = numberField(`${day} dia${day > 1 ? 's' : ''} antes (%)`, (map[key] ?? fallback), 0, 100, v => {
@@ -595,42 +596,48 @@ function buildSalesTemplateEditor(value, starter, onChange, varsList = SALES_VAR
   textarea.value = value || '';
   textarea.placeholder = 'Em branco = usa a mensagem otimizada do app (urgência por etapa).';
   textarea.rows = 6;
-  textarea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; line-height:1.5; resize:vertical;';
+  textarea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; line-height:1.5; resize:vertical; text-align:center;';
 
   const preview = document.createElement('div');
-  preview.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); background:var(--bg-base); border:1px dashed var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; white-space:pre-wrap; line-height:1.5;';
+  preview.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); background:var(--bg-base); border:1px dashed var(--border); border-radius:0.5rem; padding:0.625rem 0.75rem; white-space:pre-wrap; line-height:1.5; text-align:center;';
   const refreshPreview = () => { preview.textContent = interpolateSalesSample(textarea.value.trim() || starter); };
 
   textarea.oninput = () => { refreshPreview(); onChange(textarea.value); };
 
   const chips = document.createElement('div');
-  chips.style.cssText = 'display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center;';
+  chips.style.cssText = 'display:flex; gap:0.375rem; flex-wrap:wrap; align-items:center; justify-content:center;';
   const chipsLabel = document.createElement('span');
   chipsLabel.textContent = 'Inserir:';
   chipsLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
   chips.appendChild(chipsLabel);
   varsList.forEach(v => {
     const chip = document.createElement('button');
-    chip.type = 'button'; chip.textContent = v;
-    chip.style.cssText = 'font-family:monospace; font-size:0.75rem; background:var(--bg-elevated); border:1px solid var(--border); color:var(--accent); border-radius:0.375rem; padding:0.125rem 0.5rem; cursor:pointer;';
+    chip.type = 'button';
+    chip.className = 'header-expand-btn';
+    const varName = v.replace(/\{|\}/g, '');
+    chip.innerHTML = `<span class="header-expand-icon" style="font-family:monospace; font-size:12px; font-weight:bold; color:var(--accent);">{}</span><span class="header-expand-label" style="font-family:monospace; font-size:0.75rem; color:var(--accent);">${varName}</span>`;
     chip.onclick = () => { insertAtCursor(textarea, v); textarea.focus(); refreshPreview(); onChange(textarea.value); };
     chips.appendChild(chip);
   });
 
   const actions = document.createElement('div');
-  actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
+  actions.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;';
   const exampleBtn = document.createElement('button');
-  exampleBtn.type = 'button'; exampleBtn.textContent = 'Usar exemplo'; exampleBtn.style.cssText = ghostBtnCss();
+  exampleBtn.type = 'button';
+  exampleBtn.className = 'header-expand-btn';
+  exampleBtn.innerHTML = `<span class="header-expand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x1="8" y1="13" y2="13"/><line x1="16" x1="8" y1="17" y2="17"/><line x1="10" x1="8" y1="9" y2="9"/></svg></span><span class="header-expand-label">Usar exemplo</span>`;
   exampleBtn.onclick = () => { textarea.value = starter; refreshPreview(); onChange(textarea.value); };
   const resetBtn = document.createElement('button');
-  resetBtn.type = 'button'; resetBtn.textContent = 'Restaurar padrão do app'; resetBtn.style.cssText = ghostBtnCss();
+  resetBtn.type = 'button';
+  resetBtn.className = 'header-expand-btn';
+  resetBtn.innerHTML = `<span class="header-expand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span><span class="header-expand-label">Restaurar padrão</span>`;
   resetBtn.onclick = () => { textarea.value = ''; refreshPreview(); onChange(''); };
   actions.appendChild(exampleBtn);
   actions.appendChild(resetBtn);
 
   const previewLabel = document.createElement('div');
   previewLabel.textContent = 'Pré-visualização';
-  previewLabel.style.cssText = 'font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); margin-top:0.25rem;';
+  previewLabel.style.cssText = 'font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); margin-top:0.25rem; text-align:center;';
 
   block.appendChild(chips);
   block.appendChild(textarea);
@@ -642,7 +649,7 @@ function buildSalesTemplateEditor(value, starter, onChange, varsList = SALES_VAR
 }
 
 function inputCss() {
-  return 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem;';
+  return 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; text-align:center;';
 }
 
 function interpolateSalesSample(tpl) {
@@ -669,12 +676,12 @@ function renderPrivacidade() {
   );
 
   const row = document.createElement('div');
-  row.style.cssText = 'display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; padding:1rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.625rem;';
+  row.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.5rem; padding:1rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.625rem; text-align:center;';
 
   const info = document.createElement('div');
   info.innerHTML = `
-    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-      <span style="font-size:1rem;">🛡️</span>
+    <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-bottom:0.35rem;">
+      <span style="font-size:1rem; display:flex; align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2-1 4-2 7-2 2.5 0 4.5 1 6.5 2a1 1 0 0 1 1 1v7z"/></svg></span>
       <span style="font-weight:700; color:var(--text-primary); font-size:0.9375rem;">Ativar o usuário de suporte</span>
     </div>
     <p style="margin:0; font-size:0.8125rem; color:var(--text-secondary); line-height:1.55;">
@@ -683,7 +690,7 @@ function renderPrivacidade() {
     </p>
     <p style="margin:0.4rem 0 0; font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
       Você pode desligar a qualquer momento. Todo acesso do suporte expira em 30 minutos,
-      fica registrado em auditoria e você é avisado no sininho 🔔.
+      fica registrado em auditoria e você é avisado no sininho.
     </p>
   `;
 

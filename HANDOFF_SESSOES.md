@@ -67,7 +67,7 @@ O próximo passo é **Clientes** (`admin/js/tabs/clientes.js`) e **Mensagens** (
 ### 1. Leia primeiro
 - `CLAUDE.md` — regras gerais do projeto (tokens CSS, idioma, módulos, deploy)
 - `skills/00_manual-usuario.md` — padrão de documentação do manual (obrigatório ao documentar novo módulo)
-- `skills/01_dasboard.md` — modelo de como ficou o Dashboard (referência de qualidade)
+- `skills/01_dashboard.md` — modelo de como ficou o Dashboard (referência de qualidade)
 
 ### 2. Regras de código (admin/)
 - **Estilos:** SEMPRE inline com tokens CSS. **Nunca hexcodes**, **nunca RGBA hardcoded**
@@ -206,7 +206,7 @@ Na seção "Automação" do `admin/js/tabs/sessoes/modal-form.js`, emoji 🤖 an
 |---|---|
 | `CLAUDE.md` | Regras gerais do projeto |
 | `skills/00_manual-usuario.md` | Padrão de documentação do manual |
-| `skills/01_dasboard.md` | Modelo de skill file — Dashboard |
+| `skills/01_dashboard.md` | Modelo de skill file — Dashboard |
 | `skills/02_sessoes.md` | Modelo de skill file — Sessões |
 | `admin/js/tabs/ajuda.js` | Manual do Usuário (array `MANUAL_MODULES`) |
 | `admin/js/tabs/clientes.js` | Próximo arquivo a auditar |

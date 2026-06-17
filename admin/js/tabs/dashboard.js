@@ -31,7 +31,7 @@ export async function renderDashboard(container) {
                 border: 1px solid var(--border);
                 border-radius: 9999px !important;
                 cursor: pointer;
-                overflow: hidden;
+                overflow: visible;
                 white-space: nowrap;
                 font-family: inherit;
                 font-weight: 600;

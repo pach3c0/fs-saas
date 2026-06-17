@@ -9,6 +9,15 @@ const CATEGORY_LABELS = {
   crm_financeiro: 'CRM & Financeiro'
 };
 
+const CATEGORY_ICONS = {
+  all: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+  dashboard: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+  clientes: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  sessoes: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  portfolio: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  crm_financeiro: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+};
+
 const LEVEL_COLORS = {
   'Básico': { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
   'Intermediário': { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
@@ -75,27 +84,24 @@ function renderLayout(container) {
   root.style.cssText = 'display:flex; flex-direction:column; gap:2rem; max-width:1100px; margin:0 auto; width:100%;';
 
   // Sub-navegação: Tutoriais em Vídeo | Manual do Usuário | Fala Conosco
-  const btnBase = 'display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1.125rem; border-radius:9999px; font-size:0.875rem; font-weight:600; cursor:pointer; border:1px solid; transition:all 0.2s; font-family:inherit;';
-  const btnActive = btnBase + 'background:var(--accent); color:#fff; border-color:var(--accent);';
-  const btnIdle   = btnBase + 'background:var(--bg-elevated); color:var(--text-secondary); border-color:var(--border);';
   const subNav = document.createElement('div');
-  subNav.style.cssText = 'display:flex; gap:0.5rem;';
+  subNav.style.cssText = 'display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;';
   subNav.innerHTML = `
-    <button onclick="window._setAjudaView('tutorials')" style="${ajudaView === 'tutorials' ? btnActive : btnIdle}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-      Tutoriais em Vídeo
+    <button class="morph-tab ${ajudaView==='tutorials'?'active':''}" onclick="window._setAjudaView('tutorials')">
+      <div class="morph-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+      <span class="morph-label">Tutoriais em Vídeo</span>
     </button>
-    <button onclick="window._setAjudaView('manual')" style="${ajudaView === 'manual' ? btnActive : btnIdle}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      Manual do Usuário
+    <button class="morph-tab ${ajudaView==='manual'?'active':''}" onclick="window._setAjudaView('manual')">
+      <div class="morph-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <span class="morph-label">Manual do Usuário</span>
     </button>
-    <button onclick="window._setAjudaView('fala-conosco')" style="${ajudaView === 'fala-conosco' ? btnActive : btnIdle}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-      Fala Conosco
+    <button class="morph-tab ${ajudaView==='fala-conosco'?'active':''}" onclick="window._setAjudaView('fala-conosco')">
+      <div class="morph-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+      <span class="morph-label">Fala Conosco</span>
     </button>
-    <button onclick="window._setAjudaView('servicos')" style="${ajudaView === 'servicos' ? btnActive : btnIdle}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      Serviços Extras
+    <button class="morph-tab ${ajudaView==='servicos'?'active':''}" onclick="window._setAjudaView('servicos')">
+      <div class="morph-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <span class="morph-label">Serviços Extras</span>
     </button>
   `;
   root.appendChild(subNav);
@@ -142,10 +148,10 @@ function renderLayout(container) {
 
   // 1. Cabeçalho Principal
   const header = document.createElement('div');
-  header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1.5rem;';
+  header.style.cssText = 'display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1.5rem;';
   header.innerHTML = `
-    <div>
-      <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary); margin:0 0 0.375rem 0; font-family:inherit; background:linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">CliqueZoom Academy</h2>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary); margin:0 0 0.375rem 0; font-family:inherit;">CliqueZoom Academy</h2>
       <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">Aprenda a dominar a plataforma com tutoriais práticos em vídeo</p>
     </div>
     <div style="position:relative; width:100%; max-width:320px;">
@@ -166,46 +172,132 @@ function renderLayout(container) {
   if (allTutorials.length > 0 && !activeTutorial) {
     activeTutorial = allTutorials[0];
   }
-  // updatePlayer() só funciona com o root no DOM (usa getElementById) — chamado após o append
 
   // 3. Barra de Categorias (Filtros)
   const filterBar = document.createElement('div');
-  filterBar.style.cssText = 'display:flex; gap:0.5rem; overflow-x:auto; padding-bottom:0.5rem; scrollbar-width:none;';
+  filterBar.className = 'tutorial-filters';
+  filterBar.style.cssText = 'display:flex; gap:0.5rem; justify-content:center; overflow-x:auto; padding-bottom:0.5rem; scrollbar-width:none;';
   filterBar.innerHTML = `
-    <button class="cat-pill ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">Todos</button>
+    <button class="morph-tab ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">
+      <div class="morph-icon">${CATEGORY_ICONS['all']}</div>
+      <span class="morph-label">Todos</span>
+    </button>
     ${Object.entries(CATEGORY_LABELS).map(([key, label]) => `
-      <button class="cat-pill ${currentCategory === key ? 'active' : ''}" data-cat="${key}">${label}</button>
+      <button class="morph-tab ${currentCategory === key ? 'active' : ''}" data-cat="${key}">
+        <div class="morph-icon">${CATEGORY_ICONS[key] || CATEGORY_ICONS['all']}</div>
+        <span class="morph-label">${label}</span>
+      </button>
     `).join('')}
   `;
   root.appendChild(filterBar);
 
-  // Injetar estilos CSS específicos para esta aba (Pills de Categoria)
+  // Injetar estilos CSS específicos para esta aba
   const styles = document.createElement('style');
   styles.innerHTML = `
-    .cat-pill {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      padding: 0.5rem 1rem;
-      border-radius: 9999px;
-      font-size: 0.8125rem;
-      font-weight: 600;
+    /* Morph Button - Ação Principal */
+    .morph-btn-main {
+      box-sizing: border-box;
+      display: inline-flex !important;
+      align-items: center;
+      gap: 0 !important;
+      height: 44px !important;
+      width: auto !important;
+      min-width: 44px !important;
+      flex-shrink: 0 !important;
+      padding: 0 !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 9999px !important;
       cursor: pointer;
+      overflow: hidden;
       white-space: nowrap;
-      transition: all 0.2s ease;
+      background: var(--bg-elevated) !important;
+      color: var(--text-secondary) !important;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.2s;
       font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
     }
-    .cat-pill:hover {
-      background: var(--bg-hover);
+    .morph-btn-main:hover {
+      border-color: var(--text-primary) !important;
+      color: var(--text-primary) !important;
+    }
+    .morph-btn-main:active {
+      transform: scale(0.95);
+    }
+    .morph-btn-main .morph-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .morph-btn-main .morph-label {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: middle;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .morph-btn-main:hover .morph-label {
+      max-width: 14rem;
+      opacity: 1;
+      padding-right: 1.25rem;
+    }
+    
+    /* Morph Tab - Sub-Navegação e Filtros */
+    .morph-tab {
+      box-sizing: border-box;
+      display: inline-flex !important;
+      align-items: center;
+      gap: 0 !important;
+      height: 36px !important;
+      width: auto !important;
+      min-width: 36px !important;
+      flex-shrink: 0 !important;
+      padding: 0 !important;
+      border: 1px solid var(--border);
+      border-radius: 9999px !important;
+      cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .morph-tab.active {
+      border-color: var(--text-primary);
       color: var(--text-primary);
-      border-color: var(--text-muted);
     }
-    .cat-pill.active {
-      background: var(--accent);
-      color: var(--accent-on, #ffffff);
-      border-color: var(--accent);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    .morph-tab .morph-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
     }
+    .morph-tab .morph-label {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: middle;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .morph-tab:hover .morph-label,
+    .morph-tab.active .morph-label {
+      max-width: 14rem;
+      opacity: 1;
+      padding-right: 1rem;
+    }
+
     .tutorial-card {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -215,6 +307,8 @@ function renderLayout(container) {
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
+      align-items: center;
+      text-align: center;
       height: 100%;
       position: relative;
     }
@@ -252,11 +346,13 @@ function renderLayout(container) {
     filterAndRenderGrid();
   });
 
-  filterBar.querySelectorAll('.cat-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterBar.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentCategory = btn.dataset.cat;
+  // 4. Delegação de Eventos para os botões de Filtro
+  filterBar.querySelectorAll('.morph-tab').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      filterBar.querySelectorAll('.morph-tab').forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget;
+      target.classList.add('active');
+      currentCategory = target.getAttribute('data-cat');
       filterAndRenderGrid();
     });
   });
@@ -286,7 +382,7 @@ function updatePlayer() {
     <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; display:grid; grid-template-columns:1.5fr 1fr; gap:0; box-shadow:0 10px 30px rgba(0,0,0,0.15); min-height:360px;">
       <!-- Lado Esquerdo: Player de Vídeo -->
       <div style="background:#000000; aspect-ratio:16/9; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-        <iframe src="https://www.youtube.com/embed/${activeTutorial.youtubeId}?rel=0&modestbranding=1&autoplay=1"
+        <iframe src="https://www.youtube.com/embed/${activeTutorial.youtubeId}?rel=0&modestbranding=1"
           style="width:100%; height:100%; border:none;"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen>
@@ -370,31 +466,29 @@ function filterAndRenderGrid() {
     return `
       <div class="tutorial-card ${isPlaying ? 'playing' : ''}" data-id="${t._id}">
         <!-- Thumbnail -->
-        <div style="position:relative; aspect-ratio:16/9; background:#000000; width:100%; overflow:hidden;">
+        <div style="position:relative; width:100%; aspect-ratio:16/9; background:#000000; overflow:hidden; flex-shrink:0;">
           <img src="https://img.youtube.com/vi/${t.youtubeId}/0.jpg" alt="${t.title}"
             style="width:100%; height:100%; object-fit:cover; opacity:0.75; transition:transform 0.3s;"
             onload="this.style.opacity=0.85;"
             onerror="this.style.display='none';">
           
           <!-- Play Overlay -->
-          <div class="play-overlay" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:48px; height:48px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#ffffff; opacity:0.85; transition:all 0.2s ease; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-left:2px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </div>
-
-          <!-- Badge Duração -->
-          <div style="position:absolute; right:0.5rem; bottom:0.5rem; background:rgba(0,0,0,0.8); color:#ffffff; font-size:0.6875rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:4px; font-family:monospace;">
-            ${t.duration || '0 min'}
+          <div class="play-overlay" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:36px; height:36px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent-on, #ffffff); opacity:0.85; transition:all 0.2s ease; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-left:2px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </div>
         </div>
 
         <!-- Info -->
-        <div style="padding:1rem; display:flex; flex-direction:column; gap:0.5rem; flex:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+        <div style="padding:1rem; display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.5rem; flex:1;">
+          <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; flex-wrap:wrap;">
             <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">
               ${CATEGORY_LABELS[t.category] || t.category}
             </span>
             <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; background:${levelInfo.bg}; color:${levelInfo.text}; padding:0.1rem 0.375rem; border-radius:4px;">
               ${t.level || 'Básico'}
+            </span>
+            <span style="font-size:0.625rem; font-weight:700; color:var(--text-secondary); background:var(--bg-elevated); padding:0.1rem 0.375rem; border-radius:4px;">
+              ${t.duration || '0 min'}
             </span>
           </div>
 
@@ -1450,7 +1544,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1479,7 +1573,7 @@ const MANUAL_MODULES_STATIC = [
               <div style="display:flex; flex-direction:column; gap:0.4rem;">
                 <span style="font-size:0.6875rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);">Operação</span>
                 <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--accent); color:#fff;">Dashboard</span>
+                  <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--accent); color:var(--accent-on, #ffffff);">Dashboard</span>
                   <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Clientes</span>
                   <span style="padding:0.45rem 0.85rem; font-size:0.8125rem; font-weight:500; border-radius:8px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-secondary);">Ordens de Serviço</span>
                 </div>
@@ -1530,7 +1624,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1602,7 +1696,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1633,8 +1727,8 @@ const MANUAL_MODULES_STATIC = [
                 <div style="color:var(--yellow); font-size:0.75rem; margin-top:0.2rem;">⏳ Aguardando verificação DNS</div>
               </div>
               <div style="display:flex; gap:0.4rem;">
-                <span style="background:var(--accent); color:#fff; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Verificar DNS</span>
-                <span style="background:var(--red); color:#fff; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Remover</span>
+                <span style="background:var(--accent); color:var(--accent-on, #ffffff); padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Verificar DNS</span>
+                <span style="background:var(--red); color:var(--accent-on, #ffffff); padding:0.4rem 0.85rem; border-radius:6px; font-size:0.75rem; font-weight:600;">Remover</span>
               </div>
             </div>
             <!-- Instruções de DNS -->
@@ -1679,7 +1773,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1707,7 +1801,7 @@ const MANUAL_MODULES_STATIC = [
             <div style="background:var(--bg-surface); padding:0.85rem 1rem; border-radius:8px; border:1px solid var(--border);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
                 <span style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">Google Analytics 4</span>
-                <span style="display:flex; align-items:center; gap:0.35rem; font-size:0.75rem; color:var(--text-secondary);"><span style="width:13px; height:13px; border-radius:3px; background:var(--accent); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:0.6rem;">✓</span> Ativar</span>
+                <span style="display:flex; align-items:center; gap:0.35rem; font-size:0.75rem; color:var(--text-secondary);"><span style="width:13px; height:13px; border-radius:3px; background:var(--accent); display:inline-flex; align-items:center; justify-content:center; color:var(--accent-on, #ffffff); font-size:0.6rem;">✓</span> Ativar</span>
               </div>
               <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">Measurement ID (G-XXXXXXXX)</div>
               <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.65rem; font-size:0.8rem; font-family:monospace; color:var(--text-primary);">G-ABC123456</div>
@@ -1723,7 +1817,7 @@ const MANUAL_MODULES_STATIC = [
             </div>
             <!-- Aviso do lembrete de prazo -->
             <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.9rem; font-size:0.75rem; color:var(--text-secondary);">💡 O <strong style="color:var(--text-primary);">lembrete de prazo de seleção</strong> agora é configurado em <span style="color:var(--accent); font-weight:600; text-decoration:underline;">Configurações › Escassês &amp; Vendas</span>.</div>
-            <span style="background:var(--accent); color:#fff; padding:0.5rem 1rem; border-radius:6px; font-size:0.78rem; font-weight:700; align-self:flex-start;">Salvar Configurações</span>
+            <span style="background:var(--accent); color:var(--accent-on, #ffffff); padding:0.5rem 1rem; border-radius:6px; font-size:0.78rem; font-weight:700; align-self:flex-start;">Salvar Configurações</span>
           </div>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Cada ferramenta tem o seu card: marque <strong style="color:var(--text-primary);">Ativar</strong>, cole o código e clique em <strong style="color:var(--text-primary);">Salvar Configurações</strong>. A tag só entra no site quando o card está ativado <em>e</em> com o código preenchido.</p>
         </div>
@@ -1752,7 +1846,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1777,9 +1871,9 @@ const MANUAL_MODULES_STATIC = [
 
           <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.85rem;">
             <!-- Toggle -->
-            <div style="display:inline-flex; gap:0.25rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:0.25rem; align-self:flex-start;">
-              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:0.375rem; background:var(--accent); color:var(--bg-base);">Visão Geral</span>
-              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:0.375rem; color:var(--text-primary);">Vendas Automáticas</span>
+            <div style="display:inline-flex; gap:0.25rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:9999px; padding:0.25rem; align-self:flex-start;">
+              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:9999px; background:var(--accent); color:var(--accent-on, #ffffff);">Visão Geral</span>
+              <span style="padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; border-radius:9999px; color:var(--text-primary);">Vendas Automáticas</span>
             </div>
             <!-- KPIs -->
             <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.6rem;">
@@ -1837,7 +1931,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary);">Lembrete &amp; Escassês de Vendas</div>
                   <div style="font-size:0.62rem; color:var(--text-muted);">Lembra o cliente de selecionar e vende as fotos que sobraram após a entrega.</div>
                 </div>
-                <span style="background:var(--accent); color:var(--bg-base); padding:0.35rem 0.8rem; border-radius:6px; font-size:0.68rem; font-weight:700;">Configurar</span>
+                <span style="background:var(--accent); color:var(--accent-on, #ffffff); padding:0.35rem 0.8rem; border-radius:6px; font-size:0.68rem; font-weight:700;">Configurar</span>
               </div>
               <div style="display:flex; gap:0.5rem; margin-top:0.7rem; flex-wrap:wrap;">
                 <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.3rem 0.65rem; border:1px solid var(--border); border-radius:9999px; font-size:0.62rem; color:var(--text-primary);"><span style="width:7px; height:7px; border-radius:9999px; background:var(--green);"></span> Lembrete de seleção: <strong style="color:var(--green);">Ativado</strong></span>
@@ -1897,7 +1991,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -1934,7 +2028,7 @@ const MANUAL_MODULES_STATIC = [
               <div style="background:#fff; border-radius:4px; padding:0.3rem 0.7rem; font-family:'Playfair Display',serif; font-size:0.8rem; color:#1a1a1a; border:1px solid var(--border);">Maria Silva</div>
               <span style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); padding:0.35rem 0.8rem; border-radius:6px; font-size:0.68rem; font-weight:600;">Enviar Logo</span>
             </div>
-            <span style="background:var(--accent); color:var(--bg-base); padding:0.45rem 1.1rem; border-radius:6px; font-size:0.75rem; font-weight:700; align-self:flex-end;">Salvar Perfil</span>
+            <span style="background:var(--accent); color:var(--accent-on, #ffffff); padding:0.45rem 1.1rem; border-radius:6px; font-size:0.75rem; font-weight:700; align-self:flex-end;">Salvar Perfil</span>
           </div>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.75rem; line-height:1.5;">Os dados do negócio só gravam quando você clica em <strong style="color:var(--text-primary);">Salvar Perfil</strong>. Já a marca d'água (abaixo) salva sozinha a cada ajuste.</p>
         </div>
@@ -1944,7 +2038,7 @@ const MANUAL_MODULES_STATIC = [
           <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:0 0 1rem;">Visualização — Marca D'água em Camadas</p>
           <div style="border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--bg-base); pointer-events:none; display:flex; flex-direction:column; gap:0.7rem;">
             <div style="display:flex; gap:0.3rem; flex-wrap:wrap; align-items:center;">
-              <span style="background:var(--accent); color:var(--bg-base); padding:0.3rem 0.7rem; border-radius:5px; font-size:0.65rem; font-weight:700;">+ Texto</span>
+              <span style="background:var(--accent); color:var(--accent-on, #ffffff); padding:0.3rem 0.7rem; border-radius:5px; font-size:0.65rem; font-weight:700;">+ Texto</span>
               <span style="background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); padding:0.3rem 0.7rem; border-radius:5px; font-size:0.65rem;">+ Imagem</span>
               <span style="border:1px solid var(--border); color:var(--text-primary); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">⧉</span>
               <span style="border:1px solid var(--border); color:var(--text-primary); padding:0.3rem 0.5rem; border-radius:5px; font-size:0.65rem;">↑</span>
@@ -2006,7 +2100,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -2051,13 +2145,13 @@ const MANUAL_MODULES_STATIC = [
             <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem;">
               ${[['Free','Grátis',false],['Basic','R$ 49,00',true],['Pro','R$ 99,00',false]].map(([n,p,atual]) => `
                 <div style="background:var(--bg-surface); border:2px solid ${atual ? 'var(--accent)' : 'var(--border)'}; border-radius:8px; padding:0.7rem; position:relative;">
-                  ${atual ? '<span style="position:absolute; top:-1px; right:0.5rem; background:var(--accent); color:var(--bg-base); font-size:0.5rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:0 0 4px 4px;">ATUAL</span>' : ''}
+                  ${atual ? '<span style="position:absolute; top:-1px; right:0.5rem; background:var(--accent); color:var(--accent-on, #ffffff); font-size:0.5rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:0 0 4px 4px;">ATUAL</span>' : ''}
                   <div style="font-size:0.72rem; font-weight:700; color:var(--text-primary);">${n}</div>
                   <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary); margin-bottom:0.4rem;">${p}</div>
                   <div style="font-size:0.55rem; color:var(--text-muted); line-height:1.6;">✓ Sessões<br>✓ Armazenamento<br>✓ Suporte</div>
                   ${atual
                     ? '<div style="margin-top:0.4rem; text-align:center; border:1px solid var(--border); border-radius:4px; padding:0.25rem; font-size:0.55rem; color:var(--text-muted);">Plano Atual</div>'
-                    : '<div style="margin-top:0.4rem; text-align:center; background:var(--accent); opacity:0.45; color:var(--bg-base); border-radius:4px; padding:0.25rem; font-size:0.55rem; font-weight:700;">Em Breve</div>'}
+                    : '<div style="margin-top:0.4rem; text-align:center; background:var(--accent); opacity:0.45; color:var(--accent-on, #ffffff); border-radius:4px; padding:0.25rem; font-size:0.55rem; font-weight:700;">Em Breve</div>'}
                 </div>`).join('')}
             </div>
           </div>
@@ -2088,7 +2182,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -2114,7 +2208,7 @@ const MANUAL_MODULES_STATIC = [
             <!-- Sub-nav -->
             <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
               ${['Mensagens','Sessões','Entrega','Notificações','Escassês & Vendas'].map((s,i) => `
-                <span style="padding:0.3rem 0.8rem; border-radius:9999px; font-size:0.65rem; font-weight:600; border:1px solid ${i===0 ? 'var(--accent)' : 'var(--border)'}; background:${i===0 ? 'var(--accent)' : 'var(--bg-elevated)'}; color:${i===0 ? 'var(--bg-base)' : 'var(--text-secondary)'};">${s}</span>`).join('')}
+                <span style="padding:0.3rem 0.8rem; border-radius:9999px; font-size:0.65rem; font-weight:600; border:1px solid ${i===0 ? 'var(--accent)' : 'var(--border)'}; background:${i===0 ? 'var(--accent)' : 'var(--bg-elevated)'}; color:${i===0 ? 'var(--accent-on, #ffffff)' : 'var(--text-secondary)'};">${s}</span>`).join('')}
             </div>
             <!-- Card Mensagens -->
             <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.9rem 1rem;">
@@ -2170,7 +2264,7 @@ const MANUAL_MODULES_STATIC = [
                   <div style="padding-bottom:${i < arr.length - 1 ? '0.625rem' : '0'}; min-width:0;">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem; flex-wrap:wrap;">
                       <span style="font-size:0.8125rem; font-weight:700; color:var(--text-primary);">${s.title}</span>
-                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:20px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
+                      <span style="font-size:0.625rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:9999px; background:color-mix(in srgb, ${s.color} 15%, transparent); color:${s.color};">${s.who}</span>
                     </div>
                     <p style="font-size:0.78rem; color:var(--text-secondary); margin:0; line-height:1.55;">${s.desc}</p>
                   </div>
@@ -2212,7 +2306,8 @@ function renderDynamicContent(blocks) {
     if (b.type === 'steps') {
       return `
         <div style="margin-bottom:1.5rem;">
-          <h4 style="font-size:0.8125rem; font-weight:700; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+          <h4 style="font-size:0.8125rem; font-weight:700; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; justify-content:center;">
+            <div style="flex:1; height:1px; background:var(--border);"></div>
             PASSO A PASSO
             <div style="flex:1; height:1px; background:var(--border);"></div>
           </h4>
@@ -2257,8 +2352,8 @@ function renderManualHTML() {
         return `
           <div style="${notLast ? 'border-bottom:1px solid var(--border);' : ''}">
             <button data-manual-toggle="${mod.id}" style="width:100%; display:flex; align-items:center; gap:0.875rem; padding:1rem 1.25rem; background:var(--bg-surface); border:none; cursor:pointer; text-align:left; font-family:inherit;">
-              <div style="width:30px; height:30px; border-radius:7px; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${mod.icon}</svg>
+              <div style="width:40px; height:40px; border-radius:50%; background:var(--bg-elevated); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${mod.icon}</svg>
               </div>
               <span style="font-size:0.9375rem; font-weight:700; color:var(--text-primary); flex:1;">${mod.label}</span>
               ${(!mod.content && (!mod.blocks || mod.blocks.length === 0)) ? '<span style="font-size:0.6875rem; color:var(--text-muted); font-weight:600; margin-right:0.5rem;">Em breve</span>' : ''}
@@ -2315,14 +2410,16 @@ function renderTicketList(container) {
   const html = `
     <div style="display:flex; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
       <!-- Header + Botão novo -->
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:1rem; border-bottom:1px solid var(--border);">
-        <div>
+      <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.25rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border);">
+        <div style="display:flex; flex-direction:column; align-items:center;">
           <h2 style="font-size:1.5rem; font-weight:800; margin:0 0 0.25rem 0; color:var(--text-primary);">Meus Chamados</h2>
           <p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">Envie dúvidas, reporte bugs ou compartilhe sugestões</p>
         </div>
-        <button onclick="window._openTicketForm()" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.875rem; transition:all 0.2s; font-family:inherit;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo Chamado
+        <button onclick="window._openTicketForm()" class="morph-btn-main">
+          <div class="morph-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <span class="morph-label">Novo Chamado</span>
         </button>
       </div>
 
@@ -2350,7 +2447,7 @@ function renderTicketList(container) {
               <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
                   <span style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${_esc(t.subject)}</span>
-                  <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:4px; background:${getCategoryColor(t.category).bg}; color:${getCategoryColor(t.category).text};">
+                  <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:9999px; background:${getCategoryColor(t.category).bg}; color:${getCategoryColor(t.category).text};">
                     ${getCategoryLabel(t.category)}
                   </span>
                 </div>
@@ -2366,7 +2463,7 @@ function renderTicketList(container) {
                 font-size:0.75rem;
                 text-transform:uppercase;
                 padding:0.4rem 0.75rem;
-                border-radius:4px;
+                border-radius:9999px;
                 background:${getStatusColor(t.status).bg};
                 color:${getStatusColor(t.status).text};
                 flex-shrink:0;
@@ -2400,7 +2497,7 @@ function renderTicketThread(container) {
         <div style="flex:1;">
           <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
             <span style="font-weight:800; font-size:1.125rem; color:var(--text-primary);">${_esc(ticket.subject)}</span>
-            <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:4px; background:${getStatusColor(ticket.status).bg}; color:${getStatusColor(ticket.status).text};">
+            <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:9999px; background:${getStatusColor(ticket.status).bg}; color:${getStatusColor(ticket.status).text};">
               ${getStatusLabel(ticket.status)}
             </span>
           </div>
@@ -2635,7 +2732,7 @@ function _showTicketFormModal() {
           <button type="button" onclick="window._closeTicketForm()" style="padding:0.75rem 1.5rem; background:transparent; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit; color:var(--text-primary);">
             Cancelar
           </button>
-          <button type="submit" id="ticketFormSubmitBtn" style="padding:0.75rem 1.5rem; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
+          <button type="submit" id="ticketFormSubmitBtn" style="padding:0.75rem 1.5rem; background:var(--accent); color:var(--accent-on, #ffffff); border:none; border-radius:9999px; cursor:pointer; font-weight:600; font-size:0.875rem; font-family:inherit;">
             Criar Chamado
           </button>
         </div>
@@ -2843,7 +2940,7 @@ function buildServicoWaLink(servico) {
 
 function renderServicosHeaderHTML() {
   return `
-    <div style="border-bottom:1px solid var(--border); padding-bottom:1.5rem; margin-bottom:2rem;">
+    <div style="display:flex; flex-direction:column; align-items:center; text-align:center; border-bottom:1px solid var(--border); padding-bottom:1.5rem; margin-bottom:2rem;">
       <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary); margin:0 0 0.375rem 0; font-family:inherit;">Serviços Extras</h2>
       <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">Dê um upgrade no seu negócio com a ajuda dos nossos especialistas.</p>
     </div>
@@ -2854,18 +2951,18 @@ function renderServicosHeaderHTML() {
 function renderServicosGridHTML() {
   const cards = SERVICOS_EXTRAS.map(s => `
     <button type="button" onclick="window._openServico('${s.id}')"
-      style="text-align:left; background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:0; display:flex; flex-direction:column; position:relative; overflow:hidden; cursor:pointer; font-family:inherit; transition:border-color 0.2s, transform 0.2s;"
+      style="text-align:center; background:var(--bg-surface); border:1px solid var(--border); border-radius:12px; padding:0; display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden; cursor:pointer; font-family:inherit; transition:border-color 0.2s, transform 0.2s;"
       onmouseover="this.style.borderColor='var(--green)'; this.style.transform='translateY(-2px)';"
       onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none';">
       ${s.destaque ? '<span style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--green);"></span>' : ''}
-      <div style="padding:1.5rem; display:flex; flex-direction:column; flex:1;">
-        <div style="width:40px; height:40px; border-radius:10px; background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center; margin-bottom:1rem;">
+      <div style="padding:1.5rem; display:flex; flex-direction:column; align-items:center; flex:1; width:100%;">
+        <div style="width:56px; height:56px; border-radius:50%; background:rgba(63,185,80,0.15); color:var(--green); display:flex; align-items:center; justify-content:center; margin-bottom:1rem;">
           ${s.icon}
         </div>
         <h3 style="font-size:1.125rem; font-weight:700; color:var(--text-primary); margin:0 0 0.5rem 0;">${s.titulo}</h3>
         <p style="color:var(--text-secondary); font-size:0.875rem; line-height:1.5; margin:0 0 1.5rem 0; flex:1;">${s.resumo}</p>
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:1.25rem;">
-          <div>
+        <div style="display:flex; justify-content:center; gap:1.5rem; align-items:center; border-top:1px solid var(--border); padding-top:1.25rem; width:100%;">
+          <div style="text-align:center;">
             <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.125rem;">${s.precoNota || 'Por'}</span>
             <span style="font-size:1.125rem; font-weight:800; color:var(--green);">${s.preco}</span>
           </div>
@@ -2910,20 +3007,21 @@ function renderServicoDetalheHTML(id) {
 
   return `
     <div style="display:flex; flex-direction:column;">
-      <button type="button" onclick="window._backToServicos()"
-        style="align-self:flex-start; display:inline-flex; align-items:center; gap:0.5rem; margin-bottom:1.5rem; padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-weight:600; font-size:0.875rem; color:var(--text-primary); font-family:inherit; transition:background 0.2s;"
-        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        Voltar aos serviços
+      <button type="button" onclick="window._backToServicos()" class="morph-tab"
+        style="align-self:center; margin-bottom:1.5rem;">
+        <div class="morph-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </div>
+        <span class="morph-label">Voltar aos serviços</span>
       </button>
 
-      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; max-width:760px;">
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; max-width:760px; margin:0 auto;">
         <!-- Hero -->
-        <div style="background:linear-gradient(135deg, rgba(63,185,80,0.18), rgba(63,185,80,0.04)); padding:2.5rem 2rem; display:flex; align-items:center; gap:1.5rem;">
-          <div style="flex-shrink:0; width:64px; height:64px; border-radius:16px; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center;">
+        <div style="background:linear-gradient(to bottom, var(--bg-elevated), var(--bg-surface)); padding:2.5rem 2rem; display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.5rem;">
+          <div style="flex-shrink:0; width:64px; height:64px; border-radius:50%; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-primary); display:flex; align-items:center; justify-content:center;">
             ${s.icon}
           </div>
-          <div>
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
             <h2 style="font-size:1.5rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0; font-family:inherit;">${s.titulo}</h2>
             <p style="font-size:0.875rem; color:var(--text-secondary); margin:0;">${s.resumo}</p>
           </div>
@@ -2936,16 +3034,16 @@ function renderServicoDetalheHTML(id) {
             ${beneficios}
           </div>
 
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; border-top:1px solid var(--border); padding-top:1.5rem;">
-            <div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1rem; border-top:1px solid var(--border); padding-top:1.5rem;">
+            <div style="text-align:center;">
               <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.125rem;">${s.precoNota || 'Por'}</span>
-              <span style="font-size:1.5rem; font-weight:800; color:var(--green);">${s.preco}</span>
+              <span style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">${s.preco}</span>
             </div>
-            <button type="button" onclick="window._contratarServico('${s.id}')"
-              style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--green); border:none; color:#fff; font-size:0.9375rem; font-weight:700; padding:0.75rem 1.5rem; border-radius:8px; cursor:pointer; font-family:inherit; transition:opacity 0.2s;"
-              onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
-              Contratar pelo WhatsApp
+            <button type="button" onclick="window._contratarServico('${s.id}')" class="morph-btn-main">
+              <div class="morph-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
+              </div>
+              <span class="morph-label">Contratar pelo WhatsApp</span>
             </button>
           </div>
         </div>
