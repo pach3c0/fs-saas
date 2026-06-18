@@ -2104,6 +2104,64 @@ router.post('/sessions/:id/delete-photos', authenticateToken, async (req, res) =
   }
 });
 
+// Backup ZIP das fotos originais (fotógrafo) — para download antes de arquivar/deletar
+// Aceita token via query param (window.open não envia headers)
+router.get('/sessions/:id/photos-backup', async (req, res) => {
+  const token = req.query.token || (req.headers['authorization'] || '').split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token não fornecido' });
+  let user;
+  try {
+    user = jwt.verify(token, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
+  } catch {
+    return res.status(403).json({ error: 'Token inválido' });
+  }
+  req.user = user;
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: user.organizationId })
+      .select('name photos coverPhoto archivedAt').lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.archivedAt) return res.status(400).json({ error: 'Sessão já arquivada — fotos removidas do servidor' });
+
+    const allPhotos = session.photos || [];
+    if (allPhotos.length === 0) return res.status(404).json({ error: 'Nenhuma foto encontrada' });
+
+    const sessionName = (session.name || 'sessao').replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="backup-${sessionName}.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.pipe(res);
+
+    let added = 0;
+    for (const photo of allPhotos) {
+      const srcPath = photo.urlOriginal
+        ? path.join(__dirname, '../..', photo.urlOriginal)
+        : (photo.url ? path.join(__dirname, '../..', photo.url) : null);
+      if (!srcPath) continue;
+      if (!fs.existsSync(srcPath)) continue;
+      const fname = photo.filename || path.basename(srcPath);
+      archive.file(srcPath, { name: fname });
+      added++;
+    }
+
+    if (added === 0) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ error: 'Nenhum arquivo encontrado no disco' });
+    }
+
+    archive.on('error', (err) => {
+      req.logger.error('[photos-backup] Erro ao criar ZIP', { error: err.message });
+      if (!res.headersSent) res.status(500).json({ error: 'Erro ao criar ZIP' });
+    });
+
+    req.logger.info('[photos-backup] ZIP iniciado', { sessionId: session._id, fotos: added });
+    await archive.finalize();
+  } catch (error) {
+    req.logger.error('[photos-backup]', { error: error.message });
+    if (!res.headersSent) res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================================
 // HISTÓRICO DE DOWNLOADS DO CLIENTE
 // ============================================================================

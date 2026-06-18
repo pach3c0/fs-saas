@@ -284,6 +284,41 @@ function _computeDownloadStatus(session) {
   return { status: 'partial', delivered: deliveredCount, downloaded: downloadedCount };
 }
 
+// Substituto para prompt() nativo — retorna Promise<string|null>
+function _promptText(message, placeholder = '') {
+  return new Promise((resolve) => {
+    document.getElementById('_prompt-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '_prompt-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-card);padding:1.5rem;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:1rem;';
+    const lbl = document.createElement('p');
+    lbl.style.cssText = 'font-size:0.875rem;color:var(--text-primary);line-height:1.5;margin:0;';
+    lbl.textContent = message;
+    const input = document.createElement('input');
+    input.type = 'url';
+    input.placeholder = placeholder;
+    input.className = 'input';
+    input.style.cssText = 'font-size:0.875rem;';
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:0.5rem;justify-content:flex-end;';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button'; cancelBtn.textContent = 'Cancelar';
+    cancelBtn.className = 'btn btn-ghost';
+    cancelBtn.onclick = () => { overlay.remove(); resolve(null); };
+    const okBtn = document.createElement('button');
+    okBtn.type = 'button'; okBtn.textContent = 'Confirmar';
+    okBtn.className = 'btn btn-primary';
+    okBtn.onclick = () => { overlay.remove(); resolve(input.value.trim()); };
+    input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.click(); if (e.key === 'Escape') cancelBtn.click(); };
+    btns.appendChild(cancelBtn); btns.appendChild(okBtn);
+    box.appendChild(lbl); box.appendChild(input); box.appendChild(btns);
+    overlay.appendChild(box); document.body.appendChild(overlay);
+    setTimeout(() => input.focus(), 50);
+  });
+}
+
 function _confirmWithDownloadCheck(session, actionLabel, actionFn) {
   const ds = _computeDownloadStatus(session);
 
@@ -486,6 +521,24 @@ export function renderStoragePanel(session, refresh) {
   extendWrap.appendChild(extendBtn);
   actions.appendChild(extendWrap);
 
+  // — Download ZIP de backup (todas as fotos originais)
+  const backupBtn = document.createElement('button');
+  backupBtn.type = 'button';
+  backupBtn.textContent = '⬇ Baixar ZIP (backup)';
+  backupBtn.title = 'Faz o download de todas as fotos originais antes de arquivar ou deletar';
+  backupBtn.style.cssText = `
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.375rem 0.75rem; border-radius:var(--r-field);
+    cursor: pointer; font-size: 0.8125rem; font-weight: 500; white-space:nowrap;
+  `;
+  backupBtn.onclick = () => {
+    const token = encodeURIComponent(appState.authToken || '');
+    window.open(`/api/sessions/${session._id}/photos-backup?token=${token}`, '_blank');
+    window.showToast?.('Download iniciado…', 'info');
+  };
+  actions.appendChild(backupBtn);
+
   // — Arquivar (remove fotos, mantém capa + link externo)
   const archiveBtn = document.createElement('button');
   archiveBtn.type = 'button';
@@ -502,9 +555,10 @@ export function renderStoragePanel(session, refresh) {
       { confirmText: 'Arquivar', cancelText: 'Cancelar' }
     );
     if (!ok) return;
-    const externalUrl = prompt('Cole o link do Drive/Dropbox (opcional, deixe em branco se não tiver):') ?? '';
+    const externalUrl = await _promptText('Cole o link do Drive/Dropbox onde as fotos estão salvas (opcional):', 'https://drive.google.com/...');
+    if (externalUrl === null) return; // usuário cancelou o dialog de URL
     try {
-      await apiPost(`/api/sessions/${session._id}/archive`, { externalStorageUrl: externalUrl.trim() });
+      await apiPost(`/api/sessions/${session._id}/archive`, { externalStorageUrl: externalUrl });
       window.showToast?.('Sessão arquivada. Fotos removidas do servidor.', 'success');
       await refresh();
     } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
