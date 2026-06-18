@@ -19,6 +19,7 @@ router.get('/clients/search', authenticateToken, async (req, res) => {
 
     res.json({ success: true, clients });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

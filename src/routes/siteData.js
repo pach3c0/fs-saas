@@ -26,6 +26,7 @@ router.get('/site-data', authenticateToken, async (req, res) => {
     };
     res.json(payload);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -44,6 +45,7 @@ router.put('/site-data', authenticateToken, async (req, res) => {
     );
     res.json(data);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -55,6 +57,7 @@ router.get('/hero', async (req, res) => {
     const data = await SiteData.findOne({ organizationId: orgId }).lean();
     res.json(data?.hero || {});
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -69,6 +72,7 @@ router.get('/faq', async (req, res) => {
     const data = await SiteData.findOne({ organizationId: orgId }).lean();
     res.json({ faqs: data?.faq?.faqs || [] });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -84,6 +88,7 @@ router.post('/faq', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, faq: newFAQ });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -103,6 +108,7 @@ router.put('/faq/:index', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -120,6 +126,7 @@ router.delete('/faq/:index', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

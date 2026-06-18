@@ -39,6 +39,7 @@ router.get('/admin/dashboard-cards', authenticateToken, requireSuperadmin, async
     const cards = DashboardCard.KEYS.map(key => byKey[key] || { key, imageUrl: '', opacity: 0.2, active: true });
     res.json({ success: true, cards });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -64,6 +65,7 @@ router.post('/admin/dashboard-cards/:key', authenticateToken, requireSuperadmin,
     );
     res.json({ success: true, card });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -88,6 +90,7 @@ router.patch('/admin/dashboard-cards/:key', authenticateToken, requireSuperadmin
     );
     res.json({ success: true, card });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -107,6 +110,7 @@ router.delete('/admin/dashboard-cards/:key', authenticateToken, requireSuperadmi
     );
     res.json({ success: true, message: 'Imagem removida' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

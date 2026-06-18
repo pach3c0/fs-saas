@@ -39,6 +39,7 @@ router.get('/admin/session-card-backgrounds', authenticateToken, requireSuperadm
     const backgrounds = SessionCardBackground.KEYS.map(key => byKey[key] || { key, imageUrl: '', opacity: 0.18, active: true });
     res.json({ success: true, backgrounds });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -64,6 +65,7 @@ router.post('/admin/session-card-backgrounds/:key', authenticateToken, requireSu
     );
     res.json({ success: true, background });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -88,6 +90,7 @@ router.patch('/admin/session-card-backgrounds/:key', authenticateToken, requireS
     );
     res.json({ success: true, background });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -107,6 +110,7 @@ router.delete('/admin/session-card-backgrounds/:key', authenticateToken, require
     );
     res.json({ success: true, message: 'Imagem removida' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

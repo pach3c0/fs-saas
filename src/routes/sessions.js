@@ -168,6 +168,7 @@ router.post('/client/verify-code', async (req, res) => {
       } : null
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -215,6 +216,7 @@ router.get('/client/manifest/:sessionId', async (req, res) => {
     res.setHeader('Content-Type', 'application/manifest+json');
     res.json(manifest);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -303,6 +305,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       } : null
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -380,6 +383,7 @@ router.put('/client/select/:sessionId', async (req, res) => {
 
     res.json({ success: true, selectedCount: currentSelection.length });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -519,6 +523,7 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       extraPhotoPrice: session.extraPhotoPrice || 25
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -561,6 +566,7 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -574,6 +580,7 @@ router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) =
     _logEvent(req.params.id, 'reopen_dismissed', {});
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -636,6 +643,7 @@ router.put('/sessions/:id/toggle-client-access', authenticateToken, async (req, 
     req.logger.info(`Sessão ${session.name}: acesso do cliente ${session.clientAccessBlocked ? 'bloqueado' : 'desbloqueado'}`);
     res.json({ success: true, clientAccessBlocked: session.clientAccessBlocked });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -654,6 +662,7 @@ router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, codeViewedAt: session.codeViewedAt });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -677,6 +686,7 @@ router.put('/sessions/:id/gallery-delivery-mode', authenticateToken, async (req,
     await session.save();
     res.json({ success: true, galleryDeliveryMode: session.galleryDeliveryMode });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -696,6 +706,7 @@ router.put('/sessions/:id/custom-messages', authenticateToken, async (req, res) 
     await session.save();
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -745,6 +756,7 @@ router.post('/client/comments/:sessionId', async (req, res) => {
 
     res.json({ success: true, comment: newComment });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -792,6 +804,7 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -808,6 +821,7 @@ router.get('/sessions', authenticateToken, async (req, res) => {
       .populate('clientId', 'name email phone');
     res.json({ sessions });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -822,6 +836,7 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({ success: true, session });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -886,6 +901,7 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
 
     res.json({ success: true, session });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -917,6 +933,7 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, session });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1012,6 +1029,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1032,6 +1050,7 @@ router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, 
     await session.save();
     res.json({ success: true, session });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1064,6 +1083,7 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1493,6 +1513,7 @@ router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, asy
 
     res.json({ success: true, photoId: photo.id, hidden: photo.hidden });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1541,6 +1562,7 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
     _logEvent(req.params.id, 'reopen_accepted', { by: 'photographer', participantId: participantId || null });
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1618,6 +1640,7 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
 
     res.json({ success: true, extrasCount: extrasDelivered.length });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1643,6 +1666,7 @@ router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) 
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1672,6 +1696,7 @@ router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, 
     await session.save();
     res.json({ success: true, comment: newComment });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1731,6 +1756,7 @@ router.post('/sessions/:id/participants', authenticateToken, async (req, res) =>
     await session.save();
     res.json({ success: true, participants: session.participants });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1752,6 +1778,7 @@ router.put('/sessions/:id/participants/:pid', authenticateToken, async (req, res
     await session.save();
     res.json({ success: true, participants: session.participants });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1766,6 +1793,7 @@ router.delete('/sessions/:id/participants/:pid', authenticateToken, async (req, 
     await session.save();
     res.json({ success: true, participants: session.participants });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1783,6 +1811,7 @@ router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (
     await session.save();
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1810,6 +1839,7 @@ router.get('/sessions/:id/participants/export', authenticateToken, async (req, r
     res.setHeader('Content-Disposition', `attachment; filename="selecoes-${session.name.replace(/\s+/g, '-')}.txt"`);
     res.send(output);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1821,6 +1851,7 @@ router.post('/sessions/check-deadlines', authenticateToken, async (req, res) => 
     const result = await checkDeadlines(req.user.organizationId);
     res.json({ success: true, result });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1871,6 +1902,7 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     res.setHeader('Content-Type', 'image/jpeg');
     res.sendFile(filePath);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1954,6 +1986,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 
     await archive.finalize();
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -2137,6 +2170,7 @@ router.post('/sessions/:id/track-download', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

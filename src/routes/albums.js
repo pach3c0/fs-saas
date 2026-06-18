@@ -88,6 +88,7 @@ router.get('/albums/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: 'Erro ao buscar álbum' });
   }
 });
@@ -116,6 +117,7 @@ router.put('/albums/:id', authenticateToken, async (req, res) => {
     await album.save();
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: 'Erro ao atualizar álbum' });
   }
 });
@@ -143,6 +145,7 @@ router.post('/albums/:id/send', authenticateToken, async (req, res) => {
 
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -160,6 +163,7 @@ router.delete('/albums/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Álbum removido' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: 'Erro ao remover álbum' });
   }
 });
@@ -182,6 +186,7 @@ router.post('/client/album/verify-code', async (req, res) => {
       clientName: album.sessionId?.name || album.name
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -196,6 +201,7 @@ router.get('/client/album/:id', async (req, res) => {
 
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -223,6 +229,7 @@ router.put('/client/album/:albumId/pages/:pageId/approve', async (req, res) => {
     await album.save();
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -258,6 +265,7 @@ router.put('/client/album/:albumId/pages/:pageId/request-revision', async (req, 
 
     res.json({ success: true, album });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -286,6 +294,7 @@ router.post('/client/album/:albumId/approve-all', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

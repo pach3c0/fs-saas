@@ -45,6 +45,7 @@ router.get('/admin/platform-updates', authenticateToken, requireSuperadmin, asyn
       .lean();
     res.json({ success: true, updates });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -69,6 +70,7 @@ router.post('/admin/platform-updates', authenticateToken, requireSuperadmin, asy
 
     res.status(201).json({ success: true, update });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -98,6 +100,7 @@ router.put('/admin/platform-updates/:id', authenticateToken, requireSuperadmin, 
 
     res.json({ success: true, update });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -111,6 +114,7 @@ router.delete('/api/admin/platform-updates/:id', authenticateToken, requireSuper
     }
     res.json({ success: true, message: 'Novidade removida com sucesso' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

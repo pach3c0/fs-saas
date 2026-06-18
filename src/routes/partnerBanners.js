@@ -32,6 +32,7 @@ router.get('/admin/banners', authenticateToken, requireSuperadmin, async (req, r
       .lean();
     res.json({ success: true, banners });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -55,6 +56,7 @@ router.post('/admin/banners', authenticateToken, requireSuperadmin, async (req, 
 
     res.status(201).json({ success: true, banner });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -83,6 +85,7 @@ router.put('/api/admin/banners/:id', authenticateToken, requireSuperadmin, async
 
     res.json({ success: true, banner });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -96,6 +99,7 @@ router.delete('/api/admin/banners/:id', authenticateToken, requireSuperadmin, as
     }
     res.json({ success: true, message: 'Banner removido com sucesso' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

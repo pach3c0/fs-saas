@@ -15,6 +15,7 @@ router.get('/manual', async (req, res) => {
             .lean();
         res.json({ success: true, modules });
     } catch (error) {
+        req.logger.error('Erro interno', { error: error.message });
         res.status(500).json({ success: false, error: error.message });
     }
 });

@@ -32,6 +32,7 @@ router.get('/admin/announcements', authenticateToken, requireSuperadmin, async (
       .lean();
     res.json({ success: true, announcements });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -56,6 +57,7 @@ router.post('/admin/announcements', authenticateToken, requireSuperadmin, async 
 
     res.status(201).json({ success: true, announcement });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -85,6 +87,7 @@ router.put('/api/admin/announcements/:id', authenticateToken, requireSuperadmin,
 
     res.json({ success: true, announcement });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -98,6 +101,7 @@ router.delete('/api/admin/announcements/:id', authenticateToken, requireSuperadm
     }
     res.json({ success: true, message: 'Comunicado removido com sucesso' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

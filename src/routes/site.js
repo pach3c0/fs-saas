@@ -62,6 +62,7 @@ router.get('/site/config', async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -76,6 +77,7 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
     if (!result.siteSections || result.siteSections.length === 0) result.siteSections = DEFAULT_SECTIONS;
     res.json(result);
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -121,6 +123,7 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
     if (org?.slug) clearOrgCache(org.slug);
     res.json({ success: true, org });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -157,6 +160,7 @@ router.post('/site/admin/portfolio', authenticateToken, uploadSite.single('photo
 
     res.json({ success: true, url });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -180,6 +184,7 @@ router.delete('/site/admin/portfolio/:idx', authenticateToken, async (req, res) 
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -240,6 +245,7 @@ router.get('/site/admin/storage', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -279,6 +285,7 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
       req.logger?.error('[Depoimento] Erro ao enviar email de notificacao:', e.message);
     }
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -298,6 +305,7 @@ router.post('/site/contact', checkHoneyPot, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -418,6 +426,7 @@ router.get('/site/default-template', authenticateToken, async (req, res) => {
     const tmpl = await DefaultSiteTemplate.findOne().lean();
     res.json({ success: true, template: tmpl || FALLBACK_TEMPLATE });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -437,6 +446,7 @@ router.put('/site/default-template', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, template: tmpl });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -451,6 +461,7 @@ router.post('/site/default-template/apply', authenticateToken, async (req, res) 
     }
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

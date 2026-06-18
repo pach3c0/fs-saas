@@ -50,6 +50,7 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -61,6 +62,7 @@ router.post('/billing/checkout', authenticateToken, async (req, res) => {
     const url = await createCheckoutSession(req.user.organizationId, plan);
     res.json({ checkoutUrl: url });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -72,6 +74,7 @@ router.post('/billing/webhook', express.json(), async (req, res) => {
     await handleWebhook(req.body, req.query);
     res.json({ received: true });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(400).json({ error: error.message });
   }
 });
@@ -91,6 +94,7 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Assinatura cancelada com sucesso. Voltará ao plano Free no próximo ciclo.' });
   } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
