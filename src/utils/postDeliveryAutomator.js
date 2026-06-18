@@ -2,6 +2,7 @@ const Session = require('../models/Session');
 const Organization = require('../models/Organization');
 const { sendPostDeliveryUpsellEmail, clientGalleryUrl } = require('./email');
 const { EVENT_LABELS, firstName, gerarCouponCode, applyScarcityVars } = require('./salesShared');
+const logger = require('./logger');
 
 /**
  * Motor de upsell pós-entrega.
@@ -92,7 +93,7 @@ async function processarNivel(diasAlvo, orgIds, orgMap, now) {
       await session.save();
       sent++;
     } catch (error) {
-      console.error(`[postDeliveryAutomator] Erro processando sessao ${session._id} (upsell_${diasAlvo}d):`, error.message);
+      logger.error(`[postDeliveryAutomator] Erro processando sessao ${session._id} (upsell_${diasAlvo}d):`, error.message);
     }
   }
 

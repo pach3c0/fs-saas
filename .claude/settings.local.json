@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh root@5.189.174.18 \"ls /etc/nginx/sites-enabled/\")",
+      "Bash(for t:*)",
+      "Bash(do)",
+      "Bash(file=\"/Users/macbook/Documents/ProjetoEstudio/FsSaaS/site/templates/$t/index.html\")",
+      "Bash(sed -i '' 's|<div class=\"\"hero-bg\"\" id=\"\"heroBg\"\"></div>|<div id=\"\"heroTopBar\"\" style=\"\"position:absolute;top:0;left:0;right:0;height:0;background:#000;z-index:4;pointer-events:none;\"\"></div><div class=\"\"hero-bg\"\" id=\"\"heroBg\"\"></div><div id=\"\"heroBottomBar\"\" style=\"\"position:absolute;bottom:0;left:0;right:0;height:0;background:#000;z-index:4;pointer-events:none;\"\"></div>|' \"$file\")",
+      "Bash(echo \"Atualizado: $t\")",
+      "Bash(git -C /Users/macbook/Documents/ProjetoEstudio/FsSaaS diff --name-only)",
+      "Bash(git -C /Users/macbook/Documents/ProjetoEstudio/FsSaaS ls-files --error-unmatch site/templates/shared-site.js)",
+      "Bash(git -C /Users/macbook/Documents/ProjetoEstudio/FsSaaS diff CLAUDE.md)",
+      "Bash(head -5 grep -rn \"stylesheet\\\\|\\\\.css\" /Users/macbook/Documents/ProjetoEstudio/FsSaaS/site/templates/moderno/index.html)",
+      "Bash(head -5 grep -rn \"stylesheet\\\\|\\\\.css\" /Users/macbook/Documents/ProjetoEstudio/FsSaaS/site/templates/escuro/index.html)",
+      "Bash(head -5 grep -rn \"stylesheet\\\\|\\\\.css\" /Users/macbook/Documents/ProjetoEstudio/FsSaaS/site/templates/galeria/index.html)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(curl -s -X POST https://app.cliquezoom.com.br/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"teste@teste.com\",\"password\":\"123456\"}')"
+    ]
+  }
+}

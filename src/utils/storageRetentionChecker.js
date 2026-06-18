@@ -1,5 +1,6 @@
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
+const logger = require('./logger');
 
 // Executar a cada 24h — verifica sessões perto da expiração de storage
 async function checkStorageRetention() {
@@ -47,12 +48,12 @@ async function checkStorageRetention() {
         }
       });
 
-      console.log(`[StorageRetentionChecker] Notificação enviada para sessão ${session._id} (expira em ${daysUntilExpiry}d)`);
+      logger.info(`[StorageRetentionChecker] Notificação enviada para sessão ${session._id} (expira em ${daysUntilExpiry}d)`);
     }
 
-    console.log(`[StorageRetentionChecker] Verificação completa (${expiringSessions.length} sessões a vencer)`);
+    logger.info(`[StorageRetentionChecker] Verificação completa (${expiringSessions.length} sessões a vencer)`);
   } catch (error) {
-    console.error('[StorageRetentionChecker] Erro:', error.message);
+    logger.error('[StorageRetentionChecker] Erro:', error.message);
   }
 }
 

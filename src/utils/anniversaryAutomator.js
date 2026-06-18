@@ -2,6 +2,7 @@ const Client = require('../models/Client');
 const Session = require('../models/Session');
 const Organization = require('../models/Organization');
 const { sendManualReactivationEmail } = require('./email');
+const logger = require('./logger');
 
 /**
  * Motor de reativacao de clientes (CRM)
@@ -92,7 +93,7 @@ async function run(organizationId = null, options = {}) {
 
       sent++;
     } catch (error) {
-      console.error(`[anniversaryAutomator] Erro ao processar cliente ${cliente._id}:`, error.message);
+      logger.error(`[anniversaryAutomator] Erro ao processar cliente ${cliente._id}:`, error.message);
       skipped++;
     }
   }

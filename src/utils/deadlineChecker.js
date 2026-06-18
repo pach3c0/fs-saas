@@ -3,6 +3,7 @@ const Notification = require('../models/Notification');
 const Organization = require('../models/Organization');
 const { sendDeadlineWarningEmail, sendDeadlineExpiredEmail, clientGalleryUrl } = require('./email');
 const { EVENT_LABELS, firstName, applyScarcityVars } = require('./salesShared');
+const logger = require('./logger');
 
 /**
  * Verifica prazos de seleção, gera notificações e envia e-mails se org tiver automação ativada.
@@ -74,7 +75,7 @@ async function checkDeadlines(organizationId = null) {
       await session.save();
       warnings++;
     } catch (error) {
-      console.error(`[deadlineChecker] Erro aviso sessão ${session._id}:`, error);
+      logger.error(`[deadlineChecker] Erro aviso sessão ${session._id}:`, error);
     }
   }
 
@@ -110,7 +111,7 @@ async function checkDeadlines(organizationId = null) {
       await session.save();
       expired++;
     } catch (error) {
-      console.error(`[deadlineChecker] Erro expiração sessão ${session._id}:`, error);
+      logger.error(`[deadlineChecker] Erro expiração sessão ${session._id}:`, error);
     }
   }
 
