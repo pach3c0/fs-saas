@@ -617,6 +617,7 @@ router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res)
 
     res.json({ success: true, uploadsCompletedAt: session.uploadsCompletedAt });
   } catch (error) {
+    req.logger.error('Erro ao concluir upload', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

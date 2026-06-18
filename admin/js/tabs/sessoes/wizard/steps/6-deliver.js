@@ -122,9 +122,10 @@ export function renderStepDeliver({ session, refresh, switchStep }) {
     rejectBtn.textContent = '✗ Recusar';
     rejectBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;`;
     rejectBtn.onclick = async () => {
-      const reason = prompt('Motivo da recusa (opcional):') || '';
+      const ok = await window.showConfirm?.('Recusar as fotos extras solicitadas pelo cliente?', { confirmText: 'Recusar', cancelText: 'Cancelar' });
+      if (!ok) return;
       try {
-        await apiPut(`/api/sessions/${session._id}/extra-request/reject`, { reason });
+        await apiPut(`/api/sessions/${session._id}/extra-request/reject`, {});
         window.showToast?.('Extras recusados', 'info');
         await refresh();
       } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }

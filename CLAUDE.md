@@ -230,7 +230,7 @@ Refatorado em 2026-05-23 e consolidado em **5 passos** após a fusão dos antigo
 
 > IDs 1, 2, 4, 5, 6 preservados (não existe mais passo 3).
 
-**Adaptação por modo:** `gallery` → `[1, 2, 6]`; `selection` / `multi_selection` → `[1, 2, 4, 5, 6]`.
+**Adaptação por modo:** `gallery` → `[1, 2]` (entrega embutida no passo 2); `selection` / `multi_selection` → `[1, 2, 4, 5]` (entrega embutida no passo 5). O passo 6 (`renderStepDeliver`) está registrado em `STEP_RENDERERS` mas não é incluído no stepper — seus helpers (`renderStoragePanel`, `renderDeliveryHistorySection`, `renderMultiDeliverHeader`, `renderParticipantsDeliveryTable`) são importados e usados diretamente pelo passo 5.
 
 **Arquivos:**
 - `wizard/index.js` — entry `openSessionWizard(id)`, modal fullscreen, header com 🔔/⚙️/🗑️/✕
