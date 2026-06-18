@@ -18,6 +18,7 @@ const NOTIF_ICONS = {
   contact:                '📩',
   depoimento_pendente:    '⭐',
   storage_expiring:       '⏰',
+  storage_auto_deleted:   '📦',
   storage_deleted:        '📦',
   ticket_reply:           '✉️',
   support_request:        '🛡️',
