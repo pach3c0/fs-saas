@@ -19,9 +19,9 @@ const CATEGORY_ICONS = {
 };
 
 const LEVEL_COLORS = {
-  'Básico': { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
-  'Intermediário': { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
-  'Avançado': { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' }
+  'Básico': { bg: 'rgba(63,185,80,0.12)', text: 'var(--green)' },
+  'Intermediário': { bg: 'rgba(210,153,34,0.12)', text: 'var(--yellow)' },
+  'Avançado': { bg: 'rgba(248,81,73,0.12)', text: 'var(--red)' }
 };
 
 let allTutorials = [];
@@ -416,7 +416,7 @@ function updatePlayer() {
             <span style="font-weight:600; color:var(--text-secondary);">${activeTutorial.duration || '0 min'}</span>
           </div>
           <div style="font-size:0.75rem; color:var(--text-muted); margin-left:auto; display:flex; align-items:center; gap:0.25rem;">
-            <span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--green);"></span>
             Reproduzindo interno
           </div>
         </div>

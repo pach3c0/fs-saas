@@ -18,6 +18,7 @@ router.get('/domains/status', authenticateToken, async (req, res) => {
       serverIP: process.env.SERVER_IP || '5.189.174.18'
     });
   } catch (error) {
+    req.logger.error('Erro ao obter status do domínio', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -62,6 +63,7 @@ router.post('/domains', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
+    req.logger.error('Erro ao adicionar domínio customizado', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -101,6 +103,7 @@ router.post('/domains/verify', authenticateToken, async (req, res) => {
       });
     }
   } catch (error) {
+    req.logger.error('Erro ao verificar DNS do domínio', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -116,6 +119,7 @@ router.delete('/domains', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao remover domínio customizado', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

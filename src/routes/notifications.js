@@ -7,21 +7,24 @@ router.get('/notifications', authenticateToken, async (req, res) => {
   try {
     const notifications = await Notification.find({ organizationId: req.user.organizationId })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
     res.json({ notifications });
   } catch (error) {
+    req.logger.error('Erro ao listar notificações', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
 
 router.get('/notifications/unread-count', authenticateToken, async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ 
+    const count = await Notification.countDocuments({
       organizationId: req.user.organizationId,
-      read: false 
+      read: false
     });
     res.json({ count });
   } catch (error) {
+    req.logger.error('Erro ao contar notificações não lidas', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -34,6 +37,7 @@ router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao marcar notificação como lida', { id: req.params.id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -43,6 +47,7 @@ router.delete('/notifications/:id', authenticateToken, async (req, res) => {
     await Notification.deleteOne({ _id: req.params.id, organizationId: req.user.organizationId });
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao deletar notificação', { id: req.params.id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -55,6 +60,7 @@ router.put('/notifications/read-all', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao marcar todas notificações como lidas', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -68,6 +74,7 @@ router.put('/notifications/:id/unread', authenticateToken, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao marcar notificação como não lida', { id: req.params.id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -78,6 +85,7 @@ router.delete('/notifications', authenticateToken, async (req, res) => {
     await Notification.deleteMany({ organizationId: req.user.organizationId });
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao deletar todas notificações', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
