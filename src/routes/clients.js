@@ -93,7 +93,7 @@ router.post('/clients', authenticateToken, async (req, res) => {
     });
 
     if (nextContactDate !== undefined && nextContactDate) {
-      client.nextContactDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(nextContactDate)
+      client.nextContactDate = /^\d{4}-\d{2}-\d{2}$/.test(nextContactDate)
         ? new Date(`${nextContactDate}T12:00:00Z`)
         : new Date(nextContactDate);
     }
@@ -210,7 +210,7 @@ router.delete('/clients/:id', authenticateToken, async (req, res) => {
     const orgId = req.user.organizationId;
     const clientId = req.params.id;
 
-    const client = await Client.findOne({ _id: clientId, organizationId: orgId });
+    const client = await Client.findOne({ _id: clientId, organizationId: orgId }).lean();
     if (!client) {
       return res.status(404).json({ success: false, error: 'Cliente não encontrado' });
     }

@@ -305,9 +305,10 @@ router.post('/site/contact', checkHoneyPot, async (req, res) => {
 // Admin: Listar depoimentos pendentes
 router.get('/site/admin/depoimentos-pendentes', authenticateToken, async (req, res) => {
   try {
-    const org = await Organization.findById(req.user.organizationId).select('siteContent.pendingDepoimentos');
+    const org = await Organization.findById(req.user.organizationId).select('siteContent.pendingDepoimentos').lean();
     res.json({ pending: org?.siteContent?.pendingDepoimentos || [] });
   } catch (error) {
+    req.logger.error('Erro ao listar depoimentos pendentes', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -333,6 +334,7 @@ router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, 
 
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao aprovar depoimento', { id: req.params.id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -345,6 +347,7 @@ router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, async 
     });
     res.json({ success: true });
   } catch (error) {
+    req.logger.error('Erro ao rejeitar depoimento', { id: req.params.id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

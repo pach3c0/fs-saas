@@ -52,10 +52,10 @@ async function renderSiteContent(container, builderTabsEl) {
     <div style="display:flex; flex-direction:column; gap:1.5rem;">
       ${!isBuilder ? `
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="font-size:1.5rem; font-weight:bold; color:#f3f4f6;">Meu Site Profissional</h2>
+        <h2 style="font-size:1.5rem; font-weight:bold; color:var(--text-primary);">Meu Site Profissional</h2>
         <div style="display:flex; gap:1rem; align-items:center;">
-            <button id="copySiteLink" style="background:#374151; color:#d1d5db; padding:0.5rem 1rem; border-radius:0.375rem; border:none; cursor:pointer; font-size:0.875rem;">📋 Copiar Link</button>
-            <a id="viewSiteLink" href="#" target="_blank" style="background:#2563eb; color:white; padding:0.5rem 1rem; border-radius:0.375rem; text-decoration:none; font-weight:600; font-size:0.875rem;">Ver Site</a>
+            <button id="copySiteLink" style="background:var(--bg-surface); color:var(--text-secondary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem;">📋 Copiar Link</button>
+            <a id="viewSiteLink" href="#" target="_blank" style="background:var(--accent); color:var(--bg-base); padding:0.5rem 1rem; border-radius:0.375rem; text-decoration:none; font-weight:600; font-size:0.875rem;">Ver Site</a>
         </div>
       </div>` : ''}
 
