@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const SiteData = require('../models/SiteData');
 const Organization = require('../models/Organization');
 const Session = require('../models/Session');
@@ -129,7 +130,6 @@ router.delete('/faq/:index', authenticateToken, async (req, res) => {
 router.get('/site-config', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState === 1) {
       const orgId = req.organizationId || req.user?.organizationId;
       const [data, org] = orgId
@@ -146,7 +146,7 @@ router.get('/site-config', async (req, res) => {
     }
     return res.json({ maintenance: { enabled: false }, metaPixelId: null });
   } catch (error) {
-    console.error('Erro ao carregar config:', error.message);
+    req.logger.error('Erro ao carregar config', { error: error.message });
     return res.json({ maintenance: { enabled: false }, metaPixelId: null });
   }
 });

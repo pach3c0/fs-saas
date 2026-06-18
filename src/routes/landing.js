@@ -13,8 +13,7 @@ router.get('/landing/config', async (req, res) => {
     }
     res.json({ success: true, data });
   } catch (error) {
-    if (req.logger) req.logger.error('Erro ao buscar landing config', { error: error.message });
-    else console.error('Erro ao buscar landing config:', error);
+    req.logger.error('Erro ao buscar landing config', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -30,8 +29,7 @@ router.put('/admin/landing/config', authenticateToken, requireSuperadmin, async 
     );
     res.json({ success: true, data });
   } catch (error) {
-    if (req.logger) req.logger.error('Erro ao salvar landing config', { error: error.message });
-    else console.error('Erro ao salvar landing config:', error);
+    req.logger.error('Erro ao salvar landing config', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

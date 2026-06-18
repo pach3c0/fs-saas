@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const PlatformLog = require('../models/PlatformLog');
+const Notification = require('../models/Notification');
 
 // ============================================================================
 // CENTRAL DE ERROS (PlatformLog)
@@ -119,7 +120,6 @@ router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSu
       audit(req, 'impersonate_denied', org._id, { reason: 'sem consentimento' });
 
       // Envia notificação ao fotógrafo pedindo para liberar o acesso
-      const Notification = require('../models/Notification');
       Notification.create({
         type: 'support_request',
         message: 'A equipe CliqueZoom precisa acessar seu painel para te ajudar. Ative o acesso de suporte em Configurações → Privacidade.',
@@ -154,7 +154,6 @@ router.post('/admin/organizations/:id/impersonate', authenticateToken, requireSu
     req.logger.info('Impersonação iniciada', { targetOrg: org.slug });
 
     // Transparência: o fotógrafo vê no sininho que o suporte acessou o painel dele
-    const Notification = require('../models/Notification');
     Notification.create({
       type: 'support_access',
       message: 'O suporte CliqueZoom acessou seu painel (modo suporte autorizado por você)',

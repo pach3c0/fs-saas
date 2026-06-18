@@ -26,7 +26,7 @@ router.get('/albums', authenticateToken, async (req, res) => {
 
     res.json({ success: true, albums });
   } catch (error) {
-    console.error('Erro ao listar álbuns:', error);
+    req.logger.error('Erro ao listar álbuns', { error: error.message });
     res.status(500).json({ success: false, error: 'Erro ao listar álbuns' });
   }
 });
@@ -71,7 +71,7 @@ router.post('/albums', authenticateToken, checkLimit, checkAlbumLimit, async (re
 
     res.json({ success: true, album });
   } catch (error) {
-    console.error('Erro ao criar álbum:', error);
+    req.logger.error('Erro ao criar álbum', { error: error.message });
     res.status(500).json({ success: false, error: 'Erro ao criar álbum' });
   }
 });

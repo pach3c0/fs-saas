@@ -185,7 +185,7 @@ router.post('/auth/register', checkHoneyPot, async (req, res) => {
       organizationSlug: org.slug
     });
   } catch (error) {
-    console.error('Erro no registro:', error);
+    req.logger.error('Erro no registro', { error: error.message });
     res.status(500).json({ error: 'Erro interno ao criar cadastro' });
   }
 });

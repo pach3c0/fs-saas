@@ -417,7 +417,7 @@ router.post('/client/selection/:sessionId', async (req, res) => {
     await session.save();
     res.json({ success: true, selectedCount: selectedPhotos.length });
   } catch (error) {
-    req.logger ? req.logger.error('Erro bulk select', { error: error.message }) : console.error(error);
+    req.logger.error('Erro bulk select', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -482,7 +482,7 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     // Notificar fotografo por e-mail + upsell para o cliente
     try {
-      const org = await Organization.findById(session.organizationId).select('email name slug preferences.notifications.selectionSubmitted');
+      const org = await Organization.findById(session.organizationId).select('email name slug preferences.notifications.selectionSubmitted').lean();
       const clientName = participant ? participant.name : session.name;
 
       if (org?.email && org?.preferences?.notifications?.selectionSubmitted !== false) {
@@ -783,7 +783,7 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
     } catch (e) { }
 
     try {
-      const org = await Organization.findById(session.organizationId).select('email name preferences.notifications.extraRequested');
+      const org = await Organization.findById(session.organizationId).select('email name preferences.notifications.extraRequested').lean();
       if (org?.email && org?.preferences?.notifications?.extraRequested !== false) {
         sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => { });
       }
@@ -957,7 +957,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
       clientPhone = session.clientPhone || '';
     }
 
-    const org = await Organization.findById(req.user.organizationId).select('name slug');
+    const org = await Organization.findById(req.user.organizationId).select('name slug').lean();
     const orgName = org?.name || 'Fotógrafo';
 
     const wantsEmail = channel === 'email' || channel === 'both';
@@ -1052,7 +1052,7 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
     try {
       const clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
       if (clientEmail) {
-        const org = await Organization.findById(req.user.organizationId).select('name slug');
+        const org = await Organization.findById(req.user.organizationId).select('name slug').lean();
         if (sendExtraPhotosRejectedEmail) {
           sendExtraPhotosRejectedEmail(clientEmail, session.name, org?.name || 'O fotógrafo', session.extraRequest.rejectReason, org?.slug).catch(() => { });
         }
@@ -1354,7 +1354,7 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
         if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) deletions.push(storage.deleteFile(photo.urlEditada));
         await Promise.all(deletions);
       } catch (e) {
-        console.error(`Erro ao deletar arquivos da foto ${photo.id}:`, e);
+        req.logger.error(`Erro ao deletar arquivos da foto ${photo.id}`, { error: e.message });
       }
     }
 
@@ -1379,7 +1379,7 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
 
     res.json({ success: true, deletedCount });
   } catch (error) {
-    console.error('Erro bulk delete:', error);
+    req.logger.error('Erro bulk delete', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -1947,7 +1947,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     }
 
     archive.on('error', (err) => {
-      console.error('Erro ao criar ZIP:', err);
+      req.logger.error('Erro ao criar ZIP', { error: err.message });
       if (!res.headersSent) res.status(500).json({ error: 'Erro ao criar ZIP' });
     });
 

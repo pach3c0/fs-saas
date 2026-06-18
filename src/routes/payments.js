@@ -57,7 +57,7 @@ router.post('/extra-photos', async (req, res) => {
         res.json({ success: true, paymentUrl });
 
     } catch (error) {
-        console.error('Erro ao criar pagamento de extras:', error);
+        req.logger.error('Erro ao criar pagamento de extras', { error: error.message });
         res.status(500).json({ error: 'Erro interno ao processar pagamento' });
     }
 });

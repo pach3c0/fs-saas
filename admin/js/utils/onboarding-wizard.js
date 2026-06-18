@@ -185,7 +185,8 @@ window._finishOnboarding = async () => {
 };
 
 window._skipOnboarding = async () => {
-  if (confirm('Tem certeza? Você pode concluir as configurações depois acessando o menu lateral.')) {
+  const ok = await window.showConfirm('Tem certeza? Você pode concluir as configurações depois acessando o menu lateral.');
+  if (ok) {
     await saveProgress({ skipped: true });
     closeWizard();
   }

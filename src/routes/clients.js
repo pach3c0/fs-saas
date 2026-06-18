@@ -199,11 +199,7 @@ router.delete('/clients/bulk', authenticateToken, async (req, res) => {
 
     res.json({ success: true, deletedCount: count });
   } catch (error) {
-    if (req.logger) {
-      req.logger.error('Erro ao deletar clientes em massa', { ids: req.body?.ids, error: error.message });
-    } else {
-      console.error('Erro ao deletar clientes em massa:', error);
-    }
+    req.logger.error('Erro ao deletar clientes em massa', { ids: req.body?.ids, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -229,11 +225,7 @@ router.delete('/clients/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    if (req.logger) {
-      req.logger.error('Erro ao deletar cliente', { clientId: req.params.id, error: error.message });
-    } else {
-      console.error('Erro ao deletar cliente:', error);
-    }
+    req.logger.error('Erro ao deletar cliente', { clientId: req.params.id, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
