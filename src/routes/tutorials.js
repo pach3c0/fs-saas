@@ -44,6 +44,7 @@ router.get('/admin/tutorials', authenticateToken, requireSuperadmin, async (req,
       .lean();
     res.json({ success: true, tutorials });
   } catch (error) {
+    req.logger.error('Erro em tutorial', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -76,6 +77,7 @@ router.post('/admin/tutorials', authenticateToken, requireSuperadmin, async (req
 
     res.status(201).json({ success: true, tutorial });
   } catch (error) {
+    req.logger.error('Erro em tutorial', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -115,6 +117,7 @@ router.put('/admin/tutorials/:id', authenticateToken, requireSuperadmin, async (
 
     res.json({ success: true, tutorial });
   } catch (error) {
+    req.logger.error('Erro em tutorial', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -128,6 +131,7 @@ router.delete('/admin/tutorials/:id', authenticateToken, requireSuperadmin, asyn
     }
     res.json({ success: true, message: 'Tutorial removido com sucesso' });
   } catch (error) {
+    req.logger.error('Erro em tutorial', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

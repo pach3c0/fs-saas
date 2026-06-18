@@ -185,6 +185,7 @@ router.get('/admin/organizations', authenticateToken, requireSuperadmin, async (
 
         res.json({ organizations: orgsWithStats });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -197,6 +198,7 @@ router.get('/admin/organizations/trash', authenticateToken, requireSuperadmin, a
             .lean();
         res.json({ organizations });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -249,6 +251,7 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
             }))
         });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -264,6 +267,7 @@ router.put('/admin/organizations/:id/approve', authenticateToken, requireSuperad
         audit(req, 'org_approve', org._id);
         res.json({ success: true, message: `Organização "${org.name}" aprovada!` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -278,6 +282,7 @@ router.put('/admin/organizations/:id/deactivate', authenticateToken, requireSupe
         audit(req, 'org_deactivate', org._id);
         res.json({ success: true, message: `Organização "${org.name}" desativada` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -293,6 +298,7 @@ router.put('/admin/organizations/:id/trash', authenticateToken, requireSuperadmi
         audit(req, 'org_trash', org._id);
         res.json({ success: true, message: `"${org.name}" movida para a lixeira` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -309,6 +315,7 @@ router.put('/admin/organizations/:id/restore', authenticateToken, requireSuperad
         audit(req, 'org_restore', org._id);
         res.json({ success: true, message: `"${org.name}" restaurada com sucesso` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -334,6 +341,7 @@ router.delete('/admin/organizations/:id', authenticateToken, requireSuperadmin, 
         audit(req, 'org_delete', orgId, { name: org.name, slug: org.slug });
         res.json({ success: true, message: `"${org.name}" excluída definitivamente` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -349,6 +357,7 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
         audit(req, 'plan_change', org._id, { plan });
         res.json({ success: true, message: `Plano alterado para ${plan}` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -375,6 +384,7 @@ router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, asyn
         audit(req, 'plan_limits_change', null, { limits });
         res.json({ success: true, message: 'Limites dos planos atualizados' });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -390,6 +400,7 @@ router.put('/admin/organizations/:id/limits', authenticateToken, requireSuperadm
         audit(req, 'limits_change', req.params.id, { maxSessions, maxPhotos, maxAlbums, maxStorage });
         res.json({ success: true, message: 'Limites customizados salvos' });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -429,6 +440,7 @@ router.post('/admin/organizations/:id/reset/site', authenticateToken, requireSup
         audit(req, 'site_reset', req.params.id, { section });
         res.json({ success: true, message: `Reset de "${section}" realizado` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -442,6 +454,7 @@ router.get('/admin/saas/security-logs', authenticateToken, requireSuperadmin, as
             .lean();
         res.json({ logs });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -456,6 +469,7 @@ router.get('/admin/manual', authenticateToken, requireSuperadmin, async (req, re
         const modules = await ManualModule.find().sort({ order: 1 }).lean();
         res.json({ success: true, modules });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -468,6 +482,7 @@ router.post('/admin/manual', authenticateToken, requireSuperadmin, async (req, r
         const mod = await ManualModule.create({ id, label, icon, order, isPublished, blocks });
         res.status(201).json({ success: true, module: mod });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         if (error.code === 11000) return res.status(409).json({ error: `Já existe um módulo com id "${req.body.id}"` });
         res.status(500).json({ error: error.message });
     }
@@ -484,6 +499,7 @@ router.put('/admin/manual/:id', authenticateToken, requireSuperadmin, async (req
         if (!mod) return res.status(404).json({ error: 'Módulo não encontrado' });
         res.json({ success: true, module: mod });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -498,6 +514,7 @@ router.put('/admin/manual-reorder', authenticateToken, requireSuperadmin, async 
         ));
         res.json({ success: true });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -509,6 +526,7 @@ router.delete('/admin/manual/:id', authenticateToken, requireSuperadmin, async (
         if (!mod) return res.status(404).json({ error: 'Módulo não encontrado' });
         res.json({ success: true, message: `Módulo "${mod.label}" removido` });
     } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

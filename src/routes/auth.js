@@ -203,6 +203,7 @@ router.get('/auth/check-slug/:slug', async (req, res) => {
       message: existingOrg ? 'Slug já está em uso' : 'Disponível'
     });
   } catch (error) {
+    req.logger.error('Erro ao verificar slug', { error: error.message });
     res.status(500).json({ error: 'Erro ao verificar slug' });
   }
 });
