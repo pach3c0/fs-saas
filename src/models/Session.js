@@ -21,7 +21,12 @@ const sessionSchema = new mongoose.Schema({
             comments: [{
                 text: String,
                 createdAt: { type: Date, default: Date.now },
-                author: { type: String, enum: ['client', 'admin'], default: 'client' }
+                author: { type: String, enum: ['client', 'admin'], default: 'client' },
+                // Seleção em Grupo: dono do "thread" (o comentário só é visível a ESTE participante).
+                // Comentário do participante → o próprio; resposta do admin → o participante alvo.
+                // Vazio/null em seleção individual (todos do mesmo cliente).
+                participantId: { type: mongoose.Schema.Types.ObjectId, default: null },
+                participantName: { type: String, default: '' }
             }],
             hidden: { type: Boolean, default: false }
         }],
@@ -30,7 +35,7 @@ const sessionSchema = new mongoose.Schema({
         validate: [arr => arr.length <= 10000, 'Limite de 10000 fotos por sessão atingido']
     },
     // Modo da sessao
-    mode: { type: String, enum: ['selection', 'gallery', 'multi_selection', 'multi_instant'], default: 'selection' },
+    mode: { type: String, enum: ['selection', 'gallery', 'multi_selection', 'multi_instant', 'multi_gallery'], default: 'selection' },
     packageLimit: { type: Number, default: 30 },
     extraPhotoPrice: { type: Number, default: 25 },
     // Fluxo de selecao
@@ -112,6 +117,20 @@ const sessionSchema = new mongoose.Schema({
             default: 'pending'
         },
         packageLimit: { type: Number, default: 30 },
+        // Preço da foto extra deste participante. null = herda o padrão da sessão (extraPhotoPrice).
+        extraPhotoPrice: { type: Number, default: null },
+        // Seleção em Grupo: este participante pediu reabertura da própria seleção (aguardando o fotógrafo).
+        reopenRequested: { type: Boolean, default: false },
+        // Seleção em Grupo: solicitação de fotos extras individual deste participante.
+        // Espelha o extraRequest da sessão, mas isolado por participante.
+        extraRequest: {
+            status: { type: String, enum: ['none', 'pending', 'accepted', 'rejected'], default: 'none' },
+            photos: [String],
+            requestedAt: Date,
+            respondedAt: Date,
+            rejectReason: { type: String, default: '' },
+            upsellingSent: { type: Boolean, default: false }
+        },
         submittedAt: Date,
         deliveredAt: Date
     }],

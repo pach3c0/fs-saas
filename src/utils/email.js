@@ -54,6 +54,14 @@ function _logEmail(doc) {
  * — só para rastreio no EmailLog, não afeta o envio.
  */
 async function sendEmail(to, subject, html, meta = {}) {
+  // Trava de ambiente: em beta/staging NÃO dispara e-mail real (protege clientes reais como a Flávia).
+  // Registra no EmailLog como "pulado" pra você inspecionar o que TERIA sido enviado.
+  const appEnv = process.env.APP_ENV;
+  if (appEnv === 'beta' || appEnv === 'staging') {
+    logger.info(`[Email] (${appEnv}) Envio SUPRIMIDO para ${to}: ${subject}`);
+    _logEmail({ to, subject, ...meta, ok: false, skipped: true, error: `suprimido em ${appEnv}` });
+    return false;
+  }
   const t = getTransporter();
   if (!t) {
     logger.warn(`[Email] Pulando envio para ${to}: SMTP nao configurado`);

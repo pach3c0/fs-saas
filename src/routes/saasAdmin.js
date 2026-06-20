@@ -494,7 +494,7 @@ router.put('/admin/manual/:id', authenticateToken, requireSuperadmin, async (req
         const mod = await ManualModule.findOneAndUpdate(
             { id: req.params.id },
             { $set: req.body },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
         if (!mod) return res.status(404).json({ error: 'Módulo não encontrado' });
         res.json({ success: true, module: mod });

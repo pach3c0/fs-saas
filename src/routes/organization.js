@@ -404,7 +404,7 @@ router.put('/organization/preferences', authenticateToken, async (req, res) => {
     const org = await Organization.findByIdAndUpdate(
       req.user.organizationId,
       { $set },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('preferences').lean();
     if (!org) return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
 

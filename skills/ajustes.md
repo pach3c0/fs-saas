@@ -5,3 +5,7 @@ Preciso que tenha uma pagina de tratamento amigavel para o usuario quando a pagi
 
 
 Cadastro de cliente novo, no momento do cadastro na landpage temos uma formulario 
+
+
+
+como esta tradata o cadastro do novos clientes no rhynosystem

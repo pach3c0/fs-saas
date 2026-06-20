@@ -14,24 +14,27 @@ import {
 import { nextStepIdAfter } from '../stepper.js';
 import { appState } from '../../../../state.js';
 
-export function renderStepShare({ session, refresh, switchStep }) {
+export function renderStepShare({ session, refresh, switchStep, inSinglePage = false }) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; max-width:720px;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; margin:0; align-items:flex-start; width:100%; text-align:left;';
 
   const isGallery = session.mode === 'gallery';
-  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+  const isMultiGallery = session.mode === 'multi_gallery';
+  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant' || isMultiGallery;
 
   // Header
   const subtitle = isGallery
     ? 'Compartilhe a galeria. O cliente vai visualizar e baixar diretamente — não há etapa de seleção.'
-    : isMulti
-      ? 'Cada participante tem um código próprio. Envie individualmente abaixo.'
-      : 'O código já foi gerado quando a sessão foi criada. Compartilhe com o cliente pelo canal que preferir.';
+    : isMultiGallery
+      ? 'Cada convidado tem um link próprio para ver e baixar todas as fotos — entrega direta, sem etapa de seleção.'
+      : isMulti
+        ? 'Cada participante tem um código próprio. Envie individualmente abaixo.'
+        : 'O código já foi gerado quando a sessão foi criada. Compartilhe com o cliente pelo canal que preferir.';
   const header = document.createElement('div');
-  header.style.cssText = 'text-align:center; display:flex; flex-direction:column; align-items:center;';
+  header.style.cssText = 'text-align:left; display:flex; flex-direction:column; align-items:flex-start; width:100%;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Compartilhar</h2>
-    <p style="color:var(--text-secondary); font-size:0.875rem; margin:0; max-width:600px;">${subtitle}</p>
+    <p style="color:var(--text-secondary); font-size:0.875rem; margin:0; max-width:100%; width:100%;">${subtitle}</p>
   `;
   wrap.appendChild(header);
 
@@ -56,63 +59,111 @@ export function renderStepShare({ session, refresh, switchStep }) {
   if (isMulti) {
     wrap.appendChild(renderParticipantsPanel(session, refresh));
     wrap.appendChild(buildPreviewButton(session));
-    if (((session.participants || []).length > 0)) {
-      wrap.appendChild(buildAdvanceButton(session, switchStep, refresh));
+    if (!inSinglePage && ((session.participants || []).length > 0)) {
+      wrap.appendChild(buildAdvanceButton(session, switchStep));
     }
     return wrap;
   }
 
-  // Bloco 1: Grid de botões circulares
+  // Requisitos para compartilhar (selection/gallery) — espelha o backend (POST /send-code):
+  // cliente vinculado sempre; em seleção, fotos visíveis >= mínimo do pacote (packageLimit 0 = sem mínimo).
+  const visiblePhotos = (session.photos || []).filter(p => !p.hidden).length;
+  const packageLimit = session.packageLimit || 0;
+  const hasClient = !!(session.clientId || session.rhynoCustomerId || session.clientEmail);
+  const missing = [];
+  if (!hasClient) missing.push('Vincule um cliente à sessão (no painel de configurações, à direita).');
+  if (!isGallery && packageLimit > 0 && visiblePhotos < packageLimit) {
+    missing.push(`Suba pelo menos ${packageLimit} foto${packageLimit !== 1 ? 's' : ''} — atualmente há ${visiblePhotos}.`);
+  }
+
+  if (missing.length) {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      background: color-mix(in srgb, var(--yellow) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--yellow) 35%, transparent);
+      border-radius: var(--r-card); padding: 1rem 1.25rem; width: 100%; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 0.5rem;
+    `;
+    const title = document.createElement('div');
+    title.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-weight:600; color:var(--text-primary); font-size:0.9375rem;';
+    title.innerHTML = `<span style="color:var(--yellow); display:flex;">${icon('cadeado', 18)}</span> Antes de compartilhar, conclua:`;
+    banner.appendChild(title);
+    const list = document.createElement('ul');
+    list.style.cssText = 'margin:0; padding-left:1.5rem; display:flex; flex-direction:column; gap:0.25rem; color:var(--text-secondary); font-size:0.875rem;';
+    missing.forEach(m => {
+      const li = document.createElement('li');
+      li.textContent = m;
+      list.appendChild(li);
+    });
+    banner.appendChild(list);
+    wrap.appendChild(banner);
+
+    // Preview também segue a regra: só fica disponível depois de cliente vinculado +
+    // mínimo de fotos do pacote (mesma condição de compartilhar). Aqui não renderiza nada além do aviso.
+    return wrap;
+  }
+
+  // Injetar CSS para efeitos das pílulas abertas (uma vez)
+  if (!document.getElementById('cz-share-pills-styles')) {
+    const s = document.createElement('style');
+    s.id = 'cz-share-pills-styles';
+    s.textContent = `
+      .cz-share-pill {
+        box-sizing: border-box;
+        display: inline-flex; align-items: center; gap: 0.75rem;
+        height: 48px; padding: 0 1.25rem;
+        border: none; border-radius: 9999px;
+        background: var(--bg-surface); color: var(--text-primary);
+        cursor: pointer; font-weight: 500; font-size: 0.9375rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+      .cz-share-pill:hover {
+        background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
+      }
+      .cz-share-pill:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Bloco 1: Grid de botões expandidos (pílulas abertas)
   const btnGrid = document.createElement('div');
-  btnGrid.style.cssText = 'display:flex; justify-content:center; gap:2.5rem; flex-wrap:wrap; margin:1.5rem 0;';
+  btnGrid.style.cssText = 'display:flex; justify-content:flex-start; gap:1.5rem; flex-wrap:wrap; margin:1.5rem 0; width:100%;';
 
   const channels = [
-    { id: 'code', icon: icon('cadeado', 24), label: 'Código' },
-    { id: 'link', icon: icon('link', 24), label: 'Link' },
-    { id: 'email', icon: icon('email', 24), label: 'E-mail' },
-    { id: 'whatsapp', icon: icon('whatsapp', 24), label: 'WhatsApp' }
+    { id: 'code', icon: icon('cadeado', 20), label: 'Compartilhar Código' },
+    { id: 'link', icon: icon('link', 20), label: 'Copiar Link' },
+    { id: 'email', icon: icon('email', 20), label: 'Enviar E-mail' },
+    { id: 'whatsapp', icon: icon('whatsapp', 20), label: 'Enviar WhatsApp' }
   ];
 
   channels.forEach((ch, idx) => {
-    const btnWrap = document.createElement('div');
-    btnWrap.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.5rem;';
-    
-    const circle = document.createElement('button');
-    circle.type = 'button';
-    circle.style.cssText = `
-      width:64px; height:64px; border-radius:50%;
-      background:var(--bg-surface); border:2px solid var(--border);
-      color:var(--text-primary);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-      transition:transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s, box-shadow 0.2s;
-    `;
-    circle.innerHTML = ch.icon;
-    circle.onmouseenter = () => { 
-      circle.style.transform = 'scale(1.05)'; 
-      circle.style.borderColor = 'var(--accent)'; 
-      circle.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-    };
-    circle.onmouseleave = () => { 
-      circle.style.transform = 'scale(1)'; 
-      circle.style.borderColor = 'var(--border)'; 
-      circle.style.boxShadow = 'none';
-    };
-    circle.onclick = () => openShareLightbox(session, refresh, idx);
-
-    const lbl = document.createElement('span');
-    lbl.textContent = ch.label;
-    lbl.style.cssText = 'font-size:0.875rem; font-weight:500; color:var(--text-primary);';
-
-    btnWrap.appendChild(circle);
-    btnWrap.appendChild(lbl);
-    btnGrid.appendChild(btnWrap);
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'cz-share-pill';
+    pill.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;">${ch.icon}</span><span>${ch.label}</span>`;
+    pill.onclick = () => openShareLightbox(session, refresh, idx);
+    btnGrid.appendChild(pill);
   });
 
   wrap.appendChild(btnGrid);
 
   wrap.appendChild(buildPreviewButton(session));
-  if (session.codeSentAt) wrap.appendChild(buildAdvanceButton(session, switchStep, refresh));
+
+  // Gallery: a entrega (notificação ao cliente) acontece aqui mesmo, embutida no Compartilhar.
+  // Selection/multi navegam para o próximo passo (botão de avanço só no modo por etapas).
+  if (isGallery) {
+    // Entregar/notificar fica sempre disponível (não depende mais de ter compartilhado antes).
+    wrap.appendChild(buildGalleryDeliverButton(session, refresh));
+  } else if (!inSinglePage && session.codeSentAt) {
+    wrap.appendChild(buildAdvanceButton(session, switchStep));
+  }
 
   return wrap;
 }
@@ -258,7 +309,7 @@ function openShareLightbox(session, refresh, startIndex) {
 
 function buildCodeSlide(session, refresh) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; align-items:center; text-align:center;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; align-items:flex-start; text-align:left;';
   
   const iconEl = document.createElement('div');
   iconEl.innerHTML = icon('cadeado', 48);
@@ -305,7 +356,7 @@ function buildCodeSlide(session, refresh) {
 
 function buildLinkSlide(session, refresh) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; align-items:center; text-align:center;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem; align-items:flex-start; text-align:left;';
   
   const iconEl = document.createElement('div');
   iconEl.innerHTML = icon('link', 48);
@@ -330,7 +381,7 @@ function buildLinkSlide(session, refresh) {
     background: var(--bg-surface); border: 1px solid var(--border);
     color: var(--text-primary); font-family: monospace; font-size: 0.8125rem;
     padding: 1rem; border-radius: var(--r-field); width: 100%; box-sizing: border-box;
-    text-align: center;
+    text-align: left;
   `;
   wrap.appendChild(linkInput);
 
@@ -486,7 +537,7 @@ function buildEditableChannelCard({ icon, title, subtitle, disabled, primary, ac
 
 function buildPreviewButton(session) {
   const previewWrap = document.createElement('div');
-  previewWrap.style.cssText = 'padding-top:1.5rem; border-top:1px solid var(--border); display:flex; justify-content:center;';
+  previewWrap.style.cssText = 'padding-top:1.5rem; border-top:1px solid var(--border); display:flex; justify-content:flex-start; width:100%;';
   const previewBtn = document.createElement('button');
   previewBtn.type = 'button';
   previewBtn.innerHTML = `<span style="display:flex; align-items:center; justify-content:center; gap:0.5rem;">${icon('olho', 16)} Ver como cliente (preview)</span>`;
@@ -509,130 +560,107 @@ function buildPreviewButton(session) {
   return previewWrap;
 }
 
-function buildAdvanceButton(session, switchStep, refresh) {
-  const isGallery = session.mode === 'gallery';
-  const nextId = nextStepIdAfter(session.mode, 2);
-  if (!nextId && !isGallery) return document.createDocumentFragment();
-
+// Botão de entrega do modo galeria (pílula sempre expandida, sem morph).
+// A entrega notifica o cliente (e-mail/WhatsApp via showDeliveryModal) e marca deliveredAt.
+function buildGalleryDeliverButton(session, refresh) {
   const isDelivered = Boolean(session.deliveredAt) || session.selectionStatus === 'delivered';
-  const labelByStep = { 4: 'Acompanhar seleção', 5: 'Subir editadas', 6: 'Entregar' };
-  
-  const advance = document.createElement('div');
-  advance.style.cssText = 'display:flex; justify-content:center; padding-top: 1rem;';
-  
+  const bg = isDelivered ? 'var(--orange)' : 'var(--green)';
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; justify-content:flex-start; padding-top:1rem; width:100%;';
+
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.style.cssText = `
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    height: 44px;
-    width: auto;
-    min-width: 44px;
-    flex-shrink: 0;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 9999px;
-    cursor: pointer;
-    overflow: hidden;
-    white-space: nowrap;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    margin: 0 auto;
+    box-sizing:border-box;
+    display:inline-flex; align-items:center; gap:0.75rem;
+    height:44px; padding:0 1.5rem;
+    border:none; border-radius:9999px;
+    background:${bg}; color:white;
+    cursor:pointer; font-weight:600; font-size:0.9375rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   `;
+  btn.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;">${icon('check', 20)}</span><span>${isDelivered ? 'Re-entregar (notificar novamente)' : 'Entregar e notificar cliente'}</span>`;
+  btn.onmouseenter = () => {
+    btn.style.transform = 'translateY(-2px)';
+    btn.style.boxShadow = `0 8px 24px color-mix(in srgb, ${bg} 35%, transparent)`;
+  };
+  btn.onmouseleave = () => {
+    btn.style.transform = '';
+    btn.style.boxShadow = '';
+  };
+  btn.onclick = async () => {
+    const payload = await showDeliveryModal(session);
+    if (!payload) return;
+    try {
+      const apiPayload = {};
+      if (payload.sendEmail) apiPayload.emailIntro = payload.emailIntro;
+      else apiPayload.skipEmail = true;
 
-  const iconDiv = document.createElement('div');
-  iconDiv.style.cssText = `
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    flex-shrink: 0;
+      await apiPut(`/api/sessions/${session._id}/deliver`, apiPayload);
+
+      window.showToast?.(isDelivered ? 'Cliente notificado novamente' : 'Sessão entregue! Cliente notificado.', 'success');
+
+      if (payload.sendWhatsapp) {
+        const orgName = appState.appData?.organization?.name || 'CliqueZoom';
+        const url = buildWhatsAppDeliveryLink({
+          session,
+          accessCode: session.accessCode,
+          recipientName: session.clientName || session.name,
+          recipientPhone: session.clientPhone,
+          orgName,
+          customText: payload.whatsappText
+        });
+        window.open(url, '_blank');
+      }
+
+      await refresh();
+    } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
+  };
+
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+// Botão de avanço para o próximo passo (pílula sempre expandida, sem morph).
+// Usado apenas no modo por etapas (multi_selection) — selection/gallery são página única.
+function buildAdvanceButton(session, switchStep) {
+  const nextId = nextStepIdAfter(session.mode, 2);
+  if (!nextId) return document.createDocumentFragment();
+
+  const labelByStep = { 4: 'Acompanhar seleção', 5: 'Subir editadas', 6: 'Entregar' };
+
+  const advance = document.createElement('div');
+  advance.style.cssText = 'display:flex; justify-content:flex-start; padding-top:1rem; width:100%;';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.style.cssText = `
+    box-sizing:border-box;
+    display:inline-flex; align-items:center; gap:0.75rem;
+    height:44px; padding:0 1.5rem;
+    border:1px solid var(--border); border-radius:9999px;
+    background:var(--bg-surface); color:var(--text-primary);
+    cursor:pointer; font-weight:500; font-size:0.875rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   `;
+  btn.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;">${icon('chevronDireita', 20)}</span><span>Próximo: ${labelByStep[nextId] || 'continuar'}</span>`;
+  btn.onmouseenter = () => {
+    btn.style.background = 'color-mix(in srgb, var(--accent) 12%, var(--bg-surface))';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    btn.style.transform = 'translateY(-2px)';
+    btn.style.boxShadow = '0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent)';
+  };
+  btn.onmouseleave = () => {
+    btn.style.background = 'var(--bg-surface)';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-primary)';
+    btn.style.transform = '';
+    btn.style.boxShadow = '';
+  };
+  btn.onclick = () => switchStep(nextId);
 
-  const labelDiv = document.createElement('div');
-  labelDiv.style.cssText = `
-    max-width: 0;
-    opacity: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    display: inline-block;
-    vertical-align: middle;
-    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 500;
-    font-size: 0.875rem;
-  `;
-
-  if (isGallery) {
-    iconDiv.innerHTML = icon('check', 20);
-    labelDiv.textContent = isDelivered ? 'Re-entregar (notificar novamente)' : 'Entregar e notificar cliente';
-
-    btn.onmouseenter = () => {
-      btn.style.background = 'var(--bg-hover)';
-      labelDiv.style.maxWidth = isDelivered ? '18rem' : '15rem';
-      labelDiv.style.opacity = '1';
-      labelDiv.style.paddingRight = '1.25rem';
-    };
-    btn.onmouseleave = () => {
-      btn.style.background = 'var(--bg-surface)';
-      labelDiv.style.maxWidth = '0';
-      labelDiv.style.opacity = '0';
-      labelDiv.style.paddingRight = '0';
-    };
-
-    btn.onclick = async () => {
-      const payload = await showDeliveryModal(session);
-      if (!payload) return;
-
-      try {
-        const apiPayload = {};
-        if (payload.sendEmail) apiPayload.emailIntro = payload.emailIntro;
-        else apiPayload.skipEmail = true;
-
-        await apiPut(`/api/sessions/${session._id}/deliver`, apiPayload);
-        
-        window.showToast?.(isDelivered ? 'Cliente notificado novamente' : 'Sessão entregue! Cliente notificado.', 'success');
-        
-        if (payload.sendWhatsapp) {
-          const orgName = appState.appData?.organization?.name || 'CliqueZoom';
-          const url = buildWhatsAppDeliveryLink({
-            session,
-            accessCode: session.accessCode,
-            recipientName: session.clientName || session.name,
-            recipientPhone: session.clientPhone,
-            orgName,
-            customText: payload.whatsappText
-          });
-          window.open(url, '_blank');
-        }
-
-        await refresh();
-      } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
-    };
-  } else {
-    iconDiv.innerHTML = icon('chevronDireita', 20);
-    labelDiv.textContent = `Próximo: ${labelByStep[nextId] || 'continuar'}`;
-    
-    btn.onmouseenter = () => {
-      btn.style.background = 'var(--bg-hover)';
-      labelDiv.style.maxWidth = '16rem';
-      labelDiv.style.opacity = '1';
-      labelDiv.style.paddingRight = '1.25rem';
-    };
-    btn.onmouseleave = () => {
-      btn.style.background = 'var(--bg-surface)';
-      labelDiv.style.maxWidth = '0';
-      labelDiv.style.opacity = '0';
-      labelDiv.style.paddingRight = '0';
-    };
-    btn.onclick = () => switchStep(nextId);
-  }
-
-  btn.appendChild(iconDiv);
-  btn.appendChild(labelDiv);
   advance.appendChild(btn);
   return advance;
 }
@@ -653,12 +681,12 @@ function renderParticipantsPanel(session, refresh) {
   manageBtn.type = 'button';
   manageBtn.className = 'header-expand-btn';
   manageBtn.title = 'Gerenciar participantes';
-  manageBtn.style.cssText = 'cursor: pointer;';
+  manageBtn.style.cssText = 'border:1px solid var(--border);';
 
   const iconWrap = document.createElement('span');
   iconWrap.className = 'header-expand-icon';
-  iconWrap.style.cssText = 'display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;';
-  iconWrap.innerHTML = icon('config', 16);
+  iconWrap.style.cssText = 'display:flex; align-items:center; justify-content:center;';
+  iconWrap.innerHTML = icon('config', 18);
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'header-expand-label';

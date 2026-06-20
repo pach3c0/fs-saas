@@ -165,7 +165,8 @@ const LandingDataSchema = new mongoose.Schema({
             { name: 'Seleção com coração', description: 'Cliente escolhe as fotos favoritas com um clique. Limite de pacote configurável, ideal para ensaios e casamentos.' },
             { name: 'Galeria imediata', description: 'Cliente visualiza e baixa as fotos diretamente, sem etapa de seleção. Perfeito para entregas rápidas.' },
             { name: 'Multi-Seleção', description: 'Vários participantes acessam a mesma galeria e selecionam suas fotos individualmente. Ideal para formaturas e eventos corporativos.' },
-            { name: 'Multi-Imediata ao vivo', description: 'Fotos entregues em tempo real conforme o upload. Cada participante vê e baixa suas fotos na hora — perfeito para shows e eventos ao vivo.' }
+            { name: 'Multi-Imediata ao vivo', description: 'Fotos entregues em tempo real conforme o upload. Cada participante vê e baixa suas fotos na hora — perfeito para shows e eventos ao vivo.' },
+            { name: 'Fotos de cortesia', description: 'Inclua fotos extras de presente para o cliente na entrega — sem cobrar. O sistema destaca automaticamente com badge ★, criando uma surpresa positiva que fideliza e gera indicações.' }
           ]
         },
         {

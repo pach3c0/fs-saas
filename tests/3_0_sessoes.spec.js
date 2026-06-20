@@ -12,123 +12,110 @@ async function loginAdmin(page) {
   await page.locator('#adminPassword').fill(ADMIN_PASSWORD);
   await page.locator('#loginSubmitBtn').click();
   await expect(page.locator('#adminPanel')).toBeVisible({ timeout: 15000 });
-  // Aguardar dashboard completamente renderizado (elemento específico do dashboard)
   await page.waitForSelector('.dashboard-stats, #dashboardContent, [data-tab="sessoes"]', { timeout: 15000 });
-  // Pequena pausa para garantir que postLoginSetup terminou todas as chamadas async
   await page.waitForTimeout(1500);
-  // Navegar para sessões e aguardar o DOM mostrar #sessionsList
   await page.evaluate(() => window.switchTab('sessoes'));
   await page.waitForSelector('#sessionsList', { timeout: 20000 });
 }
 
-test('Sessões — criar sessão', async ({ page }) => {
-  await loginAdmin(page);
-
+// Abre o modal de nova sessão, seleciona modo multi_selection (sem cliente obrigatório),
+// preenche o nome e confirma.
+async function criarSessaoTeste(page, nome) {
   await page.locator('#addSessionBtn').click();
   await expect(page.locator('#newSessionModal')).toBeVisible({ timeout: 5000 });
-
-  await page.locator('#sessionName').fill(SESSION_NAME);
+  await page.locator('#sessionMode').selectOption('multi_selection');
+  await page.locator('#sessionName').fill(nome);
   await page.locator('#confirmNewSession').click();
+  await expect(page.locator('#sessionsList')).toContainText(nome, { timeout: 10000 });
+}
 
-  await expect(page.locator('#sessionsList')).toContainText(SESSION_NAME, { timeout: 10000 });
+test('Sessões — criar sessão', async ({ page }) => {
+  await loginAdmin(page);
+  await criarSessaoTeste(page, SESSION_NAME);
 });
 
-test('Sessões — editar nome da sessão', async ({ page }) => {
+test('Sessões — editar nome da sessão via config panel', async ({ page }) => {
   await loginAdmin(page);
 
-  // Abrir wizard clicando no card da primeira sessão
+  // Abre o wizard clicando no card da primeira sessão
   const card = page.locator('#sessionsList > div').first();
   await card.click();
   await expect(page.locator('#sessionWizardModal')).toBeVisible({ timeout: 5000 });
 
-  // Clicar no botão ⚙️ (editar) no header do wizard
-  const editBtn = page.locator('#wizardHeader button[title="Editar configurações da sessão"]');
-  await expect(editBtn).toBeVisible({ timeout: 5000 });
-  await editBtn.click();
-
-  await expect(page.locator('#editSessionModal')).toBeVisible({ timeout: 5000 });
+  // O config panel é sempre visível no lado direito do wizard.
+  // O nome da sessão está em input[data-cfg="name"] e salva automaticamente ao perder foco.
+  const nameInput = page.locator('#sessionWizardModal input[data-cfg="name"]');
+  await expect(nameInput).toBeVisible({ timeout: 5000 });
 
   const novoNome = `test-auto-editado-${Date.now()}`;
-  await page.locator('#editSessionName').fill(novoNome);
-  await page.locator('#editSessionModal button', { hasText: 'Salvar' }).click();
+  await nameInput.fill(novoNome);
+  await nameInput.dispatchEvent('change'); // dispara o autosave
 
-  await expect(page.locator('body')).toContainText('Configuração salva', { timeout: 8000 });
+  // O config panel mostra um span "✓ salvo" (opacity 0→1) após salvar com sucesso.
+  await expect(page.locator('#sessionWizardModal span').filter({ hasText: '✓ salvo' })).toBeVisible({ timeout: 8000 });
 
   // Fechar o wizard ao final
-  await page.locator('#wizardHeader button[title="Fechar"]').click();
+  await page.locator('#sessionWizardModal button[title="Fechar"]').click();
 });
 
 test('Sessões — upload e remoção de foto', async ({ page }) => {
   await loginAdmin(page);
 
-  // Abrir wizard clicando no card da primeira sessão
+  // Abre o wizard clicando no card da primeira sessão
   const card = page.locator('#sessionsList > div').first();
   await card.click();
   await expect(page.locator('#sessionWizardModal')).toBeVisible({ timeout: 5000 });
 
-  // Verificar que estamos no passo 1 (Upload)
-  await expect(page.locator('h2', { hasText: 'Upload' })).toBeVisible({ timeout: 10000 });
+  // Verifica que estamos no passo 1 (Upload)
+  await expect(page.locator('#sessionWizardModal h2', { hasText: 'Upload' })).toBeVisible({ timeout: 10000 });
 
   const grid = page.locator('#wizardContent div[style*="aspect-ratio"]');
-
-  // Contar fotos antes do upload
   const antesCount = await grid.count();
 
-  // Fazer upload via input file
+  // Faz upload via input file
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.locator('button', { hasText: '+ Subir fotos' }).first().click(),
+    page.locator('#sessionWizardModal button', { hasText: '+ Subir fotos' }).first().click(),
   ]);
   await fileChooser.setFiles(FOTO_FIXTURE);
 
-  // Aguardar nova foto aparecer no grid
+  // Aguarda nova foto aparecer no grid
   await expect(grid).toHaveCount(antesCount + 1, { timeout: 30000 });
 
-  // Remover a foto (selecionar com checkbox e deletar)
+  // Remove a última foto: checkbox + "Deletar selecionadas"
   const ultimaFoto = grid.last();
   await ultimaFoto.hover();
-  // Procurar por botão com ícone que oculta a foto (hidden toggle) — na verdade, podemos deletar selecionando e clicando "Deletar selecionadas"
   const checkbox = ultimaFoto.locator('input[type="checkbox"]').first();
   if (await checkbox.count() > 0) {
     await checkbox.check();
-    const deleteBtn = page.locator('button', { hasText: 'Deletar selecionadas' }).first();
+    const deleteBtn = page.locator('#sessionWizardModal button', { hasText: 'Deletar selecionadas' }).first();
     if (await deleteBtn.count() > 0) {
       await deleteBtn.click();
       await page.locator('#confirmOk').click();
     }
-  } else {
-    // Fallback: tentar clicar em botão de remover direto (se existir)
-    const removeBtn = ultimaFoto.locator('button').filter({ hasText: /Ocultar|Remover/ }).first();
-    if (await removeBtn.count() > 0) {
-      await removeBtn.click();
-      await page.locator('#confirmOk').click();
-    }
   }
 
-  // Aguardar que a foto seja removida
   await expect(grid).toHaveCount(antesCount, { timeout: 10000 });
 
-  // Fechar wizard
-  await page.locator('#wizardHeader button[title="Fechar"]').click();
+  await page.locator('#sessionWizardModal button[title="Fechar"]').click();
 });
 
 test('Sessões — deletar sessão criada pelo teste', async ({ page }) => {
   await loginAdmin(page);
 
-  // Criar sessão para poder deletar
+  // Cria uma sessão multi_selection dedicada a este teste
   const nome = `test-auto-delete-${Date.now()}`;
-  await page.locator('#addSessionBtn').click();
-  await page.locator('#sessionName').fill(nome);
-  await page.locator('#confirmNewSession').click();
-  await expect(page.locator('#sessionsList')).toContainText(nome, { timeout: 10000 });
+  await criarSessaoTeste(page, nome);
 
-  // Localizar o card da sessão criada e deletar
+  // Localiza o card da sessão criada e abre o wizard
   const card = page.locator('#sessionsList > div').filter({ hasText: nome }).first();
-  const deleteBtn = card.locator('button[title="Deletar sessão"]');
-  await expect(deleteBtn).toBeVisible({ timeout: 5000 });
-  await deleteBtn.click();
+  await card.click();
+  await expect(page.locator('#sessionWizardModal')).toBeVisible({ timeout: 5000 });
 
-  // Aceitar confirmação do modal showConfirm (id confirmOk)
+  // Clica no botão "Excluir" no header do wizard (ícone lixeira)
+  await page.locator('#sessionWizardModal button[title="Excluir"]').click();
+
+  // Confirma no showConfirm
   await page.locator('#confirmOk').click();
 
   await expect(page.locator('#sessionsList')).not.toContainText(nome, { timeout: 10000 });

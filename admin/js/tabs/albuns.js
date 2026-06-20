@@ -65,7 +65,7 @@ export async function renderAlbuns(container) {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
               Editar
             </button>
-            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="width:100%; background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3); color:#f85149; padding:0.4rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;" title="Remover">
+            <button onclick="event.stopPropagation(); removeAlbumPhoto(${idx}, ${photoIdx})" style="width:100%; background:color-mix(in srgb, var(--red) 15%, transparent); border:1px solid color-mix(in srgb, var(--red) 30%, transparent); color:var(--red); padding:0.4rem; border-radius:0.375rem; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem;" title="Remover">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
               Remover
             </button>
@@ -78,17 +78,17 @@ export async function renderAlbuns(container) {
       <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
         <div style="display:flex; flex-direction:column; gap:0.75rem;">
           <div class="input-group" style="margin-bottom:0; width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título do Álbum</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título do Álbum</label>
             <input type="text" class="input" value="${(album.title || '').replace(/"/g, '&quot;')}" data-album-title="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
           <div class="input-group" style="margin-bottom:0; width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Subtítulo</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Subtítulo</label>
             <input type="text" class="input" value="${(album.subtitle || '').replace(/"/g, '&quot;')}" data-album-subtitle="${idx}" placeholder="Ex: Ensaio completo" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
           
           <div style="display:flex; justify-content:center; gap:1.5rem; align-items:flex-end; margin-top:0.5rem;">
             <div style="display:flex; flex-direction:column; align-items:center;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Capa</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Capa</label>
               <div style="width:48px; height:48px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0;">
                 ${coverUrl ? `<img src="${resolveImagePath(coverUrl)}" alt="Capa" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; color:var(--text-secondary);">Sem capa</div>`}
               </div>
@@ -132,7 +132,7 @@ export async function renderAlbuns(container) {
     <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
       <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
         <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Álbuns</h3>
-        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Crie e gerencie os álbuns da galeria.</p>
+        <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Crie e gerencie os álbuns da galeria.</p>
       </div>
 
       <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">

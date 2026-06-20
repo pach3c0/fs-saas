@@ -218,9 +218,14 @@ const connectWithRetry = async () => {
     });
     isConnected = true;
     logger.info('MongoDB conectado com sucesso');
-    // Em cluster PM2, apenas o worker 0 roda os schedulers para evitar envios duplicados
+    // Em cluster PM2, apenas o worker 0 roda os schedulers para evitar envios duplicados.
+    // Trava de ambiente: em beta/staging os schedulers NÃO sobem (nada de automação/e-mail
+    // disparando contra dados reais a partir de um ambiente de teste).
     const instanceId = process.env.NODE_APP_INSTANCE;
-    if (instanceId === undefined || instanceId === '0') {
+    const appEnv = process.env.APP_ENV;
+    if (appEnv === 'beta' || appEnv === 'staging') {
+      logger.warn(`[scheduler] Ambiente "${appEnv}": schedulers DESLIGADOS (sem automações em beta/staging)`);
+    } else if (instanceId === undefined || instanceId === '0') {
       startDeadlineScheduler();
     }
   } catch (err) {
@@ -440,7 +445,7 @@ process.on('uncaughtException', (err) => {
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  logger.info(`Servidor rodando na porta ${PORT}`);
 });
 
 // Sinaliza ao PM2 que o processo está pronto (usado no modo cluster para zero-downtime reload)

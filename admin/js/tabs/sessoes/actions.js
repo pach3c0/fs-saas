@@ -294,7 +294,7 @@ export function setupActions(container, state, renderSessoes) {
 
       const events = [];
 
-      const modeLabel = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-seleção' };
+      const modeLabel = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Seleção em Grupo' };
       events.push({ icon:'📁', label:'Sessão criada', date: s.createdAt, detail: `Modo: ${modeLabel[s.mode] || s.mode} · Resolução: ${s.photoResolution || '—'}px` });
 
       const photoCount = s.photos?.length ?? 0;

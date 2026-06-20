@@ -29,48 +29,20 @@ function getOrCreateQueue(onDone) {
   return window.globalUploadQueue;
 }
 
-export function renderStepUpload({ session, refresh, switchStep }) {
-  ensureExpandBtnStyles();
-
+export function renderStepUpload({ session, refresh, switchStep, inSinglePage = false }) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:1200px;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; margin:0; width:100%;';
 
-  // ===== BARRA DE STATUS =====
+  // ===== TOOLBAR COMPACTA (upload + contagem + filtros + ações em massa) =====
   const isCompleted = Boolean(session.uploadsCompletedAt);
   const allPhotos = session.photos || [];
   const photosCount = allPhotos.length;
   const packageLimit = session.packageLimit || 0;
-  const enforceMinimum = session.mode === 'selection' && packageLimit > 0;
-  const minimumMet = !enforceMinimum || photosCount >= packageLimit;
-  const missingPhotos = enforceMinimum ? Math.max(0, packageLimit - photosCount) : 0;
+  // multi_selection: cada participante tem seu próprio limite — exibe hint informacional, sem bloquear.
+  const showMinimumHint = session.mode === 'multi_selection' && packageLimit > 0;
 
-  const statusBar = document.createElement('div');
-  statusBar.style.cssText = `
-    background: ${isCompleted ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'var(--bg-surface)'};
-    border: 1px solid ${isCompleted ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'var(--border)'};
-    border-radius:var(--r-card);
-    padding: 1.25rem;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center;
-  `;
-
-  const statusLeft = document.createElement('div');
-  statusLeft.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem; align-items:center; text-align:center; width:100%;';
-  const statusHint = isCompleted
-    ? `Marcado em ${new Date(session.uploadsCompletedAt).toLocaleString('pt-BR')}`
-    : (enforceMinimum
-      ? (minimumMet
-        ? `Mínimo do pacote atingido (${photosCount}/${packageLimit}). Você pode concluir ou subir mais.`
-        : `Faltam ${missingPhotos} foto${missingPhotos === 1 ? '' : 's'} para atingir o mínimo do pacote (${photosCount}/${packageLimit}).`)
-      : 'Continue subindo ou clique em "Concluí upload" para avançar');
-  statusLeft.innerHTML = `
-    <div style="font-size:0.875rem; font-weight:500; color:var(--text-primary);">
-      ${isCompleted ? '✓ Upload concluído' : `${photosCount} foto${photosCount === 1 ? '' : 's'} enviada${photosCount === 1 ? '' : 's'}`}
-    </div>
-    <div style="font-size:0.75rem; color:${!isCompleted && enforceMinimum && !minimumMet ? 'var(--orange)' : 'var(--text-muted)'};">
-      ${statusHint}
-    </div>
-  `;
-  statusBar.appendChild(statusLeft);
+  const visibleCount = allPhotos.filter(p => !p.hidden).length;
+  const hiddenCount  = allPhotos.filter(p =>  p.hidden).length;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -83,67 +55,127 @@ export function renderStepUpload({ session, refresh, switchStep }) {
     const queue = getOrCreateQueue(async () => {
       window.showToast?.('Uploads finalizados!', 'success');
       await refresh();
-      window.loadSidebarStorage?.();
     });
     queue.add(files, `/api/sessions/${session._id}/photos`);
     fileInput.value = '';
   };
-  statusBar.appendChild(fileInput);
+  wrap.appendChild(fileInput);
 
-  const buttonsRow = document.createElement('div');
-  buttonsRow.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:0.75rem; flex-wrap:wrap;';
+  const mkDivider = () => {
+    const d = document.createElement('div');
+    d.style.cssText = 'width:1px; height:18px; background:var(--border); flex-shrink:0;';
+    return d;
+  };
 
-  const uploadBtn = makeExpandBtn('upload', 'Subir fotos', {
-    bg: isCompleted ? 'var(--bg-hover)' : 'var(--green)',
-    color: isCompleted ? 'var(--text-muted)' : 'white',
-    disabled: isCompleted,
-    title: isCompleted ? 'Reabra o upload para adicionar mais fotos' : 'Subir fotos',
-  });
-  uploadBtn.onclick = () => { if (!isCompleted) fileInput.click(); };
-  buttonsRow.appendChild(uploadBtn);
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = `
+    display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;
+    background:var(--bg-surface); border:1px solid var(--border);
+    border-radius:var(--r-card); padding:0.4rem 0.75rem;
+  `;
 
-  let toggleBtn;
-  if (isCompleted) {
-    toggleBtn = makeExpandBtn('reabrirUpload', 'Reabrir upload', {
-      bg: 'var(--bg-hover)', color: 'var(--text-secondary)', title: 'Reabrir upload',
+  // Botão de upload compacto (verde, alinhado à esquerda)
+  const uploadBtn = document.createElement('button');
+  uploadBtn.type = 'button';
+  uploadBtn.style.cssText = `
+    display:inline-flex; align-items:center; gap:0.4rem;
+    background:var(--green); color:white; border:none;
+    border-radius:9999px; padding:0.3rem 0.875rem;
+    font-size:0.8125rem; font-weight:600; cursor:pointer;
+    white-space:nowrap; flex-shrink:0; transition:filter 0.15s;
+  `;
+  uploadBtn.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>Subir fotos</span>`;
+  uploadBtn.onmouseenter = () => { uploadBtn.style.filter = 'brightness(1.12)'; };
+  uploadBtn.onmouseleave = () => { uploadBtn.style.filter = ''; };
+  uploadBtn.onclick = () => fileInput.click();
+  toolbar.appendChild(uploadBtn);
+
+  // Contagem + filtros + bulk — só quando há fotos
+  let currentFilter = 'all';
+  const selectedIds = new Set();
+  const filterBtns = {};
+
+  let countLabel, selectAllCheck, hideSelectedBtn, showSelectedBtn, deleteBtn;
+
+  if (photosCount > 0) {
+    toolbar.appendChild(mkDivider());
+
+    countLabel = document.createElement('span');
+    countLabel.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary); white-space:nowrap; flex-shrink:0;';
+    toolbar.appendChild(countLabel);
+
+    // Hint de mínimo para multi_selection
+    if (showMinimumHint) {
+      const hintEl = document.createElement('span');
+      hintEl.style.cssText = `font-size:0.75rem; color:${photosCount < packageLimit ? 'var(--yellow)' : 'var(--text-muted)'}; white-space:nowrap; flex-shrink:0;`;
+      hintEl.textContent = `· mín. ${packageLimit}/participante`;
+      toolbar.appendChild(hintEl);
+    }
+
+    // Spacer empurra filtros para a direita
+    const spacerEl = document.createElement('div');
+    spacerEl.style.cssText = 'flex:1; min-width:0;';
+    toolbar.appendChild(spacerEl);
+
+    // Chips de filtro
+    const filterGroup = document.createElement('div');
+    filterGroup.style.cssText = 'display:flex; gap:0.25rem; flex-shrink:0;';
+    [
+      { key: 'all',     label: `Todas (${photosCount})` },
+      { key: 'visible', label: `Visíveis (${visibleCount})` },
+      { key: 'hidden',  label: `Ocultas (${hiddenCount})` },
+    ].forEach(({ key, label }) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = label;
+      btn.dataset.filterKey = key;
+      const isActive = key === 'all';
+      btn.style.cssText = `
+        padding:0.2rem 0.55rem; border-radius:9999px;
+        font-size:0.75rem; font-weight:500; cursor:pointer;
+        transition:background 0.15s, border-color 0.15s, color 0.15s;
+        background:${isActive ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent'};
+        color:${isActive ? 'var(--text-primary)' : 'var(--text-secondary)'};
+        border:1px solid ${isActive ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'var(--border)'};
+      `;
+      btn.onclick = () => {
+        currentFilter = key;
+        Object.values(filterBtns).forEach(b => {
+          const active = b.dataset.filterKey === key;
+          b.style.background = active ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
+          b.style.color      = active ? 'var(--text-primary)' : 'var(--text-secondary)';
+          b.style.borderColor = active ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'var(--border)';
+        });
+        rebuildGrid();
+      };
+      filterBtns[key] = btn;
+      filterGroup.appendChild(btn);
     });
-    toggleBtn.onclick = async () => {
-      const ok = await window.showConfirm?.('Reabrir upload permite enviar mais fotos. Tem certeza?', { confirmText: 'Reabrir', cancelText: 'Cancelar' });
-      if (!ok) return;
-      await apiPut(`/api/sessions/${session._id}/complete-uploads`, { completed: false });
-      window.showToast?.('Upload reaberto', 'info');
-      await refresh();
-    };
-  } else {
-    const disabled = photosCount === 0 || !minimumMet;
-    const concluirTitle = photosCount === 0
-      ? 'Suba pelo menos uma foto antes de concluir'
-      : (!minimumMet ? `Suba pelo menos ${packageLimit} fotos (faltam ${missingPhotos}) para concluir.` : 'Concluí upload');
-    toggleBtn = makeExpandBtn('concluirUpload', 'Concluí upload', {
-      bg: disabled ? 'var(--bg-hover)' : 'var(--green)',
-      color: disabled ? 'var(--text-muted)' : 'white',
-      disabled,
-      title: concluirTitle,
-    });
-    toggleBtn.onclick = async () => {
-      const ok = await window.showConfirm?.(
-        `Confirmar que terminou o upload de ${photosCount} foto${photosCount === 1 ? '' : 's'}? Você poderá reabrir depois se precisar.`,
-        { confirmText: 'Concluir', cancelText: 'Cancelar' }
-      );
-      if (!ok) return;
-      try {
-        await apiPut(`/api/sessions/${session._id}/complete-uploads`, { completed: true });
-        window.showToast?.('Upload concluído. Próximo passo desbloqueado.', 'success');
-        await refresh();
-        if (switchStep) switchStep(2);
-      } catch (err) {
-        window.showToast?.(err.message || 'Erro ao concluir upload', 'error');
-      }
-    };
+    toolbar.appendChild(filterGroup);
+
+    toolbar.appendChild(mkDivider());
+
+    // Checkbox selecionar tudo + botões de ação em massa
+    selectAllCheck = document.createElement('input');
+    selectAllCheck.type = 'checkbox';
+    selectAllCheck.title = 'Selecionar todas';
+    selectAllCheck.style.cssText = 'width:0.875rem; height:0.875rem; cursor:pointer; accent-color:var(--accent); flex-shrink:0;';
+
+    hideSelectedBtn = makeBulkBtn('Ocultar');
+    showSelectedBtn = makeBulkBtn('Mostrar');
+    deleteBtn       = makeBulkBtn('Deletar', true);
+
+    hideSelectedBtn.style.display = 'none';
+    showSelectedBtn.style.display = 'none';
+    deleteBtn.style.display       = 'none';
+
+    toolbar.appendChild(selectAllCheck);
+    toolbar.appendChild(hideSelectedBtn);
+    toolbar.appendChild(showSelectedBtn);
+    toolbar.appendChild(deleteBtn);
   }
-  buttonsRow.appendChild(toggleBtn);
-  statusBar.appendChild(buttonsRow);
-  wrap.appendChild(statusBar);
+
+  wrap.appendChild(toolbar);
 
   // ===== EMPTY STATE =====
   if (photosCount === 0) {
@@ -162,83 +194,6 @@ export function renderStepUpload({ session, refresh, switchStep }) {
     wrap.appendChild(empty);
     return wrap;
   }
-
-  // ===== ESTADO LOCAL =====
-  let currentFilter = 'all'; // 'all' | 'visible' | 'hidden'
-  const selectedIds = new Set();
-
-  const visibleCount = allPhotos.filter(p => !p.hidden).length;
-  const hiddenCount  = allPhotos.filter(p =>  p.hidden).length;
-
-  // ===== FILTROS =====
-  const filterRow = document.createElement('div');
-  filterRow.style.cssText = 'display:flex; gap:0.375rem; align-items:center; justify-content:center; flex-wrap:wrap; margin:0 auto;';
-
-  const filterDefs = [
-    { key: 'all',     label: `Todas (${photosCount})` },
-    { key: 'visible', label: `Visíveis (${visibleCount})` },
-    { key: 'hidden',  label: `Ocultas (${hiddenCount})` },
-  ];
-
-  const filterBtns = {};
-  filterDefs.forEach(({ key, label }) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = label;
-    btn.dataset.filterKey = key;
-    const isActive = key === 'all';
-    btn.style.cssText = `
-      padding: 0.3rem 0.75rem; border-radius: 9999px;
-      font-size: 0.75rem; font-weight: 500; cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      background: transparent;
-      color: ${isActive ? 'white' : 'var(--text-secondary)'};
-      border: 1px solid ${isActive ? 'white' : 'var(--border)'};
-    `;
-    btn.onclick = () => {
-      currentFilter = key;
-      Object.values(filterBtns).forEach(b => {
-        const active = b.dataset.filterKey === key;
-        b.style.background = 'transparent';
-        b.style.color      = active ? 'white' : 'var(--text-secondary)';
-        b.style.borderColor = active ? 'white' : 'var(--border)';
-      });
-      rebuildGrid();
-    };
-    filterBtns[key] = btn;
-    filterRow.appendChild(btn);
-  });
-  wrap.appendChild(filterRow);
-
-  // ===== BARRA DE AÇÕES EM MASSA =====
-  const bulkBar = document.createElement('div');
-  bulkBar.style.cssText = `
-    display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;
-    background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius:var(--r-card); padding: 0.625rem 1rem;
-  `;
-
-  const selectAllCheck = document.createElement('input');
-  selectAllCheck.type = 'checkbox';
-  selectAllCheck.style.cssText = 'width:1rem; height:1rem; cursor:pointer; accent-color:var(--accent);';
-
-  const countLabel = document.createElement('span');
-  countLabel.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary);';
-
-  const hideSelectedBtn = makeBulkBtn('Ocultar selecionadas');
-  const showSelectedBtn = makeBulkBtn('Mostrar selecionadas');
-  const deleteBtn       = makeBulkBtn('Deletar selecionadas', true);
-
-  hideSelectedBtn.style.display = 'none';
-  showSelectedBtn.style.display = 'none';
-  deleteBtn.style.display = 'none';
-
-  bulkBar.appendChild(selectAllCheck);
-  bulkBar.appendChild(countLabel);
-  bulkBar.appendChild(hideSelectedBtn);
-  bulkBar.appendChild(showSelectedBtn);
-  bulkBar.appendChild(deleteBtn);
-  wrap.appendChild(bulkBar);
 
   // ===== GRID SLOT =====
   const gridSlot = document.createElement('div');
@@ -323,7 +278,6 @@ export function renderStepUpload({ session, refresh, switchStep }) {
       window.showToast?.(`${n} foto${n !== 1 ? 's' : ''} deletada${n !== 1 ? 's' : ''}!`, 'success');
       selectedIds.clear();
       await refresh();
-      window.loadSidebarStorage?.();
     } catch (err) {
       window.showToast?.(err.message || 'Erro ao deletar fotos', 'error');
       deleteBtn.disabled = false;
@@ -332,18 +286,6 @@ export function renderStepUpload({ session, refresh, switchStep }) {
   }
 
   async function handleToggleHidden(photo) {
-    const isVisible = !photo.hidden;
-    if (isVisible && session.mode === 'selection') {
-      const totalVisible = allPhotos.filter(p => !p.hidden).length;
-      const pacote = session.packageLimit || 30;
-      if (totalVisible <= pacote) {
-        window.showToast?.(
-          `Não é possível ocultar: ${totalVisible} foto(s) visíveis e o pacote exige ${pacote}.`,
-          'warning', 6000
-        );
-        return;
-      }
-    }
     try {
       await apiPut(`/api/sessions/${session._id}/photos/${photo.id}/toggle-hidden`);
       await refresh();
@@ -416,17 +358,14 @@ export function renderStepUpload({ session, refresh, switchStep }) {
       const cell = document.createElement('div');
       cell.style.cssText = `
         position: relative;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
+        width: 200px;
+        height: 150px;
+        border-radius: var(--r-card);
         background: var(--bg-surface);
         overflow: hidden;
         border: 2px solid ${isSelected ? 'white' : isCover ? 'var(--yellow)' : 'var(--border)'};
         ${isHidden ? 'opacity: 0.45;' : ''}
-        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    border-color 0.15s;
+        transition: border-color 0.15s;
       `;
 
       const img = document.createElement('img');
@@ -577,9 +516,6 @@ export function renderStepUpload({ session, refresh, switchStep }) {
       cell.appendChild(overlay);
 
       cell.addEventListener('mouseenter', () => {
-        cell.style.width = `${hoverWidth}px`;
-        cell.style.height = `${hoverHeight}px`;
-        cell.style.borderRadius = 'var(--r-field)';
         overlay.style.opacity = '1';
 
         cb.style.top = '6px';
@@ -600,9 +536,6 @@ export function renderStepUpload({ session, refresh, switchStep }) {
       });
 
       cell.addEventListener('mouseleave', () => {
-        cell.style.width = '120px';
-        cell.style.height = '120px';
-        cell.style.borderRadius = '50%';
         overlay.style.opacity = '0';
 
         cb.style.top = '16px';
@@ -832,57 +765,52 @@ function openLightbox(photos, startIndex) {
   closeBtn.focus();
 }
 
-// Botão circular "só ícone" que expande para revelar o texto no hover/foco.
-// O círculo (40px) é a área do ícone; o rótulo cresce com transição de max-width.
-// O fundo/cor vêm inline (variam por ação); a forma e a animação vêm da classe .cz-xbtn.
+// Botão morph: expandido por padrão com label sempre visível.
+// Ícone + label inline, com efeitos hover (glow, transform).
 function makeExpandBtn(iconName, label, { bg, color, disabled = false, title } = {}) {
+  // Injetar CSS para pílulas de upload (uma vez)
+  if (!document.getElementById('cz-upload-pill-styles')) {
+    const s = document.createElement('style');
+    s.id = 'cz-upload-pill-styles';
+    s.textContent = `
+      .cz-upload-pill {
+        box-sizing: border-box;
+        display: inline-flex; align-items: center; gap: 0.75rem;
+        height: 44px; padding: 0 1.25rem;
+        border: 1px solid var(--border); border-radius: 9999px;
+        cursor: pointer; font-weight: 500; font-size: 0.9375rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+      .cz-upload-pill:not([disabled]):hover {
+        background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
+      }
+      .cz-upload-pill:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .cz-upload-pill[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'cz-xbtn';
+  btn.className = 'cz-upload-pill';
   btn.disabled = !!disabled;
   btn.title = title || label;
   btn.setAttribute('aria-label', label);
   btn.style.background = bg;
   btn.style.color = color;
-  if (disabled) btn.style.cursor = 'not-allowed';
-  btn.innerHTML = `<span class="cz-xic">${icon(iconName, 18)}</span><span class="cz-xlabel">${label}</span>`;
+  btn.innerHTML = `<span style="display:flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;">${icon(iconName, 18)}</span><span>${label}</span>`;
   return btn;
-}
-
-// Injeta uma única vez o CSS dos botões expansíveis (hover/foco revela o rótulo).
-function ensureExpandBtnStyles() {
-  if (document.getElementById('cz-xbtn-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'cz-xbtn-styles';
-  style.textContent = `
-    .cz-xbtn {
-      box-sizing: border-box;
-      display: inline-flex; align-items: center;
-      height: 40px; min-width: 40px; padding: 0;
-      border: none; border-radius: 9999px;
-      cursor: pointer; overflow: hidden; white-space: nowrap;
-      font-family: inherit; font-weight: 500; font-size: 0.875rem;
-      transition: filter 0.15s, box-shadow 0.15s;
-    }
-    .cz-xbtn .cz-xic {
-      width: 40px; height: 40px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .cz-xbtn .cz-xlabel {
-      max-width: 0; opacity: 0; overflow: hidden;
-      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .cz-xbtn:hover .cz-xlabel,
-    .cz-xbtn:focus-visible .cz-xlabel {
-      max-width: 14rem; opacity: 1; padding-right: 1.1rem;
-    }
-    .cz-xbtn:hover:not([disabled]) { filter: brightness(0.96); }
-    .cz-xbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    @media (prefers-reduced-motion: reduce) {
-      .cz-xbtn .cz-xlabel { transition: opacity 0.2s ease; }
-    }
-  `;
-  document.head.appendChild(style);
 }
 
 function makeBulkBtn(text, isDanger = false) {

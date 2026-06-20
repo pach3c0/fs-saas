@@ -36,9 +36,9 @@ export function mountWizardBell(rootEl, currentSessionId) {
   bell.id = 'wizardNotifBell';
   bell.className = 'header-expand-btn';
   bell.title = 'Notificações';
-  bell.style.cssText = 'cursor: pointer; overflow: visible !important;';
+  bell.style.cssText = 'cursor: pointer; overflow: visible !important; border: 1px solid var(--border);';
   bell.innerHTML = `
-    <span class="header-expand-icon" style="position:relative; display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
+    <span class="header-expand-icon" style="position:relative; display:flex; align-items:center; justify-content:center;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>

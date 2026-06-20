@@ -98,6 +98,8 @@ function getSessionProgress(session) {
   // Galeria com "Entregar direto": pula o passo Compartilhar — o "Link" não se aplica.
   const isGalleryDirect = isGallery && session.galleryDeliveryMode === 'direct';
   const hasPhotos = (session.photos?.length || 0) > 0;
+  const isGroupGallery = session.mode === 'multi_gallery';
+  const hasGuests = (session.participants?.length || 0) > 0;
   const linkSent = !!session.codeSentAt;
   const clientAccessed = !!session.firstAccessAt;
   const selectionDone = ['submitted', 'delivered'].includes(session.selectionStatus);
@@ -107,9 +109,19 @@ function getSessionProgress(session) {
     return dl && new Date() > dl && !selectionDone;
   })();
 
-  const reopenPending = !isGallery && !!session.reopenRequested;
+  // Pedido de reabertura pendente: na seleção individual é flag da sessão; em Seleção em
+  // Grupo é por participante (qualquer um que tenha pedido conta para o aviso no card).
+  const anyParticipantReopen = (session.participants || []).some(p => p.reopenRequested);
+  const reopenPending = !isGallery && (!!session.reopenRequested || anyParticipantReopen);
 
-  const steps = isGalleryDirect
+  const steps = isGroupGallery
+    ? [
+        { label: 'Criada',     done: true },
+        { label: 'Fotos',      done: hasPhotos },
+        { label: 'Convidados', done: hasGuests },
+        { label: 'Pronto',     done: hasPhotos && hasGuests },
+      ]
+    : isGalleryDirect
     ? [
         { label: 'Criada',   done: true },
         { label: 'Fotos',    done: hasPhotos },
@@ -145,7 +157,12 @@ function getSessionProgress(session) {
   }
 
   let nextAction, nextType;
-  if (reopenPending) {
+  if (isGroupGallery) {
+    if (!hasPhotos) { nextAction = 'Faça upload das fotos'; nextType = 'action'; }
+    else if (!hasGuests) { nextAction = 'Adicione os convidados e compartilhe os links'; nextType = 'action'; }
+    else if (isExpired) { nextAction = 'Prazo de acesso vencido'; nextType = 'warn'; }
+    else { nextAction = 'Convidados podem ver e baixar — pronto'; nextType = 'done'; }
+  } else if (reopenPending) {
     nextAction = 'Cliente pediu reabertura — reabrir ou recusar?'; nextType = 'warn';
   } else if (delivered) {
     nextAction = 'Sessão concluída'; nextType = 'done';
@@ -205,10 +222,19 @@ function renderList(container, items) {
     const mode = session.mode || 'gallery';
     const isExpired = deadline && now > deadline && session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered';
     const isRedelivering = session.selectionStatus === 'delivered' && session.redeliveryMode === true;
-    const statusKey = isExpired ? 'expired' : (isRedelivering ? 'redelivering' : session.selectionStatus);
-    const statusMap = mode === 'gallery' ? GALLERY_STATUS_LABELS : STATUS_LABELS;
+    // Galeria em Grupo não tem etapa de seleção/entrega: deriva o status do progresso real
+    // (sem fotos → aguardando upload; com fotos sem convidados → em visualização; com ambos → entregue).
+    let statusKey;
+    if (mode === 'multi_gallery') {
+      const _hasPhotos = (session.photos?.length || 0) > 0;
+      const _hasGuests = (session.participants?.length || 0) > 0;
+      statusKey = isExpired ? 'expired' : (!_hasPhotos ? 'pending' : (!_hasGuests ? 'in_progress' : 'delivered'));
+    } else {
+      statusKey = isExpired ? 'expired' : (isRedelivering ? 'redelivering' : session.selectionStatus);
+    }
+    const statusMap = (mode === 'gallery' || mode === 'multi_gallery') ? GALLERY_STATUS_LABELS : STATUS_LABELS;
     const status = statusMap[statusKey] || statusMap.pending;
-    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
+    const isMulti = mode === 'multi_selection' || mode === 'multi_instant' || mode === 'multi_gallery';
     const selectedCount = (session.selectedPhotos || []).length;
     const limit = session.packageLimit || 30;
     const extras = Math.max(0, selectedCount - limit);
@@ -225,7 +251,7 @@ function renderList(container, items) {
     } else if (mode === 'multi_selection') {
       cardBg = 'color-mix(in srgb, var(--orange) 4%, transparent)';
       cardBorder = 'color-mix(in srgb, var(--orange) 15%, transparent)';
-    } else if (mode === 'gallery') {
+    } else if (mode === 'gallery' || mode === 'multi_gallery') {
       cardBg = 'color-mix(in srgb, var(--purple) 4%, transparent)';
       cardBorder = 'color-mix(in srgb, var(--purple) 15%, transparent)';
     }
@@ -233,6 +259,12 @@ function renderList(container, items) {
       cardBg = 'color-mix(in srgb, var(--red) 5%, transparent)';
       cardBorder = 'color-mix(in srgb, var(--red) 35%, transparent)';
     }
+
+    // Rascunho: sessão recém-criada (via card de tipo) ainda sem nada preenchido.
+    // Some sozinho assim que o fotógrafo vincula cliente, sobe foto ou renomeia.
+    const isDraft = !(session.photos?.length) && !((session.participants || []).length)
+      && !session.clientId && !session.clientName && !session.clientEmail
+      && !session.codeSentAt && (!session.name || session.name.trim() === 'Nova sessão');
 
     // Fundo configurado pelo Superadmin para este modo (imagem atrás do conteúdo).
     // Sem imagem => bgLayer vazio, o card mantém só o tint sólido.
@@ -249,29 +281,37 @@ function renderList(container, items) {
            onmouseleave="this.style.boxShadow='none'; this.style.transform='none';">
         ${bgLayer}
         <div style="position:relative; z-index:1;">
-        <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.75rem;">
+        <div style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; gap:0.75rem;">
           <div style="width:80px; height:80px; flex-shrink:0; border-radius:50%; overflow:hidden; background:var(--bg-base); display:flex; align-items:center; justify-content:center; border:1px solid var(--border);">
             ${session.coverPhoto
         ? `<img src="${resolveImagePath(session.coverPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Capa">`
         : `<span style="color:var(--text-muted); font-size:0.625rem; text-align:center;">Sem capa</span>`}
           </div>
-          <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; flex-wrap:wrap; width:100%;">
+          <div style="display:flex; flex-direction:column; align-items:flex-start; width:100%;">
+            <div style="display:flex; align-items:center; justify-content:flex-start; gap:0.5rem; flex-wrap:wrap; width:100%;">
               <span style="color:var(--text-primary); font-size:1.125rem; font-weight:700; text-decoration: underline; text-decoration-style: dotted; text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent); text-underline-offset: 4px;">${session.name}</span>
               ${session.clientId
                 ? `<button onclick="event.stopPropagation(); window._pendingOpenClientId='${session.clientId._id}'; window.switchTab?.('clientes');" style="background:none; border:none; cursor:pointer; color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem; padding:0; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px;" title="Ir para o cadastro do cliente"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientId.name}</button>`
                 : (session.clientName ? `<span style="color:var(--green); font-size:0.875rem; display:flex; align-items:center; gap:0.25rem;" title="Cliente do Rhyno"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>${session.clientName}</span>` : '')}
               <span class="badge ${status.class}">${status.text}</span>
+              ${isDraft ? `<span style="background:color-mix(in srgb, var(--text-muted) 15%, transparent);border:1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);color:var(--text-muted);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">Rascunho</span>` : ''}
               ${session.eventType && session.eventType !== 'outro' ? `<span style="background:color-mix(in srgb, var(--purple) 15%, transparent); border:1px solid color-mix(in srgb, var(--purple) 30%, transparent); color:var(--purple); font-size:0.6875rem; padding:0.15rem 0.5rem; border-radius:var(--r-chip); font-weight:500;">${EVENT_LABELS[session.eventType] || session.eventType}</span>` : ''}
-              ${session.extraRequest?.status === 'pending' ? `<span class="badge badge-warning">📸 ${session.extraRequest.photos?.length || 0} extra(s)</span>` : ''}
-              ${session.reopenRequested ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
+              ${(() => {
+                const sessPending = session.extraRequest?.status === 'pending';
+                const partExtras = (session.participants || []).filter(p => p.extraRequest?.status === 'pending');
+                if (!sessPending && partExtras.length === 0) return '';
+                const total = (sessPending ? (session.extraRequest.photos?.length || 0) : 0)
+                  + partExtras.reduce((a, p) => a + (p.extraRequest.photos?.length || 0), 0);
+                return `<span class="badge badge-warning">📸 ${total} extra(s)</span>`;
+              })()}
+              ${(session.mode !== 'gallery' && (session.reopenRequested || (session.participants || []).some(p => p.reopenRequested))) ? `<span style="background:color-mix(in srgb, var(--orange) 15%, transparent);border:1px solid color-mix(in srgb, var(--orange) 35%, transparent);color:var(--orange);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">⚠ Reabertura solicitada</span>` : ''}
               ${session.clientAccessBlocked ? `<span style="background:color-mix(in srgb, var(--red) 15%, transparent);border:1px solid color-mix(in srgb, var(--red) 35%, transparent);color:var(--red);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:600;">🔒 Acesso bloqueado</span>` : ''}
               ${session.archivedAt ? `<span style="background:color-mix(in srgb, var(--text-muted) 15%, transparent);border:1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);color:var(--text-muted);font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:500;">📦 Arquivada</span>` : (() => { const ret = session.storageRetentionUntil ? new Date(session.storageRetentionUntil) : null; if (!ret) return ''; const daysLeft = Math.ceil((ret - now) / 86400000); if (daysLeft > 30) return ''; const label = daysLeft <= 0 ? '⏳ Storage vencido' : `⏳ Storage expira ${ret.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`; const color = daysLeft <= 7 ? 'var(--red)' : 'var(--orange)'; return `<span style="background:color-mix(in srgb, ${color} 15%, transparent);border:1px solid color-mix(in srgb, ${color} 35%, transparent);color:${color};font-size:0.6875rem;padding:0.15rem 0.45rem;border-radius:var(--r-chip);font-weight:500;">${label}</span>`; })()}
             </div>
-            <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem; text-align:center;">
+            <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:0.25rem; text-align:left;">
               ${formatDate(session.date)} • ${session.photos?.length || 0} fotos
               ${mode === 'selection' ? ` • ${selectedCount}/${limit} selecionadas` : (isMulti ? ` • ${(session.participants || []).length} participantes` : '')}
-              ${deadline ? ` • ${mode === 'gallery' ? 'Acesso até' : 'Prazo'}: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
+              ${deadline ? ` • ${(mode === 'gallery' || mode === 'multi_gallery') ? 'Acesso até' : 'Prazo'}: ${new Date(deadline).toLocaleDateString('pt-BR')}` : ''}
               ${!isMulti && extras > 0 ? ` • <span style="color:var(--yellow);">${extras} extras (R$ ${(extras * extraPrice).toFixed(2)})</span>` : ''}
             </div>
           </div>

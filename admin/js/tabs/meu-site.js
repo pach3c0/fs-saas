@@ -95,8 +95,8 @@ async function renderSiteContent(container, builderTabsEl) {
         <div id="config-geral" class="sub-tab-content">
             <div style="display:flex; flex-direction:column; gap:2rem; text-align:center; align-items:center;">
                 <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
-                    <h3 style="color:#f3f4f6; font-weight:600; font-size:1.125rem; margin-bottom:0.5rem; text-align:center;">Escolha o Tema do Seu Site</h3>
-                    <p style="color:#9ca3af; font-size:0.875rem; margin-bottom:1.5rem; text-align:center; max-width:320px;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
+                    <h3 style="color:var(--text-primary); font-weight:600; font-size:1.125rem; margin-bottom:0.5rem; text-align:center;">Escolha o Tema do Seu Site</h3>
+                    <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.5rem; text-align:center; max-width:320px;">Use o "Visualizar" para testar. Para definir, clique no card e salve.</p>
                     <div id="templateGallery" style="display:flex; flex-direction:column; gap:0.625rem; margin-bottom:1.5rem; width:100%; text-align:center; align-items:center;">
                         <!-- Templates inseridos via JS -->
                     </div>
@@ -116,8 +116,8 @@ async function renderSiteContent(container, builderTabsEl) {
                 </div>
                 <!-- Restaurar conteúdo de exemplo -->
                 <div style="padding:1.25rem 1rem; background:rgba(255,255,255,0.03); border:1px solid var(--border,#30363d); border-radius:var(--radius-lg, 0.5rem); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5rem; width:100%; box-sizing:border-box;">
-                    <p style="font-weight:600; color:#f3f4f6; margin:0; font-size:0.9rem; text-align:center;">Restaurar conteúdo de exemplo</p>
-                    <p style="font-size:0.78rem; color:#9ca3af; margin:0 0 0.25rem; text-align:center; line-height:1.4;">Preenche seu site com textos, serviços e FAQ de exemplo para você visualizar como ficará. O conteúdo atual será substituído.</p>
+                    <p style="font-weight:600; color:var(--text-primary); margin:0; font-size:0.9rem; text-align:center;">Restaurar conteúdo de exemplo</p>
+                    <p style="font-size:0.78rem; color:var(--text-muted); margin:0 0 0.25rem; text-align:center; line-height:1.4;">Preenche seu site com textos, serviços e FAQ de exemplo para você visualizar como ficará. O conteúdo atual será substituído.</p>
                     <button id="applyDefaultTemplateBtn" class="header-expand-btn" title="Aplicar Exemplo" style="border-radius: 9999px !important; box-sizing: border-box; display: inline-flex !important;">
                       <span class="header-expand-icon">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles">
@@ -820,14 +820,14 @@ async function renderSiteContent(container, builderTabsEl) {
         .hc-sidebar::-webkit-scrollbar { width:4px; }
         .hc-sidebar::-webkit-scrollbar-thumb { background:#374151; border-radius:2px; }
         .hc-section { border-bottom:1px solid #1f2937; }
-        .hc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:center; text-align:center; }
+        .hc-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:center; text-align:center; }
         .hc-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
-        .hc-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; display:block; width:100%; }
+        .hc-label { font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; text-align:center; display:block; width:100%; }
         .hc-input { width:100%; padding:0.35rem 0.5rem; background:#1f2937; border:1px solid #374151; border-radius:0.375rem; color:#f3f4f6; font-size:0.78rem; outline:none; box-sizing:border-box; }
         .hc-input:focus { border-color:#3b82f6; }
         .hc-range { width:100%; accent-color:#3b82f6; }
         .hc-range-row { display:flex; align-items:center; justify-content:center; gap:0.4rem; width:100%; }
-        .hc-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.2rem; text-align:right; }
+        .hc-range-val { font-size:0.65rem; font-family:monospace; color:var(--text-muted); min-width:2.2rem; text-align:right; }
         .hc-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid #374151; background:#1f2937; color:#d1d5db; font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
         .hc-btn:hover { background:#374151; color:#fff; }
         .hc-btn.primary { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
@@ -877,7 +877,7 @@ async function renderSiteContent(container, builderTabsEl) {
           </div>
           <div id="hcBgProgress"></div>
           <details style="margin:0;" open>
-            <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
+            <summary style="padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:center; gap:0.4rem;">
               Ajustes da Imagem <span style="font-size:0.6rem; opacity:0.6;">▼</span>
             </summary>
             <div class="hc-row">
@@ -1002,13 +1002,13 @@ async function renderSiteContent(container, builderTabsEl) {
       const list = heroContainer.querySelector('#hcLayerList');
       const layers = [...cfg.heroLayers].reverse();
       if (!layers.length) {
-        list.innerHTML = '<div style="padding:0.75rem; color:#4b5563; font-size:0.7rem; text-align:center;">Nenhum texto adicionado</div>';
+        list.innerHTML = '<div style="padding:0.75rem; color:var(--text-secondary); font-size:0.7rem; text-align:center;">Nenhum texto adicionado</div>';
         return;
       }
 
       list.innerHTML = layers.map((l, idx) => `
         <div class="hc-layer-item ${l.id === _heroSelectedLayerId ? 'active' : ''}" data-id="${l.id}" data-idx="${idx}" draggable="true">
-          <span class="layer-drag" style="cursor:grab; color:#4b5563; font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
+          <span class="layer-drag" style="cursor:grab; color:var(--text-secondary); font-size:0.75rem; flex-shrink:0; padding-right:0.2rem;">⠿</span>
           <span class="layer-icon">T</span>
           <span class="layer-name">${l.name || 'Texto'}</span>
           <span class="layer-del" data-del="${l.id}">✕</span>
@@ -1024,7 +1024,7 @@ async function renderSiteContent(container, builderTabsEl) {
           e.dataTransfer.effectAllowed = 'move';
         });
         el.addEventListener('dragend', () => { el.style.opacity = '1'; list.querySelectorAll('.hc-layer-item').forEach(i => i.style.borderTop = ''); });
-        el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.borderTop = '2px solid #3b82f6'; });
+        el.addEventListener('dragover', (e) => { e.preventDefault(); el.style.borderTop = '2px solid var(--accent)'; });
         el.addEventListener('dragleave', () => { el.style.borderTop = ''; });
         el.addEventListener('drop', async (e) => {
           e.preventDefault();
@@ -1197,8 +1197,8 @@ async function renderSiteContent(container, builderTabsEl) {
       secoesContainer.innerHTML = `
         <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center;">
           <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center;">
-            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Seções do Site</h3>
-            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Ative/desative e arraste para reordenar as seções.</p>
+            <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Seções do Site</h3>
+            <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Ative/desative e arraste para reordenar as seções.</p>
           </div>
 
           <div id="sectionsList" style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
@@ -1207,9 +1207,9 @@ async function renderSiteContent(container, builderTabsEl) {
         return `
                 <div class="sec-drag-item" draggable="true" data-sec-id="${sec.id}" data-sec-idx="${idx}"
                   style="display:flex; align-items:center; gap:0.625rem; background:${active ? 'var(--bg-elevated)' : 'transparent'}; padding:0.625rem 0.875rem; border-radius:0.5rem; border:1px solid ${active ? 'var(--accent)' : 'var(--border)'}; opacity:${active ? '1' : '0.55'}; transition:all 0.15s; user-select:none; min-width:0; overflow:hidden;">
-                  <span style="cursor:grab; color:#4b5563; font-size:1rem; flex-shrink:0;">⠿</span>
+                  <span style="cursor:grab; color:var(--text-secondary); font-size:1rem; flex-shrink:0;">⠿</span>
                   <input type="checkbox" data-sec-check="${sec.id}" ${active ? 'checked' : ''} style="width:14px; height:14px; cursor:pointer; flex-shrink:0;" onchange="toggleSection('${sec.id}')">
-                  <span style="flex:1; min-width:0; color:${active ? '#f3f4f6' : '#6b7280'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
+                  <span style="flex:1; min-width:0; color:${active ? 'var(--text-primary)' : 'var(--text-muted)'}; font-weight:500; font-size:0.8125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sec.label}</span>
                   <div style="display:flex; gap:0.25rem; flex-shrink:0;">
                     <button onclick="moveSection(${idx}, -1)" class="header-expand-btn" style="width:28px !important; min-width:28px !important; height:28px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:var(--bg-elevated); border:1px solid var(--border);" ${idx === 0 ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
@@ -1316,15 +1316,15 @@ async function renderSiteContent(container, builderTabsEl) {
         <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
           <div style="display:flex; flex-direction:column; gap:0.75rem;">
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
               <input type="text" id="srv-title-${idx}" class="input" value="${(srv.title || '').replace(/"/g, '&quot;')}" data-srv-title="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
               <textarea rows="2" id="srv-desc-${idx}" class="input" data-srv-desc="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${srv.description || ''}</textarea>
             </div>
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Preço (opcional)</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Preço (opcional)</label>
               <input type="text" id="srv-price-${idx}" class="input" value="${(srv.price || '').replace(/"/g, '&quot;')}" data-srv-price="${idx}" placeholder="Ex: Consulte ou R$ 500" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
             
@@ -1340,8 +1340,8 @@ async function renderSiteContent(container, builderTabsEl) {
       servicosContainer.innerHTML = `
         <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
           <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
-            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Serviços</h3>
-            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Adicione os serviços que você oferece no site.</p>
+            <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Serviços</h3>
+            <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Adicione os serviços que você oferece no site.</p>
           </div>
 
           <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
@@ -1523,18 +1523,18 @@ async function renderSiteContent(container, builderTabsEl) {
           <div style="display:flex; flex-direction:column; gap:0.75rem;">
 
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nome do Cliente</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nome do Cliente</label>
               <input type="text" class="input" value="${(dep.name || '').replace(/"/g, '&quot;')}" data-dep-name="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
 
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Depoimento</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Depoimento</label>
               <textarea rows="3" class="input" data-dep-text="${idx}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${dep.text || ''}</textarea>
             </div>
 
             <div style="display:flex; gap:0.75rem; justify-content:center; align-items:flex-end;">
               <div style="display:flex; flex-direction:column; align-items:center;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Foto</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Foto</label>
                 <div style="width:48px; height:48px; border-radius:50%; background:var(--bg-base); border:1px dashed var(--border); overflow:hidden; flex-shrink:0; margin-bottom:0.25rem;">
                   ${dep.photo ? `<img src="${resolveImagePath(dep.photo)}" style="width:100%; height:100%; object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.2rem;">👤</div>'}
                 </div>
@@ -1545,13 +1545,13 @@ async function renderSiteContent(container, builderTabsEl) {
                 <input type="hidden" data-dep-photo="${idx}" value="${dep.photo || ''}">
               </div>
               <div class="input-group" style="margin-bottom:0;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nota</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Nota</label>
                 <input type="number" class="input" min="1" max="5" value="${dep.rating || 5}" data-dep-rating="${idx}" style="text-align:center; width:60px; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
             </div>
 
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Link Social (opcional)</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Link Social (opcional)</label>
               <input type="text" class="input" value="${(dep.socialLink || '').replace(/"/g, '&quot;')}" data-dep-social="${idx}" placeholder="https://instagram.com/cliente" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
 
@@ -1569,8 +1569,8 @@ async function renderSiteContent(container, builderTabsEl) {
           ${renderPendentes()}
 
           <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
-            <h3 style="font-size:1.125rem; font-weight:600; color:#f3f4f6; margin-bottom:0.25rem; text-align:center;">Depoimentos Publicados</h3>
-            <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Adicione ou gerencie depoimentos visíveis no site.</p>
+            <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Depoimentos Publicados</h3>
+            <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Adicione ou gerencie depoimentos visíveis no site.</p>
           </div>
 
           <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
@@ -1682,7 +1682,7 @@ async function renderSiteContent(container, builderTabsEl) {
 
         <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
           <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Estilo Visual do Site</h3>
-          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite cores e fontes. As alterações são salvas automaticamente.</p>
+          <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Edite cores e fontes. As alterações são salvas automaticamente.</p>
         </div>
 
         <!-- Estilo Global -->
@@ -1815,22 +1815,22 @@ async function renderSiteContent(container, builderTabsEl) {
       <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
         <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
           <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Seção de Contato</h3>
-          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações de contato visíveis no site.</p>
+          <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações de contato visíveis no site.</p>
         </div>
 
         <div style="background:var(--bg-elevated); padding:1.25rem; border-radius:0.5rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:0.75rem; width:100%; box-sizing:border-box;">
           <div class="input-group" style="margin-bottom:0; width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
             <input type="text" id="contatoTitle" class="input" value="${(contato.title || 'Entre em Contato').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
 
           <div class="input-group" style="margin-bottom:0; width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Texto</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Texto</label>
             <textarea id="contatoText" class="input" rows="3" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none; resize:vertical;">${contato.text || 'Gostou do meu trabalho? Entre em contato para agendar sua sessão!'}</textarea>
           </div>
 
           <div class="input-group" style="margin-bottom:0; width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço (opcional)</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço (opcional)</label>
             <input type="text" id="contatoAddress" class="input" value="${(contato.address || '').replace(/"/g, '&quot;')}" placeholder="Rua Exemplo, 123 - São Paulo/SP" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
           </div>
         </div>
@@ -1901,7 +1901,7 @@ async function renderSiteContent(container, builderTabsEl) {
         
         <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
           <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Seção de Rodapé</h3>
-          <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite o copyright, redes sociais e links do rodapé.</p>
+          <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Edite o copyright, redes sociais e links do rodapé.</p>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:1.5rem; width:100%;">
@@ -1916,27 +1916,27 @@ async function renderSiteContent(container, builderTabsEl) {
             <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-align:center; margin-bottom:0.25rem;">Redes Sociais</h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Instagram</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Instagram</label>
                 <input type="text" id="socialInstagram" class="input" value="${(_rodape.socialMedia.instagram || '').replace(/"/g, '&quot;')}" placeholder="https://instagram.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Facebook</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Facebook</label>
                 <input type="text" id="socialFacebook" class="input" value="${(_rodape.socialMedia.facebook || '').replace(/"/g, '&quot;')}" placeholder="https://facebook.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">LinkedIn</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">LinkedIn</label>
                 <input type="text" id="socialLinkedin" class="input" value="${(_rodape.socialMedia.linkedin || '').replace(/"/g, '&quot;')}" placeholder="https://linkedin.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">TikTok</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">TikTok</label>
                 <input type="text" id="socialTiktok" class="input" value="${(_rodape.socialMedia.tiktok || '').replace(/"/g, '&quot;')}" placeholder="https://tiktok.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">YouTube</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">YouTube</label>
                 <input type="text" id="socialYoutube" class="input" value="${(_rodape.socialMedia.youtube || '').replace(/"/g, '&quot;')}" placeholder="https://youtube.com/..." style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
               <div class="input-group" style="margin-bottom:0; width:100%;">
-                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Email</label>
+                <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Email</label>
                 <input type="email" id="socialEmail" class="input" value="${(_rodape.socialMedia.email || '').replace(/"/g, '&quot;')}" placeholder="contato@exemplo.com" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
               </div>
             </div>

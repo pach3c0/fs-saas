@@ -20,28 +20,28 @@ export function renderCliente(container) {
       
       <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
         <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Área do Cliente</h3>
-        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Configure a seção de acesso do cliente no site.</p>
+        <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Configure a seção de acesso do cliente no site.</p>
       </div>
 
       <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; gap:1.25rem; width:100%; box-sizing:border-box;">
         
         <div class="input-group" style="margin-bottom:0; width:100%;">
-          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
           <input type="text" id="clTitle" class="input" value="${(cData.title || '').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.5rem; font-size:0.875rem; outline:none;">
         </div>
 
         <div class="input-group" style="margin-bottom:0; width:100%;">
-          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Subtítulo</label>
+          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Subtítulo</label>
           <input type="text" id="clSubtitle" class="input" value="${(cData.subtitle || '').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.5rem; font-size:0.875rem; outline:none;">
         </div>
 
         <div class="input-group" style="margin-bottom:0; width:100%;">
-          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
+          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
           <textarea id="clDescription" class="input" rows="3" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.5rem; font-size:0.875rem; outline:none; resize:vertical;">${cData.description || ''}</textarea>
         </div>
 
         <div class="input-group" style="margin-bottom:0; width:100%;">
-          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Texto do Botão</label>
+          <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Texto do Botão</label>
           <input type="text" id="clButtonText" class="input" value="${(cData.buttonText || '').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.5rem; border-radius:0.5rem; font-size:0.875rem; outline:none;">
         </div>
 

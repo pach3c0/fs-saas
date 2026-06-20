@@ -2,15 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const PlatformUpdate = require('../models/PlatformUpdate');
-const path = require('path');
-const fs = require('fs');
 
-// Ler versão atual do package.json
+// Ler versão atual do package.json — require faz cache, evita I/O síncrono repetido
 let platformVersion = '1.0.0';
 try {
-  const pkgPath = path.join(__dirname, '../../package.json');
-  const pkgData = fs.readFileSync(pkgPath, 'utf8');
-  const pkg = JSON.parse(pkgData);
+  const pkg = require('../../package.json');
   platformVersion = pkg.version || '1.0.0';
 } catch (err) {
   // Fallback seguro se falhar ao ler o arquivo

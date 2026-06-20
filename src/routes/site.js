@@ -255,14 +255,15 @@ router.get('/site/admin/storage', authenticateToken, async (req, res) => {
 router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
   try {
     if (!req.organizationId) return res.status(404).json({ error: 'Organização não encontrada' });
-    const { name, text, email, rating } = req.body;
-    if (!name || !text) return res.status(400).json({ error: 'Nome e texto são obrigatórios' });
+    // Aceita PT-BR (nome/texto) — campos EN (name/text) mantidos internamente no banco
+    const { nome, texto, email, rating } = req.body;
+    if (!nome || !texto) return res.status(400).json({ error: 'Nome e texto são obrigatórios' });
 
     const id = crypto.randomBytes(8).toString('hex');
     // Clamp 1–5: rating fora da faixa (ex.: -3) quebrava o render do admin ('⭐'.repeat negativo)
     const notaSegura = Math.min(5, Math.max(1, parseInt(rating) || 5));
     await Organization.findByIdAndUpdate(req.organizationId, {
-      $push: { 'siteContent.pendingDepoimentos': { id, name, text, email: email || '', rating: notaSegura } }
+      $push: { 'siteContent.pendingDepoimentos': { id, name: nome, text: texto, email: email || '', rating: notaSegura } }
     });
     res.json({ success: true });
 
@@ -271,7 +272,7 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
       await Notification.create({
         organizationId: req.organizationId,
         type: 'depoimento_pendente',
-        message: `⭐ ${name}${email ? ` (${email})` : ''}: ${text}`
+        message: `⭐ ${nome}${email ? ` (${email})` : ''}: ${texto}`
       });
     } catch (e) {
       req.logger?.error('[Depoimento] Erro ao criar notificacao:', e.message);
@@ -279,7 +280,7 @@ router.post('/site/depoimento', checkHoneyPot, async (req, res) => {
     try {
       const org = await Organization.findById(req.organizationId).select('email name');
       if (org?.email) {
-        sendPendingDepoimentoEmail(org.email, name, org.name);
+        sendPendingDepoimentoEmail(org.email, nome, org.name);
       }
     } catch (e) {
       req.logger?.error('[Depoimento] Erro ao enviar email de notificacao:', e.message);

@@ -1192,11 +1192,11 @@ function renderSite(data, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: depoimentoForm.name.value,
-            text: depoimentoForm.text.value,
-            email: depoimentoForm.email?.value || '',
-            rating: depoimentoForm.rating?.value || 5,
-            _hp_trap: depoimentoForm._hp_trap?.value || ''
+            nome: depoimentoForm.querySelector('[name="nome"]')?.value || '',
+            texto: depoimentoForm.querySelector('[name="texto"]')?.value || '',
+            email: depoimentoForm.querySelector('[name="email"]')?.value || '',
+            rating: depoimentoForm.querySelector('[name="rating"]')?.value || 5,
+            _hp_trap: depoimentoForm.querySelector('[name="_hp_trap"]')?.value || ''
           })
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);

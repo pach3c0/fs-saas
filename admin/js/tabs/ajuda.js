@@ -853,11 +853,10 @@ const MANUAL_MODULES_STATIC = [
                 <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
                   <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
                   ${[
-                    { id:1, label:'Upload',       desc:'Suba as fotos brutas',       done:false, current:true,  locked:false },
-                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente',  done:false, current:false, locked:true  },
-                    { id:4, label:'Acompanhar',   desc:'Monitore a seleção',         done:false, current:false, locked:true  },
-                    { id:5, label:'Editadas',     desc:'Suba as fotos finais',       done:false, current:false, locked:true  },
-                    { id:6, label:'Entregar',     desc:'Libere o download',          done:false, current:false, locked:true  }
+                    { id:1, label:'Upload',       desc:'Suba as fotos brutas',         done:false, current:true,  locked:false },
+                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente',   done:false, current:false, locked:true  },
+                    { id:4, label:'Acompanhar',   desc:'Monitore a seleção',          done:false, current:false, locked:true  },
+                    { id:5, label:'Editadas',     desc:'Suba as editadas e entregue', done:false, current:false, locked:true  }
                   ].map((s,idx) => {
                     const circleBg = s.done ? 'var(--green)' : (s.current ? 'var(--accent)' : 'var(--bg-base)');
                     const circleColor = (s.done || s.current) ? 'white' : 'var(--text-muted)';
@@ -975,13 +974,12 @@ const MANUAL_MODULES_STATIC = [
                 </div>
               </div>
               <div style="display:flex; min-height:220px;">
-                <!-- Sidebar 3 passos — todos concluídos -->
+                <!-- Sidebar 2 passos — Passo 2 atual -->
                 <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
                   <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
                   ${[
                     { id:1, label:'Upload',       desc:'Suba as fotos brutas',      done:true,  current:false },
-                    { id:2, label:'Compartilhar', desc:'Código e envio ao cliente', done:true,  current:false },
-                    { id:6, label:'Entregar',     desc:'Libere o download',         done:false, current:true  }
+                    { id:2, label:'Compartilhar', desc:'Código, envio e entrega',   done:false, current:true  }
                   ].map((s,idx) => {
                     const circleBg = s.done ? 'var(--green)' : 'var(--accent)';
                     const bg = s.current ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
@@ -994,12 +992,12 @@ const MANUAL_MODULES_STATIC = [
                       </div>
                     </div>`;
                   }).join('')}
-                  <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">2 de 3 concluído(s)</div>
+                  <div style="margin-top:auto; padding:0.75rem; font-size:0.6875rem; color:var(--text-muted); text-align:center;">1 de 2 concluído(s)</div>
                 </div>
-                <!-- Conteúdo Passo 6 -->
+                <!-- Conteúdo Passo 2 — Compartilhar (entrega embutida) -->
                 <div style="flex:1; padding:1.5rem 2rem;">
-                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Entregar Sessão</h3>
-                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Confirme a entrega para liberar o download da galeria ao cliente.</p>
+                  <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Compartilhar e Entregar</h3>
+                  <p style="font-size:0.875rem; color:var(--text-secondary); margin:0 0 1rem;">Envie o código ao cliente quando quiser e confirme a entrega para liberar o download sem marca d'água.</p>
                   <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; display:flex; flex-direction:column; gap:0.75rem;">
                     <button style="background:var(--green); color:white; border:none; padding:0.75rem 1.5rem; border-radius:0.5rem; font-weight:600; font-size:0.9375rem; cursor:pointer; width:fit-content;">✅ Entregar e notificar cliente</button>
                   </div>
@@ -1022,15 +1020,14 @@ const MANUAL_MODULES_STATIC = [
                 </div>
               </div>
               <div style="display:flex; min-height:300px;">
-                <!-- Sidebar 5 passos -->
+                <!-- Sidebar 4 passos -->
                 <div style="width:240px; flex-shrink:0; background:var(--bg-surface); border-right:1px solid var(--border); padding:1.25rem 0.75rem; display:flex; flex-direction:column; gap:0.25rem;">
                   <div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.1em; color:var(--text-muted); padding:0 0.75rem 0.75rem; text-transform:uppercase;">ETAPAS</div>
                   ${[
                     { id:1, label:'Upload',       desc:'Suba as fotos brutas',       done:true,  current:false, locked:false },
                     { id:2, label:'Compartilhar', desc:'Código e envio ao cliente',  done:true,  current:false, locked:false },
                     { id:4, label:'Acompanhar',   desc:'Monitore a seleção',         done:false, current:true,  locked:false },
-                    { id:5, label:'Editadas',     desc:'Suba as fotos finais',       done:false, current:false, locked:true  },
-                    { id:6, label:'Entregar',     desc:'Libere o download',          done:false, current:false, locked:true  }
+                    { id:5, label:'Editadas',     desc:'Suba as editadas e entregue', done:false, current:false, locked:true  }
                   ].map((s,idx) => {
                     const circleBg = s.done ? 'var(--green)' : (s.current ? 'var(--accent)' : 'var(--bg-base)');
                     const circleColor = (s.done || s.current) ? 'white' : 'var(--text-muted)';
@@ -1294,7 +1291,7 @@ const MANUAL_MODULES_STATIC = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Ensaios, newborn, famílias, casamentos</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza todas as fotos com marca d'água e escolhe as favoritas dentro do limite do pacote contratado. Você só edita e entrega o que ele escolheu. O wizard guia você em <strong style="color:var(--text-primary);">5 passos</strong>: Upload → Compartilhar → Acompanhar → Editadas → Entregar. Cada card exibe uma <strong style="color:var(--text-primary);">barra de progresso</strong> (Criada → Fotos → Link → Seleção → Entregue) com o próximo passo em destaque.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza todas as fotos com marca d'água e escolhe as favoritas dentro do limite do pacote contratado. Você só edita e entrega o que ele escolheu. O wizard guia você em <strong style="color:var(--text-primary);">4 passos</strong>: Upload → Compartilhar → Acompanhar → Editadas (entrega embutida). Cada card exibe uma <strong style="color:var(--text-primary);">barra de progresso</strong> (Criada → Fotos → Link → Seleção → Entregue) com o próximo passo em destaque.</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
                 { n:1,  who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',                   desc:'Clique em + Nova Sessão e escolha o modo Seleção. No modal (enxuto) você informa só o essencial: nome, cliente, datas e capa. O wizard abre automaticamente — e os detalhes (pacote, preço de extras, prazo, resolução, armazenamento e a própria capa) ficam no painel de Configurações à direita, que salva sozinho a cada mudança.' },
@@ -1303,10 +1300,10 @@ const MANUAL_MODULES_STATIC = [
                 { n:4,  who:'cliente',   color:'var(--green)',   title:'Acessar a galeria',                desc:'O cliente entra em app.cliquezoom.com.br, insere o código e visualiza todas as fotos com marca d\'água. Pode navegar, fazer zoom e comparar.' },
                 { n:5,  who:'cliente',   color:'var(--green)',   title:'Selecionar as favoritas',          desc:'O cliente clica nas fotos que quer receber. O sistema conta quantas foram escolhidas e avisa quando o limite for atingido. Se o pacote permite extras, ele pode solicitar fotos adicionais com o valor calculado na tela.' },
                 { n:6,  who:'cliente',   color:'var(--green)',   title:'Enviar a seleção',                 desc:'Quando satisfeito, o cliente confirma e envia. O status da sessão muda para Seleção enviada e você recebe uma notificação no sininho.' },
-                { n:7,  who:'cliente',   color:'var(--orange)',  title:'Pedido de reabertura (opcional)',  desc:'Se a sessão foi configurada com "Permitir reabertura", o cliente pode solicitar uma nova chance de alterar as fotos. O card exibe badge laranja ⚠ e o Passo 6 fica bloqueado até você decidir. No Passo 6 do wizard: ✓ Reabrir para permitir ou ✗ Recusar pedido para manter a seleção atual.' },
+                { n:7,  who:'cliente',   color:'var(--orange)',  title:'Pedido de reabertura (opcional)',  desc:'Se a sessão foi configurada com "Permitir reabertura", o cliente pode solicitar uma nova chance de alterar as fotos. O card exibe badge laranja ⚠ e o Passo 5 (Editadas) fica bloqueado até você decidir. No Passo 5 do wizard: ✓ Reabrir para permitir ou ✗ Recusar pedido para manter a seleção atual.' },
                 { n:8,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 4 — Acompanhar',            desc:'Veja em tempo real quais fotos o cliente escolheu. A tela atualiza automaticamente a cada 30 segundos (mais rápido quando há mudanças). Use o botão "Exportar Lightroom" para baixar um arquivo .txt com os nomes das fotos selecionadas para o seu editor.' },
                 { n:9,  who:'fotógrafo', color:'var(--accent)',  title:'Passo 5 — Editadas',              desc:'Faça upload das fotos editadas. O sistema vincula automaticamente cada editada ao original selecionado pelo cliente. Fotos que você adicionou sem que o cliente tenha selecionado aparecem como ★ Cortesia — o cliente recebe sem custo adicional.' },
-                { n:10, who:'fotógrafo', color:'var(--accent)',  title:'Passo 6 — Entregar',              desc:'Confirme a entrega. O cliente recebe um e-mail e o download é liberado sem marca d\'água. Use os botões 💬 WhatsApp ou 🔗 Copiar link para reforçar o aviso pelo canal preferido. Se precisar, clique em "Re-entregar" para notificar novamente.' },
+                { n:10, who:'fotógrafo', color:'var(--accent)',  title:'Passo 5 — Entregar (no Editadas)', desc:'Ainda no Passo 5, confirme a entrega. O cliente recebe um e-mail e o download é liberado sem marca d\'água. Use os botões 💬 WhatsApp ou 🔗 Copiar link para reforçar o aviso pelo canal preferido. Se precisar, clique em "Re-entregar" para notificar novamente.' },
                 { n:11, who:'cliente',   color:'var(--green)',   title:'Baixar as fotos',                 desc:'O cliente acessa a galeria com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez em ZIP. O sistema registra cada download — o fotógrafo pode ver o status antes de arquivar ou excluir as fotos.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem; ${i < arr.length - 1 ? 'padding-bottom:0;' : ''}">
@@ -1335,14 +1332,14 @@ const MANUAL_MODULES_STATIC = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Entregas rápidas, eventos corporativos, imprensa</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza e baixa as fotos diretamente, sem precisar fazer nenhuma seleção. Você entrega quando quiser liberar o acesso. Ideal quando você já decidiu quais fotos entregar. O wizard tem <strong style="color:var(--text-primary);">3 passos</strong>: Upload → Compartilhar → Entregar.</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">O cliente visualiza e baixa as fotos diretamente, sem precisar fazer nenhuma seleção. Você entrega quando quiser liberar o acesso. Ideal quando você já decidiu quais fotos entregar. O wizard tem <strong style="color:var(--text-primary);">2 passos</strong>: Upload → Compartilhar (entrega embutida).</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
                 { n:1, who:'fotógrafo', color:'var(--accent)',  title:'Criar a sessão',             desc:'Clique em + Nova Sessão e escolha o modo Galeria. Defina o nome do trabalho e, se quiser, um prazo de acesso. Não há configuração de pacote — o cliente baixa tudo.' },
                 { n:2, who:'fotógrafo', color:'var(--accent)',  title:'Passo 1 — Upload',           desc:'Edite as fotos no seu software antes de subir. Arraste os arquivos no wizard ou clique para selecionar. As fotos aparecem na galeria com marca d\'água até você entregar.' },
                 { n:3, who:'fotógrafo', color:'var(--accent)',  title:'Passo 2 — Compartilhar',     desc:'Opcional: envie o código antes de entregar para o cliente já ver a prévia com marca d\'água. Ou envie só após a entrega — como preferir. Use WhatsApp ou e-mail direto.' },
                 { n:4, who:'cliente',   color:'var(--purple)',  title:'Visualizar a prévia',        desc:'Se o código foi enviado antes da entrega, o cliente entra na galeria e visualiza as fotos com marca d\'água. Ele não consegue baixar ainda.' },
-                { n:5, who:'fotógrafo', color:'var(--accent)',  title:'Passo 6 — Entregar',         desc:'Confirme a entrega no wizard. A marca d\'água é removida e o cliente recebe um e-mail. Use 💬 WhatsApp ou 🔗 Copiar link para reforçar. Se precisar trocar fotos, clique em Re-entregar.' },
+                { n:5, who:'fotógrafo', color:'var(--accent)',  title:'Passo 2 — Entregar (no Compartilhar)', desc:'Ainda no Passo 2, confirme a entrega no wizard. A marca d\'água é removida e o cliente recebe um e-mail. Use 💬 WhatsApp ou 🔗 Copiar link para reforçar. Se precisar trocar fotos, clique em Re-entregar.' },
                 { n:6, who:'cliente',   color:'var(--purple)',  title:'Baixar as fotos',            desc:'O cliente entra com o mesmo código e vê as fotos sem marca d\'água. Pode baixar individualmente ou todas de uma vez em ZIP. O sistema registra cada download.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">
@@ -1371,7 +1368,7 @@ const MANUAL_MODULES_STATIC = [
             <span style="font-size:0.75rem; color:var(--text-secondary); margin-left:auto;">Formaturas, shows, eventos com muitos participantes</span>
           </div>
           <div style="padding:1rem 1.125rem; background:var(--bg-surface);">
-            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">Cada participante recebe um código próprio e seleciona suas fotos de forma independente — sem interferir nos outros. Você gerencia tudo em um só lugar e entrega individualmente conforme cada um finaliza. O wizard tem <strong style="color:var(--text-primary);">5 passos</strong> (igual ao Seleção, mas com tabela de participantes no Passo 6).</p>
+            <p style="font-size:0.8125rem; color:var(--text-secondary); line-height:1.6; margin:0 0 1rem;">Cada participante recebe um código próprio e seleciona suas fotos de forma independente — sem interferir nos outros. Você gerencia tudo em um só lugar e entrega individualmente conforme cada um finaliza. O wizard tem <strong style="color:var(--text-primary);">4 passos</strong> (igual ao Seleção, mas com tabela de entrega por participante no Passo 5 — Editadas).</p>
             <div style="display:flex; flex-direction:column; gap:0;">
               ${[
                 { n:1,  who:'fotógrafo',    color:'var(--accent)',  title:'Criar a sessão',                desc:'Escolha o modo Multi-Seleção. No modal informe o nome do evento e o prazo compartilhado (todos os participantes têm o mesmo deadline). Resolução, armazenamento e demais ajustes ficam no painel de Configurações à direita do wizard.' },
@@ -1381,7 +1378,7 @@ const MANUAL_MODULES_STATIC = [
                 { n:5,  who:'participante', color:'var(--orange)',  title:'Fazer a seleção',               desc:'O participante clica nas fotos que quer e acompanha o contador (ex: 12/15). Quando termina, confirma e envia. O status individual muda para Seleção enviada.' },
                 { n:6,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 4 — Acompanhar',          desc:'Veja o status de cada participante em tempo real: Pendente, Em seleção, Pronto para entrega. Não precisa esperar todos para começar a editar. Use Exportar Lightroom para criar coleções por pessoa.' },
                 { n:7,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 5 — Editadas',            desc:'Faça upload das fotos editadas de cada participante. O sistema vincula automaticamente cada editada ao original selecionado.' },
-                { n:8,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 6 — Entregar por participante', desc:'No Passo 6 aparece a tabela de participantes. Clique em ✅ Entregar ao lado de cada um quando estiver pronto — ou use "Entregar todos" para processar de uma vez. A entrega é individual: cada participante recebe no seu ritmo.' },
+                { n:8,  who:'fotógrafo',    color:'var(--accent)',  title:'Passo 5 — Entregar por participante', desc:'Ainda no Passo 5 (Editadas), aparece a tabela de participantes. Clique em ✅ Entregar ao lado de cada um quando estiver pronto — ou use "Entregar todos" para processar de uma vez. A entrega é individual: cada participante recebe no seu ritmo.' },
                 { n:9,  who:'participante', color:'var(--orange)',  title:'Baixar as fotos',               desc:'O participante acessa com seu código e encontra as fotos entregues sem marca d\'água. Os outros participantes não veem o que ele escolheu nem o que você entregou para ele.' },
               ].map((s, i, arr) => `
                 <div style="display:flex; gap:0.875rem;">

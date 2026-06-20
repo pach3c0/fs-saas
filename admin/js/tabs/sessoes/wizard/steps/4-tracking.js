@@ -40,6 +40,85 @@ async function reopenSelection(session, refresh, participantId = null, participa
   }
 }
 
+// Recusa o pedido de reabertura de um participante (limpa o flag, sem reabrir a seleção).
+async function dismissReopenParticipant(session, refresh, participantId, participantName) {
+  const ok = await window.showConfirm?.(
+    `Recusar o pedido de reabertura de ${participantName}? A seleção dele continua finalizada.`,
+    { confirmText: 'Recusar', cancelText: 'Cancelar' }
+  );
+  if (!ok) return;
+  try {
+    await apiPut(`/api/sessions/${session._id}/dismiss-reopen`, { participantId });
+    window.showToast?.('Pedido de reabertura recusado.', 'success');
+    await refresh();
+  } catch (e) {
+    window.showToast?.('Erro ao recusar: ' + e.message, 'error');
+  }
+}
+
+// Aceita as fotos extras solicitadas por um participante (adiciona à seleção dele).
+async function acceptExtraParticipant(session, refresh, participantId, participantName, count) {
+  const ok = await window.showConfirm?.(
+    `Aceitar ${count} foto(s) extra(s) de ${participantName}? Elas serão adicionadas à seleção dele(a).`,
+    { confirmText: 'Aceitar', cancelText: 'Cancelar' }
+  );
+  if (!ok) return;
+  try {
+    await apiPut(`/api/sessions/${session._id}/extra-request/accept`, { participantId });
+    window.showToast?.(`Extras de ${participantName} adicionadas à seleção.`, 'success');
+    await refresh();
+  } catch (e) {
+    window.showToast?.('Erro ao aceitar: ' + e.message, 'error');
+  }
+}
+
+// Recusa as fotos extras solicitadas por um participante. Abre modal com motivo
+// obrigatório (espelha a recusa da seleção individual em actions.js) — o motivo
+// vai no e-mail enviado ao participante.
+async function rejectExtraParticipant(session, refresh, participantId, participantName) {
+  const modalHtml = `
+    <div id="rejectExtraPartModal" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75);">
+      <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:var(--r-card); width:100%; max-width:400px; border:1px solid var(--border); box-shadow:0 10px 15px -3px rgba(0,0,0,0.5);">
+        <h3 style="color:var(--text-primary); font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
+        <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.5rem;">Informe a <strong>${escHtml(participantName)}</strong> o motivo da recusa (obrigatório):</p>
+        <textarea id="rejectPartReasonInput" rows="3" style="width:100%; padding:0.5rem; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--r-field); margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+          <button id="cancelRejectPartBtn" style="padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:var(--r-field); cursor:pointer;">Cancelar</button>
+          <button id="confirmRejectPartBtn" style="padding:0.5rem 1rem; background:var(--red); border:none; color:white; border-radius:var(--r-field); cursor:pointer; font-weight:600;">Recusar Pedido</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  const modal = document.getElementById('rejectExtraPartModal');
+  document.getElementById('cancelRejectPartBtn').onclick = () => modal.remove();
+  document.getElementById('confirmRejectPartBtn').onclick = async () => {
+    const reason = document.getElementById('rejectPartReasonInput').value.trim();
+    if (!reason) {
+      window.showToast?.('Por favor, informe um motivo para o participante.', 'warning');
+      return;
+    }
+    const btn = document.getElementById('confirmRejectPartBtn');
+    btn.textContent = 'Aguarde...';
+    btn.disabled = true;
+    try {
+      await apiPut(`/api/sessions/${session._id}/extra-request/reject`, { participantId, reason });
+      modal.remove();
+      window.showToast?.('Solicitação recusada e participante notificado.', 'success');
+      await refresh();
+    } catch (e) {
+      btn.textContent = 'Recusar Pedido';
+      btn.disabled = false;
+      window.showToast?.('Erro ao recusar: ' + e.message, 'error');
+    }
+  };
+}
+
+// Escape mínimo para interpolar nome do participante no HTML do modal.
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function isCommentsModalOpen() {
   const m = document.getElementById('commentsModal');
   return m && m.style.display && m.style.display !== 'none';
@@ -52,24 +131,24 @@ function pickNextInterval() {
   return POLL_DEFAULT_MS;
 }
 
-export function renderStepTracking({ session, refresh }) {
+export function renderStepTracking({ session, refresh, inSinglePage = false }) {
   // Limpa polling anterior + listener de visibilidade
   stopWizardPolling();
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:1200px;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; margin:0; width:100%;';
 
   const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
   const isSubmitted = isMulti
     ? allParticipantsSubmitted(session)
     : ['submitted', 'delivered'].includes(session.selectionStatus);
 
-  // Header + botão "Atualizar agora"
+  // Header + botões de ação
   const headerRow = document.createElement('div');
-  headerRow.style.cssText = 'position:relative; display:flex; justify-content:center; align-items:center; width:100%; min-height:44px;';
+  headerRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%; gap:1rem; flex-wrap:wrap;';
 
   const header = document.createElement('div');
-  header.style.cssText = 'text-align:center; width:100%; padding:0 3.5rem;';
+  header.style.cssText = 'flex:1; min-width:300px;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">
       Acompanhar ${isMulti ? 'Participantes' : 'Seleção'}
@@ -87,14 +166,17 @@ export function renderStepTracking({ session, refresh }) {
   `;
   headerRow.appendChild(header);
 
+  const buttonsRow = document.createElement('div');
+  buttonsRow.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+
   if (!isSubmitted) {
     const refreshBtn = document.createElement('button');
     refreshBtn.type = 'button';
     refreshBtn.title = 'Forçar atualização agora';
     refreshBtn.className = 'header-expand-btn';
-    refreshBtn.style.cssText = 'position:absolute; right:0; top:50%; transform:translateY(-50%); cursor:pointer;';
+    refreshBtn.style.cssText = 'border:1px solid var(--border);';
     refreshBtn.innerHTML = `
-      <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;">
+      <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
         ${icon('reabrir', 18)}
       </span>
       <span class="header-expand-label">Atualizar</span>
@@ -108,7 +190,7 @@ export function renderStepTracking({ session, refresh }) {
         // refresh re-renderiza o passo, esse botão deixa de existir; sem mais o que fazer.
       }
     };
-    headerRow.appendChild(refreshBtn);
+    buttonsRow.appendChild(refreshBtn);
   }
 
   // Reabrir seleção (iniciada pelo fotógrafo, independente do pedido do cliente).
@@ -118,18 +200,19 @@ export function renderStepTracking({ session, refresh }) {
     reopenBtn.type = 'button';
     reopenBtn.title = 'Reabrir a seleção para o cliente alterar as fotos';
     reopenBtn.className = 'header-expand-btn';
-    reopenBtn.style.cssText = 'position:absolute; right:0; top:50%; transform:translateY(-50%); cursor:pointer;';
-    reopenBtn.style.borderColor = 'var(--orange)';
-    reopenBtn.style.color = 'var(--orange)';
-    reopenBtn.style.background = 'color-mix(in srgb, var(--orange) 6%, transparent)';
+    reopenBtn.style.cssText = 'border:1px solid var(--orange); color:var(--orange); background:color-mix(in srgb, var(--orange) 6%, transparent);';
     reopenBtn.innerHTML = `
-      <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;">
+      <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
         ${icon('reabrir', 18)}
       </span>
       <span class="header-expand-label">Reabrir seleção</span>
     `;
     reopenBtn.onclick = () => reopenSelection(session, refresh);
-    headerRow.appendChild(reopenBtn);
+    buttonsRow.appendChild(reopenBtn);
+  }
+
+  if (buttonsRow.children.length > 0) {
+    headerRow.appendChild(buttonsRow);
   }
   wrap.appendChild(headerRow);
 
@@ -284,7 +367,7 @@ function renderParticipantsProgress(session, refresh) {
   const participants = session.participants || [];
   if (participants.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:1rem; text-align:center; font-size:0.875rem; color:var(--text-muted);';
+    empty.style.cssText = 'padding:1rem; text-align:left; font-size:0.875rem; color:var(--text-muted);';
     empty.textContent = 'Nenhum participante cadastrado.';
     list.appendChild(empty);
   } else {
@@ -316,6 +399,8 @@ function renderParticipantsProgress(session, refresh) {
         </div>
         <div style="font-size:0.75rem; color:${statusInfo.color}; font-weight:500; white-space:nowrap;">
           ${statusInfo.label}
+          ${p.reopenRequested ? `<div style="margin-top:2px; color:var(--orange); font-weight:600;">⚠ pediu reabertura</div>` : ''}
+          ${p.extraRequest?.status === 'pending' ? `<div style="margin-top:2px; color:var(--yellow); font-weight:600;">📸 pediu ${p.extraRequest.photos?.length || 0} extra(s)</div>` : ''}
         </div>
       `;
 
@@ -323,21 +408,68 @@ function renderParticipantsProgress(session, refresh) {
       if (status === 'submitted' || status === 'delivered') {
         const reopenBtn = document.createElement('button');
         reopenBtn.type = 'button';
-        reopenBtn.title = `Reabrir a seleção de ${p.name}`;
+        // Quando o participante pediu, o botão "aceita" o pedido (e fica destacado).
+        reopenBtn.title = p.reopenRequested ? `Aceitar reabertura de ${p.name}` : `Reabrir a seleção de ${p.name}`;
         reopenBtn.className = 'header-expand-btn';
-        reopenBtn.style.borderColor = 'var(--orange)';
-        reopenBtn.style.color = 'var(--orange)';
-        reopenBtn.style.background = 'color-mix(in srgb, var(--orange) 6%, transparent)';
-        reopenBtn.style.height = '30px';
-        reopenBtn.style.minWidth = '30px';
+        reopenBtn.style.cssText = 'border:1px solid var(--orange); color:var(--orange); background:color-mix(in srgb, var(--orange) 6%, transparent); padding:0 1rem;';
         reopenBtn.innerHTML = `
-          <span class="header-expand-icon" style="display:flex!important;align-items:center!important;justify-content:center!important;width:28px!important;height:28px!important;">
-            ${icon('reabrir', 14)}
+          <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+            ${icon('reabrir', 16)}
           </span>
-          <span class="header-expand-label">Reabrir</span>
+          <span class="header-expand-label">${p.reopenRequested ? 'Aceitar reabertura' : 'Reabrir'}</span>
         `;
         reopenBtn.onclick = () => reopenSelection(session, refresh, p._id, p.name);
         row.appendChild(reopenBtn);
+      }
+
+      // Recusar o pedido de reabertura deste participante (só quando ele pediu).
+      if (p.reopenRequested) {
+        const dismissBtn = document.createElement('button');
+        dismissBtn.type = 'button';
+        dismissBtn.title = `Recusar pedido de ${p.name}`;
+        dismissBtn.className = 'header-expand-btn';
+        dismissBtn.style.cssText = 'border:1px solid var(--border); color:var(--text-secondary); padding:0 1rem;';
+        dismissBtn.innerHTML = `
+          <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+            ${icon('x', 16)}
+          </span>
+          <span class="header-expand-label">Recusar</span>
+        `;
+        dismissBtn.onclick = () => dismissReopenParticipant(session, refresh, p._id, p.name);
+        row.appendChild(dismissBtn);
+      }
+
+      // Fotos extras solicitadas por este participante — aceitar/recusar
+      if (p.extraRequest?.status === 'pending') {
+        const extraCount = p.extraRequest.photos?.length || 0;
+
+        const acceptExtraBtn = document.createElement('button');
+        acceptExtraBtn.type = 'button';
+        acceptExtraBtn.title = `Aceitar ${extraCount} foto(s) extra(s) de ${p.name}`;
+        acceptExtraBtn.className = 'header-expand-btn';
+        acceptExtraBtn.style.cssText = 'border:1px solid var(--green); color:var(--green); background:color-mix(in srgb, var(--green) 6%, transparent); padding:0 1rem;';
+        acceptExtraBtn.innerHTML = `
+          <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+            ${icon('checkCircle', 16)}
+          </span>
+          <span class="header-expand-label">Aceitar ${extraCount} extra(s)</span>
+        `;
+        acceptExtraBtn.onclick = () => acceptExtraParticipant(session, refresh, p._id, p.name, extraCount);
+        row.appendChild(acceptExtraBtn);
+
+        const rejectExtraBtn = document.createElement('button');
+        rejectExtraBtn.type = 'button';
+        rejectExtraBtn.title = `Recusar fotos extras de ${p.name}`;
+        rejectExtraBtn.className = 'header-expand-btn';
+        rejectExtraBtn.style.cssText = 'border:1px solid var(--border); color:var(--text-secondary); padding:0 1rem;';
+        rejectExtraBtn.innerHTML = `
+          <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+            ${icon('x', 16)}
+          </span>
+          <span class="header-expand-label">Recusar extras</span>
+        `;
+        rejectExtraBtn.onclick = () => rejectExtraParticipant(session, refresh, p._id, p.name);
+        row.appendChild(rejectExtraBtn);
       }
 
       list.appendChild(row);
@@ -354,8 +486,8 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
   grid.style.cssText = `
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
     gap: 1.25rem;
     width: 100%;
   `;
@@ -391,18 +523,15 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
     const cell = document.createElement('div');
     cell.style.cssText = `
       position: relative;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
+      width: 200px;
+      height: 150px;
+      border-radius: var(--r-card);
       background: var(--bg-surface);
       overflow: hidden;
       border: 2px solid ${borderColor};
       ${photo.hidden ? 'opacity: 0.35;' : ''}
       ${hasComments ? 'animation: wizardChatPulse 2s ease-in-out infinite;' : ''}
-      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                  height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                  border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                  border-color 0.15s;
+      transition: border-color 0.15s;
     `;
 
     const img = document.createElement('img');
@@ -492,12 +621,8 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
       cell.appendChild(chat);
     }
 
-    // ── Hover: expand círculo → retângulo ────────────────────────────
+    // ── Hover: mostrar overlay ─────────────────────────────────────────
     cell.addEventListener('mouseenter', () => {
-      cell.style.width = `${hoverWidth}px`;
-      cell.style.height = `${hoverHeight}px`;
-      cell.style.borderRadius = 'var(--r-field)';
-
       const film = cell.querySelector('[data-film]');
       if (film) film.style.opacity = '1';
 
@@ -512,10 +637,6 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
     });
 
     cell.addEventListener('mouseleave', () => {
-      cell.style.width = '120px';
-      cell.style.height = '120px';
-      cell.style.borderRadius = '50%';
-
       const film = cell.querySelector('[data-film]');
       if (film) film.style.opacity = '0';
 
@@ -534,7 +655,7 @@ function renderTrackingGrid(session, isSubmitted, refresh, isMulti) {
 
   if ((session.photos || []).length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:2rem; text-align:center; color:var(--text-muted); font-size:0.875rem; width:100%';
+    empty.style.cssText = 'padding:2rem; text-align:left; color:var(--text-muted); font-size:0.875rem; width:100%';
     empty.textContent = 'Nenhuma foto na sessão.';
     grid.appendChild(empty);
   }

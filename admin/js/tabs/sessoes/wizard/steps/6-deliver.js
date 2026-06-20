@@ -14,7 +14,7 @@ import {
 
 export function renderStepDeliver({ session, refresh, switchStep }) {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:900px;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; margin:0; width:100%;';
 
   const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
 
@@ -636,7 +636,7 @@ export function renderMultiDeliverHeader(session) {
   const allDelivered = delivered === ps.length && ps.length > 0;
 
   const header = document.createElement('div');
-  header.style.cssText = 'text-align:center; display:flex; flex-direction:column; align-items:center;';
+  header.style.cssText = 'text-align:left; display:flex; flex-direction:column; align-items:flex-start;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">
       ${allDelivered ? 'Todos os participantes entregues' : 'Entregar participantes'}
@@ -648,6 +648,85 @@ export function renderMultiDeliverHeader(session) {
     </p>
   `;
   return header;
+}
+
+// Card de fotos extras solicitadas por um participante (com aceitar/recusar)
+function buildParticipantExtraRequest(session, p, refresh) {
+  const extras = p.extraRequest.photos || [];
+  const card = document.createElement('div');
+  card.style.cssText = `
+    width:100%;
+    background: color-mix(in srgb, var(--yellow) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
+    border-radius:var(--r-card); padding: 0.625rem 0.75rem;
+    display:flex; flex-direction:column; gap:0.5rem; text-align:left;
+  `;
+  card.innerHTML = `
+    <div style="font-weight:600; color:var(--yellow); font-size:0.8125rem;">📸 ${extras.length} foto(s) extra(s) solicitada(s)</div>
+  `;
+  const btns = document.createElement('div');
+  btns.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap;';
+
+  const acceptBtn = document.createElement('button');
+  acceptBtn.type = 'button';
+  acceptBtn.textContent = `✓ Aceitar ${extras.length}`;
+  acceptBtn.style.cssText = `background:var(--green); color:white; border:none; padding:0.375rem 0.75rem; border-radius:var(--r-field); cursor:pointer; font-size:0.75rem;`;
+  acceptBtn.onclick = async () => {
+    try {
+      await apiPut(`/api/sessions/${session._id}/extra-request/accept`, { participantId: p._id });
+      window.showToast?.(`Extras de ${p.name} adicionadas à seleção`, 'success');
+      await refresh();
+    } catch (e) { window.showToast?.('Erro: ' + e.message, 'error'); }
+  };
+
+  const rejectBtn = document.createElement('button');
+  rejectBtn.type = 'button';
+  rejectBtn.textContent = '✗ Recusar';
+  rejectBtn.style.cssText = `background:transparent; color:var(--text-primary); border:1px solid var(--border); padding:0.375rem 0.75rem; border-radius:var(--r-field); cursor:pointer; font-size:0.75rem;`;
+  rejectBtn.onclick = () => {
+    const safeName = String(p.name || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const modalHtml = `
+      <div id="rejectExtraPartModal6" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75);">
+        <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:var(--r-card); width:100%; max-width:400px; border:1px solid var(--border); box-shadow:0 10px 15px -3px rgba(0,0,0,0.5);">
+          <h3 style="color:var(--text-primary); font-size:1.125rem; font-weight:600; margin-bottom:1rem;">Recusar Fotos Extras</h3>
+          <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:0.5rem;">Informe a <strong>${safeName}</strong> o motivo da recusa (obrigatório):</p>
+          <textarea id="rejectPartReasonInput6" rows="3" style="width:100%; padding:0.5rem; background:var(--bg-base); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--r-field); margin-bottom:1rem; font-family:inherit; resize:none;" placeholder="Ex: O pacote escolhido não permite extras, ou o pagamento não foi confirmado..."></textarea>
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+            <button id="cancelRejectPartBtn6" style="padding:0.5rem 1rem; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:var(--r-field); cursor:pointer;">Cancelar</button>
+            <button id="confirmRejectPartBtn6" style="padding:0.5rem 1rem; background:var(--red); border:none; color:white; border-radius:var(--r-field); cursor:pointer; font-weight:600;">Recusar Pedido</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById('rejectExtraPartModal6');
+    document.getElementById('cancelRejectPartBtn6').onclick = () => modal.remove();
+    document.getElementById('confirmRejectPartBtn6').onclick = async () => {
+      const reason = document.getElementById('rejectPartReasonInput6').value.trim();
+      if (!reason) {
+        window.showToast?.('Por favor, informe um motivo para o participante.', 'warning');
+        return;
+      }
+      const cbtn = document.getElementById('confirmRejectPartBtn6');
+      cbtn.textContent = 'Aguarde...';
+      cbtn.disabled = true;
+      try {
+        await apiPut(`/api/sessions/${session._id}/extra-request/reject`, { participantId: p._id, reason });
+        modal.remove();
+        window.showToast?.('Solicitação recusada e participante notificado.', 'success');
+        await refresh();
+      } catch (e) {
+        cbtn.textContent = 'Recusar Pedido';
+        cbtn.disabled = false;
+        window.showToast?.('Erro: ' + e.message, 'error');
+      }
+    };
+  };
+
+  btns.appendChild(acceptBtn);
+  btns.appendChild(rejectBtn);
+  card.appendChild(btns);
+  return card;
 }
 
 export function renderParticipantsDeliveryTable(session, refresh) {
@@ -664,12 +743,12 @@ export function renderParticipantsDeliveryTable(session, refresh) {
   head.style.cssText = `
     padding: 0.625rem 0.875rem;
     border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-    text-align: center;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem;
+    text-align: left;
   `;
   const headTitle = document.createElement('div');
   headTitle.textContent = 'Participantes';
-  headTitle.style.cssText = 'font-size:0.75rem; font-weight:600; color:var(--text-secondary); letter-spacing:0.05em; text-transform:uppercase; text-align: center;';
+  headTitle.style.cssText = 'font-size:0.75rem; font-weight:600; color:var(--text-secondary); letter-spacing:0.05em; text-transform:uppercase; text-align: left;';
   head.appendChild(headTitle);
 
   const readyForBulk = participants.filter(p => p.selectionStatus === 'submitted');
@@ -695,7 +774,7 @@ export function renderParticipantsDeliveryTable(session, refresh) {
 
   if (participants.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.875rem;';
+    empty.style.cssText = 'padding:1.5rem; text-align:left; color:var(--text-muted); font-size:0.875rem;';
     empty.textContent = 'Adicione participantes pelo passo "Enviar" (botão Gerenciar participantes).';
     wrap.appendChild(empty);
     return wrap;
@@ -716,12 +795,12 @@ export function renderParticipantsDeliveryTable(session, refresh) {
     const row = document.createElement('div');
     row.style.cssText = `
       padding: 0.875rem;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.5rem; text-align: left;
       ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}
     `;
 
     const info = document.createElement('div');
-    info.style.cssText = 'text-align: center;';
+    info.style.cssText = 'text-align: left;';
     info.innerHTML = `
       <div style="font-weight:500; color:var(--text-primary); font-size:0.875rem;">${escapeHtml(p.name)}</div>
       <div style="font-size:0.6875rem; color:var(--text-muted);">
@@ -735,8 +814,13 @@ export function renderParticipantsDeliveryTable(session, refresh) {
     badge.textContent = statusInfo.label;
     row.appendChild(badge);
 
+    // Solicitação de fotos extras deste participante (pendente)
+    if (p.extraRequest?.status === 'pending') {
+      row.appendChild(buildParticipantExtraRequest(session, p, refresh));
+    }
+
     const actionsDiv = document.createElement('div');
-    actionsDiv.style.cssText = 'display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap;';
+    actionsDiv.style.cssText = 'display: flex; gap: 0.5rem; justify-content: flex-start; align-items: center; flex-wrap: wrap;';
 
     // Botão Entregar (só se submitted)
     if (status === 'submitted') {
@@ -744,10 +828,10 @@ export function renderParticipantsDeliveryTable(session, refresh) {
       btn.type = 'button';
       btn.className = 'header-expand-btn';
       btn.title = `Entregar fotos para ${p.name}`;
-      btn.style.cssText = 'cursor:pointer;';
+      btn.style.cssText = 'cursor:pointer; border:1px solid var(--border);';
       btn.innerHTML = `
-        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
-          ${icon('checkCircle', 16)}
+        <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+          ${icon('checkCircle', 18)}
         </span>
         <span class="header-expand-label">Entregar</span>
       `;
@@ -771,10 +855,10 @@ export function renderParticipantsDeliveryTable(session, refresh) {
       waBtn.title = p.phone
         ? 'Abrir WhatsApp com mensagem de entrega'
         : 'Telefone não cadastrado — abre o WhatsApp sem número';
-      waBtn.style.cssText = 'cursor:pointer;';
+      waBtn.style.cssText = 'cursor:pointer; border:1px solid var(--border);';
       waBtn.innerHTML = `
-        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
-          ${icon('whatsapp', 16)}
+        <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+          ${icon('whatsapp', 18)}
         </span>
         <span class="header-expand-label">WhatsApp</span>
       `;
@@ -795,10 +879,10 @@ export function renderParticipantsDeliveryTable(session, refresh) {
       copyBtn.type = 'button';
       copyBtn.className = 'header-expand-btn';
       copyBtn.title = 'Copiar link da galeria deste participante';
-      copyBtn.style.cssText = 'cursor:pointer;';
+      copyBtn.style.cssText = 'cursor:pointer; border:1px solid var(--border);';
       copyBtn.innerHTML = `
-        <span class="header-expand-icon" style="display:flex !important; align-items:center !important; justify-content:center !important; width:34px !important; height:34px !important;">
-          ${icon('link', 16)}
+        <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center;">
+          ${icon('link', 18)}
         </span>
         <span class="header-expand-label">Link</span>
       `;

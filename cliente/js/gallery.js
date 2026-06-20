@@ -32,6 +32,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         pollingInterval: null,
     };
 
+    // Comentários visíveis a ESTE espectador. Em Seleção em Grupo, cada participante só vê
+    // os próprios comentários e as respostas direcionadas a ele — nunca os de outro participante.
+    // Em seleção individual/galeria (não-participante), vê todos.
+    function commentsFor(photo) {
+        const all = (photo && photo.comments) || [];
+        if (!state.isParticipant) return all;
+        const mine = String(state.participantId || '');
+        return all.filter(c => String(c.participantId || '') === mine);
+    }
+
     const loginSection = document.getElementById('loginSection');
     const gallerySection = document.getElementById('gallerySection');
     const loginForm = document.getElementById('loginForm');
@@ -442,8 +452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const isDelivered = state.session.selectionStatus === 'delivered';
-        const isGalleryMode = state.session.mode === 'gallery';
+        const isGalleryMode = state.session.mode === 'gallery' || state.session.mode === 'multi_gallery';
+        // Galeria em Grupo é entrega direta: o convidado já pode baixar tudo, sem etapa de entrega.
+        const isDelivered = state.session.selectionStatus === 'delivered' || state.session.mode === 'multi_gallery';
 
         let pendingCount = 0;
         if (isDelivered && !isGalleryMode && state.photos && state.selectedPhotos) {
@@ -543,11 +554,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderPhotos() {
         if (!state.photos) return;
 
+        if (state.photos.length === 0) {
+            photoGrid.innerHTML = `
+                <div style="grid-column:1/-1; text-align:center; padding:3rem 1rem; color:var(--text-secondary, #6b7280);">
+                    <div style="font-size:2rem; margin-bottom:0.75rem;">📷</div>
+                    <div style="font-weight:600; margin-bottom:0.25rem;">Fotos em preparação</div>
+                    <div style="font-size:0.875rem;">O fotógrafo ainda não publicou as fotos desta sessão. Volte em breve!</div>
+                </div>
+            `;
+            return;
+        }
+
         const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
 
         photoGrid.innerHTML = state.photos.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
-            const hasComments = photo.comments && photo.comments.length > 0;
+            const hasComments = commentsFor(photo).length > 0;
 
             return `
                 <div class="photo-item" data-photo-id="${photo.id}">
@@ -838,7 +860,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     accessCode: state.accessCode,
-                    photos: extraSelectedPhotos
+                    photos: extraSelectedPhotos,
+                    participantId: state.isParticipant ? state.participantId : undefined
                 })
             });
             const result = await res.json();
@@ -905,8 +928,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         textarea.value = '';
         commentsList.innerHTML = '';
 
-        if (photo && photo.comments && photo.comments.length > 0) {
-            photo.comments.forEach(comment => {
+        const visibleComments = commentsFor(photo);
+        if (photo && visibleComments.length > 0) {
+            visibleComments.forEach(comment => {
                 const isClient = comment.author === 'client';
                 const date = new Date(comment.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 commentsList.innerHTML += `
@@ -941,7 +965,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const body = JSON.stringify({
                 accessCode: state.accessCode,
                 photoId: currentCommentPhotoId,
-                text: text
+                text: text,
+                // Seleção em Grupo: identifica o participante (autentica pelo código dele).
+                participantId: state.isParticipant ? state.participantId : undefined
             });
 
             if (!navigator.onLine) {
@@ -951,7 +977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const photo = state.photos.find(p => p.id === currentCommentPhotoId);
                 if (photo) {
                     if (!photo.comments) photo.comments = [];
-                    photo.comments.push({ author: 'client', text, createdAt: new Date() });
+                    photo.comments.push({ author: 'client', text, createdAt: new Date(), participantId: state.isParticipant ? state.participantId : null });
                 }
 
                 openCommentModal(currentCommentPhotoId);
@@ -1076,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderDeliveredScreen() {
         renderHeader();
 
-        const isGalleryMode = state.session.mode === 'gallery';
+        const isGalleryMode = state.session.mode === 'gallery' || state.session.mode === 'multi_gallery';
         const selectedSet = new Set(state.selectedPhotos);
 
         // Cortesia: foto fora da seleção mas com urlOriginal (fotógrafo subiu editada).
@@ -1273,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const resp = await fetch(`/api/client/request-extra-photos/${state.sessionId}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos })
+                            body: JSON.stringify({ accessCode: state.accessCode, photos: extraSelectedPhotos, participantId: state.isParticipant ? state.participantId : undefined })
                         });
                         const data = await resp.json();
                         if (data.success) {
@@ -1337,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isPolling) {
                 const newReplies = [];
                 for (const photo of (result.photos || [])) {
-                    for (const c of (photo.comments || [])) {
+                    for (const c of commentsFor(photo)) {
                         if (c.author === 'admin') {
                             const key = `${photo.id}:${c.createdAt}`;
                             if (!knownAdminCommentKeys.has(key)) {
@@ -1354,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 // Na primeira carga, apenas registrar os existentes sem notificar
                 for (const photo of (result.photos || [])) {
-                    for (const c of (photo.comments || [])) {
+                    for (const c of commentsFor(photo)) {
                         if (c.author === 'admin') {
                             knownAdminCommentKeys.add(`${photo.id}:${c.createdAt}`);
                         }
@@ -1407,8 +1433,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            if (state.session.selectionStatus === 'delivered') {
-                // Tela de download: exibe apenas fotos selecionadas + seção de extras
+            if (state.session.mode === 'multi_gallery' || state.session.selectionStatus === 'delivered') {
+                // Galeria em Grupo (entrega direta) ou sessão entregue → tela de download (vê e baixa tudo).
                 renderDeliveredScreen();
             } else if (state.session.selectionStatus === 'submitted') {
                 renderStatusScreen();
@@ -1618,7 +1644,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(`/api/client/request-reopen/${state.sessionId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode: state.accessCode }),
+                body: JSON.stringify({
+                    accessCode: state.accessCode,
+                    // Seleção em Grupo: pedido marca só a seleção deste participante.
+                    participantId: state.isParticipant ? state.participantId : undefined
+                }),
             });
             const result = await response.json();
             if (!result.success) throw new Error(result.error);
@@ -1680,7 +1710,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearInterval(state.pollingInterval);
         }
         // Polling: desnecessário em galeria pendente (sem seleção a sincronizar) ou quando entregue
-        const isGalleryPending = state.session.mode === 'gallery' && state.session.selectionStatus !== 'delivered';
+        const isGalleryPending = (state.session.mode === 'gallery' || state.session.mode === 'multi_gallery') && state.session.selectionStatus !== 'delivered';
         if (!isGalleryPending && state.session.selectionStatus !== 'delivered') {
             state.pollingInterval = setInterval(() => loadSessionData(true), 15000);
         }
@@ -1713,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (lightboxWatermark) {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const isDelivered = state.session.selectionStatus === 'delivered';
-            const isReady = state.session.mode === 'gallery' || !!photo.urlOriginal;
+            const isReady = state.session.mode === 'gallery' || state.session.mode === 'multi_gallery' || !!photo.urlOriginal;
             const forceWatermark = isDelivered && (!isSelected || !isReady);
             const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, forceWatermark);
             lightboxWatermark.style.cssText = wm.style;
@@ -1802,11 +1832,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.history.replaceState(null, '', cleanUrl);
     }
 
-    // Auto-login: tentar restaurar sessão salva no localStorage; se vier código da URL, logar direto
-    const autoLogged = await tryAutoLogin();
-    if (!autoLogged && codeFromUrl) {
-        // Login automático com o código recebido por email
-        await handleLogin(null);
+    // Auto-login. Regra: se a URL traz um código, ele tem PRIORIDADE sobre o localStorage —
+    // evita reaproveitar a identidade em cache de outro acesso/participante no mesmo navegador
+    // (ex.: link do participante B aberto onde o A já tinha logado). Só usa o cache quando o
+    // código salvo é o mesmo da URL (ou quando não há código na URL — abertura via PWA).
+    let autoLogged = false;
+    if (codeFromUrl) {
+        let savedCode = null;
+        try { savedCode = JSON.parse(localStorage.getItem(LS_KEY) || 'null')?.accessCode || null; } catch (e) { }
+        if (savedCode && savedCode === codeFromUrl) {
+            autoLogged = await tryAutoLogin();
+        }
+        if (!autoLogged) {
+            // Verifica o código da URL e estabelece a identidade correta (sobrescreve o cache).
+            await handleLogin(null);
+            autoLogged = true;
+        }
+    } else {
+        autoLogged = await tryAutoLogin();
     }
 
     photoGrid.addEventListener('click', (e) => {

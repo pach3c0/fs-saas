@@ -17,7 +17,11 @@ export const wizardState = {
   openAtStep: null,
   // Painel direito (configurações): o usuário pode encolhê-lo, mas o wizard sempre
   // abre com ele aberto (resetado em resetWizardState).
-  configCollapsed: false
+  configCollapsed: false,
+  // true quando a sessão foi criada AGORA via card de tipo (rascunho). Permite que o
+  // closeWizard auto-descarte o rascunho se ele for fechado sem nada preenchido.
+  // Nunca apaga sessões antigas: só vale para a sessão recém-criada nesta abertura.
+  freshDraft: false
 };
 
 export function stopWizardPolling() {
@@ -40,4 +44,5 @@ export function resetWizardState() {
   wizardState.pollingLastChangeAt = 0;
   wizardState.openAtStep = null;
   wizardState.configCollapsed = false;
+  wizardState.freshDraft = false;
 }

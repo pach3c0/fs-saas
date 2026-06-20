@@ -267,7 +267,7 @@ export async function renderSessoes(container) {
         /* --- Ações do Card de Sessão (Morph) --- */
         .card-actions-container {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 0.5rem;
             margin-top: 0.75rem;
             padding-top: 0.5rem;
@@ -279,12 +279,12 @@ export async function renderSessoes(container) {
             display: inline-flex !important;
             align-items: center;
             justify-content: center;
-            gap: 0 !important;
+            gap: 0.25rem !important;
             height: 32px !important;
             width: auto !important;
             min-width: 32px !important;
             flex-shrink: 0 !important;
-            padding: 0 !important;
+            padding: 0 0.875rem 0 0.25rem !important;
             margin: 0 !important;
             border: 1px solid var(--border);
             border-radius: 9999px !important;
@@ -293,18 +293,20 @@ export async function renderSessoes(container) {
             white-space: nowrap;
             font-family: inherit;
             font-weight: 500;
-            font-size: 0 !important;
-            line-height: 0 !important;
+            font-size: 0.75rem !important;
+            line-height: 1 !important;
             outline: none;
             position: relative;
             background: var(--bg-base);
             color: var(--text-secondary);
-            transition: background 0.15s, border-color 0.15s, color 0.15s, width 0.3s;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .card-action-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            border-color: var(--text-muted);
+        .card-action-btn:not(.danger):not(.blocked):hover {
+            background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+            color: var(--accent);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
         }
         .card-action-btn .card-action-icon {
             display: flex !important;
@@ -325,20 +327,10 @@ export async function renderSessoes(container) {
         .card-action-btn .card-action-label {
             font-size: 0.75rem !important;
             line-height: 1 !important;
-            max-width: 0;
-            opacity: 0;
-            overflow: hidden;
-            white-space: nowrap;
             display: inline-block;
             vertical-align: middle;
             padding: 0 !important;
             margin: 0 !important;
-            transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .card-action-btn:hover .card-action-label {
-            max-width: 8rem;
-            opacity: 1;
-            padding-right: 0.75rem !important;
         }
 
         .card-action-btn.danger {
@@ -350,6 +342,8 @@ export async function renderSessoes(container) {
             background: var(--red);
             color: #fff;
             border-color: var(--red);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px color-mix(in srgb, var(--red) 30%, transparent);
         }
 
         .card-action-btn.blocked {
@@ -358,9 +352,11 @@ export async function renderSessoes(container) {
             background: color-mix(in srgb, var(--red) 12%, transparent);
         }
         .card-action-btn.blocked:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            border-color: var(--text-muted);
+            background: var(--red);
+            color: #fff;
+            border-color: var(--red);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px color-mix(in srgb, var(--red) 30%, transparent);
         }
     </style>
 
@@ -401,14 +397,6 @@ export async function renderSessoes(container) {
             <option value="za">Nome Z-A</option>
           </select>
         </div>
-
-        <!-- Botão Nova Sessão (Morph) -->
-        <button id="addSessionBtn" class="filter-morph-btn" type="button">
-          <span class="filter-morph-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          </span>
-          <span class="filter-morph-label">Nova Sessão</span>
-        </button>
       </div>
 
       <!-- Painel Deslizante de Filtros Avançados -->
@@ -464,6 +452,7 @@ export async function renderSessoes(container) {
                 <option value="selection">Seleção</option>
                 <option value="multi_selection">Multi-Seleção</option>
                 <option value="gallery">Galeria</option>
+                <option value="multi_gallery">Galeria em Grupo</option>
               </select>
             </div>
           </div>
@@ -488,202 +477,45 @@ export async function renderSessoes(container) {
         </div>
       </div>
 
+      <div id="newSessionCardsPanel" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+        <!-- Card Seleção -->
+        <div class="session-type-card" data-mode="selection" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
+           <div style="color:var(--accent);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Seleção</h4>
+           <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Cliente escolhe suas fotos favoritas para edição.</p>
+        </div>
+        <!-- Card Galeria -->
+        <div class="session-type-card" data-mode="gallery" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
+           <div style="color:var(--purple);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Galeria</h4>
+           <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Fotos finalizadas prontas para visualização e download.</p>
+        </div>
+        <!-- Card Multi-Seleção -->
+        <div class="session-type-card" data-mode="multi_selection" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
+           <div style="color:var(--orange);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Multi-Seleção</h4>
+           <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Formaturas e eventos com múltiplos participantes.</p>
+        </div>
+        <!-- Card Galeria em Grupo -->
+        <div class="session-type-card" data-mode="multi_gallery" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
+           <div style="color:var(--purple);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Galeria em Grupo</h4>
+           <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Entrega direta para vários convidados: cada um vê e baixa tudo, com seu próprio link.</p>
+        </div>
+        <style>
+           .session-type-card:not([data-mode=""]):hover {
+              border-color: var(--accent) !important;
+              transform: translateY(-2px);
+              box-shadow: var(--cz-lift);
+           }
+        </style>
+      </div>
+
       <div id="sessionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
         <p style="color:var(--text-secondary); text-align:center;">Carregando...</p>
       </div>
     </div>
 
-    <!-- Modal Nova Sessao -->
-    <div id="newSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:2rem 1rem;">
-      <div style="background:var(--glass-bg); backdrop-filter:saturate(180%) blur(var(--glass-blur)); -webkit-backdrop-filter:saturate(180%) blur(var(--glass-blur)); border:1px solid var(--border); border-radius:var(--r-card); padding:1.75rem; width:30rem; max-width:100%; display:flex; flex-direction:column; gap:1.25rem; margin:2rem auto; box-shadow: var(--cz-lift); text-align: center;">
-        <h3 style="font-size:1.25rem; font-weight:bold; color:var(--text-primary); letter-spacing:-0.01em; text-align: center; width: 100%;">Nova Sessão</h3>
-
-        <!-- PRIMEIRO: Modo da Sessão -->
-        <div class="input-group" style="margin-bottom:0; text-align: center;">
-          <label style="display: block; text-align: center; width: 100%;">Modo da Sessão <span style="color:var(--red);">*</span></label>
-          <div class="select-wrap">
-            <select id="sessionMode" class="select input" style="text-align: center; text-align-last: center;">
-              <option value="">Escolher modo de sessão</option>
-              <option value="selection">Seleção — cliente escolhe suas favoritas</option>
-              <option value="gallery">Galeria — cliente visualiza e baixa</option>
-              <option value="multi_selection">Multi-seleção — formaturas, shows, eventos</option>
-                  <!-- v2: Multi-Imediata oculta até implementação de face search -->
-                  <!-- <option value="multi_instant">Multi-Imediata — cliente escolhe e baixa na hora (Real-Time)</option> -->
-            </select>
-          </div>
-        </div>
-
-        <!-- Wrapper para campos que serão desabilitados até escolher o modo -->
-        <div id="sessionFieldsWrapper" style="display:flex; flex-direction:column; gap:1rem; opacity:0.4; pointer-events:none; transition:opacity 0.2s;">
-
-          <!-- Campo Cliente (oculto em multi_selection) -->
-          <div id="clientRowWrapper" class="input-group" style="position:relative; margin-bottom:0; text-align: center;">
-            <label style="display: block; text-align: center; width: 100%;">Cliente <span style="color:var(--red);">*</span></label>
-            <input type="text" id="clientSearchInput" class="input" disabled autocomplete="off" placeholder="Busque ou cadastre o cliente..." style="text-align: center;">
-            <input type="hidden" id="sessionClientId" value="">
-            <div id="clientSearchDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-field); z-index:10; max-height:200px; overflow-y:auto; margin-top:2px;"></div>
-            <p id="clientSearchHint" class="input-hint" style="margin-top:0.25rem; text-align: center;"></p>
-          </div>
-
-          <!-- Nome da Sessão -->
-          <div class="input-group" style="margin-bottom:0; text-align: center;">
-            <label style="display: block; text-align: center; width: 100%;">Nome da Sessão <span style="color:var(--red);">*</span></label>
-            <input type="text" id="sessionName" class="input" disabled placeholder="Ex: Ensaio Família Silva ou Formatura Direito 2026" style="text-align: center;">
-          </div>
-
-          <!-- Datas -->
-          <div style="border:1px solid var(--border); border-radius:var(--r-field); background:rgba(0,0,0,0.15); padding:0.75rem; display:flex; flex-direction:column; gap:0.75rem; text-align: center;">
-            <h4 style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin:0; text-align: center;">📅 Datas</h4>
-            <div class="input-group" style="margin-bottom:0; text-align: center;">
-              <label style="display: block; text-align: center; width: 100%;">Criado em</label>
-              <input type="date" id="sessionCreatedAtDate" class="input" disabled style="text-align: center;">
-              <p class="input-hint" style="text-align: center;">Data de abertura da sessão (hoje por padrão).</p>
-            </div>
-            <div class="input-group" style="margin-bottom:0; text-align: center;">
-              <label style="display: block; text-align: center; width: 100%;">Data do Evento</label>
-              <input type="date" id="sessionDate" class="input" disabled style="text-align: center;">
-              <p class="input-hint" style="text-align: center;">Quando o ensaio/evento aconteceu.</p>
-            </div>
-            <div class="input-group" style="margin-bottom:0; text-align: center;">
-              <label id="deadlineLabel" style="display: block; text-align: center; width: 100%;">Prazo de Seleção <span style="color:var(--text-muted);">(opcional)</span></label>
-              <input type="datetime-local" id="sessionDeadline" class="input" disabled style="text-align: center;">
-              <p class="input-hint" style="text-align: center;">Limite para o cliente escolher as fotos. Deve ser após a data do evento.</p>
-            </div>
-            <p id="dateValidationMsg" style="display:none; font-size:0.75rem; color:var(--red); font-weight:500; text-align: center;"></p>
-          </div>
-
-          <!-- Foto de Capa -->
-          <div class="input-group" style="margin-bottom:0; display:flex; flex-direction:column; align-items:center; text-align:center;">
-            <label style="display: block; text-align: center; width: 100%;">Foto de Capa</label>
-            <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-top:0.25rem;">
-              <div id="coverPreview" style="width:80px; height:80px; background:var(--bg-base); border:1px dashed var(--border); border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-                <span style="color:var(--text-muted); font-size:0.625rem;">Sem capa</span>
-              </div>
-              <label class="btn btn-sm" style="margin:0; cursor:pointer;">
-                Upload
-                <input type="file" accept=".jpg,.jpeg,.png" id="coverInput" style="display:none;" disabled>
-              </label>
-              <div id="coverProgress" style="text-align: center;"></div>
-            </div>
-            <input type="hidden" id="sessionCoverPhoto" value="">
-          </div>
-
-          <!-- Config avançada movida para o painel direito do wizard (visível após criar).
-               Mantida no DOM (oculta) só para alimentar os valores-padrão no payload de criação. -->
-          <div id="advancedConfigHidden" style="display:none;">
-          <!-- Configuração da Galeria -->
-          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Configuração da Galeria</h4>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Resolução do preview (grid de visualização)</label>
-              <div class="select-wrap">
-                <select id="sessionResolution" class="select input" disabled>
-                  <option value="960">960px — menor armazenamento (ideal para muitos eventos)</option>
-                  <option value="1200" selected>1200px — padrão (equilíbrio)</option>
-                  <option value="1400">1400px — alta qualidade</option>
-                  <option value="1600">1600px — máxima qualidade (mais armazenamento)</option>
-                </select>
-              </div>
-              <p class="input-hint">Afeta apenas a miniatura exibida no grid. A entrega usa a resolução original do arquivo subido. Não pode ser alterado após a criação.</p>
-            </div>
-            <div id="selectionFields" style="display:flex; gap:0.75rem;">
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Fotos do pacote</label>
-                <input type="number" id="sessionLimit" class="input" value="30" min="1" disabled>
-              </div>
-              <div class="input-group" style="flex:1; margin-bottom:0;">
-                <label>Preço foto extra (R$)</label>
-                <input type="number" id="sessionExtraPrice" class="input" value="25" min="0" step="0.01" disabled>
-              </div>
-            </div>
-            <div id="extraConfigFields" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionAllowExtraPurchase" checked class="check" disabled>
-                <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar venda de fotos extras</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionAllowReopen" checked class="check" disabled>
-                <span style="color:var(--text-primary); font-size:0.875rem;">Permitir pedido de reabertura</span>
-              </label>
-            </div>
-            <div id="commentsConfigField" style="display:none; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionCommentsEnabled" class="check" disabled>
-                <span style="color:var(--text-primary); font-size:0.875rem;">Habilitar mensagens por foto</span>
-              </label>
-              <p class="input-hint" style="margin:0 0 0 1.5rem;">O cliente poderá comentar em cada foto durante a seleção. Você responde diretamente no painel.</p>
-            </div>
-            <div id="multiOptionsField" style="display:none; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionShowQueuePosition" class="check" disabled>
-                <span style="color:var(--text-primary); font-size:0.875rem;">Mostrar posição na fila de entrega</span>
-              </label>
-              <p class="input-hint" style="margin:0 0 0 1.5rem;">Cada participante vê quantos estão à sua frente. Gatilho de urgência: incentiva o cliente a finalizar logo para ser entregue antes.</p>
-            </div>
-            <p id="multiSelectionHint" style="display:none; font-size:0.75rem; color:var(--yellow); margin-top:0.5rem;">No modo Multi-Seleção, você adicionará os participantes após criar a sessão.</p>
-          </div>
-
-          <!-- CRM: classificacao + automacao de vendas -->
-          <div id="crmFields" style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">CRM e Vendas</h4>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Tipo de Evento</label>
-              <div class="select-wrap">
-                <select id="sessionEventType" class="select input" disabled>
-                  <option value="outro">Outro</option>
-                  <option value="aniversario">Aniversário</option>
-                  <option value="casamento">Casamento</option>
-                  <option value="formatura">Formatura</option>
-                  <option value="corporativo">Corporativo</option>
-                  <option value="show">Show</option>
-                  <option value="ensaio">Ensaio</option>
-                  <option value="gestante">Gestante</option>
-                  <option value="newborn">Newborn</option>
-                  <option value="debutante">Debutante</option>
-                  <option value="batizado">Batizado</option>
-                </select>
-              </div>
-              <p class="input-hint">Categoria do evento para relatórios e filtros.</p>
-            </div>
-            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-              <input type="checkbox" id="sessionSalesAutomation" checked class="check" disabled>
-              <span style="color:var(--text-primary); font-size:0.875rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="bot" style="width:16px; height:16px;"></i> Automação de vendas (escassez)</span>
-            </label>
-            <p class="input-hint" style="margin:0;">O robô envia e-mails de urgência ao cliente conforme o prazo se aproxima. Requer ativar a automação na configuração da organização.</p>
-          </div>
-
-          <!-- Retenção de storage -->
-          <div style="border-top:1px solid var(--border); padding-top:1rem; display:flex; flex-direction:column; gap:0.75rem;">
-            <h4 style="font-size:0.875rem; font-weight:600; color:var(--text-primary); margin:0;">Armazenamento</h4>
-            <div class="input-group" style="margin-bottom:0;">
-              <label>Guardar fotos no storage até</label>
-              <input type="date" id="sessionStorageRetentionUntil" class="input" disabled>
-              <p class="input-hint">Deixe em branco para guardar sem prazo. Quando a data chegar, você receberá uma notificação para decidir o que fazer.</p>
-            </div>
-            <div id="storageAutoDeleteField" style="display:none; flex-direction:column; gap:0.5rem;">
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionStorageAutoDelete" class="check">
-                <span style="color:var(--text-primary); font-size:0.875rem;">Deletar automaticamente nesta data</span>
-              </label>
-              <p class="input-hint" style="margin:0 0 0 1.5rem;">As fotos (exceto a capa) serão excluídas do servidor automaticamente. Use somente se tiver certeza de que não precisará das originais.</p>
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                <input type="checkbox" id="sessionStorageBackupOnExpire" class="check">
-                <span style="color:var(--text-primary); font-size:0.875rem;">Gerar backup ZIP antes de deletar</span>
-              </label>
-              <p class="input-hint" style="margin:0 0 0 1.5rem;">Gera um arquivo .zip com todas as fotos no servidor antes da exclusão. Útil para ter uma cópia local de segurança.</p>
-            </div>
-          </div>
-          </div>
-          <!-- /advancedConfigHidden -->
-
-        </div>
-
-        <div style="display:flex; gap:0.5rem; justify-content:center;">
-          <button id="cancelNewSession" class="btn">Cancelar</button>
-          <button id="confirmNewSession" class="btn">Criar Sessão</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Modal Ver Fotos (Dual Grid) -->
     <div id="sessionPhotosModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:50; flex-direction:column;">
@@ -783,12 +615,16 @@ export async function renderSessoes(container) {
                     <input type="text" id="newPartName" class="input" placeholder="Buscar cliente ou digitar nome" style="border-radius:var(--r-field); height:36px;">
                     <div id="partClientDropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-field); z-index:200; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
                     <input type="hidden" id="newPartClientId">
+                    <input type="hidden" id="newPartPhone">
                 </div>
                 <div style="flex:1; min-width:150px;">
                     <input type="email" id="newPartEmail" class="input" placeholder="Email (opcional)" style="border-radius:var(--r-field); height:36px;">
                 </div>
-                <div style="flex:1; min-width:100px;">
-                    <input type="number" id="newPartLimit" class="input" placeholder="Limite" value="30" style="border-radius:var(--r-field); height:36px;">
+                <div style="flex:1; min-width:90px;">
+                    <input type="number" id="newPartLimit" class="input" placeholder="Fotos" title="Fotos do pacote deste participante" min="1" style="border-radius:var(--r-field); height:36px;">
+                </div>
+                <div style="flex:1; min-width:90px;">
+                    <input type="number" id="newPartPrice" class="input" placeholder="Foto extra R$" title="Preço da foto extra deste participante" min="0" step="0.01" style="border-radius:var(--r-field); height:36px;">
                 </div>
                 <button id="addParticipantBtn" class="btn btn-primary" style="border-radius:var(--r-field); height:36px; padding: 0 1.5rem;">Adicionar</button>
             </div>
@@ -814,6 +650,11 @@ export async function renderSessoes(container) {
           </div>
         </div>
         <div id="commentsList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.75rem; min-height:200px; max-height:400px; background:rgba(0,0,0,0.15); padding:1rem; border-radius:var(--r-field); border:1px solid var(--border);"></div>
+        <!-- Seleção em Grupo: escolhe de qual participante é a conversa (só ele vê a resposta). -->
+        <div id="commentsParticipantRow" style="display:none; flex-direction:column; gap:0.25rem;">
+            <label style="font-size:0.75rem; color:var(--text-secondary); font-weight:500;">Conversa com</label>
+            <select id="adminCommentParticipant" class="input" style="width:100%;"></select>
+        </div>
         <div style="display:flex; gap:0.5rem;">
             <input type="text" id="adminCommentInput" class="input" placeholder="Escreva uma resposta..." style="flex:1;">
             <button id="sendAdminCommentBtn" class="btn btn-primary">Enviar</button>
@@ -879,6 +720,7 @@ export async function renderSessoes(container) {
       toggleBtn.classList.toggle('active', isOpen);
     });
   }
+
 
   // 3. Atualizar texto do label de ordenação conforme select
   const filterSort = container.querySelector('#filterSort');

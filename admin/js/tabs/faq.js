@@ -77,7 +77,7 @@ export async function renderFaq(container) {
     <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
       <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
         <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Perguntas Frequentes</h3>
-        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Gerencie as dúvidas comuns dos seus clientes.</p>
+        <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Gerencie as dúvidas comuns dos seus clientes.</p>
       </div>
 
       <div style="display:flex; justify-content:center; width:100%; margin-bottom:1.5rem;">
@@ -96,7 +96,7 @@ export async function renderFaq(container) {
     html += `
       <div class="faq-editor-card" data-faq-card="${idx}" style="border:1px solid var(--border); border-radius:0.75rem; background:var(--bg-elevated); padding:0; display:flex; flex-direction:column; position:relative;">
         <div class="faq-editor-header" style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem 1rem; border-bottom:1px solid var(--border); background:var(--bg-surface);">
-          <span class="drag-handle" style="cursor:grab; color:#9ca3af; flex-shrink:0;" title="Arraste para reordenar">
+          <span class="drag-handle" style="cursor:grab; color:var(--text-muted); flex-shrink:0;" title="Arraste para reordenar">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="lucide lucide-grip-vertical"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
           </span>
           <div class="faq-q-wrap" style="flex:1;">
@@ -108,7 +108,7 @@ export async function renderFaq(container) {
           </button>
         </div>
         <div class="faq-answer-wrap" style="padding:0.75rem 1rem;">
-          <div style="font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.375rem;">Resposta</div>
+          <div style="font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.375rem;">Resposta</div>
           <div id="faqAWrap_${idx}"></div>
           <textarea id="faqA_${idx}" style="display:none;" data-faq-answer="${idx}">${item.answer || ''}</textarea>
         </div>

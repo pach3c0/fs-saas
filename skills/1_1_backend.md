@@ -287,3 +287,17 @@ const org = await Organization.findOne({ slug }).select('_id siteTheme').lean();
 | Upload 413 | Payload grande | Verificar `client_max_body_size` no Nginx |
 | Servidor trava sob carga | `fs.readdirSync`/`fs.statSync` em rota | Migrar para `fs.promises.*` async |
 | TTFB alto no site público | Query dupla para resolver tenant + siteTheme | Usar `.select('_id siteTheme').lean()` na mesma query |
+
+---
+
+## GOTCHAS DE MANUTENÇÃO (Auditoria Dia 2 — 2026-06)
+
+- **Route names não óbvios:** `GET /api/organization/profile` (não `/api/organization`), `GET /api/billing/subscription` (não `/api/billing/plan`), login em `POST /api/login` (não `/api/auth/login`)
+- **`resolveTenant` em produção:** lê tenant SOMENTE por subdomínio ou `customDomain`. O header `x-tenant` é **ignorado** em produção. O parâmetro `_tenant` só funciona em localhost/preview. Rotas de cliente precisam de subdomínio válido (ex: `cliente.cliquezoom.com.br`).
+- **Domínio customizado na raiz (`/`):** rota raiz do `server.js` detecta se a requisição vem de `customDomain` registrado no MongoDB e redireciona com 301 para `/site`. Nginx: arquivos `.bak` em `sites-enabled/` causam conflitos — mova para `sites-available/`.
+- **DELETE idempotente:** `DELETE /api/sessions/:id` retorna `{success:true}` mesmo se a sessão não existe — comportamento intencional.
+- **Inconsistência de campos (uniformizado):** `POST /site/contact` usa `nome`/`mensagem`; `POST /site/depoimento` usa `nome`/`texto` no front, armazenado como `name`/`text` internamente.
+- **Limite de upload:** Express JSON limitado a `5MB`; Multer (multipart) permite até `10MB` por arquivo — são middlewares separados.
+- **Mongoose `returnDocument`:** usar `returnDocument: 'after'` em vez do depreciado `new: true` no `findOneAndUpdate`.
+- **Schedulers só no worker 0:** checar `process.env.NODE_APP_INSTANCE === '0'` antes de rodar crons para evitar envios duplicados em cluster PM2.
+

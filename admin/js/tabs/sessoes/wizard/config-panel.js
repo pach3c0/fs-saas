@@ -5,12 +5,13 @@
 //
 // Salva via PUT /api/sessions/:id (pass-through) e usa a sessão retornada como verdade.
 
-import { apiPut } from '../../../utils/api.js';
+import { apiPut, apiGet } from '../../../utils/api.js';
 import { uploadImage } from '../../../utils/upload.js';
-import { resolveImagePath } from '../../../utils/helpers.js';
+import { resolveImagePath, escapeHtml } from '../../../utils/helpers.js';
 import { appState } from '../../../state.js';
 import { wizardState } from './state.js';
 import { icon } from '../../../utils/icons.js';
+import { setupClientModal, abrirModalClienteNovo } from '../../../utils/client-modal.js';
 
 const EVENT_OPTIONS = [
   ['outro', 'Outro'], ['aniversario', 'Aniversário'], ['casamento', 'Casamento'],
@@ -18,7 +19,6 @@ const EVENT_OPTIONS = [
   ['ensaio', 'Ensaio'], ['gestante', 'Gestante'], ['newborn', 'Newborn'],
   ['debutante', 'Debutante'], ['batizado', 'Batizado'],
 ];
-const MODE_OPTIONS = [['selection', 'Seleção'], ['gallery', 'Galeria'], ['multi_selection', 'Multi-Seleção']];
 const RES_OPTIONS = [['960', '960px'], ['1200', '1200px (padrão)'], ['1400', '1400px'], ['1600', '1600px']];
 
 const INPUT_CSS = 'width:100%; background:var(--bg-base); border:1px solid var(--border); border-radius:var(--r-field); padding:0.375rem 0.5rem; color:var(--text-primary); font-size:0.8125rem; font-family:inherit; text-align:center; text-align-last:center;';
@@ -34,7 +34,7 @@ function estado(session) {
 
 // Barra encolhida: trilho estreito com botão de expandir. O wizard sempre abre com
 // o painel aberto (wizardState.configCollapsed reseta ao abrir/fechar).
-function renderCollapsedRail(onToggleCollapse) {
+function renderCollapsedRail(onToggleCollapse, onClose) {
   const rail = document.createElement('aside');
   rail.id = 'wizardConfigPanel';
   rail.style.cssText = `
@@ -46,6 +46,24 @@ function renderCollapsedRail(onToggleCollapse) {
     display: flex; flex-direction: column; align-items: center; gap: 0.875rem;
     padding: 0.875rem 0;
   `;
+
+  // Botão fechar — sempre visível mesmo com painel encolhido
+  if (onClose) {
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.title = 'Fechar';
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+      background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+      width: 32px; height: 32px; border-radius: var(--r-field); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.875rem;
+      transition: background 0.15s;
+    `;
+    closeBtn.onmouseenter = () => { closeBtn.style.background = 'var(--bg-hover)'; };
+    closeBtn.onmouseleave = () => { closeBtn.style.background = 'transparent'; };
+    closeBtn.onclick = onClose;
+    rail.appendChild(closeBtn);
+  }
 
   const expand = document.createElement('button');
   expand.type = 'button';
@@ -81,12 +99,17 @@ function renderCollapsedRail(onToggleCollapse) {
 // onChange() é chamado após salvar um campo "impactante" (que altera passo/stepper):
 // modo, resolução, pacote, nome. Os demais salvam inline sem re-renderizar o wizard.
 // onToggleCollapse() re-renderiza só este slot quando o usuário encolhe/expande o painel.
-export function renderConfigPanel({ session, onChange, onToggleCollapse }) {
-  if (wizardState.configCollapsed) return renderCollapsedRail(onToggleCollapse);
+// onBlock/onHistory/onDelete/onClose são callbacks de ação passados do wizard/index.js.
+export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock, onHistory, onDelete, onClose }) {
+  if (wizardState.configCollapsed) return renderCollapsedRail(onToggleCollapse, onClose);
 
-  const isGallery = session.mode === 'gallery';
+  // isGallery = "gallery-like" (entrega direta, sem seleção): Galeria e Galeria em Grupo.
+  // isMulti = tem participantes (cada um com código): Seleção em Grupo, Multi-Instant e Galeria em Grupo.
+  // isMultiSelection = multi COM etapa de seleção (exclui Galeria em Grupo).
+  const isGallery = session.mode === 'gallery' || session.mode === 'multi_gallery';
   const isSelection = session.mode === 'selection';
-  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant' || session.mode === 'multi_gallery';
+  const isMultiSelection = session.mode === 'multi_selection' || session.mode === 'multi_instant';
   const st = estado(session);
 
   const panel = document.createElement('aside');
@@ -100,6 +123,110 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse }) {
     overflow-y: auto; padding: 1.25rem 1rem;
     display: flex; flex-direction: column; gap: 0.875rem;
   `;
+
+  // ===== TOPO DA SIDEBAR: modo, nome e ações da sessão =====
+  const MODE_META = {
+    selection:       { label: 'Seleção',          color: 'var(--green)' },
+    gallery:         { label: 'Galeria',           color: 'var(--purple)' },
+    multi_selection: { label: 'Seleção em Grupo',  color: 'var(--orange)' },
+    multi_instant:   { label: 'Seleção em Grupo',  color: 'var(--orange)' },
+    multi_gallery:   { label: 'Galeria em Grupo',  color: 'var(--purple)' },
+  };
+  const _mode = MODE_META[session.mode] || { label: session.mode || '—', color: 'var(--text-muted)' };
+
+  // Linha 1: badge de modo + nome da sessão
+  const nameRow = document.createElement('div');
+  nameRow.style.cssText = 'display:flex; align-items:center; gap:0.5rem; min-width:0;';
+
+  const modeBadge = document.createElement('span');
+  modeBadge.textContent = _mode.label;
+  modeBadge.style.cssText = `
+    background: color-mix(in srgb, ${_mode.color} 15%, transparent);
+    border: 1px solid color-mix(in srgb, ${_mode.color} 35%, transparent);
+    color: ${_mode.color};
+    font-size: 0.625rem; font-weight: 700; padding: 0.1rem 0.45rem;
+    border-radius: var(--r-chip); white-space: nowrap; flex-shrink: 0;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  `;
+  nameRow.appendChild(modeBadge);
+
+  const nameEl = document.createElement('span');
+  nameEl.textContent = session.name || 'Sessão';
+  nameEl.title = session.name || 'Sessão';
+  nameEl.style.cssText = 'font-size:0.875rem; font-weight:700; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;';
+  nameRow.appendChild(nameEl);
+  panel.appendChild(nameRow);
+
+  // Linha 2: botões de ação compactos
+  const mkActionBtn = (glyphHtml, label, onClick, extra = {}) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.title = label;
+    const { color = 'var(--text-secondary)', bg = 'var(--bg-base)', border = 'var(--border)' } = extra;
+    b.style.cssText = `
+      display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer;
+      background:${bg}; border:1px solid ${border}; color:${color};
+      border-radius:var(--r-field); padding:0.3rem 0.55rem;
+      font-size:0.75rem; transition:background 0.15s; white-space:nowrap; flex:1;
+      justify-content:center;
+    `;
+    b.onmouseenter = () => { b.style.background = `color-mix(in srgb, ${bg === 'var(--bg-base)' ? 'var(--accent)' : bg} 12%, var(--bg-hover))`; };
+    b.onmouseleave = () => { b.style.background = bg; };
+    const iconSpan = document.createElement('span');
+    if (glyphHtml.trim().startsWith('<svg')) {
+      iconSpan.innerHTML = glyphHtml;
+      const svg = iconSpan.querySelector('svg');
+      if (svg) { svg.setAttribute('width', '14'); svg.setAttribute('height', '14'); svg.style.display = 'block'; }
+    } else {
+      iconSpan.textContent = glyphHtml;
+    }
+    iconSpan.style.cssText = 'display:flex; align-items:center; flex-shrink:0;';
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = label;
+    b.appendChild(iconSpan);
+    b.appendChild(labelSpan);
+    b.onclick = onClick;
+    return b;
+  };
+
+  const actionsRow = document.createElement('div');
+  actionsRow.style.cssText = 'display:flex; gap:0.25rem; flex-wrap:wrap;';
+
+  if (onBlock) {
+    const isBlocked = Boolean(session.clientAccessBlocked);
+    actionsRow.appendChild(mkActionBtn(
+      icon(isBlocked ? 'cadeado' : 'cadeadoAberto', 14),
+      isBlocked ? 'Liberar' : 'Bloquear',
+      onBlock,
+      isBlocked ? { color: 'var(--red)', border: 'color-mix(in srgb, var(--red) 30%, transparent)', bg: 'color-mix(in srgb, var(--red) 8%, transparent)' } : {}
+    ));
+  }
+  if (onHistory) {
+    const isHist = wizardState.currentStepId === 'history';
+    actionsRow.appendChild(mkActionBtn(
+      icon('historico', 14),
+      'Histórico',
+      onHistory,
+      isHist ? { bg: 'color-mix(in srgb, var(--accent) 10%, var(--bg-base))', border: 'var(--accent)' } : {}
+    ));
+  }
+  if (onDelete) {
+    actionsRow.appendChild(mkActionBtn(
+      icon('lixeira', 14),
+      'Excluir',
+      onDelete,
+      { color: 'var(--red)', border: 'color-mix(in srgb, var(--red) 25%, transparent)', bg: 'color-mix(in srgb, var(--red) 5%, transparent)' }
+    ));
+  }
+  if (onClose) {
+    actionsRow.appendChild(mkActionBtn('✕', 'Fechar', onClose));
+  }
+  panel.appendChild(actionsRow);
+
+  // Separador antes das configurações
+  const sep = document.createElement('div');
+  sep.style.cssText = 'height:1px; background:var(--border);';
+  panel.appendChild(sep);
 
   // Cabeçalho + status "✓ salvo"
   const head = document.createElement('div');
@@ -263,6 +390,128 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse }) {
     return outer;
   };
 
+  // Cliente — busca no Rhyno (CRM principal) + cadastrar novo. Vive na sidebar (não na
+  // criação): a sessão nasce sem cliente e o vínculo acontece aqui. O cliente só é exigido
+  // no passo Compartilhar (back retorna 400 sem cliente). Multi não usa este campo
+  // (cada participante tem o seu) — chamado só em selection/gallery.
+  const clientField = () => {
+    let linkedName = session.clientName || '';
+    let linkedEmail = session.clientEmail || '';
+    const hasClient = !!(session.clientId || session.rhynoCustomerId || session.clientEmail);
+
+    const w = document.createElement('div');
+    w.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem; align-items:center; text-align:center; width:100%;';
+    const l = document.createElement('label');
+    l.textContent = 'Cliente';
+    l.style.cssText = 'font-size:0.75rem; font-weight:500; color:var(--text-secondary); text-align:center; width:100%;';
+    w.appendChild(l);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'width:100%; position:relative;';
+    w.appendChild(body);
+
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.625rem; color:var(--text-muted); line-height:1.3; text-align:center; width:100%;';
+    w.appendChild(note);
+
+    // Salva o vínculo e re-renderiza o wizard (impactful) para refletir o cliente.
+    async function linkClient(c) {
+      const patch = { clientEmail: c.email || '', clientName: c.name || '', clientPhone: c.phone || '' };
+      if (String(c._id).startsWith('rhyno:')) {
+        patch.rhynoCustomerId = String(c._id).slice(6);
+        patch.clientId = null;
+      } else {
+        patch.clientId = c._id;
+        patch.rhynoCustomerId = null;
+      }
+      // Se o nome ainda é o padrão do rascunho, adota o nome do cliente.
+      if ((!session.name || session.name.trim() === 'Nova sessão') && c.name) patch.name = c.name;
+      await salvar(patch, { impactful: true });
+    }
+
+    function renderLinked() {
+      body.innerHTML = '';
+      const box = document.createElement('div');
+      box.style.cssText = 'display:flex; flex-direction:column; gap:0.15rem; align-items:center; background:var(--bg-base); border:1px solid var(--border); border-radius:var(--r-field); padding:0.4rem 0.5rem; width:100%;';
+      const nm = document.createElement('div');
+      nm.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-primary);';
+      nm.textContent = linkedName || linkedEmail || 'Cliente vinculado';
+      box.appendChild(nm);
+      if (linkedEmail) {
+        const em = document.createElement('div');
+        em.style.cssText = 'font-size:0.6875rem; color:var(--text-muted);';
+        em.textContent = linkedEmail;
+        box.appendChild(em);
+      }
+      const change = document.createElement('button');
+      change.type = 'button';
+      change.textContent = 'Trocar cliente';
+      change.style.cssText = 'background:none; border:none; color:var(--accent); font-size:0.6875rem; cursor:pointer; padding:0.1rem;';
+      change.onclick = renderSearch;
+      box.appendChild(change);
+      body.appendChild(box);
+      note.textContent = '';
+    }
+
+    function renderDropdown(dd, clients, query) {
+      dd.innerHTML = '';
+      clients.forEach(c => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:0.4rem 0.6rem; cursor:pointer; color:var(--text-primary); font-size:0.8125rem; border-top:1px solid var(--border);';
+        item.innerHTML = `<strong>${escapeHtml(c.name)}</strong>${c.email ? `<span style="color:var(--text-muted); font-size:0.6875rem;"> · ${escapeHtml(c.email)}</span>` : ''}`;
+        item.onmouseenter = () => { item.style.background = 'var(--bg-hover)'; };
+        item.onmouseleave = () => { item.style.background = ''; };
+        item.onclick = () => linkClient(c);
+        dd.appendChild(item);
+      });
+      if (query.trim()) {
+        const criar = document.createElement('div');
+        criar.style.cssText = 'padding:0.4rem 0.6rem; cursor:pointer; color:var(--accent); font-size:0.8125rem; border-top:1px solid var(--border); font-weight:500;';
+        criar.textContent = `+ Cadastrar "${query.trim()}"`;
+        criar.onmouseenter = () => { criar.style.background = 'var(--bg-hover)'; };
+        criar.onmouseleave = () => { criar.style.background = ''; };
+        criar.onclick = () => {
+          dd.style.display = 'none';
+          setupClientModal();
+          abrirModalClienteNovo(query.trim(), (nc) => linkClient(nc), { target: 'rhyno' });
+        };
+        dd.appendChild(criar);
+      }
+      dd.style.display = 'block';
+    }
+
+    function renderSearch() {
+      body.innerHTML = '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Buscar ou cadastrar cliente...';
+      input.autocomplete = 'off';
+      input.style.cssText = INPUT_CSS;
+      body.appendChild(input);
+      const dd = document.createElement('div');
+      dd.style.cssText = 'display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-field); z-index:20; max-height:200px; overflow-y:auto; margin-top:2px; text-align:left;';
+      body.appendChild(dd);
+      note.textContent = 'Exigido só na hora de compartilhar o código.';
+
+      let timer = null;
+      input.oninput = () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (!q) { dd.style.display = 'none'; return; }
+        timer = setTimeout(async () => {
+          try {
+            const data = await apiGet(`/api/gestao/customers?search=${encodeURIComponent(q)}`);
+            renderDropdown(dd, data.clients || [], q);
+          } catch (_) { /* silencioso */ }
+        }, 300);
+      };
+      setTimeout(() => input.focus(), 30);
+    }
+
+    if (hasClient) renderLinked(); else renderSearch();
+    return w;
+  };
+
   // Foto de capa — upload inline com autosave. Era a única coisa que vivia só no modal
   // de edição antigo (já removido); agora a capa se configura na criação e aqui.
   const coverField = () => {
@@ -337,50 +586,86 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse }) {
   panel.appendChild(grupo('Geral'));
 
   panel.appendChild(field('Nome da sessão', textCtl('name', session.name, { impactful: true })));
+  if (!isMulti) panel.appendChild(clientField());
   panel.appendChild(coverField());
 
-  panel.appendChild(field('Modo',
-    selectCtl('mode', session.mode, MODE_OPTIONS, { locked: st.submitted, impactful: true }),
-    { lockMsg: st.submitted ? 'O modo trava após o cliente enviar a seleção.' : undefined }
-  ));
+  // O modo NÃO é editável aqui: foi escolhido no card de criação. O tipo aparece como
+  // etiqueta read-only no header do wizard (ver buildHeader em wizard/index.js).
+
+  // Data do evento — grava em `date` e `eventDate` (o modal antigo setava os dois).
+  const eventDateVal = session.date
+    ? new Date(session.date).toISOString().slice(0, 10)
+    : (session.eventDate ? new Date(session.eventDate).toISOString().slice(0, 10) : '');
+  const eventDateInput = document.createElement('input');
+  eventDateInput.type = 'date';
+  eventDateInput.dataset.cfg = 'date';
+  eventDateInput.value = eventDateVal;
+  eventDateInput.style.cssText = INPUT_CSS;
+  eventDateInput.onchange = () => salvar({ date: eventDateInput.value || null, eventDate: eventDateInput.value || null });
+  panel.appendChild(field('Data do evento', eventDateInput, { hint: 'Quando o ensaio/evento aconteceu.' }));
 
   const deadlineVal = session.selectionDeadline ? new Date(session.selectionDeadline).toISOString().slice(0, 16) : '';
   panel.appendChild(field(isGallery ? 'Prazo de acesso' : 'Prazo de seleção',
-    dateCtl('selectionDeadline', deadlineVal, 'datetime-local')
+    dateCtl('selectionDeadline', deadlineVal, 'datetime-local'),
+    { hint: 'Deve ser após a data do evento.' }
   ));
 
   if (!isGallery) {
     panel.appendChild(field('Tipo de evento', selectCtl('eventType', session.eventType || 'outro', EVENT_OPTIONS)));
   }
 
-  panel.appendChild(field('Resolução do preview',
-    selectCtl('photoResolution', String(session.photoResolution || 1200), RES_OPTIONS, { locked: st.hasPhotos, impactful: true }),
-    st.hasPhotos
-      ? { lockMsg: 'Trava após o 1º upload — fotos já enviadas não são reprocessadas.' }
-      : { hint: 'Tamanho da miniatura que o cliente vê no grid.' }
-  ));
+  // Resolução do preview: vale para Seleção e Seleção em Grupo (preview baixo → entrega alta).
+  // Só a Galeria não usa, pois entrega o arquivo original direto.
+  if (!isGallery) {
+    panel.appendChild(field('Resolução do preview',
+      selectCtl('photoResolution', String(session.photoResolution || 1200), RES_OPTIONS, { locked: st.hasPhotos, impactful: true }),
+      st.hasPhotos
+        ? { lockMsg: 'Trava após o 1º upload — fotos já enviadas não são reprocessadas.' }
+        : { hint: 'Tamanho da miniatura que o cliente vê no grid.' }
+    ));
+  }
 
   panel.appendChild(checkRow('watermark', session.watermark !== false, "Ativar marca d'água", {
     hint: "Protege visualmente as fotos da sessão"
   }));
 
-  // ===== SELEÇÃO =====
-  if (isSelection) {
-    panel.appendChild(grupo('Seleção'));
-    const minPkg = Math.max(1, st.selectedCount);
-    panel.appendChild(field('Fotos do pacote',
-      numberCtl('packageLimit', session.packageLimit || 30, { locked: st.delivered, impactful: true, min: minPkg }),
-      st.delivered
-        ? { lockMsg: 'Trava após a entrega.' }
-        : (st.selectedCount > 0 ? { hint: `Mínimo ${minPkg} — o cliente já escolheu ${st.selectedCount}.` } : undefined)
+  // ===== SELEÇÃO / SELEÇÃO EM GRUPO =====
+  // Os dois modos usam pacote + valores de fotos. A diferença: na Seleção individual o
+  // packageLimit é o limite do cliente (com lock pós-entrega); no multi ele é o padrão
+  // de fotos por participante (cada participante pode ter o seu ao ser cadastrado).
+  if (isSelection || isMultiSelection) {
+    panel.appendChild(grupo(isMulti ? 'Seleção em Grupo' : 'Seleção'));
+    if (isMulti) {
+      panel.appendChild(field('Fotos do pacote (padrão)',
+        numberCtl('packageLimit', session.packageLimit || 30, { impactful: true, min: 1 }),
+        { hint: 'Padrão por participante — cada um pode ter um limite próprio ao ser cadastrado.' }
+      ));
+    } else {
+      const minPkg = Math.max(1, st.selectedCount);
+      panel.appendChild(field('Fotos do pacote',
+        numberCtl('packageLimit', session.packageLimit || 30, { locked: st.delivered, impactful: true, min: minPkg }),
+        st.delivered
+          ? { lockMsg: 'Trava após a entrega.' }
+          : (st.selectedCount > 0 ? { hint: `Mínimo ${minPkg} — o cliente já escolheu ${st.selectedCount}.` } : undefined)
+      ));
+    }
+    panel.appendChild(field(isMulti ? 'Preço foto extra (padrão)' : 'Preço foto extra (R$)',
+      numberCtl('extraPhotoPrice', session.extraPhotoPrice ?? 25, { min: 0, step: 0.01 }),
+      isMulti ? { hint: 'Padrão por participante — pode ser ajustado ao cadastrar cada um.' } : undefined
     ));
-    panel.appendChild(field('Preço foto extra (R$)', numberCtl('extraPhotoPrice', session.extraPhotoPrice ?? 25, { min: 0, step: 0.01 })));
     panel.appendChild(checkRow('allowExtraPurchasePostSubmit', session.allowExtraPurchasePostSubmit !== false, 'Permitir venda de fotos extras'));
     panel.appendChild(checkRow('allowReopen', session.allowReopen !== false, 'Permitir pedido de reabertura'));
   }
 
-  if (isSelection || isMulti) {
+  if (isSelection || isMultiSelection) {
     panel.appendChild(checkRow('commentsEnabled', session.commentsEnabled !== false, 'Mensagens por foto'));
+  }
+
+  // Seleção em Grupo: cada participante pode ver sua posição na fila de entrega (urgência).
+  if (isMultiSelection) {
+    panel.appendChild(checkRow('showDeliveryQueuePosition', Boolean(session.showDeliveryQueuePosition), 'Mostrar posição na fila', {
+      hint: 'Cada participante vê quantos estão à frente — incentiva finalizar logo.'
+    }));
   }
 
   // ===== VENDAS (não em galeria) =====
@@ -391,20 +676,6 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse }) {
       hint: 'Robô envia e-mails de urgência conforme o prazo se aproxima.',
     }));
   }
-
-  // ===== ARMAZENAMENTO =====
-  panel.appendChild(grupo('Armazenamento'));
-  const retVal = session.storageRetentionUntil ? new Date(session.storageRetentionUntil).toISOString().slice(0, 10) : '';
-  const autoDelBlock = document.createElement('div');
-  autoDelBlock.style.cssText = `display:${retVal ? 'flex' : 'none'}; flex-direction:column; gap:0.5rem; margin-top:0.25rem;`;
-  autoDelBlock.appendChild(checkRow('storageAutoDelete', Boolean(session.storageAutoDelete), 'Deletar automaticamente nessa data'));
-  autoDelBlock.appendChild(checkRow('storageBackupOnExpire', Boolean(session.storageBackupOnExpire), 'Gerar backup ZIP antes de deletar'));
-
-  panel.appendChild(field('Guardar fotos até',
-    dateCtl('storageRetentionUntil', retVal, 'date', { onLocalChange: (v) => { autoDelBlock.style.display = v ? 'flex' : 'none'; } }),
-    { hint: 'Em branco = sem prazo. Você é avisado quando a data chegar.' }
-  ));
-  panel.appendChild(autoDelBlock);
 
   return panel;
 }

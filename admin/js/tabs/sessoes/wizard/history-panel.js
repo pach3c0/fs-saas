@@ -64,7 +64,7 @@ function _buildMeta(event) {
   switch (type) {
     case 'session_created':
       if (meta.mode) {
-        const modeLabel = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Multi-Seleção' }[meta.mode] || meta.mode;
+        const modeLabel = { selection: 'Seleção', gallery: 'Galeria', multi_selection: 'Seleção em Grupo' }[meta.mode] || meta.mode;
         parts.push(`Modo: ${modeLabel}`);
       }
       if (meta.packageLimit) parts.push(`Pacote: ${meta.packageLimit} fotos`);

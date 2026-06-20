@@ -7,7 +7,7 @@ import { UploadQueue } from '../../../../utils/upload.js';
 import { UploadPanel } from '../../../../components/upload-panel.js';
 import { appState } from '../../../../state.js';
 import { icon } from '../../../../utils/icons.js';
-import { apiPut } from '../../../../utils/api.js';
+import { apiPut, apiDelete } from '../../../../utils/api.js';
 import { buildWhatsAppDeliveryLink } from '../utils.js';
 import { showDeliveryModal } from './2-share.js';
 import {
@@ -15,7 +15,7 @@ import {
   renderMultiDeliverHeader, renderParticipantsDeliveryTable
 } from './6-deliver.js';
 
-// ── Estilos compartilhados dos botões morph (injetados uma vez) ──────────
+// ── Estilos compartilhados dos botões pílula expandidos (injetados uma vez) ──────────
 function ensureXBtnStyles() {
   if (document.getElementById('cz-xbtn-styles')) return;
   const style = document.createElement('style');
@@ -24,29 +24,27 @@ function ensureXBtnStyles() {
     .cz-xbtn {
       box-sizing: border-box;
       display: inline-flex; align-items: center;
-      height: 40px; min-width: 40px; padding: 0;
-      border: none; border-radius: 9999px;
-      cursor: pointer; overflow: hidden; white-space: nowrap;
+      height: 44px; padding: 0 1.25rem; gap: 0.75rem;
+      border: 1px solid var(--border); border-radius: var(--r-field);
+      cursor: pointer; white-space: nowrap;
       font-family: inherit; font-weight: 500; font-size: 0.875rem;
-      transition: filter 0.15s, box-shadow 0.15s;
+      background: inherit; color: inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .cz-xbtn .cz-xic {
-      width: 40px; height: 40px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .cz-xbtn .cz-xlabel {
-      max-width: 0; opacity: 0; overflow: hidden;
-      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 1; overflow: visible; white-space: nowrap;
     }
-    .cz-xbtn:hover .cz-xlabel,
-    .cz-xbtn:focus-visible .cz-xlabel {
-      max-width: 14rem; opacity: 1; padding-right: 1.1rem;
+    .cz-xbtn:not([disabled]):hover {
+      background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+      color: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
     }
-    .cz-xbtn:hover:not([disabled]) { filter: brightness(0.96); }
     .cz-xbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    @media (prefers-reduced-motion: reduce) {
-      .cz-xbtn .cz-xlabel { transition: opacity 0.2s ease; }
-    }
   `;
   document.head.appendChild(style);
 }
@@ -57,8 +55,8 @@ function makeXBtn(iconName, label, { bg, color } = {}) {
   btn.className = 'cz-xbtn';
   btn.title = label;
   btn.setAttribute('aria-label', label);
-  btn.style.background = bg || 'var(--accent)';
-  btn.style.color = color || 'var(--accent-on)';
+  if (bg) btn.style.background = bg;
+  if (color) btn.style.color = color;
   btn.innerHTML = `<span class="cz-xic">${icon(iconName, 18)}</span><span class="cz-xlabel">${label}</span>`;
   return btn;
 }
@@ -83,11 +81,11 @@ function getOrCreateQueue(onDone) {
   return window.globalUploadQueue;
 }
 
-export function renderStepEdited({ session, refresh, switchStep }) {
+export function renderStepEdited({ session, refresh, switchStep, inSinglePage = false }) {
   ensureXBtnStyles();
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; max-width:1200px;';
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem; margin:0; width:100%;';
 
   const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
   const photoById = new Map((session.photos || []).map(p => [p.id, p]));
@@ -101,7 +99,7 @@ export function renderStepEdited({ session, refresh, switchStep }) {
 
   // ── Header centralizado ──────────────────────────────────────────────
   const header = document.createElement('div');
-  header.style.cssText = 'text-align:center;';
+  header.style.cssText = 'text-align:left;';
   header.innerHTML = `
     <h2 style="font-size:1.25rem; font-weight:600; color:var(--text-primary); margin:0 0 0.25rem;">Upload das Fotos Editadas</h2>
     <p style="color:var(--text-secondary); font-size:0.875rem; margin:0;">
@@ -119,8 +117,8 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     background: ${isComplete ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'var(--bg-surface)'};
     border: 1px solid ${isComplete ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'var(--border)'};
     border-radius:var(--r-card); padding: 1rem 1.25rem;
-    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
-    text-align: center;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem;
+    text-align: left;
   `;
 
   const progressText = document.createElement('div');
@@ -142,15 +140,15 @@ export function renderStepEdited({ session, refresh, switchStep }) {
       <div style="height:6px; background:var(--bg-base); border-radius:3px; overflow:hidden;">
         <div style="height:100%; width:${pct}%; background:${isComplete ? 'var(--green)' : 'var(--accent)'}; transition: width 0.3s;"></div>
       </div>
-      <div style="text-align:center; font-size:0.6875rem; color:var(--text-muted); margin-top:2px;">${pct}%</div>
+      <div style="text-align:left; font-size:0.6875rem; color:var(--text-muted); margin-top:2px;">${pct}%</div>
     `;
     progressCard.appendChild(barWrap);
   }
   wrap.appendChild(progressCard);
 
-  // ── Ações centralizadas com botões morph ─────────────────────────────
+  // ── Ações centralizadas ─────────────────────────────────────────────
   const actions = document.createElement('div');
-  actions.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; align-items:center;';
+  actions.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:flex-start; align-items:center;';
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -189,7 +187,7 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     }
   };
 
-  // Botão upload morph
+  // Botão upload de editadas
   const uploadBtn = makeXBtn('upload', isComplete ? 'Subir mais editadas' : 'Subir fotos editadas', {
     bg: isComplete ? 'var(--bg-hover)' : 'var(--accent)',
     color: isComplete ? 'var(--text-secondary)' : 'var(--accent-on)',
@@ -206,7 +204,6 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     });
     exportBtn.disabled = selected.length === 0;
     if (selected.length === 0) exportBtn.style.cursor = 'not-allowed';
-    exportBtn.style.border = '1px solid var(--border)';
     exportBtn.title = 'Baixa um .txt com os nomes das fotos selecionadas para filtro no Lightroom';
     exportBtn.onclick = () => {
       const token = encodeURIComponent(appState.authToken || '');
@@ -266,7 +263,7 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     wrap.appendChild(renderParticipantsDeliveryTable(session, refresh));
   }
 
-  // ── Grid de fotos em círculo com morph no hover ──────────────────────
+  // ── Grid de fotos ─────────────────────────────────────────────────────
   const selectedSet = new Set(selected);
   const courtesyPhotos = (session.photos || []).filter(p => !selectedSet.has(p.id) && p.urlOriginal);
 
@@ -275,8 +272,8 @@ export function renderStepEdited({ session, refresh, switchStep }) {
     grid.style.cssText = `
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
+      justify-content: flex-start;
+      align-items: flex-start;
       gap: 1.25rem;
       width: 100%;
     `;
@@ -304,15 +301,14 @@ export function renderStepEdited({ session, refresh, switchStep }) {
       const cell = document.createElement('div');
       cell.style.cssText = `
         position: relative;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
+        width: 200px;
+        height: 150px;
+        border-radius: var(--r-card);
         background: var(--bg-surface);
         overflow: hidden;
         border: 2px solid ${borderColor};
-        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                    border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       `;
 
       const img = document.createElement('img');
@@ -335,34 +331,73 @@ export function renderStepEdited({ session, refresh, switchStep }) {
       `;
       cell.appendChild(badge);
 
-      // Overlay com nome do arquivo no hover
+      // Overlay com nome do arquivo e botão de delete no hover
       const overlay = document.createElement('div');
       overlay.style.cssText = `
         position: absolute; inset: 0;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.5);
         opacity: 0; transition: opacity 0.18s;
-        display: flex; align-items: flex-end; justify-content: center;
-        padding: 0.25rem; z-index: 5;
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 0.5rem; padding: 0.5rem; z-index: 5;
       `;
+
       if (photo.filename) {
         const fname = document.createElement('div');
         fname.textContent = photo.filename;
         fname.style.cssText = 'color:white; font-size:0.5rem; font-weight:500; text-align:center; word-break:break-all; line-height:1.2;';
         overlay.appendChild(fname);
       }
+
+      // Botão de delete (para fotos editadas e cortesias)
+      if (kind === 'delivered' || kind === 'courtesy') {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.title = 'Deletar esta foto';
+        deleteBtn.style.cssText = `
+          background: var(--red); color: white;
+          border: none; padding: 0.375rem 0.75rem;
+          border-radius: var(--r-field); cursor: pointer;
+          font-size: 0.6875rem; font-weight: 500;
+          display: flex; align-items: center; gap: 0.375rem;
+          white-space: nowrap;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        `;
+        deleteBtn.innerHTML = `${icon('trash', 12)} Deletar`;
+        deleteBtn.onmouseover = () => {
+          deleteBtn.style.filter = 'brightness(0.9)';
+          deleteBtn.style.transform = 'translateY(-2px)';
+          deleteBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        };
+        deleteBtn.onmouseout = () => {
+          deleteBtn.style.filter = 'brightness(1)';
+          deleteBtn.style.transform = 'translateY(0)';
+          deleteBtn.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+        };
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          const ok = await window.showConfirm?.(`Deletar foto "${photo.filename}"? Você precisará subir novamente.`, { confirmText: 'Deletar', cancelText: 'Cancelar' });
+          if (!ok) return;
+          try {
+            await apiDelete(`/api/sessions/${session._id}/photos/${photo.id}`);
+            window.showToast?.('Foto deletada', 'success');
+            await refresh();
+          } catch (e) {
+            window.showToast?.('Erro ao deletar: ' + e.message, 'error');
+          }
+        };
+        overlay.appendChild(deleteBtn);
+      }
+
       cell.appendChild(overlay);
 
       cell.addEventListener('mouseenter', () => {
-        cell.style.width = `${hoverWidth}px`;
-        cell.style.height = `${hoverHeight}px`;
-        cell.style.borderRadius = 'var(--r-field)';
+        cell.style.boxShadow = `0 8px 24px color-mix(in srgb, ${borderColor} 30%, transparent)`;
         overlay.style.opacity = '1';
         badge.style.opacity = '1';
       });
       cell.addEventListener('mouseleave', () => {
-        cell.style.width = '120px';
-        cell.style.height = '120px';
-        cell.style.borderRadius = '50%';
+        cell.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
         overlay.style.opacity = '0';
         badge.style.opacity = '0';
       });
@@ -374,13 +409,13 @@ export function renderStepEdited({ session, refresh, switchStep }) {
 
     if (courtesyPhotos.length > 0) {
       const note = document.createElement('div');
-      note.style.cssText = 'font-size:0.75rem; color:var(--text-muted); padding-top:0.25rem; text-align:center;';
+      note.style.cssText = 'font-size:0.75rem; color:var(--text-muted); padding-top:0.25rem; text-align:left;';
       note.innerHTML = `<strong style="color:var(--accent);">★ Cortesia:</strong> ${courtesyPhotos.length} foto${courtesyPhotos.length === 1 ? '' : 's'} fora da seleção do cliente. O cliente verá com a badge "Cortesia" na entrega.`;
       wrap.appendChild(note);
     }
   } else {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:2rem; text-align:center; color:var(--text-muted); font-size:0.875rem;';
+    empty.style.cssText = 'padding:2rem; text-align:left; color:var(--text-muted); font-size:0.875rem;';
     empty.textContent = 'O cliente ainda não selecionou fotos.';
     wrap.appendChild(empty);
   }
@@ -407,8 +442,8 @@ function renderParticipantsExportPanel(session, photoById) {
   head.style.cssText = `
     padding: 0.625rem 0.875rem;
     border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
-    text-align: center;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;
+    text-align: left;
   `;
   head.innerHTML = `
     <div>
@@ -421,7 +456,7 @@ function renderParticipantsExportPanel(session, photoById) {
   const participants = session.participants || [];
   if (participants.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'padding:1rem; text-align:center; color:var(--text-muted); font-size:0.875rem;';
+    empty.style.cssText = 'padding:1rem; text-align:left; color:var(--text-muted); font-size:0.875rem;';
     empty.textContent = 'Nenhum participante.';
     wrap.appendChild(empty);
     return wrap;
@@ -438,7 +473,7 @@ function renderParticipantsExportPanel(session, photoById) {
     const row = document.createElement('div');
     row.style.cssText = `
       padding: 0.75rem 0.875rem;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.5rem; text-align: left;
       ${i > 0 ? 'border-top: 1px solid var(--border);' : ''}
     `;
     row.innerHTML = `
@@ -454,7 +489,6 @@ function renderParticipantsExportPanel(session, photoById) {
     btn.className = 'cz-xbtn';
     btn.style.background = ready && count ? 'var(--bg-base)' : 'var(--bg-elevated)';
     btn.style.color = ready && count ? 'var(--text-primary)' : 'var(--text-muted)';
-    btn.style.border = '1px solid var(--border)';
     if (!ready || !count) btn.style.cursor = 'not-allowed';
     btn.title = ready ? `Baixa lista de ${count} fotos de ${p.name}` : 'Disponível quando o participante finalizar';
     btn.innerHTML = `<span class="cz-xic">${icon('download', 16)}</span><span class="cz-xlabel">Lightroom (.txt)</span>`;

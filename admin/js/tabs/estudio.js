@@ -98,15 +98,15 @@ export async function renderEstudio(container) {
     <style>
       #config-estudio { display:flex; flex-direction:column; height:100%; }
       .se-section { border-bottom:1px solid #1f2937; }
-      .se-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:space-between; }
+      .se-section-head { padding:0.6rem 0.75rem; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; justify-content:space-between; }
       .se-row { padding:0.4rem 0.75rem; display:flex; flex-direction:column; gap:0.2rem; }
-      .se-label { font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+      .se-label { font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
       .se-input { width:100%; padding:0.35rem 0.5rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:var(--text-primary); font-size:0.78rem; outline:none; box-sizing:border-box; }
       .se-input:focus { border-color:var(--accent); }
       .se-textarea { width:100%; padding:0.35rem 0.5rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:0.375rem; color:var(--text-primary); font-size:0.78rem; outline:none; box-sizing:border-box; resize:vertical; min-height:60px; }
       .se-range-row { display:flex; align-items:center; gap:0.4rem; }
       .se-range { flex:1; accent-color:var(--accent); }
-      .se-range-val { font-size:0.65rem; font-family:monospace; color:#9ca3af; min-width:2.5rem; text-align:right; }
+      .se-range-val { font-size:0.65rem; font-family:monospace; color:var(--text-muted); min-width:2.5rem; text-align:right; }
       .se-btn { padding:0.4rem 0.6rem; border-radius:0.375rem; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-primary); font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
       .se-btn:hover { background:var(--bg-hover); }
       .se-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -123,7 +123,7 @@ export async function renderEstudio(container) {
     <div style="max-width:580px; margin:0 auto; display:flex; flex-direction:column; align-items:center; width:100%; box-sizing:border-box; padding-bottom:2rem;">
       <div style="margin-bottom:1.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; width:100%;">
         <h3 style="font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:0.25rem; text-align:center;">Estúdio</h3>
-        <p style="color:#9ca3af; font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações e imagens do seu estúdio.</p>
+        <p style="color:var(--text-muted); font-size:0.875rem; text-align:center; max-width:320px;">Edite as informações e imagens do seu estúdio.</p>
       </div>
 
       <div style="display:flex; flex-direction:column; gap:1.5rem; width:100%;">
@@ -131,12 +131,12 @@ export async function renderEstudio(container) {
         <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:0.75rem; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:1.25rem; width:100%; box-sizing:border-box;">
           <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Apresentação</h3>
           <div style="width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Título</label>
             <div id="studioTitleWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
             <input type="text" id="studioTitle" class="se-input" style="display:none;" value="${(_studio.title || '').replace(/"/g, '&quot;')}">
           </div>
           <div style="width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Descrição</label>
             <div id="studioDescWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
             <textarea id="studioDesc" class="se-textarea" rows="3" style="display:none;">${_studio.description || ''}</textarea>
           </div>
@@ -147,16 +147,16 @@ export async function renderEstudio(container) {
           <h3 style="font-size:1rem; font-weight:600; color:var(--text-primary); text-align:center;">Informações</h3>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; width:100%;">
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Endereço</label>
               <input type="text" id="studioAddress" class="input" value="${(_studio.address || '').replace(/"/g, '&quot;')}" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
             <div class="input-group" style="margin-bottom:0; width:100%;">
-              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">WhatsApp (com DDD)</label>
+              <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">WhatsApp (com DDD)</label>
               <input type="text" id="studioWhatsapp" class="input" value="${_studio.whatsapp || ''}" placeholder="5511999999999" style="text-align:center; width:100%; box-sizing:border-box; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:0.4rem; border-radius:0.375rem; font-size:0.8rem; outline:none;">
             </div>
           </div>
           <div style="width:100%;">
-            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Horário de Atendimento</label>
+            <label style="text-align:center; display:block; width:100%; font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Horário de Atendimento</label>
             <div id="studioHoursWrap" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.375rem; padding:0.25rem;"></div>
             <textarea id="studioHours" class="se-textarea" rows="2" style="display:none;">${_studio.hours || ''}</textarea>
           </div>
@@ -238,7 +238,7 @@ export async function renderEstudio(container) {
               <input type="file" accept=".mp4,.mov,.webm" id="studioVideoInput" style="display:none;">
             </label>
             ${_studio.videoUrl ? `
-              <button id="removeVideoBtn" class="p-action-btn" title="Remover Vídeo" style="width:32px !important; min-width:32px !important; height:32px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:rgba(248,81,73,0.15); border:1px solid rgba(248,81,73,0.3); color:#f85149;">
+              <button id="removeVideoBtn" class="p-action-btn" title="Remover Vídeo" style="width:32px !important; min-width:32px !important; height:32px !important; border-radius:50% !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; cursor:pointer; background:color-mix(in srgb, var(--red) 15%, transparent); border:1px solid color-mix(in srgb, var(--red) 30%, transparent); color:var(--red);">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
               </button>
             ` : ''}

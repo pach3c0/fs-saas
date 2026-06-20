@@ -528,9 +528,11 @@ function renderVendas() {
 
   const pdDays = (Array.isArray(pd.daysSchedule) && pd.daysSchedule.length ? pd.daysSchedule : [15, 7, 1])
     .slice().sort((a, b) => b - a);
-  postBlock.appendChild(fieldLabel('Desconto por etapa (dias antes da exclusão)'));
-  postBlock.appendChild(buildDiscountRow(pdDays, pd.discountByDay, fallbackPct,
-    map => scheduleIntegrationsSave({ salesAutomator: { postDelivery: { discountByDay: map } } }, status)));
+  postBlock.appendChild(fieldLabel('Etapas de escassês (dias antes da exclusão do storage)'));
+  postBlock.appendChild(buildDayDiscountEditor(pdDays, pd.discountByDay, fallbackPct,
+    (newDays, newMap) => scheduleIntegrationsSave({
+      salesAutomator: { postDelivery: { daysSchedule: newDays, discountByDay: newMap } }
+    }, status)));
 
   postBlock.appendChild(fieldLabel('Mensagem (corpo do e-mail)'));
   postBlock.appendChild(buildSalesTemplateEditor(pd.messageTemplate || '', SALES_STARTERS.postDelivery,
@@ -568,6 +570,71 @@ function buildDeadlinesPanel() {
       <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.45;">${d}</div>`;
     wrap.appendChild(c);
   });
+  return wrap;
+}
+
+// Editor combinado: dia (editável) + desconto (%) por etapa de pós-entrega
+// onChange(newDays: number[], newMap: {[day]: pct}) — salva ambos juntos
+function buildDayDiscountEditor(daysList, discountMap, fallback, onChange) {
+  let days = daysList.slice().sort((a, b) => b - a);
+  const map = { ...(discountMap || {}) };
+
+  // Garante desconto para todos os dias existentes
+  days.forEach(d => { if (map[String(d)] == null) map[String(d)] = fallback; });
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center;';
+
+  function rebuild() {
+    wrap.innerHTML = '';
+    days.slice().sort((a, b) => b - a).forEach((day, idx) => {
+      const col = document.createElement('div');
+      col.style.cssText = 'display:flex; flex-direction:column; gap:0.25rem; flex:1; min-width:110px; align-items:center;';
+
+      // Input: dia
+      const dayLabel = document.createElement('div');
+      dayLabel.textContent = 'Dias antes';
+      dayLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted); text-align:center;';
+      const dayInput = document.createElement('input');
+      dayInput.type = 'number'; dayInput.min = 1; dayInput.max = 365;
+      dayInput.value = day;
+      dayInput.style.cssText = 'width:100%; box-sizing:border-box; background:var(--bg-base); border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.75rem; color:var(--text-primary); font-family:inherit; font-size:0.875rem; text-align:center;';
+      dayInput.onchange = () => {
+        const newDay = parseInt(dayInput.value);
+        if (isNaN(newDay) || newDay < 1) return;
+        const oldKey = String(day);
+        const newKey = String(newDay);
+        if (oldKey !== newKey) {
+          map[newKey] = map[oldKey] ?? fallback;
+          delete map[oldKey];
+          days[idx] = newDay;
+        }
+        onChange(days.slice(), { ...map });
+        rebuild();
+      };
+
+      // Input: desconto
+      const pctLabel = document.createElement('div');
+      pctLabel.textContent = 'Desconto (%)';
+      pctLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted); text-align:center;';
+      const pctInput = document.createElement('input');
+      pctInput.type = 'number'; pctInput.min = 0; pctInput.max = 100;
+      pctInput.value = map[String(day)] ?? fallback;
+      pctInput.style.cssText = dayInput.style.cssText;
+      pctInput.oninput = () => {
+        const v = parseInt(pctInput.value);
+        if (!isNaN(v)) { map[String(day)] = v; onChange(days.slice(), { ...map }); }
+      };
+
+      col.appendChild(dayLabel);
+      col.appendChild(dayInput);
+      col.appendChild(pctLabel);
+      col.appendChild(pctInput);
+      wrap.appendChild(col);
+    });
+  }
+
+  rebuild();
   return wrap;
 }
 

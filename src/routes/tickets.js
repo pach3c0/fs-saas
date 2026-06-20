@@ -70,7 +70,7 @@ router.get('/tickets', authenticateToken, async (req, res) => {
 router.get('/tickets/:id', authenticateToken, async (req, res) => {
   try {
     const orgId = req.user.organizationId;
-    const ticket = await Ticket.findOne({ _id: req.params.id, organizationId: orgId });
+    const ticket = await Ticket.findOne({ _id: req.params.id, organizationId: orgId }).lean();
 
     if (!ticket) {
       return res.status(404).json({ success: false, error: 'Ticket não encontrado' });

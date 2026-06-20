@@ -90,6 +90,15 @@ router.post('/client/verify-code', async (req, res) => {
       return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
     }
 
+    // Galeria em Grupo (entrega direta, sem etapa de entrega): o prazo vale como prazo de acesso.
+    if (
+      session.mode === 'multi_gallery' &&
+      session.selectionDeadline &&
+      new Date() > new Date(session.selectionDeadline)
+    ) {
+      return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+    }
+
     // Preview do fotógrafo não registra acesso nem notifica — só o acesso real do cliente conta.
     if (!adminPreview) {
       // Registrar primeiro acesso do cliente
@@ -130,10 +139,10 @@ router.post('/client/verify-code', async (req, res) => {
       selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
       galleryDeliveryMode: session.galleryDeliveryMode || null,
       packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
-      extraPhotoPrice: session.extraPhotoPrice || 25,
+      extraPhotoPrice: (participant && participant.extraPhotoPrice != null) ? participant.extraPhotoPrice : (session.extraPhotoPrice || 25),
       watermark: session.watermark !== false,
       commentsEnabled: session.commentsEnabled !== false,
-      extraRequest: session.extraRequest || { status: 'none', photos: [] },
+      extraRequest: (participant ? participant.extraRequest : session.extraRequest) || { status: 'none', photos: [] },
       accessCode: session.accessCode,
       selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
@@ -250,6 +259,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     let selectedPhotos = session.selectedPhotos || [];
     let selectionStatus = session.selectionStatus;
     let packageLimit = session.packageLimit;
+    let extraPhotoPrice = session.extraPhotoPrice;
+    let extraRequest = session.extraRequest;
 
     if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const p = session.participants.id(participantId);
@@ -257,6 +268,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         selectedPhotos = p.selectedPhotos || [];
         selectionStatus = p.selectionStatus;
         packageLimit = p.packageLimit;
+        if (p.extraPhotoPrice != null) extraPhotoPrice = p.extraPhotoPrice;
+        extraRequest = p.extraRequest;
       }
     }
 
@@ -272,10 +285,10 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       galleryDeliveryMode: session.galleryDeliveryMode || null,
       watermark: session.watermark,
       commentsEnabled: session.commentsEnabled !== false,
-      extraRequest: session.extraRequest || { status: 'none', photos: [] },
+      extraRequest: extraRequest || { status: 'none', photos: [] },
       selectionDeadline: session.selectionDeadline,
       packageLimit: packageLimit,
-      extraPhotoPrice: session.extraPhotoPrice,
+      extraPhotoPrice: extraPhotoPrice,
       allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
       allowReopen: session.allowReopen !== false,
       deliveredAt: session.deliveredAt || null,
@@ -463,8 +476,8 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 
     const selectedCount = participant ? participant.selectedPhotos.length : session.selectedPhotos.length;
 
-    // Track selection submitted
-    trackEvent(session.organizationId, userId, 'selection_submitted', {
+    // Track selection submitted — ação do cliente (rota pública, sem usuário autenticado).
+    trackEvent(session.organizationId, null, 'selection_submitted', {
       sessionId: session._id,
       selectedPhotos: selectedCount
     });
@@ -496,21 +509,36 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
       // Upsell: oferecer fotos extras ao cliente se a sessão tiver preço configurado E permitido no config
       const clientEmail = participant ? participant.email : session.clientEmail;
       const canUpsell = session.allowExtraPurchasePostSubmit !== false; // por padrão habilitado
+      // Preço efetivo: participante pode ter o seu próprio; senão herda o padrão da sessão.
+      const effectiveExtraPrice = (participant && participant.extraPhotoPrice != null)
+        ? participant.extraPhotoPrice
+        : session.extraPhotoPrice;
 
-      if (clientEmail && session.extraPhotoPrice > 0 && canUpsell && !session.extraRequest?.upsellingSent) {
+      // Upsell já enviado? Flag por participante no multi; por sessão no individual.
+      const upsellAlreadySent = participant
+        ? participant.extraRequest?.upsellingSent
+        : session.extraRequest?.upsellingSent;
+
+      if (clientEmail && effectiveExtraPrice > 0 && canUpsell && !upsellAlreadySent) {
         sendUpsellEmail(
           clientEmail,
           clientName,
           session.name,
           org?.name || '',
-          session.extraPhotoPrice,
+          effectiveExtraPrice,
           session._id,
-          session.accessCode,
+          participant ? participant.accessCode : session.accessCode,
           org?.slug || ''
         ).catch(() => { });
 
         // Marcar como enviado
-        await Session.findByIdAndUpdate(session._id, { 'extraRequest.upsellingSent': true });
+        if (participant) {
+          if (!participant.extraRequest) participant.extraRequest = { status: 'none', photos: [] };
+          participant.extraRequest.upsellingSent = true;
+          await session.save();
+        } else {
+          await Session.findByIdAndUpdate(session._id, { 'extraRequest.upsellingSent': true });
+        }
       }
     } catch (e) { }
 
@@ -531,34 +559,46 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
 // CLIENTE: Pedir reabertura da seleção
 router.post('/client/request-reopen/:sessionId', async (req, res) => {
   try {
-    const { accessCode } = req.body;
+    const { accessCode, participantId } = req.body;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
     if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
 
     // Validar se reabertura está permitida no config
     if (session.allowReopen === false) {
       return res.status(403).json({ error: 'A reabertura desta sessão não está permitida pelo fotógrafo.' });
     }
 
-    if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
-
-    session.reopenRequested = true;
+    // Seleção em Grupo: o pedido é do participante (autentica pelo código dele) e marca só a seleção dele.
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+    let participant = null;
+    if (isMulti && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== accessCode) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+      if (participant.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
+      participant.reopenRequested = true;
+    } else {
+      if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+      if (session.selectionStatus !== 'submitted') return res.status(400).json({ error: 'Seleção não está no status enviada' });
+      session.reopenRequested = true;
+    }
     await session.save();
 
-    _logEvent(session._id, 'reopen_requested', {});
+    _logEvent(session._id, 'reopen_requested', { participantId: participant ? participant._id : null });
 
     try {
       const org = await Organization.findById(session.organizationId).select('preferences.notifications.reopenRequested').lean();
       if (org?.preferences?.notifications?.reopenRequested !== false) {
+        const who = participant ? `${participant.name} (${session.name})` : session.name;
         await Notification.create({
           type: 'reopen_requested',
           sessionId: session._id,
           sessionName: session.name,
-          message: `${session.name} pediu reabertura da seleção`,
+          message: `${who} pediu reabertura da seleção`,
           organizationId: session.organizationId
         });
       }
@@ -573,11 +613,22 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
 
 router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) => {
   try {
-    await Session.findOneAndUpdate(
-      { _id: req.params.id, organizationId: req.user.organizationId },
-      { reopenRequested: false }
-    );
-    _logEvent(req.params.id, 'reopen_dismissed', {});
+    const { participantId } = req.body || {};
+    if (participantId) {
+      // Seleção em Grupo: recusa o pedido de um participante específico.
+      const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+      if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+      const p = session.participants.id(participantId);
+      if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+      p.reopenRequested = false;
+      await session.save();
+    } else {
+      await Session.findOneAndUpdate(
+        { _id: req.params.id, organizationId: req.user.organizationId },
+        { reopenRequested: false }
+      );
+    }
+    _logEvent(req.params.id, 'reopen_dismissed', { participantId: participantId || null });
     res.json({ success: true });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
@@ -715,14 +766,26 @@ router.put('/sessions/:id/custom-messages', authenticateToken, async (req, res) 
 // CLIENTE: Adicionar comentário
 router.post('/client/comments/:sessionId', async (req, res) => {
   try {
-    const { accessCode, photoId, text } = req.body;
+    const { accessCode, photoId, text, participantId } = req.body;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.organizationId
     });
 
     if (!session || !session.isActive) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+
+    // Em Seleção em Grupo o participante usa o código próprio (≠ código da sessão).
+    // Valida contra o participante quando vier participantId; senão, contra a sessão.
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+    let participant = null;
+    if (isMulti && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== accessCode) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+    } else if (session.accessCode !== accessCode) {
+      return res.status(403).json({ error: 'Acesso não autorizado' });
+    }
 
     // Validar prazo
     if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
@@ -735,7 +798,9 @@ router.post('/client/comments/:sessionId', async (req, res) => {
     const newComment = {
       text,
       createdAt: new Date(),
-      author: 'client'
+      author: 'client',
+      participantId: participant ? participant._id : null,
+      participantName: participant ? participant.name : ''
     };
 
     if (!photo.comments) photo.comments = [];
@@ -744,12 +809,13 @@ router.post('/client/comments/:sessionId', async (req, res) => {
     await session.save();
 
     try {
+      const who = participant ? participant.name : session.name;
       await Notification.create({
         type: 'comment_added',
         sessionId: session._id,
         sessionName: session.name,
         photoId: photoId,
-        message: `${session.name} comentou em uma foto`,
+        message: `${who} comentou em uma foto`,
         organizationId: session.organizationId
       });
     } catch (e) { }
@@ -764,7 +830,7 @@ router.post('/client/comments/:sessionId', async (req, res) => {
 // CLIENTE: Solicitar fotos extras após envio da seleção
 router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
   try {
-    const { accessCode, photos } = req.body;
+    const { accessCode, photos, participantId } = req.body;
     if (!photos || !photos.length) return res.status(400).json({ error: 'Selecione ao menos uma foto' });
 
     const session = await Session.findOne({
@@ -772,25 +838,35 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
       organizationId: req.organizationId
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
-    if (session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
-    if (session.extraRequest && session.extraRequest.status === 'pending') {
-      return res.status(400).json({ error: 'Já existe uma solicitação de extras pendente' });
-    }
 
-    session.extraRequest = {
-      status: 'pending',
-      photos,
-      requestedAt: new Date()
-    };
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+    let participant = null;
+
+    if (isMulti && participantId) {
+      participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+      if (participant.selectionStatus !== 'submitted' && participant.selectionStatus !== 'delivered') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
+      if (participant.extraRequest && participant.extraRequest.status === 'pending') {
+        return res.status(400).json({ error: 'Já existe uma solicitação de extras pendente' });
+      }
+      participant.extraRequest = { status: 'pending', photos, requestedAt: new Date() };
+    } else {
+      if (session.accessCode !== accessCode) return res.status(403).json({ error: 'Acesso não autorizado' });
+      if (session.selectionStatus !== 'submitted' && session.selectionStatus !== 'delivered') return res.status(400).json({ error: 'Seleção ainda não foi enviada' });
+      if (session.extraRequest && session.extraRequest.status === 'pending') {
+        return res.status(400).json({ error: 'Já existe uma solicitação de extras pendente' });
+      }
+      session.extraRequest = { status: 'pending', photos, requestedAt: new Date() };
+    }
     await session.save();
 
+    const who = participant ? `${participant.name} (${session.name})` : session.name;
     try {
       await Notification.create({
         type: 'extra_photos_requested',
         sessionId: session._id,
-        sessionName: session.name,
-        message: `${session.name} solicitou ${photos.length} foto(s) extra(s)`,
+        sessionName: who,
+        message: `${who} solicitou ${photos.length} foto(s) extra(s)`,
         organizationId: session.organizationId
       });
     } catch (e) { }
@@ -798,7 +874,7 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
     try {
       const org = await Organization.findById(session.organizationId).select('email name preferences.notifications.extraRequested').lean();
       if (org?.email && org?.preferences?.notifications?.extraRequested !== false) {
-        sendExtraPhotosRequestedEmail(org.email, session.name, photos.length).catch(() => { });
+        sendExtraPhotosRequestedEmail(org.email, who, photos.length).catch(() => { });
       }
     } catch (e) { }
 
@@ -843,13 +919,11 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
 
 router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
   try {
-    const { mode, clientId, rhynoCustomerId } = req.body;
-    const isMulti = mode === 'multi_selection' || mode === 'multi_instant';
+    const { mode } = req.body;
 
-    // Cliente obrigatório (non-multi): aceita clientId legado OU rhynoCustomerId (ERP)
-    if (!isMulti && !clientId && !rhynoCustomerId) {
-      return res.status(400).json({ error: 'Cliente é obrigatório para este modo de sessão' });
-    }
+    // Cliente NÃO é exigido na criação: a sessão nasce como rascunho (criada ao clicar no
+    // card de tipo) e o cliente é vinculado depois, no painel lateral do wizard. A exigência
+    // de cliente passa para o momento de compartilhar (POST /sessions/:id/send-code).
 
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
@@ -959,6 +1033,27 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
+    // Cliente é exigido aqui (não na criação): só compartilha quando há cliente vinculado.
+    // Multi-Seleção (Seleção em Grupo) tem fluxo de compartilhamento por participante — não exige.
+    const isMultiShare = session.mode === 'multi_selection' || session.mode === 'multi_instant' || session.mode === 'multi_gallery';
+    const hasLinkedClient = !!(session.clientId || session.rhynoCustomerId || session.clientEmail);
+    if (!isMultiShare && !hasLinkedClient) {
+      return res.status(400).json({ error: 'Vincule um cliente à sessão antes de compartilhar o código.' });
+    }
+
+    // Em modo seleção, o pool de fotos visíveis precisa atender ao mínimo do pacote antes
+    // de compartilhar — espelha a regra do cliente, que não submete seleção abaixo do limite.
+    // packageLimit 0 = sem mínimo (fotógrafo só quer criar a sessão sem ter as fotos ainda).
+    if (session.mode === 'selection') {
+      const visiblePhotos = (session.photos || []).filter(p => !p.hidden).length;
+      const limit = session.packageLimit || 0;
+      if (limit > 0 && visiblePhotos < limit) {
+        return res.status(400).json({
+          error: `Suba pelo menos ${limit} fotos antes de compartilhar. Atualmente: ${visiblePhotos}.`
+        });
+      }
+    }
+
     // Resolve cliente uma única vez para email e telefone
     let clientName = session.name;
     let clientEmail = session.clientEmail || '';
@@ -1039,14 +1134,31 @@ router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, 
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (!session.extraRequest || session.extraRequest.status !== 'pending') {
-      return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+
+    const { participantId } = req.body;
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+
+    if (isMulti && participantId) {
+      const p = session.participants.id(participantId);
+      if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+      if (!p.extraRequest || p.extraRequest.status !== 'pending') {
+        return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+      }
+      if (!p.selectedPhotos) p.selectedPhotos = [];
+      const extras = p.extraRequest.photos || [];
+      extras.forEach(id => { if (!p.selectedPhotos.includes(id)) p.selectedPhotos.push(id); });
+      p.extraRequest.status = 'accepted';
+      p.extraRequest.respondedAt = new Date();
+    } else {
+      if (!session.extraRequest || session.extraRequest.status !== 'pending') {
+        return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+      }
+      // Adicionar fotos extras às já selecionadas (sem duplicatas)
+      const extras = session.extraRequest.photos || [];
+      extras.forEach(id => { if (!session.selectedPhotos.includes(id)) session.selectedPhotos.push(id); });
+      session.extraRequest.status = 'accepted';
+      session.extraRequest.respondedAt = new Date();
     }
-    // Adicionar fotos extras às já selecionadas (sem duplicatas)
-    const extras = session.extraRequest.photos || [];
-    extras.forEach(id => { if (!session.selectedPhotos.includes(id)) session.selectedPhotos.push(id); });
-    session.extraRequest.status = 'accepted';
-    session.extraRequest.respondedAt = new Date();
     await session.save();
     res.json({ success: true, session });
   } catch (error) {
@@ -1060,21 +1172,39 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (!session.extraRequest || session.extraRequest.status !== 'pending') {
-      return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+
+    const { participantId } = req.body;
+    const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+    const reason = req.body.reason || '';
+    let clientEmail = '';
+
+    if (isMulti && participantId) {
+      const p = session.participants.id(participantId);
+      if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+      if (!p.extraRequest || p.extraRequest.status !== 'pending') {
+        return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+      }
+      p.extraRequest.status = 'rejected';
+      p.extraRequest.respondedAt = new Date();
+      p.extraRequest.rejectReason = reason;
+      clientEmail = p.email || '';
+    } else {
+      if (!session.extraRequest || session.extraRequest.status !== 'pending') {
+        return res.status(400).json({ error: 'Nenhuma solicitação pendente' });
+      }
+      session.extraRequest.status = 'rejected';
+      session.extraRequest.respondedAt = new Date();
+      session.extraRequest.rejectReason = reason;
+      clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
     }
-    session.extraRequest.status = 'rejected';
-    session.extraRequest.respondedAt = new Date();
-    session.extraRequest.rejectReason = req.body.reason || '';
     await session.save();
 
     // Enviar e-mail de notificação para o cliente
     try {
-      const clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
       if (clientEmail) {
         const org = await Organization.findById(req.user.organizationId).select('name slug').lean();
         if (sendExtraPhotosRejectedEmail) {
-          sendExtraPhotosRejectedEmail(clientEmail, session.name, org?.name || 'O fotógrafo', session.extraRequest.rejectReason, org?.slug).catch(() => { });
+          sendExtraPhotosRejectedEmail(clientEmail, session.name, org?.name || 'O fotógrafo', reason, org?.slug).catch(() => { });
         }
       }
     } catch (e) {
@@ -1166,8 +1296,8 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       const { width, height } = await sharp(thumbPath).metadata();
 
       // No modo galeria (entrega direta), o fotografo ja sobe as fotos em alta resolucao prontas, entao preservamos a original.
-      // No multi_instant (real-time), também preservamos.
-      const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_instant';
+      // Vale para galeria individual, Galeria em Grupo (multi_gallery) e multi_instant (real-time).
+      const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_gallery' || session.mode === 'multi_instant';
       if (!isGalleryMode) {
         await storage.deleteFile(originalPath);
       }
@@ -1544,6 +1674,7 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
         if (p.selectionStatus === 'submitted' || p.selectionStatus === 'delivered') {
           p.selectionStatus = 'in_progress';
           p.submittedAt = undefined;
+          p.reopenRequested = false; // aceitar limpa o pedido do participante
           reopened++;
         }
       });
@@ -1673,7 +1804,7 @@ router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) 
 
 router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, participantId } = req.body;
     const session = await Session.findOne({
       _id: req.params.sessionId,
       organizationId: req.user.organizationId
@@ -1684,10 +1815,19 @@ router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, 
     const photo = session.photos.find(p => p.id === req.params.photoId);
     if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
 
+    // Em Seleção em Grupo, a resposta é direcionada a um participante (só ele a vê).
+    let targetParticipant = null;
+    if (participantId) {
+      targetParticipant = session.participants.id(participantId);
+      if (!targetParticipant) return res.status(404).json({ error: 'Participante não encontrado' });
+    }
+
     const newComment = {
       text,
       createdAt: new Date(),
-      author: 'admin'
+      author: 'admin',
+      participantId: targetParticipant ? targetParticipant._id : null,
+      participantName: targetParticipant ? targetParticipant.name : ''
     };
 
     if (!photo.comments) photo.comments = [];
@@ -1739,7 +1879,7 @@ router.get('/sessions/:sessionId/export', (req, res) => {
 // Adicionar participante
 router.post('/sessions/:id/participants', authenticateToken, async (req, res) => {
   try {
-    const { name, email, phone, packageLimit, clientId } = req.body;
+    const { name, email, phone, packageLimit, extraPhotoPrice, clientId } = req.body;
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
@@ -1749,6 +1889,10 @@ router.post('/sessions/:id/participants', authenticateToken, async (req, res) =>
       selectionStatus: 'pending',
       selectedPhotos: []
     };
+    // Preço próprio só é gravado se enviado; null/ausente = herda o padrão da sessão.
+    if (extraPhotoPrice !== undefined && extraPhotoPrice !== '' && extraPhotoPrice !== null) {
+      participantData.extraPhotoPrice = Math.max(0, Number(extraPhotoPrice));
+    }
     if (clientId) participantData.clientId = clientId;
 
     session.participants.push(participantData);
@@ -1774,6 +1918,12 @@ router.put('/sessions/:id/participants/:pid', authenticateToken, async (req, res
     if (req.body.email !== undefined) p.email = req.body.email;
     if (req.body.phone !== undefined) p.phone = req.body.phone;
     if (req.body.packageLimit) p.packageLimit = req.body.packageLimit;
+    if (req.body.extraPhotoPrice !== undefined) {
+      // '' ou null limpa o preço próprio (volta a herdar o padrão da sessão).
+      p.extraPhotoPrice = (req.body.extraPhotoPrice === '' || req.body.extraPhotoPrice === null)
+        ? null
+        : Math.max(0, Number(req.body.extraPhotoPrice));
+    }
 
     await session.save();
     res.json({ success: true, participants: session.participants });
@@ -1872,7 +2022,16 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
     // Validar acesso: código da sessão ou participante
-    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
+    if (session.mode === 'multi_gallery' && participantId) {
+      // Galeria em Grupo: entrega direta — participante baixa assim que tem o código (sem gate de entrega).
+      const participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== code) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+      if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+        return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+      }
+    } else if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const participant = session.participants.id(participantId);
       if (!participant || participant.accessCode !== code) {
         return res.status(403).json({ error: 'Acesso não autorizado' });
@@ -1920,7 +2079,18 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 
     // Validar acesso: código da sessão ou código de participante
     let participant = null;
-    if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
+    let isGroupGalleryParticipant = false;
+    if (session.mode === 'multi_gallery' && participantId) {
+      // Galeria em Grupo: entrega direta — participante baixa tudo assim que tem o código.
+      participant = session.participants.id(participantId);
+      if (!participant || participant.accessCode !== code) {
+        return res.status(403).json({ error: 'Acesso não autorizado' });
+      }
+      if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
+        return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
+      }
+      isGroupGalleryParticipant = true;
+    } else if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       participant = session.participants.id(participantId);
       if (!participant || participant.accessCode !== code) {
         return res.status(403).json({ error: 'Acesso não autorizado' });
@@ -1937,9 +2107,11 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     }
 
     // Determinar quais fotos incluir no ZIP
-    // No modo 'multi_selection': fotos do participante; 'selection': fotos selecionadas; 'gallery': todas
+    // 'multi_gallery': todas as visíveis; 'multi_selection': fotos do participante; 'selection': selecionadas; 'gallery': todas
     let selectedIds, photosToZip;
-    if (participant) {
+    if (isGroupGalleryParticipant) {
+      photosToZip = session.photos.filter(p => !p.hidden);
+    } else if (participant) {
       selectedIds = participant.selectedPhotos || [];
       photosToZip = session.photos.filter(p => selectedIds.includes(p.id));
     } else {

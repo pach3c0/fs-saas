@@ -20,7 +20,7 @@ export function galleryDirect(session) {
 // Galeria: Upload → Compartilhar (e Entregar tudo no próprio passo 2).
 // Seleção / Multi-Seleção / Multi-Instant: Upload → Compartilhar → Acompanhar → Editadas.
 export function stepIdsForMode(mode, opts = {}) {
-  if (mode === 'gallery') return [1, 2];
+  if (mode === 'gallery' || mode === 'multi_gallery') return [1, 2];
   return [1, 2, 4, 5];
 }
 
@@ -53,7 +53,7 @@ function hasAllEditedPhotos(session) {
 export function computeWizardSteps(session, currentStepId) {
   const ids = stepIdsForMode(session.mode, { galleryDirect: galleryDirect(session) });
   const photosCount = session.photos?.length || 0;
-  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+  const isMulti = session.mode === 'multi_selection' || session.mode === 'multi_instant' || session.mode === 'multi_gallery';
   const isSubmitted = ['submitted', 'delivered'].includes(session.selectionStatus);
 
   // Multi: "concluído" é avaliado em termos de participantes (cada um tem seu fluxo).
@@ -102,7 +102,7 @@ export function renderHeaderStepper(steps, onStepClick) {
   const bar = document.createElement('div');
   bar.style.cssText = `
     display: flex; align-items: center; gap: 0;
-    width: 100%; max-width: 540px; margin: 0 auto;
+    width: 100%; max-width: 540px; margin: 0;
     overflow-x: auto; padding-bottom: 2px;
   `;
 
