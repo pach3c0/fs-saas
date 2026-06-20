@@ -21,7 +21,8 @@ segurança vem do **isolamento multi-tenant** (org de teste = dados isolados) + 
 ## 1. Clonar o app para a pasta beta (na VPS)
 ```
 cp -a /var/www/cz-saas /var/www/cz-saas-beta
-cd /var/www/cz-saas-beta && git checkout main && git pull
+# O beta roda a branch 'beta' (prod fica na 'main', intocada):
+cd /var/www/cz-saas-beta && git fetch origin && git checkout beta && git pull
 ```
 
 ## 2. .env do beta
@@ -66,6 +67,8 @@ nginx -t && systemctl reload nginx
 
 ## 8. Promover para produção (quando aprovado)
 ```
+# Promoção = trazer a branch beta para a main, depois deploy normal de prod:
+git checkout main && git merge beta && git push origin main
 cd /var/www/cz-saas && git pull && pm2 reload ecosystem.config.js --env production --update-env
 # Depois pode parar o beta:  pm2 stop cliquezoom-beta   (ou deixar de pé pro próximo ciclo)
 ```
