@@ -292,6 +292,12 @@ const OrganizationSchema = new mongoose.Schema({
       selectionSubmitted: { type: Boolean, default: true },
       extraRequested:     { type: Boolean, default: true },
       reopenRequested:    { type: Boolean, default: true }
+    },
+    // Graus de parentesco exibidos no formulário de auto-inscrição (Seleção em Grupo)
+    // O fotógrafo pode personalizar conforme o tipo de evento
+    membershipRoles: {
+      type: [String],
+      default: ['Pai/Mãe', 'Parente', 'Professor', 'Convidado']
     }
   }
 }, { timestamps: true });

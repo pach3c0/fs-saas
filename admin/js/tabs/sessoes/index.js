@@ -629,6 +629,9 @@ export async function renderSessoes(container) {
                 <button id="addParticipantBtn" class="btn btn-primary" style="border-radius:var(--r-field); height:36px; padding: 0 1.5rem;">Adicionar</button>
             </div>
         </div>
+        <!-- Slot de Auto-inscrição (QR Code) — renderizado dinamicamente pelo modal-participantes.js -->
+        <div id="selfRegSection" style="margin-bottom:1.5rem; display:none;"></div>
+
         <div id="participantsList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
       </div>
     </div>

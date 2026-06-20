@@ -655,6 +655,124 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock
     ));
     panel.appendChild(checkRow('allowExtraPurchasePostSubmit', session.allowExtraPurchasePostSubmit !== false, 'Permitir venda de fotos extras'));
     panel.appendChild(checkRow('allowReopen', session.allowReopen !== false, 'Permitir pedido de reabertura'));
+
+    // Tabela de preços progressiva (apenas Seleção em Grupo)
+    if (isMulti) {
+      const pricingWrap = document.createElement('div');
+      pricingWrap.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem; align-items:center; text-align:center; width:100%;';
+
+      const pricingLabel = document.createElement('label');
+      pricingLabel.textContent = 'Tabela de preços por faixa';
+      pricingLabel.style.cssText = 'font-size:0.75rem; font-weight:500; color:var(--text-secondary); text-align:center; width:100%;';
+      pricingWrap.appendChild(pricingLabel);
+
+      const pricingHint = document.createElement('div');
+      pricingHint.textContent = 'Cada faixa vale "a partir de N fotos extras". O cálculo é cumulativo: cada foto é cobrada pela faixa em que cai, então o total sempre cresce com a quantidade.';
+      pricingHint.style.cssText = 'font-size:0.625rem; color:var(--text-muted); line-height:1.3; text-align:center; width:100%;';
+      pricingWrap.appendChild(pricingHint);
+
+      // Cálculo CUMULATIVO — ⚠️ DEVE ser idêntico ao calcExtraCost de cliente/js/gallery.js.
+      const calcExtraCost = (qty, pricingTable, flatPrice) => {
+        qty = Math.max(0, Math.floor(Number(qty) || 0));
+        const flat = Number(flatPrice) || 0;
+        if (qty === 0) return 0;
+        const tiers = (Array.isArray(pricingTable) ? pricingTable : [])
+          .filter(t => t && Number.isFinite(t.from) && Number.isFinite(t.price))
+          .map(t => ({ from: Math.max(1, Math.floor(t.from)), price: Math.max(0, Number(t.price)) }))
+          .sort((a, b) => a.from - b.from);
+        if (tiers.length === 0) return qty * flat;
+        let total = 0;
+        for (let n = 1; n <= qty; n++) {
+          let price = flat;
+          for (const t of tiers) { if (t.from <= n) price = t.price; else break; }
+          total += price;
+        }
+        return total;
+      };
+
+      let rows = Array.isArray(session.pricingTable) ? [...session.pricingTable] : [];
+      const rowsContainer = document.createElement('div');
+      rowsContainer.style.cssText = 'display:flex; flex-direction:column; gap:0.375rem; width:100%;';
+
+      const savePricingTable = async () => {
+        try {
+          await apiPut(`/api/sessions/${session._id}/pricing-table`, { pricingTable: rows });
+          session.pricingTable = [...rows];
+          flashSaved();
+        } catch (e) {
+          window.showToast?.('Erro ao salvar tabela: ' + e.message, 'error');
+        }
+      };
+
+      // Prévia ao vivo dos totais — usa o MESMO calcExtraCost do cliente, então o
+      // fotógrafo vê exatamente o que o cliente verá (sem conflito de valores).
+      const previewEl = document.createElement('div');
+      previewEl.style.cssText = 'font-size:0.625rem; color:var(--text-muted); line-height:1.5; text-align:center; width:100%; margin-top:0.125rem;';
+      const updatePreview = () => {
+        const valid = rows.filter(r => Number.isFinite(Number(r.from)) && Number.isFinite(Number(r.price)));
+        if (valid.length === 0) { previewEl.innerHTML = ''; return; }
+        const flat = Number(session.extraPhotoPrice) || 0;
+        const froms = valid.map(r => Math.max(1, Math.floor(r.from))).sort((a, b) => a - b);
+        const samples = Array.from(new Set([...froms, froms[froms.length - 1] + 5])).slice(0, 5);
+        const lines = samples.map(q =>
+          `${q} extra${q > 1 ? 's' : ''} → <strong>R$ ${calcExtraCost(q, rows, flat).toFixed(2).replace('.', ',')}</strong>`
+        );
+        previewEl.innerHTML = 'Prévia (cumulativa): ' + lines.join(' · ');
+      };
+
+      const renderRows = () => {
+        rowsContainer.innerHTML = '';
+        rows.forEach((r, i) => {
+          const rowEl = document.createElement('div');
+          rowEl.style.cssText = 'display:flex; gap:0.25rem; align-items:center; width:100%;';
+
+          const fromIn = document.createElement('input');
+          fromIn.type = 'number'; fromIn.min = '1'; fromIn.value = String(r.from);
+          fromIn.placeholder = 'De'; fromIn.title = 'A partir de quantas fotos';
+          fromIn.style.cssText = INPUT_CSS + ' flex:1; min-width:0;';
+          fromIn.onchange = () => { rows[i].from = parseInt(fromIn.value) || 1; savePricingTable(); updatePreview(); };
+
+          const sep = document.createElement('span');
+          sep.textContent = '→ R$';
+          sep.style.cssText = 'font-size:0.6875rem; color:var(--text-muted); white-space:nowrap; flex-shrink:0;';
+
+          const priceIn = document.createElement('input');
+          priceIn.type = 'number'; priceIn.min = '0'; priceIn.step = '0.01'; priceIn.value = String(r.price);
+          priceIn.placeholder = 'Preço';
+          priceIn.style.cssText = INPUT_CSS + ' flex:1; min-width:0;';
+          priceIn.onchange = () => { rows[i].price = parseFloat(priceIn.value) || 0; savePricingTable(); updatePreview(); };
+
+          const del = document.createElement('button');
+          del.type = 'button'; del.innerHTML = icon('lixeira', 12);
+          del.title = 'Remover faixa';
+          del.style.cssText = 'background:none; border:none; color:var(--red); cursor:pointer; display:flex; align-items:center; padding:0.125rem; flex-shrink:0;';
+          del.onclick = () => { rows.splice(i, 1); renderRows(); savePricingTable(); };
+
+          rowEl.appendChild(fromIn);
+          rowEl.appendChild(sep);
+          rowEl.appendChild(priceIn);
+          rowEl.appendChild(del);
+          rowsContainer.appendChild(rowEl);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.textContent = '+ Adicionar faixa';
+        addBtn.style.cssText = 'background:none; border:1px dashed var(--border); border-radius:var(--r-field); color:var(--accent); font-size:0.6875rem; cursor:pointer; padding:0.25rem; width:100%; text-align:center; margin-top:0.125rem;';
+        addBtn.onclick = () => {
+          const lastFrom = rows.length > 0 ? rows[rows.length - 1].from : 0;
+          rows.push({ from: lastFrom + 10, price: 0 });
+          renderRows();
+        };
+        rowsContainer.appendChild(addBtn);
+        updatePreview();
+      };
+
+      renderRows();
+      pricingWrap.appendChild(rowsContainer);
+      pricingWrap.appendChild(previewEl);
+      panel.appendChild(pricingWrap);
+    }
   }
 
   if (isSelection || isMultiSelection) {

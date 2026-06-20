@@ -5,6 +5,8 @@ const Notification = require('../models/Notification');
 const Subscription = require('../models/Subscription');
 const { authenticateToken } = require('../middleware/auth');
 const { checkLimit, checkSessionLimit, checkPhotoLimit } = require('../middleware/planLimits');
+const { checkHoneyPot } = require('../middleware/security');
+const rateLimit = require('express-rate-limit');
 const { createUploader } = require('../utils/multerConfig');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -140,6 +142,8 @@ router.post('/client/verify-code', async (req, res) => {
       galleryDeliveryMode: session.galleryDeliveryMode || null,
       packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
       extraPhotoPrice: (participant && participant.extraPhotoPrice != null) ? participant.extraPhotoPrice : (session.extraPhotoPrice || 25),
+      // Tabela de preços por faixa de quantidade (display) — vazia = usa extraPhotoPrice
+      pricingTable: session.pricingTable || [],
       watermark: session.watermark !== false,
       commentsEnabled: session.commentsEnabled !== false,
       extraRequest: (participant ? participant.extraRequest : session.extraRequest) || { status: 'none', photos: [] },
@@ -289,6 +293,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       selectionDeadline: session.selectionDeadline,
       packageLimit: packageLimit,
       extraPhotoPrice: extraPhotoPrice,
+      // Tabela de preços por faixa de quantidade (display) — vazia = usa extraPhotoPrice
+      pricingTable: session.pricingTable || [],
       allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
       allowReopen: session.allowReopen !== false,
       deliveredAt: session.deliveredAt || null,
@@ -2461,6 +2467,226 @@ router.get('/sessions/:id/photos/diagnose', authenticateToken, async (req, res) 
     res.json({ success: true, mode: session.mode, totalPhotos: session.photos.length, autoFixed: fixed, photos: report });
   } catch (error) {
     req.logger.error('Diagnose error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ============================================================================
+// AUTO-INSCRIÇÃO PÚBLICA (Seleção em Grupo via QR Code / Link)
+// ============================================================================
+
+// PÚBLICA: Retorna dados básicos da sessão para exibir na página de cadastro
+// Não requer autenticação — busca por accessCode E pelo slug da organização (via middleware tenant)
+// Rate limit da auto-inscrição pública: 30 inscrições/min por IP.
+// Curva floods de escrita não autenticada sem bloquear o público de um evento real
+// (muitas pessoas podem compartilhar o mesmo IP/Wi-Fi do local). A dedupe por
+// WhatsApp abaixo ainda impede duplicatas mesmo dentro desse limite.
+const selfRegLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas em pouco tempo. Aguarde um instante e tente novamente.' }
+});
+
+router.get('/sessions/register/:code', async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      accessCode: req.params.code,
+      organizationId: req.organizationId,
+      isActive: true,
+      mode: 'multi_selection'
+    }).select('name coverPhoto selectionDeadline selfRegEnabled selfRegDeadline').lean();
+
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!session.selfRegEnabled) return res.status(403).json({ error: 'Inscrições encerradas para esta sessão' });
+
+    // Verifica prazo de inscrição
+    const regDeadline = session.selfRegDeadline || session.selectionDeadline;
+    if (regDeadline && new Date() > new Date(regDeadline)) {
+      return res.status(403).json({ error: 'O prazo de inscrição encerrou' });
+    }
+
+    // Busca graus de parentesco configurados pela organização
+    const org = await Organization.findById(req.organizationId)
+      .select('name preferences.membershipRoles').lean();
+
+    res.json({
+      success: true,
+      session: {
+        name: session.name,
+        coverPhoto: session.coverPhoto || '',
+        deadline: regDeadline || null
+      },
+      membershipRoles: org?.preferences?.membershipRoles || ['Pai/Mãe', 'Parente', 'Professor', 'Convidado'],
+      orgName: org?.name || ''
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PÚBLICA: Auto-inscrição — cria participante a partir do formulário público
+router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (req, res) => {
+  try {
+    const { name, phone, relationship } = req.body;
+
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Nome é obrigatório' });
+    if (!phone || !phone.trim()) return res.status(400).json({ error: 'WhatsApp é obrigatório' });
+    if (!relationship || !relationship.trim()) return res.status(400).json({ error: 'Grau de parentesco é obrigatório' });
+
+    const session = await Session.findOne({
+      accessCode: req.params.code,
+      organizationId: req.organizationId,
+      isActive: true,
+      mode: 'multi_selection',
+      selfRegEnabled: true
+    });
+
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada ou inscrições encerradas' });
+
+    // Verifica prazo de inscrição
+    const regDeadline = session.selfRegDeadline || session.selectionDeadline;
+    if (regDeadline && new Date() > new Date(regDeadline)) {
+      return res.status(403).json({ error: 'O prazo de inscrição encerrou' });
+    }
+
+    // Idempotência/anti-duplicata: se este WhatsApp já se inscreveu nesta sessão,
+    // devolve o código existente em vez de criar outro participante (ex.: reescaneou o QR).
+    const phoneDigits = phone.replace(/\D/g, '');
+    const existing = (session.participants || []).find(
+      p => p.phone && p.phone.replace(/\D/g, '') === phoneDigits
+    );
+    if (existing) {
+      return res.json({
+        success: true,
+        participantCode: existing.accessCode,
+        sessionCode: session.accessCode,
+        alreadyRegistered: true
+      });
+    }
+
+    const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    session.participants.push({
+      name: name.trim(),
+      phone: phone.trim(),
+      relationship: relationship.trim(),
+      accessCode,
+      packageLimit: session.packageLimit || 30,
+      selectionStatus: 'pending',
+      selectedPhotos: []
+    });
+
+    await session.save();
+
+    res.json({
+      success: true,
+      participantCode: accessCode,
+      sessionCode: session.accessCode
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Retorna URL pública de inscrição para exibir QR Code no painel
+router.get('/sessions/:id/register-link', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
+      .select('accessCode selfRegEnabled selfRegDeadline selectionDeadline mode name').lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (session.mode !== 'multi_selection') return res.status(400).json({ error: 'Auto-inscrição disponível apenas no modo Seleção em Grupo' });
+
+    const org = await Organization.findById(req.user.organizationId).select('slug customDomain').lean();
+    // Espelha o padrão canônico de link do cliente (subdomínio do fotógrafo), não path-based:
+    // o resolveTenant identifica o tenant pelo subdomínio, então o link precisa ser <slug>.<base>.
+    const base = org?.customDomain
+      ? `https://${org.customDomain}`
+      : (process.env.BASE_DOMAIN
+          ? `https://${org?.slug || ''}.${process.env.BASE_DOMAIN}`
+          : `https://${org?.slug || ''}.cliquezoom.com.br`);
+
+    const url = `${base}/inscrever/${session.accessCode}`;
+
+    res.json({
+      success: true,
+      url,
+      selfRegEnabled: session.selfRegEnabled,
+      selfRegDeadline: session.selfRegDeadline || null
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Ativar/desativar auto-inscrição e definir prazo
+router.put('/sessions/:id/self-reg', authenticateToken, async (req, res) => {
+  try {
+    const { selfRegEnabled, selfRegDeadline } = req.body;
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    if (typeof selfRegEnabled === 'boolean') session.selfRegEnabled = selfRegEnabled;
+    // Só altera o prazo se o campo veio no body — togglar o "ativar" sozinho não apaga o deadline.
+    if ('selfRegDeadline' in req.body) {
+      session.selfRegDeadline = selfRegDeadline ? new Date(selfRegDeadline) : null;
+    }
+
+    await session.save();
+    res.json({ success: true, selfRegEnabled: session.selfRegEnabled, selfRegDeadline: session.selfRegDeadline });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Salvar tabela de preços progressiva da sessão
+router.put('/sessions/:id/pricing-table', authenticateToken, async (req, res) => {
+  try {
+    const { pricingTable } = req.body;
+
+    if (!Array.isArray(pricingTable)) return res.status(400).json({ error: 'pricingTable deve ser um array' });
+
+    // Validação básica das faixas
+    for (const row of pricingTable) {
+      if (typeof row.from !== 'number' || row.from < 1) return res.status(400).json({ error: 'Cada faixa precisa de um "from" >= 1' });
+      if (typeof row.price !== 'number' || row.price < 0) return res.status(400).json({ error: 'Preço inválido em uma das faixas' });
+    }
+
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { pricingTable },
+      { new: true, select: 'pricingTable extraPhotoPrice' }
+    );
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    res.json({ success: true, pricingTable: session.pricingTable });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Retorna dados de um participante para pré-preencher o modal Rhyno (conversão → cliente)
+router.get('/sessions/:id/participants/:pid/to-client', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
+      .select('participants').lean();
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const p = (session.participants || []).find(x => String(x._id) === req.params.pid);
+    if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+
+    // Retorna apenas os campos necessários para criar/pré-preencher um cliente no Rhyno
+    res.json({
+      success: true,
+      participant: {
+        name: p.name,
+        phone: p.phone || '',
+        email: p.email || '',
+        relationship: p.relationship || ''
+      }
+    });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

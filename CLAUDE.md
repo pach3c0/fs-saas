@@ -121,6 +121,26 @@
 
 ---
 
+## 🔴 HANDOFF ATIVO (2026-06-20) — Auto-inscrição via QR Code + Tabela de preços (`multi_selection`)
+
+> **Working tree não commitado.** Não dar `git add -A` às cegas. Validado por `node --check`; **sem E2E** (precisa sessão real com tabela). Detalhes na memória `project_auto_inscricao_qr`.
+
+**Feature:** convidado escaneia QR / abre `/inscrever/:accessCode` (página `site/inscrever/index.html`, rota em `server.js`), preenche nome + WhatsApp + grau de parentesco → vira participante da sessão. Tabela de preços é **só exibição**: o cliente vê o total correndo conforme seleciona; **a plataforma NÃO cobra** (V1 sem pagamentos) — o fotógrafo cobra por fora.
+
+**Origem:** implementação ~90% feita por outra IA (Gemini); eu auditei e corrigi **4 bugs**:
+1. `pricingTable` era dado morto (salva no admin, nunca chegava ao cliente). Agora `client/verify-code` + `client/photos` devolvem `pricingTable`; `gallery.js` tem helper `calcExtraCost(qty, pricingTable, flatPrice)` nos 3 totais (barra de seleção + 2 upsells). Tabela vazia → fallback `extraPhotoPrice`.
+2. Link de inscrição (`GET /sessions/:id/register-link`) era path-based → quebrava multi-tenant. Corrigido p/ subdomínio `https://<slug>.<BASE_DOMAIN>/inscrever/<code>`.
+3. POST público `/sessions/register/:code`: add `selfRegLimiter` (30/min/IP), `checkHoneyPot` (campo `_hp_trap` oculto no form) e **dedupe por WhatsApp** (reescaneou → mesmo código, `alreadyRegistered:true`).
+4. `PUT /sessions/:id/self-reg` zerava o prazo ao togglar → guard `if ('selfRegDeadline' in req.body)`.
+
+**Campos novos:** `Session`: `selfRegEnabled`, `selfRegDeadline`, `pricingTable[{from,to,price}]`, `participant.relationship`. `Organization.preferences.membershipRoles` (não `settings`).
+
+**Modelo da tabela (RESOLVIDO):** CUMULATIVO/limiar (estilo imposto) sobre as fotos EXTRAS — cada foto cobrada pela faixa em que cai, total sempre monotônico (sem "conflito de valores"). Faixas são limiares ("a partir de N"); `calcExtraCost` idêntico em `gallery.js` + `config-panel.js` (admin tem prévia ao vivo). Tabela vazia → `extraPhotoPrice` fixo.
+
+**⏳ Pendências:** (a) Teste E2E ponta-a-ponta (cadastro público → admin → galeria com total). (b) Notificação "fotos prontas via WhatsApp" ainda é manual (sem API WhatsApp). (c) Página de sucesso mostra o código em vez de redirecionar pro PWA (divergência do plano, não bug).
+
+---
+
 ## INTEGRAÇÃO COM RHYNO SYSTEM (ERP/CRM)
 
 **Status:** ✅ Live em produção (deploy 2026-06-15)

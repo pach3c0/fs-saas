@@ -98,6 +98,7 @@ export function setupParticipantes(container, state, renderSessoes) {
       const status = STATUS_LABELS[p.selectionStatus] || STATUS_LABELS.pending;
       const count = (p.selectedPhotos || []).length;
       const phoneInfo = p.phone ? ` · ${escapeHtml(p.phone)}` : '';
+      const relInfo = p.relationship ? ` · ${escapeHtml(p.relationship)}` : '';
       return `
         <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
           <div style="min-width:0; flex:1;">
@@ -108,6 +109,7 @@ export function setupParticipantes(container, state, renderSessoes) {
               <span>${count}/${p.packageLimit} fotos</span>
               ${p.extraPhotoPrice != null ? `<span>·</span><span>R$ ${Number(p.extraPhotoPrice).toFixed(2).replace('.', ',')}/extra</span>` : ''}
               ${phoneInfo ? `<span>·</span><span>${phoneInfo}</span>` : ''}
+              ${relInfo ? `<span>·</span><span style="color:var(--accent);">${relInfo}</span>` : ''}
               <span class="badge ${status.class}">${status.text}</span>
             </div>
           </div>
@@ -118,6 +120,14 @@ export function setupParticipantes(container, state, renderSessoes) {
                 ${icon('enviar', 16)}
               </span>
               <span class="header-expand-label">Entregar</span>
+            </button>
+            ` : ''}
+            ${!p.clientId ? `
+            <button onclick="convertParticipantToClient('${p._id}')" class="header-expand-btn" title="Tornar Cliente" style="cursor: pointer;">
+              <span class="header-expand-icon" style="display: flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important;">
+                ${icon('perfil', 16)}
+              </span>
+              <span class="header-expand-label">Tornar Cliente</span>
             </button>
             ` : ''}
             <button onclick="editParticipant('${p._id}')" class="header-expand-btn" title="Editar" style="cursor: pointer;">
@@ -136,6 +146,157 @@ export function setupParticipantes(container, state, renderSessoes) {
         </div>
       `;
     }).join('');
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Auto-inscrição QR Code
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Injeta QRCode.js uma única vez (biblioteca CDN, sem dependência de build)
+  function injectQRLib() {
+    if (window.QRCode || document.getElementById('czQRLib')) return Promise.resolve();
+    return new Promise((resolve) => {
+      const s = document.createElement('script');
+      s.id = 'czQRLib';
+      s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function renderSelfRegSection(sessionId) {
+    const slot = container.querySelector('#selfRegSection');
+    if (!slot) return;
+
+    const session = state.sessionsData.find(s => s._id === sessionId);
+    // Só mostra para multi_selection
+    if (!session || session.mode !== 'multi_selection') {
+      slot.style.display = 'none';
+      return;
+    }
+    slot.style.display = '';
+
+    slot.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"><div style="width:20px;height:2px;background:var(--border);"></div><span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;">Auto-inscrição via QR Code</span><div style="flex:1;height:2px;background:var(--border);"></div></div><div style="display:flex;align-items:center;justify-content:center;padding:1.5rem;"><div style="font-size:0.8125rem;color:var(--text-muted);">Carregando...</div></div>`;
+
+    try {
+      const data = await apiGet(`/api/sessions/${sessionId}/register-link`);
+      const url = data.url || '';
+      const isEnabled = !!data.selfRegEnabled;
+      const deadline = data.selfRegDeadline || '';
+
+      await injectQRLib();
+
+      slot.innerHTML = `
+        <div style="margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+          <div style="width:20px;height:2px;background:var(--border);"></div>
+          <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;">Auto-inscrição via QR Code</span>
+          <div style="flex:1;height:2px;background:var(--border);"></div>
+        </div>
+
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-card);padding:1rem;display:flex;flex-direction:column;gap:0.875rem;">
+
+          <!-- Toggle ativo/inativo -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+            <div>
+              <div style="font-size:0.875rem;font-weight:600;color:var(--text-primary);margin-bottom:0.125rem;">Inscrição pública ativa</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Qualquer pessoa com o link/QR pode se inscrever</div>
+            </div>
+            <label id="selfRegToggleLabel" style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+              <input type="checkbox" id="selfRegToggle" ${isEnabled ? 'checked' : ''}
+                style="opacity:0;width:0;height:0;"
+                onchange="toggleSelfReg(this.checked)" />
+              <span id="selfRegTrack" style="
+                position:absolute;inset:0;border-radius:99px;
+                background:${isEnabled ? 'var(--accent)' : 'var(--border)'};
+                transition:background .2s;
+              "></span>
+              <span id="selfRegThumb" style="
+                position:absolute;top:3px;left:${isEnabled ? '23px' : '3px'};
+                width:18px;height:18px;border-radius:50%;
+                background:var(--bg-base);transition:left .2s;
+              "></span>
+            </label>
+          </div>
+
+          <!-- Prazo de inscrição -->
+          <div style="display:flex;flex-direction:column;gap:0.25rem;">
+            <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">Prazo de inscrição (opcional)</label>
+            <input type="datetime-local" id="selfRegDeadlineInput" value="${deadline ? new Date(deadline).toISOString().slice(0,16) : ''}" 
+              style="background:var(--bg-base);border:1px solid var(--border);border-radius:var(--r-field);padding:0.45rem 0.6rem;color:var(--text-primary);font-size:0.875rem;font-family:inherit;outline:none;"
+              onchange="saveSelfRegDeadline(this.value)" />
+            <span style="font-size:0.6875rem;color:var(--text-muted);">Vazio = mesmo prazo da sessão. Quando expirar, o link não aceita mais inscrições.</span>
+          </div>
+
+          <!-- Link copiável -->
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <input id="selfRegLinkInput" type="text" readonly value="${escapeHtml(url)}"
+              style="flex:1;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--r-field);padding:0.45rem 0.75rem;font-size:0.75rem;color:var(--text-primary);font-family:monospace;outline:none;cursor:text;" />
+            <button onclick="copySelfRegLink()" class="header-expand-btn" title="Copiar link" style="flex-shrink:0;">
+              <span class="header-expand-icon" style="display:flex !important;align-items:center !important;justify-content:center !important;width:34px !important;height:34px !important;">${icon('copiar', 16)}</span>
+              <span class="header-expand-label">Copiar</span>
+            </button>
+          </div>
+
+          <!-- QR Code -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;">
+            <div id="selfRegQRCode" style="background:white;padding:12px;border-radius:12px;display:inline-block;"></div>
+            <button onclick="downloadSelfRegQR()" class="header-expand-btn" style="">
+              <span class="header-expand-icon" style="display:flex !important;align-items:center !important;justify-content:center !important;width:34px !important;height:34px !important;">${icon('baixar', 16)}</span>
+              <span class="header-expand-label">Baixar QR Code</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Gerar QR Code
+      if (window.QRCode && url) {
+        new window.QRCode(document.getElementById('selfRegQRCode'), {
+          text: url,
+          width: 160,
+          height: 160,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: window.QRCode.CorrectLevel.M
+        });
+      }
+
+      // Handlers globais
+      window.toggleSelfReg = async (enabled) => {
+        const track = document.getElementById('selfRegTrack');
+        const thumb = document.getElementById('selfRegThumb');
+        if (track) track.style.background = enabled ? 'var(--accent)' : 'var(--border)';
+        if (thumb) thumb.style.left = enabled ? '23px' : '3px';
+        try {
+          await apiPut(`/api/sessions/${sessionId}/self-reg`, { selfRegEnabled: enabled });
+          window.showToast?.(enabled ? 'Auto-inscrição ativada' : 'Auto-inscrição desativada', 'success');
+        } catch (e) { window.showToast?.(e.message, 'error'); }
+      };
+
+      window.saveSelfRegDeadline = async (val) => {
+        try {
+          await apiPut(`/api/sessions/${sessionId}/self-reg`, {
+            selfRegDeadline: val || null
+          });
+          window.showToast?.('Prazo salvo', 'success');
+        } catch (e) { window.showToast?.(e.message, 'error'); }
+      };
+
+      window.copySelfRegLink = () => {
+        navigator.clipboard.writeText(url).then(() => window.showToast?.('Link copiado!', 'success'));
+      };
+
+      window.downloadSelfRegQR = () => {
+        const canvas = document.querySelector('#selfRegQRCode canvas');
+        if (!canvas) { window.showToast?.('QR Code não gerado', 'error'); return; }
+        const link = document.createElement('a');
+        link.download = `qrcode-inscricao.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+
+    } catch (e) {
+      slot.innerHTML = `<div style="font-size:0.8125rem;color:var(--text-muted);text-align:center;padding:0.75rem;">Erro ao carregar dados de inscrição.</div>`;
+    }
   }
 
   // Pré-preenche pacote e preço do form com os padrões da sessão (definidos na sidebar).
@@ -157,6 +318,8 @@ export function setupParticipantes(container, state, renderSessoes) {
     container.querySelector('#participantsModalTitle').textContent = `Participantes - ${session.name}`;
     renderParticipantsList(session.participants || []);
     applyFormDefaults();
+    // Carrega seção de auto-inscrição e QR Code
+    await renderSelfRegSection(sessionId);
     participantsModal.style.display = 'flex';
   };
 
@@ -293,6 +456,33 @@ export function setupParticipantes(container, state, renderSessoes) {
       await apiPut(`/api/sessions/${state.currentParticipantsSessionId}/participants/${pid}/deliver`);
       await renderSessoes(container);
       window.viewParticipants(state.currentParticipantsSessionId);
+    } catch (e) { window.showToast?.(e.message, 'error'); }
+  };
+
+  // Converte participante em cliente: busca dados e abre modal Rhyno pré-preenchido.
+  // O fotógrafo finaliza o cadastro completo no Rhyno sem perder o contexto.
+  window.convertParticipantToClient = async (pid) => {
+    try {
+      const data = await apiGet(`/api/sessions/${state.currentParticipantsSessionId}/participants/${pid}/to-client`);
+      if (!data.participant) return window.showToast?.('Participante não encontrado', 'error');
+      setupClientModal();
+      abrirModalClienteNovo(data.participant.name, (newClient) => {
+        // Após criar o cliente no Rhyno, atualiza o participante com o clientId
+        if (newClient?._id) {
+          apiPut(`/api/sessions/${state.currentParticipantsSessionId}/participants/${pid}`, {
+            clientId: String(newClient._id)
+          }).then(() => {
+            window.showToast?.('Participante vinculado como cliente!', 'success');
+            renderSessoes(container).then(() => window.viewParticipants(state.currentParticipantsSessionId));
+          }).catch(e => window.showToast?.(e.message, 'error'));
+        }
+      }, {
+        target: 'rhyno',
+        prefill: {
+          phone: data.participant.phone,
+          email: data.participant.email
+        }
+      });
     } catch (e) { window.showToast?.(e.message, 'error'); }
   };
 

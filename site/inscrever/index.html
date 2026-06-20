@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscrição para Sessão de Fotos</title>
+  <meta name="description" content="Inscreva-se para receber as fotos do evento." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand: #1a1a1a;
+      --brand-light: #f5f5f5;
+      --accent: #1a1a1a;
+      --bg: #f0f0f2;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --border: rgba(0,0,0,0.10);
+      --radius: 20px;
+      --radius-sm: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.10);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.15);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100dvh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 1.5rem 1rem 3rem;
+      color: var(--text);
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 440px;
+      overflow: hidden;
+      animation: fadeUp .4s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Capa */
+    .cover {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      display: block;
+    }
+    .cover-placeholder {
+      width: 100%;
+      height: 220px;
+      background: linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cover-placeholder svg { opacity: .3; }
+
+    /* Header */
+    .header {
+      padding: 1.5rem 1.5rem 0;
+      text-align: center;
+    }
+    .org-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .375rem;
+      background: var(--bg);
+      border-radius: 99px;
+      padding: .25rem .75rem;
+      font-size: .75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: .875rem;
+    }
+    .org-badge svg { flex-shrink: 0; }
+    .session-name {
+      font-size: 1.375rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--text);
+      margin-bottom: .5rem;
+    }
+
+    /* Countdown */
+    .deadline-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      margin-top: .625rem;
+      flex-wrap: wrap;
+    }
+    .deadline-chip {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 99px;
+      padding: .25rem .75rem;
+      font-size: .75rem;
+      font-weight: 600;
+      color: #856404;
+      display: flex;
+      align-items: center;
+      gap: .25rem;
+    }
+    .countdown {
+      font-size: .875rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .countdown-units {
+      display: flex;
+      gap: .5rem;
+      justify-content: center;
+      margin-top: .75rem;
+    }
+    .countdown-unit {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: .5rem .75rem;
+      text-align: center;
+      min-width: 56px;
+    }
+    .countdown-unit .val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+      line-height: 1;
+    }
+    .countdown-unit .lbl {
+      font-size: .6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.25rem 1.5rem;
+    }
+
+    /* Form */
+    .form-body { padding: 0 1.5rem 1.5rem; }
+    .form-title {
+      font-size: .9375rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      margin-bottom: .875rem;
+    }
+    label {
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .required { color: #ef4444; margin-left: .125rem; }
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: .75rem 1rem;
+      font-size: .9375rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26,26,26,0.08);
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .875rem center;
+      padding-right: 2.5rem;
+    }
+
+    /* Submit */
+    .btn-submit {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: .875rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      margin-top: .5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-submit:hover { opacity: .88; }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* States */
+    #loadingState, #successState, #errorState { display: none; }
+
+    /* Loading */
+    #loadingState {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Success */
+    #successState {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+    }
+    .success-icon {
+      width: 72px; height: 72px;
+      background: #d1fae5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      animation: popIn .4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes popIn {
+      0%   { transform: scale(0); opacity: 0; }
+      70%  { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .success-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .5rem;
+    }
+    .success-text {
+      font-size: .875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .code-box {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .code-box .label { font-size: .75rem; color: var(--text-muted); margin-bottom: .25rem; }
+    .code-box .code {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-family: monospace;
+      letter-spacing: .1em;
+      color: var(--text);
+    }
+
+    /* Error */
+    #errorState {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .error-icon {
+      width: 64px; height: 64px;
+      background: #fee2e2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    #errorMsg {
+      font-size: .9375rem;
+      font-weight: 500;
+      color: #dc2626;
+      margin-bottom: .5rem;
+    }
+
+    /* Footer note */
+    .footer-note {
+      text-align: center;
+      font-size: .75rem;
+      color: var(--text-muted);
+      padding: 0 1.5rem 1.5rem;
+      line-height: 1.5;
+    }
+    .footer-note a { color: inherit; }
+  </style>
+</head>
+<body>
+
+<div class="card" id="card">
+
+  <!-- Estado: Carregando -->
+  <div id="loadingState" style="display:flex; flex-direction:column; align-items:center; padding:3rem 1.5rem;">
+    <div class="spinner"></div>
+    <p style="color:var(--text-muted); font-size:.875rem;">Carregando...</p>
+  </div>
+
+  <!-- Estado: Erro -->
+  <div id="errorState">
+    <div style="padding: 2rem 1.5rem; text-align: center;">
+      <div class="error-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <p id="errorMsg">Sessão não encontrada.</p>
+      <p style="font-size:.8125rem; color:var(--text-muted); margin-top:.5rem;">Verifique se o link está correto ou entre em contato com o fotógrafo.</p>
+    </div>
+  </div>
+
+  <!-- Estado: Formulário (principal) -->
+  <div id="formState">
+    <!-- Capa -->
+    <div id="coverWrap"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="org-badge" id="orgBadge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="orgName">Fotógrafo</span>
+      </div>
+      <div class="session-name" id="sessionName">Carregando...</div>
+      <div id="deadlineArea"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Formulário -->
+    <div class="form-body">
+      <p class="form-title">Preencha seus dados para receber as fotos 📸</p>
+      <form id="registerForm" novalidate>
+        <div class="field">
+          <label for="fieldName">Nome Completo <span class="required">*</span></label>
+          <input id="fieldName" type="text" placeholder="Seu nome completo" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="fieldPhone">WhatsApp <span class="required">*</span></label>
+          <input id="fieldPhone" type="tel" placeholder="(11) 99999-9999" required autocomplete="tel"
+                 oninput="formatPhone(this)" />
+        </div>
+        <div class="field">
+          <label for="fieldRelationship">Você é... <span class="required">*</span></label>
+          <select id="fieldRelationship" required>
+            <option value="">Selecione</option>
+          </select>
+        </div>
+        <!-- Honey pot anti-bot: invisível para humanos; se vier preenchido, o servidor rejeita. -->
+        <div aria-hidden="true" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;">
+          <label for="_hp_trap">Não preencha este campo</label>
+          <input id="_hp_trap" name="_hp_trap" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirmar Inscrição
+        </button>
+      </form>
+    </div>
+
+    <p class="footer-note">
+      Após o fotógrafo fazer o upload das fotos, você será avisado pelo WhatsApp.<br>
+      <strong>Guarde seu código de acesso</strong> — ele será exibido após a inscrição.
+    </p>
+  </div>
+
+  <!-- Estado: Sucesso -->
+  <div id="successState">
+    <div class="success-icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Inscrição realizada! 🎉</div>
+    <div class="success-text">
+      Você está na lista. Assim que as fotos estiverem disponíveis,<br>
+      você receberá uma notificação no WhatsApp.
+    </div>
+    <div class="code-box">
+      <div class="label">Seu código de acesso</div>
+      <div class="code" id="participantCode">—</div>
+    </div>
+    <p style="font-size:.75rem; color:var(--text-muted); line-height:1.6;">
+      Anote ou salve este código. Você precisará dele para acessar suas fotos quando estiverem prontas.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  // ======= Utilitários =======
+  function show(id) {
+    ['loadingState','errorState','formState','successState'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.style.display = (s === id) ? '' : 'none';
+    });
+  }
+
+  function formatPhone(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length >= 7) {
+      v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+    } else if (v.length >= 3) {
+      v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+    } else if (v.length >= 1) {
+      v = `(${v}`;
+    }
+    input.value = v;
+  }
+
+  // ======= Countdown =======
+  let _countdownInterval = null;
+  function startCountdown(deadline) {
+    const area = document.getElementById('deadlineArea');
+    if (!deadline) return;
+    const end = new Date(deadline);
+
+    function update() {
+      const now = new Date();
+      const diff = end - now;
+      if (diff <= 0) {
+        area.innerHTML = '<div class="deadline-chip" style="background:#fee2e2;border-color:#f87171;color:#dc2626;">⏰ Prazo encerrado</div>';
+        clearInterval(_countdownInterval);
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      area.innerHTML = `
+        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:.5rem;">Inscrições encerram em:</p>
+        <div class="countdown-units">
+          <div class="countdown-unit"><span class="val">${String(d).padStart(2,'0')}</span><span class="lbl">Dias</span></div>
+          <div class="countdown-unit"><span class="val">${String(h).padStart(2,'0')}</span><span class="lbl">Horas</span></div>
+          <div class="countdown-unit"><span class="val">${String(m).padStart(2,'0')}</span><span class="lbl">Min</span></div>
+          <div class="countdown-unit"><span class="val">${String(s).padStart(2,'0')}</span><span class="lbl">Seg</span></div>
+        </div>`;
+    }
+    update();
+    _countdownInterval = setInterval(update, 1000);
+  }
+
+  // ======= Carregar dados da sessão =======
+  const code = location.pathname.split('/inscrever/')[1]?.split('?')[0];
+
+  async function loadSession() {
+    show('loadingState');
+    try {
+      const res = await fetch(`/api/sessions/register/${code}`);
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('errorMsg').textContent = data.error || 'Sessão não encontrada.';
+        show('errorState');
+        return;
+      }
+
+      // Preencher cabeçalho
+      document.getElementById('orgName').textContent = data.orgName || 'Fotógrafo';
+      document.getElementById('sessionName').textContent = data.session.name || 'Sessão de Fotos';
+      document.title = `Inscrição — ${data.session.name}`;
+
+      // Capa
+      const coverWrap = document.getElementById('coverWrap');
+      if (data.session.coverPhoto) {
+        coverWrap.innerHTML = `<img class="cover" src="${data.session.coverPhoto}" alt="Capa da sessão" loading="eager" />`;
+      } else {
+        coverWrap.innerHTML = `<div class="cover-placeholder"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+      }
+
+      // Countdown
+      if (data.session.deadline) startCountdown(data.session.deadline);
+
+      // Dropdown de graus de parentesco
+      const sel = document.getElementById('fieldRelationship');
+      (data.membershipRoles || ['Pai/Mãe','Parente','Professor','Convidado']).forEach(role => {
+        const opt = document.createElement('option');
+        opt.value = role;
+        opt.textContent = role;
+        sel.appendChild(opt);
+      });
+
+      show('formState');
+    } catch (e) {
+      document.getElementById('errorMsg').textContent = 'Erro ao carregar a sessão. Tente novamente.';
+      show('errorState');
+    }
+  }
+
+  // ======= Submeter formulário =======
+  document.getElementById('registerForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('fieldName').value.trim();
+    const phone = document.getElementById('fieldPhone').value.trim();
+    const relationship = document.getElementById('fieldRelationship').value;
+
+    if (!name) { alert('Por favor, informe seu nome.'); return; }
+    if (!phone) { alert('Por favor, informe seu WhatsApp.'); return; }
+    if (!relationship) { alert('Por favor, selecione seu grau de parentesco.'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> Enviando...';
+
+    try {
+      const res = await fetch(`/api/sessions/register/${code}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, relationship, _hp_trap: document.getElementById('_hp_trap').value })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Erro ao realizar inscrição.');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Confirmar Inscrição';
+        return;
+      }
+      clearInterval(_countdownInterval);
+      document.getElementById('participantCode').textContent = data.participantCode || '—';
+      show('successState');
+    } catch (err) {
+      alert('Erro de conexão. Tente novamente.');
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Confirmar Inscrição';
+    }
+  };
+
+  // Inicializar
+  if (code) {
+    loadSession();
+  } else {
+    document.getElementById('errorMsg').textContent = 'Link inválido.';
+    show('errorState');
+  }
+</script>
+</body>
+</html>

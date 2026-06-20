@@ -119,6 +119,8 @@ const sessionSchema = new mongoose.Schema({
         packageLimit: { type: Number, default: 30 },
         // Preço da foto extra deste participante. null = herda o padrão da sessão (extraPhotoPrice).
         extraPhotoPrice: { type: Number, default: null },
+        // Grau de parentesco informado na auto-inscrição (ex: 'Pai/Mãe', 'Professor', etc.)
+        relationship: { type: String, default: '' },
         // Seleção em Grupo: este participante pediu reabertura da própria seleção (aguardando o fotógrafo).
         reopenRequested: { type: Boolean, default: false },
         // Seleção em Grupo: solicitação de fotos extras individual deste participante.
@@ -134,6 +136,22 @@ const sessionSchema = new mongoose.Schema({
         submittedAt: Date,
         deliveredAt: Date
     }],
+    // Auto-inscrição pública via QR Code / Link
+    selfRegEnabled: { type: Boolean, default: false },   // habilita a página pública de cadastro
+    selfRegDeadline: { type: Date, default: null },       // prazo independente de inscrição (null = usa selectionDeadline)
+
+    // Tabela de preços CUMULATIVA por faixa (limiar) de quantidade de fotos extras.
+    // Cada foto extra é cobrada pelo preço da faixa em que ela cai (estilo imposto):
+    // o total sempre cresce com a quantidade → sem "conflito de valores".
+    // Vazia = usa extraPhotoPrice fixo. O editor do admin define só "from" + "price"
+    // (a faixa vale do "from" até o início da próxima); "to" é opcional/legado.
+    // Ex (limiares): [{ from:1, price:10 }, { from:11, price:8 }, { from:16, price:7 }]
+    pricingTable: [{
+        from:  { type: Number, required: true },  // a partir de quantas fotos extras vale a faixa
+        to:    { type: Number, default: null },   // opcional/legado (não usado no cálculo cumulativo)
+        price: { type: Number, required: true }   // preço de cada foto extra nesta faixa
+    }],
+
     // CRM Fase 2: classificacao de evento + automacao de vendas
     eventType: {
         type: String,

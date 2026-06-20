@@ -191,6 +191,13 @@ app.get('/site', async (req, res) => {
 // Static assets for site templates (CSS, JS, fonts) - AFTER dynamic route
 app.use('/site', express.static(path.join(__dirname, '../site')));
 
+// Página pública de auto-inscrição (Seleção em Grupo via QR Code)
+// Vinculada ao domínio/subdomínio do fotógrafo — o middleware resolveTenant injeta req.organizationId
+// Exemplo: https://flavia.cliquezoom.com.br/inscrever/AB12 ou https://flavia.com.br/inscrever/AB12
+app.get('/inscrever/:code', (req, res) => {
+  res.sendFile(path.join(__dirname, '../site/inscrever/index.html'));
+});
+
 // Preview route (bypasses maintenance curtain)
 app.get('/preview', (req, res) => {
   res.redirect('/?preview');
@@ -363,6 +370,8 @@ app.use('/api/organization/public', resolveTenant);
 app.use('/api/site/config', resolveTenant);
 app.use('/api/site/depoimento', resolveTenant);
 app.use('/api/site/contact', resolveTenant);
+// Rotas públicas de auto-inscrição (Seleção em Grupo via QR Code)
+app.use('/api/sessions/register', resolveTenant);
 
 // ============================================================================
 // ROTAS (cada router montado apenas UMA vez)

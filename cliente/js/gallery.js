@@ -593,6 +593,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateSelectionBar();
     }
 
+    // ── Cálculo de fotos extras (somente exibição) ─────────────────────────
+    // A cobrança é feita por fora pelo fotógrafo; aqui só mostramos o valor.
+    // Modelo CUMULATIVO (progressivo, estilo faixas de imposto): cada foto extra é
+    // cobrada pelo preço da faixa em que ELA cai. Como cada foto soma um valor >= 0,
+    // o total NUNCA diminui ao escolher mais fotos — sem "conflito de valores".
+    // As faixas são limiares (a partir de "from"); valem até o início da próxima.
+    // Sem tabela → preço fixo (extraPhotoPrice).
+    // ⚠️ Mantenha idêntica à mesma função no admin (config-panel.js).
+    function calcExtraCost(qty, pricingTable, flatPrice) {
+        qty = Math.max(0, Math.floor(Number(qty) || 0));
+        const flat = Number(flatPrice) || 0;
+        if (qty === 0) return 0;
+
+        const tiers = (Array.isArray(pricingTable) ? pricingTable : [])
+            .filter(t => t && Number.isFinite(t.from) && Number.isFinite(t.price))
+            .map(t => ({ from: Math.max(1, Math.floor(t.from)), price: Math.max(0, Number(t.price)) }))
+            .sort((a, b) => a.from - b.from);
+        if (tiers.length === 0) return qty * flat;
+
+        let total = 0;
+        for (let n = 1; n <= qty; n++) {
+            let price = flat;                      // antes da 1ª faixa: preço fixo
+            for (const t of tiers) {
+                if (t.from <= n) price = t.price;  // sobe p/ a faixa mais alta que já começou
+                else break;
+            }
+            total += price;
+        }
+        return total;
+    }
+    // Texto de ajuda do upsell: com tabela o preço varia por quantidade, então não
+    // anunciamos um valor único — o total ao vivo abaixo mostra o valor calculado.
+    function extrasHelpText(prefix, pricingTable, flatPrice) {
+        if (Array.isArray(pricingTable) && pricingTable.length > 0) {
+            return `${prefix} O valor é calculado conforme a quantidade de fotos escolhidas.`;
+        }
+        return `${prefix} Cada foto adicional custa <strong>R$ ${(flatPrice || 0).toFixed(2).replace('.', ',')}</strong>.`;
+    }
+
     function updateSelectionBar() {
         const bottomBar = document.getElementById('bottomBar');
         if (!state.isSelectionMode) {
@@ -621,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (count > limit) {
             const extraCount = count - limit;
-            const extraCost = extraCount * extraPrice;
+            const extraCost = calcExtraCost(extraCount, state.session.pricingTable, extraPrice);
             const extraText = `+${extraCount} fotos extras (R$ ${extraCost.toFixed(2).replace('.', ',')})`;
             if (extraInfo) {
                 extraInfo.textContent = extraText;
@@ -762,7 +801,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
                     <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">
                         ${canUpsell
-                    ? `Toque no coração nas fotos abaixo para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.`
+                    ? extrasHelpText('Toque no coração nas fotos abaixo para solicitar extras.', state.session.pricingTable, extraPrice)
                     : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las clicando nelas.'}
                     </p>
                     <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;">
@@ -832,7 +871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const countEl = document.getElementById('extraRequestCount');
                         if (bar && countEl) {
                             if (extraSelectedPhotos.length > 0) {
-                                const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
+                                const total = calcExtraCost(extraSelectedPhotos.length, state.session.pricingTable, extraPrice).toFixed(2).replace('.', ',');
                                 countEl.textContent = `${extraSelectedPhotos.length} foto(s) — R$ ${total}`;
                                 bar.style.display = 'flex';
                             } else {
@@ -1228,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
                     <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">
                         ${canUpsell
-                    ? `O fotógrafo adicionou novas fotos. Clique no coração para solicitar extras. Cada foto adicional custa <strong>R$ ${extraPrice.toFixed(2).replace('.', ',')}</strong>.`
+                    ? extrasHelpText('O fotógrafo adicionou novas fotos. Clique no coração para solicitar extras.', state.session.pricingTable, extraPrice)
                     : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las.'}
                     </p>
                 </div>
@@ -1262,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const updateExtrasBar = () => {
                 if (!bar) return;
                 if (extraSelectedPhotos.length > 0) {
-                    const total = (extraSelectedPhotos.length * extraPrice).toFixed(2).replace('.', ',');
+                    const total = calcExtraCost(extraSelectedPhotos.length, state.session.pricingTable, extraPrice).toFixed(2).replace('.', ',');
                     if (countEl) countEl.textContent = `${extraSelectedPhotos.length} foto(s) · R$ ${total}`;
                     bar.style.display = 'flex';
                 } else {
