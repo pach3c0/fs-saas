@@ -152,14 +152,30 @@ export function setupParticipantes(container, state, renderSessoes) {
   // Auto-inscrição QR Code
   // ────────────────────────────────────────────────────────────────────────────
 
-  // Injeta QRCode.js uma única vez (biblioteca CDN, sem dependência de build)
+  // Injeta QRCode.js uma única vez (biblioteca CDN, sem dependência de build).
+  // SEMPRE resolve — em caso de falha/lentidão do CDN, resolve mesmo assim para
+  // nunca travar quem dá `await` (a renderização tem fallback se window.QRCode faltar).
   function injectQRLib() {
-    if (window.QRCode || document.getElementById('czQRLib')) return Promise.resolve();
+    if (window.QRCode) return Promise.resolve();
+    const existing = document.getElementById('czQRLib');
+    if (existing) {
+      // Script já no DOM mas pode não ter terminado de carregar — aguarda window.QRCode
+      // sem bloquear indefinidamente (máx ~5s).
+      return new Promise((resolve) => {
+        let tries = 0;
+        const iv = setInterval(() => {
+          if (window.QRCode || ++tries > 50) { clearInterval(iv); resolve(); }
+        }, 100);
+      });
+    }
     return new Promise((resolve) => {
       const s = document.createElement('script');
       s.id = 'czQRLib';
       s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
       s.onload = resolve;
+      // Sem onerror, uma falha de CDN deixaria a Promise pendurada para sempre.
+      // Remove o id para permitir nova tentativa numa próxima abertura.
+      s.onerror = () => { s.removeAttribute('id'); resolve(); };
       document.head.appendChild(s);
     });
   }
@@ -248,9 +264,10 @@ export function setupParticipantes(container, state, renderSessoes) {
         </div>
       `;
 
-      // Gerar QR Code
-      if (window.QRCode && url) {
-        new window.QRCode(document.getElementById('selfRegQRCode'), {
+      // Gerar QR Code (com fallback caso a lib de CDN não tenha carregado)
+      const qrSlot = document.getElementById('selfRegQRCode');
+      if (window.QRCode && url && qrSlot) {
+        new window.QRCode(qrSlot, {
           text: url,
           width: 160,
           height: 160,
@@ -258,6 +275,9 @@ export function setupParticipantes(container, state, renderSessoes) {
           colorLight: '#ffffff',
           correctLevel: window.QRCode.CorrectLevel.M
         });
+      } else if (qrSlot) {
+        qrSlot.style.background = 'transparent';
+        qrSlot.innerHTML = `<div style="font-size:0.75rem;color:var(--text-muted);text-align:center;max-width:160px;line-height:1.4;">Não foi possível gerar o QR Code agora.<br>Use o link acima — ele funciona normalmente.</div>`;
       }
 
       // Handlers globais
@@ -318,9 +338,10 @@ export function setupParticipantes(container, state, renderSessoes) {
     container.querySelector('#participantsModalTitle').textContent = `Participantes - ${session.name}`;
     renderParticipantsList(session.participants || []);
     applyFormDefaults();
-    // Carrega seção de auto-inscrição e QR Code
-    await renderSelfRegSection(sessionId);
+    // Abre o modal IMEDIATAMENTE — a abertura não pode depender de rede/CDN.
     participantsModal.style.display = 'flex';
+    // Carrega a seção de auto-inscrição + QR Code de forma assíncrona (não bloqueia).
+    renderSelfRegSection(sessionId);
   };
 
   container.querySelector('#addParticipantBtn').onclick = async () => {
