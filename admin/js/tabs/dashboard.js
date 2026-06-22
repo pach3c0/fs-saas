@@ -200,7 +200,7 @@ async function loadDashboardData(container) {
         const bannersContainer = container.querySelector('#dashboard-banners');
         if (bannersContainer) {
             bannersContainer.innerHTML = renderBanners(banners);
-            setupBannersCarousel(bannersContainer, banners.length);
+            setupBannersCarousel(bannersContainer, banners.length, bannersData.interval || 0);
         }
 
         // Renderizar comunicados da plataforma na aba correspondente
@@ -617,7 +617,7 @@ function renderBanners(banners) {
     `;
 }
 
-function setupBannersCarousel(container, bannersCount) {
+function setupBannersCarousel(container, bannersCount, intervalSecs = 0) {
     const scrollContainer = container.querySelector('.banners-scroll-container');
     const dots = container.querySelectorAll('.banner-dot');
     if (!scrollContainer || dots.length === 0) return;
@@ -656,6 +656,35 @@ function setupBannersCarousel(container, bannersCount) {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(updateActiveDot, 150);
     });
+
+    // Configuração de Auto-slide
+    const intervalMs = intervalSecs * 1000;
+    let autoSlideTimer;
+
+    const startAutoSlide = () => {
+        if (!intervalMs || intervalMs <= 0 || dots.length <= 1) return;
+        clearInterval(autoSlideTimer);
+        autoSlideTimer = setInterval(() => {
+            const width = scrollContainer.clientWidth;
+            const scrollLeft = scrollContainer.scrollLeft;
+            let activeIndex = Math.round(scrollLeft / (width || 1));
+            activeIndex++;
+            if (activeIndex >= dots.length) activeIndex = 0;
+            
+            scrollContainer.scrollTo({
+                left: activeIndex * (width + 16),
+                behavior: 'smooth'
+            });
+        }, intervalMs);
+    };
+
+    startAutoSlide();
+
+    // Pausar auto-slide no hover ou touch manual
+    scrollContainer.addEventListener('mouseenter', () => clearInterval(autoSlideTimer));
+    scrollContainer.addEventListener('mouseleave', startAutoSlide);
+    scrollContainer.addEventListener('touchstart', () => clearInterval(autoSlideTimer));
+    scrollContainer.addEventListener('touchend', startAutoSlide);
 }
 
 window.switchDashboardTab = function(tab) {

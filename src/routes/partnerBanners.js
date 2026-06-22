@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const PartnerBanner = require('../models/PartnerBanner');
+const BannerConfig = require('../models/BannerConfig');
 
 // ============================================================================
 // ROTAS PÚBLICAS (Para fotógrafos autenticados)
@@ -13,7 +14,9 @@ router.get('/banners', authenticateToken, async (req, res) => {
     const banners = await PartnerBanner.find({ active: true })
       .sort({ order: 1, createdAt: 1 })
       .lean();
-    res.json({ success: true, banners });
+    let config = await BannerConfig.findOne().lean();
+    if (!config) config = { interval: 0 };
+    res.json({ success: true, banners, interval: config.interval });
   } catch (error) {
     if (req.logger) req.logger.error('Erro ao buscar banners ativos', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
@@ -31,6 +34,36 @@ router.get('/admin/banners', authenticateToken, requireSuperadmin, async (req, r
       .sort({ order: 1, createdAt: -1 })
       .lean();
     res.json({ success: true, banners });
+  } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/admin/banners/config - Obter config (Superadmin)
+router.get('/admin/banners/config', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    let config = await BannerConfig.findOne().lean();
+    if (!config) config = { interval: 0 };
+    res.json({ success: true, interval: config.interval });
+  } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/banners/config - Salvar config (Superadmin)
+router.post('/admin/banners/config', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { interval } = req.body;
+    let config = await BannerConfig.findOne();
+    if (!config) {
+      config = new BannerConfig({ interval: Number(interval) || 0 });
+    } else {
+      config.interval = Number(interval) || 0;
+    }
+    await config.save();
+    res.json({ success: true, interval: config.interval });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ success: false, error: error.message });

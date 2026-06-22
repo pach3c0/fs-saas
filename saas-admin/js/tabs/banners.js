@@ -4,6 +4,7 @@ import { apiRequest, saasToast, saasConfirm, esc, getToken } from '../core.js';
 let _banners = [];
 let _bannerEditMode = null; // null | 'new' | id
 let _bannerEditData = null; // dados locais do banner sendo editado
+let _bannerConfig = { interval: 0 };
 
 function _inp(style = '') {
   return `background:#0f172a; color:#f1f5f9; border:1px solid #334155; border-radius:0.375rem; padding:0.4rem 0.6rem; font-size:0.8125rem; font-family:inherit; outline:none; ${style}`;
@@ -17,7 +18,9 @@ async function loadBanners() {
   el.innerHTML = '<div class="loading">Carregando banners...</div>';
   try {
     const data = await apiRequest('GET', '/api/admin/banners');
+    const configData = await apiRequest('GET', '/api/admin/banners/config').catch(() => ({ interval: 0 }));
     _banners = data.banners || [];
+    _bannerConfig = { interval: configData.interval || 0 };
     renderBannersList(el);
   } catch (err) {
     el.innerHTML = `<div class="loading" style="color:#f87171">Erro: ${err.message}</div>`;
@@ -33,7 +36,14 @@ function renderBannersList(container) {
           <h2 style="font-size:1.2rem; font-weight:700; color:#f1f5f9; margin:0;">Banners de Parceiros</h2>
           <p style="font-size:0.78rem; color:#64748b; margin:0.25rem 0 0;">Banners de patrocinadores e parceiros exibidos no topo do dashboard dos fotógrafos.</p>
         </div>
-        <button onclick="window.openBannerNew()" style="background:#6366f1; color:#fff; border:none; border-radius:0.375rem; padding:0.5rem 1.125rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">+ Novo Banner</button>
+        <div style="display:flex; gap:0.75rem; align-items:center;">
+          <div style="display:flex; align-items:center; gap:0.5rem; background:#1e293b; border:1px solid #334155; padding:0.4rem 0.75rem; border-radius:0.375rem;">
+            <label style="font-size:0.75rem; color:#94a3b8; margin:0;" title="Tempo em segundos (0 = manual)">Auto-slide (s):</label>
+            <input type="number" id="bInterval" value="${_bannerConfig.interval}" min="0" style="${_inp('width:60px; padding:0.2rem;')}" title="Tempo em segundos (0 = manual)">
+            <button onclick="window.saveBannerConfig()" style="background:#0f172a; color:#f1f5f9; border:1px solid #334155; border-radius:3px; padding:0.2rem 0.5rem; font-size:0.75rem; cursor:pointer;">Salvar</button>
+          </div>
+          <button onclick="window.openBannerNew()" style="background:#6366f1; color:#fff; border:none; border-radius:0.375rem; padding:0.5rem 1.125rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">+ Novo Banner</button>
+        </div>
       </div>
 
       <!-- lista -->
@@ -108,6 +118,20 @@ window.deleteBanner = async (id, title) => {
     await loadBanners();
   } catch (err) {
     saasToast('Erro: ' + err.message, 'error');
+  }
+};
+
+window.saveBannerConfig = async () => {
+  const input = document.getElementById('bInterval');
+  if (!input) return;
+  const interval = parseInt(input.value) || 0;
+  
+  try {
+    await apiRequest('POST', '/api/admin/banners/config', { interval });
+    saasToast('Tempo de rotação salvo com sucesso!', 'success');
+    _bannerConfig.interval = interval;
+  } catch (err) {
+    saasToast('Erro ao salvar tempo: ' + err.message, 'error');
   }
 };
 
