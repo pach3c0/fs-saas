@@ -10,6 +10,7 @@ const { checkHoneyPot } = require('../middleware/security');
 const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhotographerNotificationEmail } = require('../utils/email');
 const { applyDefaultTemplate } = require('./site');
 const { trackEvent } = require('../utils/activityTracker');
+const { provisionRhynoTenant } = require('../utils/rhynoProvision');
 
 router.post('/login', async (req, res) => {
   try {
@@ -176,6 +177,12 @@ router.post('/auth/register', checkHoneyPot, async (req, res) => {
     });
 
     applyDefaultTemplate(org._id).catch(() => { });
+    // Provisiona o tenant Rhyno (aba Gestão via SSO) sem bloquear o cadastro.
+    // Falha → org fica fail-closed (Gestão 409) até um retry/backfill.
+    provisionRhynoTenant(org, user).catch((err) =>
+      req.logger.error('Falha ao provisionar tenant Rhyno no cadastro', {
+        org: org.slug, error: err.message,
+      }));
     sendWelcomeEmail(user.email, user.name, org.slug).catch(() => { });
     sendNewPhotographerNotificationEmail(user.name, user.email, org.slug).catch(() => { });
 

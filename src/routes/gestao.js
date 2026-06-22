@@ -10,12 +10,15 @@ const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
 const RHYNO_API = process.env.RHYNO_API_URL || 'http://localhost:8000';
 
 // Resolve o email do usuário Rhyno do fotógrafo logado.
-// POC: campo opcional na org, com fallback p/ o usuário de teste. Futuro: provisionar por org.
+// FAIL-CLOSED: sem `rhynoUserEmail` próprio retorna null — NUNCA cai num e-mail
+// compartilhado (era a causa do vazamento de tenant corrigido em 2026-06-19). A org
+// é provisionada no cadastro (src/utils/rhynoProvision.js); enquanto não estiver,
+// a Gestão responde 409 "não provisionada" e o front mostra estado neutro.
 async function resolveRhynoEmail(req) {
   const org = await Organization.findById(req.user.organizationId)
     .select('rhynoUserEmail')
     .lean();
-  return (org && org.rhynoUserEmail) || process.env.RHYNO_POC_EMAIL || 'teste@cliquezoom.local';
+  return (org && org.rhynoUserEmail) || null;
 }
 
 // Cunha uma asserção curta assinada com o segredo compartilhado (SSO).
@@ -28,9 +31,16 @@ function mintAssertion(email) {
   });
 }
 
+// Erro tipado para org sem tenant Rhyno — vira HTTP 409 nas rotas.
+class NotProvisionedError extends Error {
+  constructor() { super('Gestão ainda não provisionada'); this.code = 'NOT_PROVISIONED'; }
+}
+
 // Troca a asserção por um token Rhyno (login servidor-a-servidor) p/ chamar a API do ERP.
 async function getRhynoToken(req) {
-  const assertion = mintAssertion(await resolveRhynoEmail(req));
+  const email = await resolveRhynoEmail(req);
+  if (!email) throw new NotProvisionedError();
+  const assertion = mintAssertion(email);
   const resp = await fetch(`${RHYNO_API}/auth/sso-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -47,7 +57,14 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
     if (!process.env.SSO_SHARED_SECRET) {
       return res.status(503).json({ success: false, error: 'SSO não configurado' });
     }
-    const assertion = mintAssertion(await resolveRhynoEmail(req));
+    const email = await resolveRhynoEmail(req);
+    if (!email) {
+      return res.status(409).json({
+        success: false, code: 'NOT_PROVISIONED',
+        error: 'Gestão ainda não provisionada',
+      });
+    }
+    const assertion = mintAssertion(email);
     const redirect =
       typeof req.query.redirect === 'string' ? req.query.redirect : '/dashboard';
     const url =
@@ -84,6 +101,9 @@ router.get('/gestao/customers', authenticateToken, async (req, res) => {
     }));
     res.json({ success: true, clients });
   } catch (err) {
+    if (err.code === 'NOT_PROVISIONED') {
+      return res.status(409).json({ success: false, code: 'NOT_PROVISIONED', error: err.message, clients: [] });
+    }
     req.logger?.error?.('Erro ao buscar clientes no Rhyno', { error: err.message });
     res.status(502).json({ success: false, error: 'Erro ao buscar clientes no Rhyno', clients: [] });
   }
@@ -141,6 +161,9 @@ router.post('/gestao/customers', authenticateToken, async (req, res) => {
       },
     });
   } catch (err) {
+    if (err.code === 'NOT_PROVISIONED') {
+      return res.status(409).json({ success: false, code: 'NOT_PROVISIONED', error: err.message });
+    }
     req.logger?.error?.('Erro ao criar cliente no Rhyno', { error: err.message });
     res.status(500).json({ success: false, error: 'Erro ao criar cliente no Rhyno' });
   }

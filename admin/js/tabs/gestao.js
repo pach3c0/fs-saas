@@ -6,9 +6,8 @@ import { apiGet } from '../utils/api.js';
 
 import { appState } from '../state.js';
 
-// Produção: ERP Rhyno público (mesmo servidor, vizinho do CliqueZoom). Para POC local
-// use http://localhost:5173.
-const RHYNO_BASE = 'https://erp.cliquezoom.com.br';
+// A origem do ERP vem sempre da URL de SSO gerada pelo backend (respeita RHYNO_BASE_URL),
+// então não há base hardcoded aqui — a navegação reemite SSO a cada passo.
 
 // `icon` = inner paths de um ícone Lucide (traço). Renderizado dentro de um <svg>
 // com stroke=currentColor no app.js, herdando a cor do texto do item.
@@ -61,34 +60,69 @@ export async function renderGestao(container) {
         <iframe id="gestaoFrame" src="about:blank"
           style="width:100%; height:100%; border:0; display:block;"
           allow="clipboard-read; clipboard-write"></iframe>
+        <div id="gestaoEstado" style="display:none; position:absolute; inset:0;
+             align-items:center; justify-content:center; text-align:center;
+             padding:32px; background:var(--bg-surface);"></div>
       </div>
     </div>
   `;
 
   const frame = container.querySelector('#gestaoFrame');
+  const estado = container.querySelector('#gestaoEstado');
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
-  // Origem do ERP usada na navegação interna do iframe. Começa na produção, mas é
-  // sobrescrita pela origem REAL da URL de SSO (que respeita RHYNO_BASE_URL do backend
-  // — ex.: localhost:5173 em dev). Sem isso, navegar para outra origem que não a do SSO
-  // perderia o token (localStorage é por-origem) e mostraria a landing/login do ERP.
-  let erpOrigin = new URL(RHYNO_BASE).origin;
-
-  // Expor função para navegar o iframe sem refazer SSO (mesma origem → token persiste)
-  window.__gestaoGoTo = (path) => {
-    frame.src = `${erpOrigin}${path}?embed=1&theme=${theme}`;
-  };
-
-  const initialPath = appState.gestaoInitialPath || '/dashboard';
-
-  // Carga inicial via SSO (login único)
-  try {
-    const resp = await apiGet(`/api/gestao/sso-url?redirect=${initialPath}`);
-    erpOrigin = new URL(resp.url).origin; // alinha a navegação interna à origem do SSO
-    frame.src = resp.url.includes('?') ? `${resp.url}&theme=${theme}` : `${resp.url}?theme=${theme}`;
-  } catch (err) {
-    // Fallback: abre direto (vai mostrar a tela de login do Rhyno)
-    console.error('Falha ao gerar SSO do Rhyno:', err);
-    frame.src = `${erpOrigin}${initialPath}?embed=1&theme=${theme}`;
+  // Mostra um painel neutro do CliqueZoom DENTRO da aba — NUNCA a landing/login do ERP.
+  // `carregando` mostra um spinner discreto; senão mostra título + mensagem + botão.
+  function mostrarEstado({ titulo, msg, carregando = false } = {}) {
+    frame.style.display = 'none';
+    estado.style.display = 'flex';
+    estado.innerHTML = carregando
+      ? `<div style="color:var(--text); opacity:.6; font-size:14px;">Abrindo sua Gestão…</div>`
+      : `<div style="max-width:380px;">
+           <div style="font-size:17px; font-weight:600; color:var(--text); margin-bottom:8px;">${titulo}</div>
+           <div style="font-size:14px; color:var(--text); opacity:.7; line-height:1.5; margin-bottom:20px;">${msg}</div>
+           <button id="gestaoRetry" style="border:0; border-radius:10px; padding:10px 18px;
+             background:var(--accent); color:var(--bg-base); font-size:14px;
+             font-weight:600; cursor:pointer;">Tentar novamente</button>
+         </div>`;
+    const retry = estado.querySelector('#gestaoRetry');
+    if (retry) retry.onclick = () => carregarGestao(ultimoPath);
   }
+
+  let ultimoPath = appState.gestaoInitialPath || '/dashboard';
+
+  // Carrega/navega a Gestão via SSO FRESCO a cada vez. Reemitir a asserção em toda
+  // navegação evita depender do token persistido no iframe (o Safari/ITP particiona o
+  // localStorage de terceiros e o ERP cairia na landing). Falha → estado neutro, nunca
+  // a landing do ERP.
+  async function carregarGestao(path) {
+    ultimoPath = path || '/dashboard';
+    mostrarEstado({ carregando: true });
+    try {
+      const resp = await apiGet(`/api/gestao/sso-url?redirect=${encodeURIComponent(ultimoPath)}`);
+      const url = resp.url.includes('?') ? `${resp.url}&theme=${theme}` : `${resp.url}?theme=${theme}`;
+      estado.style.display = 'none';
+      frame.style.display = 'block';
+      frame.src = url;
+    } catch (err) {
+      if (err.status === 409) {
+        // Org ainda sem tenant Rhyno (provisionamento em andamento ou pendente).
+        mostrarEstado({
+          titulo: 'Preparando sua Gestão',
+          msg: 'Estamos configurando o seu módulo de Gestão. Isso costuma levar só alguns instantes após o cadastro. Toque em "Tentar novamente".',
+        });
+      } else {
+        console.error('Falha ao abrir a Gestão:', err);
+        mostrarEstado({
+          titulo: 'Não foi possível abrir a Gestão',
+          msg: 'Tivemos um problema ao conectar o seu módulo de Gestão. Tente novamente em instantes.',
+        });
+      }
+    }
+  }
+
+  // Navegação interna (sidebar) — também via SSO fresco, sem cair na landing do ERP.
+  window.__gestaoGoTo = (path) => { carregarGestao(path); };
+
+  await carregarGestao(ultimoPath);
 }

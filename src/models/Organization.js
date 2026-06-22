@@ -9,6 +9,10 @@ const OrganizationSchema = new mongoose.Schema({
     lowercase: true,
   },
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // E-mail do usuário-dono no ERP Rhyno (aba Gestão via SSO). Mapeia esta org ao
+  // seu tenant Rhyno. null = ainda não provisionada → Gestão fica fail-CLOSED
+  // (nunca cai num tenant compartilhado — evita o vazamento corrigido em 2026-06-19).
+  rhynoUserEmail: { type: String, default: null },
   plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
   isActive: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
