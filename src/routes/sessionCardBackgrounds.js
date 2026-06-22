@@ -15,7 +15,13 @@ router.get('/session-card-backgrounds', authenticateToken, async (req, res) => {
     const docs = await SessionCardBackground.find({ active: true }).lean();
     const backgrounds = {};
     for (const doc of docs) {
-      if (doc.imageUrl) backgrounds[doc.key] = { imageUrl: doc.imageUrl, opacity: doc.opacity };
+      backgrounds[doc.key] = {
+        imageUrl: doc.imageUrl || '',
+        opacity: doc.opacity,
+        text: doc.text || '',
+        textColor: doc.textColor || '#ffffff',
+        bgColor: doc.bgColor || ''
+      };
     }
     res.json({ success: true, backgrounds });
   } catch (error) {
@@ -36,7 +42,7 @@ router.get('/admin/session-card-backgrounds', authenticateToken, requireSuperadm
     const docs = await SessionCardBackground.find().lean();
     const byKey = {};
     docs.forEach(doc => { byKey[doc.key] = doc; });
-    const backgrounds = SessionCardBackground.KEYS.map(key => byKey[key] || { key, imageUrl: '', opacity: 0.18, active: true });
+    const backgrounds = SessionCardBackground.KEYS.map(key => byKey[key] || { key, imageUrl: '', opacity: 0.18, active: true, text: '', textColor: '#ffffff', bgColor: '' });
     res.json({ success: true, backgrounds });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
@@ -80,8 +86,12 @@ router.patch('/admin/session-card-backgrounds/:key', authenticateToken, requireS
     const update = {};
     if (req.body.active !== undefined) update.active = !!req.body.active;
     if (req.body.opacity !== undefined) update.opacity = Math.max(0, Math.min(1, Number(req.body.opacity)));
+    if (req.body.text !== undefined) update.text = req.body.text;
+    if (req.body.textColor !== undefined) update.textColor = req.body.textColor;
+    if (req.body.bgColor !== undefined) update.bgColor = req.body.bgColor;
+    
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ success: false, error: 'Nada para atualizar (active ou opacity)' });
+      return res.status(400).json({ success: false, error: 'Nada para atualizar' });
     }
     const background = await SessionCardBackground.findOneAndUpdate(
       { key },

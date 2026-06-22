@@ -7,13 +7,16 @@ const mongoose = require('mongoose');
 //   - selection       → sessões de Seleção
 //   - gallery          → sessões de Galeria
 //   - multi_selection  → sessões de Multi-Seleção
-const SESSION_CARD_BG_KEYS = ['selection', 'gallery', 'multi_selection'];
+const SESSION_CARD_BG_KEYS = ['selection', 'gallery', 'multi_selection', 'multi_gallery'];
 
 const SessionCardBackgroundSchema = new mongoose.Schema({
-  key:      { type: String, enum: SESSION_CARD_BG_KEYS, required: true, unique: true },
-  imageUrl: { type: String, default: '' },   // Caminho da imagem (upload). Vazio => tint sólido.
-  opacity:  { type: Number, default: 0.18, min: 0, max: 1 }, // opacidade da imagem atrás do conteúdo do card.
-  active:   { type: Boolean, default: true } // Liga/desliga sem apagar a imagem.
+  key:       { type: String, enum: SESSION_CARD_BG_KEYS, required: true, unique: true },
+  imageUrl:  { type: String, default: '' },   // Caminho da imagem (upload). Vazio => tint sólido.
+  opacity:   { type: Number, default: 0.18, min: 0, max: 1 }, // opacidade da imagem atrás do conteúdo do card.
+  active:    { type: Boolean, default: true }, // Liga/desliga sem apagar a imagem.
+  text:      { type: String, default: '' },   // Texto da marca d'água de fundo (ex: Galeria).
+  textColor: { type: String, default: '#ffffff' }, // Cor do texto de fundo
+  bgColor:   { type: String, default: '' }    // Cor de fundo que sobrescreve o cardBg padrão
 }, { timestamps: true });
 
 const SessionCardBackground = mongoose.model('SessionCardBackground', SessionCardBackgroundSchema);

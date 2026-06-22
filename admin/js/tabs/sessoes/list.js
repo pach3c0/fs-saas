@@ -266,12 +266,23 @@ function renderList(container, items) {
       && !session.clientId && !session.clientName && !session.clientEmail
       && !session.codeSentAt && (!session.name || session.name.trim() === 'Nova sessão');
 
-    // Fundo configurado pelo Superadmin para este modo (imagem atrás do conteúdo).
-    // Sem imagem => bgLayer vazio, o card mantém só o tint sólido.
+    // Fundo configurado pelo Superadmin para este modo (imagem, texto, cor atrás do conteúdo).
     const modeBg = sessionBackgrounds[mode];
-    const bgLayer = (modeBg && modeBg.imageUrl)
-      ? `<div style="position:absolute; inset:0; background-image:url('${resolveImagePath(modeBg.imageUrl)}'); background-size:cover; background-position:center; opacity:${modeBg.opacity ?? 0.18}; pointer-events:none; z-index:0;"></div>`
-      : '';
+    if (modeBg && modeBg.bgColor) {
+      cardBg = modeBg.bgColor;
+    }
+    
+    let bgLayer = '';
+    if (modeBg) {
+      if (modeBg.imageUrl) {
+        bgLayer += `<div style="position:absolute; inset:0; background-image:url('${resolveImagePath(modeBg.imageUrl)}'); background-size:cover; background-position:center; opacity:${modeBg.opacity ?? 0.18}; pointer-events:none; z-index:0;"></div>`;
+      }
+      if (modeBg.text) {
+        bgLayer += `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; overflow:hidden; opacity:${modeBg.opacity ?? 0.18}; z-index:0;">
+          <span style="font-size:clamp(3rem, 10vw, 8rem); font-weight:800; color:${modeBg.textColor || '#ffffff'}; line-height:1; white-space:nowrap;">${modeBg.text}</span>
+        </div>`;
+      }
+    }
 
     return `
       <div onclick="window.openSessionWizard?.('${session._id}')"

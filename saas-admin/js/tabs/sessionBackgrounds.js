@@ -11,6 +11,7 @@ const MODES = [
   { key: 'selection',       label: 'Seleção',       sub: 'Cliente escolhe suas favoritas',       tint: 'rgba(63,185,80,0.06)',   border: 'rgba(63,185,80,0.22)',  badge: 'Em seleção',     badgeColor: '#d29922' },
   { key: 'gallery',         label: 'Galeria',        sub: 'Cliente visualiza e baixa',            tint: 'rgba(167,139,250,0.06)', border: 'rgba(167,139,250,0.22)', badge: 'Em visualização', badgeColor: '#d29922' },
   { key: 'multi_selection', label: 'Multi-Seleção',  sub: 'Formaturas, shows, eventos',           tint: 'rgba(255,166,87,0.06)',  border: 'rgba(255,166,87,0.22)',  badge: 'Em seleção',     badgeColor: '#d29922' },
+  { key: 'multi_gallery',   label: 'Galeria em Grupo',sub: 'Galeria para múltiplos convidados',   tint: 'rgba(167,139,250,0.06)', border: 'rgba(167,139,250,0.22)', badge: 'Em visualização', badgeColor: '#d29922' },
 ];
 
 let _state = {}; // key -> { key, imageUrl, opacity, active }
@@ -56,7 +57,7 @@ function renderModeEditor(meta) {
   const active = bg.active !== false;
   const opacity = (typeof bg.opacity === 'number') ? bg.opacity : 0.18;
 
-  const opacitySlider = hasImage ? `
+  const opacitySlider = (hasImage || bg.text) ? `
       <div style="display:flex; align-items:center; gap:0.6rem;">
         <span style="font-size:0.72rem; color:#94a3b8; white-space:nowrap;">Opacidade</span>
         <input type="range" min="0" max="100" value="${Math.round(opacity * 100)}" style="flex:1; cursor:pointer;"
@@ -82,6 +83,31 @@ function renderModeEditor(meta) {
       ${renderCardPreview(meta, bg, opacity)}
       ${opacitySlider}
 
+      <!-- campos adicionais -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.25rem;">
+        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+          <label style="font-size:0.72rem; color:#94a3b8;">Texto (Marca d'água)</label>
+          <input type="text" placeholder="Ex: Galeria" value="${esc(bg.text || '')}" style="background:#0f172a; border:1px solid #334155; color:#f1f5f9; border-radius:0.375rem; padding:0.4rem; font-size:0.8rem;"
+            oninput="window.previewSessionBgText('${meta.key}', this.value)"
+            onchange="window.saveSessionBgField('${meta.key}', 'text', this.value)">
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+          <div style="display:flex; flex-direction:column; gap:0.25rem; flex:1;">
+            <label style="font-size:0.72rem; color:#94a3b8;">Cor Texto</label>
+            <input type="color" value="${esc(bg.textColor || '#ffffff')}" style="background:#0f172a; border:1px solid #334155; border-radius:0.375rem; width:100%; height:32px; cursor:pointer;"
+              oninput="window.previewSessionBgTextColor('${meta.key}', this.value)"
+              onchange="window.saveSessionBgField('${meta.key}', 'textColor', this.value)">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.25rem; flex:1;">
+            <label style="font-size:0.72rem; color:#94a3b8;">Cor do Card</label>
+            <input type="color" value="${bg.bgColor ? esc(bg.bgColor) : '#000000'}" style="background:#0f172a; border:1px solid #334155; border-radius:0.375rem; width:100%; height:32px; cursor:pointer;"
+              oninput="window.previewSessionBgColor('${meta.key}', this.value)"
+              onchange="window.saveSessionBgField('${meta.key}', 'bgColor', this.value)">
+            ${bg.bgColor ? `<button onclick="window.saveSessionBgField('${meta.key}', 'bgColor', '')" style="font-size:0.6rem; background:none; border:none; color:#fca5a5; cursor:pointer; padding:0; text-align:left;">Limpar Cor</button>` : `<span style="font-size:0.6rem; color:#64748b;">(Padrão)</span>`}
+          </div>
+        </div>
+      </div>
+
       <!-- ações -->
       <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
         <label style="background:#1e3a5f; color:#93c5fd; border:1px solid #2563eb; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600;">
@@ -100,12 +126,24 @@ function renderModeEditor(meta) {
 // admin) + tint do modo + imagem de fundo na opacidade escolhida + conteúdo por cima.
 function renderCardPreview(meta, bg, opacity) {
   const hasImage = !!bg.imageUrl;
+  const text = bg.text || '';
+  const textColor = bg.textColor || '#ffffff';
+  const bgColor = bg.bgColor || '';
+  
   const imgLayer = hasImage
     ? `<div id="sbgPreviewImg-${meta.key}" style="position:absolute; inset:0; background-image:url('${esc(bg.imageUrl)}'); background-size:cover; background-position:center; opacity:${opacity}; pointer-events:none;"></div>`
     : '';
+
+  const textLayer = `<div id="sbgPreviewTextWrapper-${meta.key}" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; overflow:hidden; opacity:${opacity}; ${!text ? 'display:none;' : ''}">
+      <span id="sbgPreviewText-${meta.key}" style="font-size:clamp(3rem, 10vw, 8rem); font-weight:800; color:${esc(textColor)}; line-height:1; white-space:nowrap;">${esc(text)}</span>
+    </div>`;
+
+  const cardBackground = bgColor ? bgColor : '#f1f1f3';
+
   return `
-    <div style="position:relative; overflow:hidden; border:1px solid ${meta.border}; border-radius:12px; background:#f1f1f3;">
+    <div id="sbgPreviewCard-${meta.key}" style="position:relative; overflow:hidden; border:1px solid ${meta.border}; border-radius:12px; background:${esc(cardBackground)};">
       ${imgLayer}
+      ${textLayer}
       <div style="position:relative; padding:0.85rem;">
         <div style="display:flex; gap:0.6rem; align-items:flex-start;">
           <div style="width:46px; height:46px; flex-shrink:0; border-radius:8px; background:rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.5rem;">Capa</div>
@@ -182,9 +220,43 @@ window.toggleSessionBgActive = async (key, current) => {
 window.previewSessionBgOpacity = (key, val) => {
   const op = Math.max(0, Math.min(100, Number(val))) / 100;
   const img = document.getElementById(`sbgPreviewImg-${key}`);
+  const txt = document.getElementById(`sbgPreviewTextWrapper-${key}`);
   const label = document.getElementById(`sbgOpLabel-${key}`);
   if (img) img.style.opacity = op;
+  if (txt) txt.style.opacity = op;
   if (label) label.textContent = `${Math.round(op * 100)}%`;
+};
+
+// Preview e Save para Text, TextColor e BGColor
+window.previewSessionBgText = (key, val) => {
+  const wrapper = document.getElementById(`sbgPreviewTextWrapper-${key}`);
+  const textEl = document.getElementById(`sbgPreviewText-${key}`);
+  if (textEl && wrapper) {
+    textEl.textContent = val;
+    wrapper.style.display = val ? 'flex' : 'none';
+  }
+};
+
+window.previewSessionBgTextColor = (key, val) => {
+  const textEl = document.getElementById(`sbgPreviewText-${key}`);
+  if (textEl) textEl.style.color = val;
+};
+
+window.previewSessionBgColor = (key, val) => {
+  const card = document.getElementById(`sbgPreviewCard-${key}`);
+  if (card) card.style.background = val;
+};
+
+window.saveSessionBgField = async (key, field, val) => {
+  try {
+    await apiRequest('PATCH', `/api/admin/session-card-backgrounds/${key}`, { [field]: val });
+    if (!_state[key]) _state[key] = { key, imageUrl: '', opacity: 0.18, active: true, text: '', textColor: '#ffffff', bgColor: '' };
+    _state[key][field] = val;
+    saasToast('Atualizado!', 'success');
+    await loadSessionBackgrounds();
+  } catch (err) {
+    saasToast('Erro: ' + err.message, 'error');
+  }
 };
 
 // Salva a opacidade ao soltar o slider. Não recarrega — preserva a posição do slider.
