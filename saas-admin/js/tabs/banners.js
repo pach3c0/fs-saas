@@ -190,7 +190,7 @@ function renderBannerEditor() {
         <div style="border-top:1px solid #334155; padding-top:1rem; margin-top:0.5rem;">
           <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:0.5rem;">Imagem do Banner *</span>
           
-          <div id="bPreviewContainer" style="margin-bottom:0.75rem; width:100%; border-radius:6px; overflow:hidden; background:#0f172a; border:1px solid #334155; display:${d.imageUrl ? 'flex' : 'none'}; align-items:center; justify-content:center; aspect-ratio:4.8/1;">
+          <div id="bPreviewContainer" style="margin-bottom:0.75rem; width:100%; border-radius:6px; overflow:hidden; background:#0f172a; border:1px solid #334155; display:${d.imageUrl ? 'flex' : 'none'}; align-items:center; justify-content:center; aspect-ratio:16/9;">
             ${d.imageUrl ? `<img id="bPreviewImg" src="${esc(d.imageUrl)}" style="width:100%; height:100%; object-fit:cover;">` : ''}
           </div>
           

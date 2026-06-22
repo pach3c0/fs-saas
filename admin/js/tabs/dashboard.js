@@ -499,7 +499,7 @@ function renderBanners(banners) {
                 border-radius: 10px;
                 overflow: hidden;
                 display: block;
-                aspect-ratio: 3 / 1;
+                aspect-ratio: 16 / 9;
                 border: 1px solid var(--border);
                 box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
