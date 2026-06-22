@@ -625,12 +625,21 @@ function setupBannersCarousel(container, bannersCount, intervalSecs = 0) {
     const updateActiveDot = () => {
         const width = scrollContainer.clientWidth;
         const scrollLeft = scrollContainer.scrollLeft;
-        const activeIndex = Math.round(scrollLeft / (width || 1));
+        const scrollWidth = scrollContainer.scrollWidth;
+        
+        let activeIndex = Math.round(scrollLeft / (width || 1));
+        
+        // Se rolamos até o final do container (com margem de 10px), forçar o último dot
+        if (scrollLeft + width >= scrollWidth - 10) {
+            activeIndex = dots.length - 1;
+        }
         
         dots.forEach((dot, idx) => {
             if (idx === activeIndex) dot.classList.add('active');
             else dot.classList.remove('active');
         });
+        
+        return activeIndex;
     };
 
     let isScrolling;
@@ -666,8 +675,8 @@ function setupBannersCarousel(container, bannersCount, intervalSecs = 0) {
         clearInterval(autoSlideTimer);
         autoSlideTimer = setInterval(() => {
             const width = scrollContainer.clientWidth;
-            const scrollLeft = scrollContainer.scrollLeft;
-            let activeIndex = Math.round(scrollLeft / (width || 1));
+            let activeIndex = updateActiveDot();
+            
             activeIndex++;
             if (activeIndex >= dots.length) activeIndex = 0;
             
