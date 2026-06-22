@@ -62,8 +62,8 @@ router.post('/admin/banners', authenticateToken, requireSuperadmin, async (req, 
   }
 });
 
-// PUT /api/admin/banners/:id - Atualizar um banner de parceiro (Superadmin)
-router.put('/api/admin/banners/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+// PUT /admin/banners/:id - Atualizar um banner de parceiro (Superadmin)
+router.put('/admin/banners/:id', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
     const { title, description, imageUrl, linkUrl, order, active } = req.body;
     const updateData = {};
@@ -92,8 +92,8 @@ router.put('/api/admin/banners/:id', authenticateToken, requireSuperadmin, async
   }
 });
 
-// DELETE /api/admin/banners/:id - Remover um banner de parceiro (Superadmin)
-router.delete('/api/admin/banners/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+// DELETE /admin/banners/:id - Remover um banner de parceiro (Superadmin)
+router.delete('/admin/banners/:id', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
     const banner = await PartnerBanner.findByIdAndDelete(req.params.id);
     if (!banner) {
