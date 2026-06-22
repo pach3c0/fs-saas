@@ -161,6 +161,10 @@ function renderBannerEditor() {
                 <option value="H3">Título Grande</option>
                 <option value="H4">Subtítulo</option>
               </select>
+              <div style="display:flex; align-items:center; gap:0.2rem; margin-left:0.5rem;">
+                <label for="bTextColor" style="color:#f1f5f9; font-size:0.75rem; cursor:pointer;" title="Cor do Texto">Cor:</label>
+                <input id="bTextColor" type="color" onchange="document.execCommand('foreColor', false, this.value);" title="Cor do Texto" style="border:none; padding:0; width:20px; height:20px; cursor:pointer; background:transparent;">
+              </div>
             </div>
             <div id="bDescription" contenteditable="true" style="${_inp('width:100%; border:none; border-radius:0; min-height:80px;')} outline:none;">${d.description || ''}</div>
           </div>
