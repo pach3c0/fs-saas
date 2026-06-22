@@ -40,7 +40,7 @@ router.get('/admin/banners', authenticateToken, requireSuperadmin, async (req, r
 // POST /api/admin/banners - Criar um banner de parceiro (Superadmin)
 router.post('/admin/banners', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
-    const { title, imageUrl, linkUrl, order, active } = req.body;
+    const { title, description, imageUrl, linkUrl, order, active } = req.body;
     
     if (!title || !imageUrl) {
       return res.status(400).json({ success: false, error: 'Título e imagem do banner são obrigatórios' });
@@ -48,6 +48,7 @@ router.post('/admin/banners', authenticateToken, requireSuperadmin, async (req, 
 
     const banner = await PartnerBanner.create({
       title,
+      description: description || '',
       imageUrl,
       linkUrl: linkUrl || '',
       order: order || 0,
@@ -64,10 +65,11 @@ router.post('/admin/banners', authenticateToken, requireSuperadmin, async (req, 
 // PUT /api/admin/banners/:id - Atualizar um banner de parceiro (Superadmin)
 router.put('/api/admin/banners/:id', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
-    const { title, imageUrl, linkUrl, order, active } = req.body;
+    const { title, description, imageUrl, linkUrl, order, active } = req.body;
     const updateData = {};
 
     if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
     if (linkUrl !== undefined) updateData.linkUrl = linkUrl;
     if (order !== undefined) updateData.order = order;

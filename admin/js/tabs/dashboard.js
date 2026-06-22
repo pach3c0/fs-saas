@@ -499,21 +499,34 @@ function renderBanners(banners) {
                 border-radius: 10px;
                 overflow: hidden;
                 display: block;
-                aspect-ratio: 16 / 9;
                 border: 1px solid var(--border);
                 box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+                background: var(--bg-surface);
+                text-decoration: none;
+                color: inherit;
             }
             .banner-card:hover {
                 transform: translateY(-2px);
                 border-color: var(--accent);
                 box-shadow: 0 6px 12px rgba(0,0,0,0.08);
             }
-            .banner-card img {
+            .banner-image {
+                width: 100%;
+                aspect-ratio: 16 / 9;
+                overflow: hidden;
+            }
+            .banner-image img {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 display: block;
+            }
+            .banner-desc {
+                padding: 0.75rem 1rem;
+                font-size: 0.8125rem;
+                color: var(--text-secondary);
+                line-height: 1.4;
             }
             .banners-dots {
                 display: flex;
@@ -576,7 +589,10 @@ function renderBanners(banners) {
         
         return `
             <${tag} ${linkAttr} class="banner-card" title="${esc(banner.title)}">
-                <img src="${esc(banner.imageUrl)}" alt="${esc(banner.title)}" loading="lazy">
+                <div class="banner-image">
+                    <img src="${esc(banner.imageUrl)}" alt="${esc(banner.title)}" loading="lazy">
+                </div>
+                ${banner.description ? `<div class="banner-desc">${esc(banner.description)}</div>` : ''}
             </${tag}>
         `;
     }).join('');

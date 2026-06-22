@@ -115,7 +115,7 @@ window.deleteBanner = async (id, title) => {
 
 window.openBannerNew = () => {
   _bannerEditMode = 'new';
-  _bannerEditData = { title: '', imageUrl: '', linkUrl: '', order: _banners.length, active: true };
+  _bannerEditData = { title: '', description: '', imageUrl: '', linkUrl: '', order: _banners.length, active: true };
   renderBannerEditor();
 };
 
@@ -145,6 +145,11 @@ function renderBannerEditor() {
         <label style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:#94a3b8;">
           Título / Nome do Parceiro *
           <input id="bTitle" type="text" value="${esc(d.title)}" placeholder="Ex: Bling ERP" style="${_inp('width:100%;')}">
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:#94a3b8;">
+          Descrição (Texto abaixo da imagem no card)
+          <textarea id="bDescription" rows="2" placeholder="Ex: Um texto curto explicando a vantagem desta parceria..." style="${_inp('width:100%; resize:vertical;')}">${esc(d.description || '')}</textarea>
         </label>
 
         <label style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:#94a3b8;">
@@ -256,6 +261,7 @@ window.uploadBannerImage = async (input) => {
 
 window.saveBanner = async () => {
   const title = document.getElementById('bTitle')?.value.trim();
+  const description = document.getElementById('bDescription')?.value.trim() || '';
   const linkUrl = document.getElementById('bLinkUrl')?.value.trim();
   const order = parseInt(document.getElementById('bOrder')?.value) || 0;
   const active = document.getElementById('bActive')?.checked || false;
@@ -265,6 +271,7 @@ window.saveBanner = async () => {
 
   const payload = {
     title,
+    description,
     linkUrl,
     order,
     active,
