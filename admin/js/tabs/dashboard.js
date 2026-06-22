@@ -527,7 +527,14 @@ function renderBanners(banners) {
                 font-size: 0.8125rem;
                 color: var(--text-secondary);
                 line-height: 1.4;
+                font-family: 'Inter', sans-serif;
             }
+            .banner-desc h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-primary); }
+            .banner-desc h4 { margin: 0 0 0.4rem 0; font-size: 0.95rem; color: var(--text-primary); }
+            .banner-desc p { margin: 0 0 0.5rem 0; }
+            .banner-desc p:last-child { margin: 0; }
+            .banner-desc ul { margin: 0 0 0.5rem 1.2rem; padding: 0; }
+            .banner-desc b, .banner-desc strong { font-weight: 600; color: var(--text-primary); }
             .banners-dots {
                 display: flex;
                 justify-content: center;
@@ -592,7 +599,7 @@ function renderBanners(banners) {
                 <div class="banner-image">
                     <img src="${esc(banner.imageUrl)}" alt="${esc(banner.title)}" loading="lazy">
                 </div>
-                ${banner.description ? `<div class="banner-desc">${esc(banner.description)}</div>` : ''}
+                ${banner.description ? `<div class="banner-desc">${banner.description}</div>` : ''}
             </${tag}>
         `;
     }).join('');

@@ -148,8 +148,22 @@ function renderBannerEditor() {
         </label>
 
         <label style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:#94a3b8;">
-          Descrição (Texto abaixo da imagem no card)
-          <textarea id="bDescription" rows="2" placeholder="Ex: Um texto curto explicando a vantagem desta parceria..." style="${_inp('width:100%; resize:vertical;')}">${esc(d.description || '')}</textarea>
+          Descrição / Conteúdo Abaixo da Imagem
+          <div style="border:1px solid #334155; border-radius:0.375rem; overflow:hidden;">
+            <div style="background:#1e293b; border-bottom:1px solid #334155; padding:0.25rem 0.5rem; display:flex; flex-wrap:wrap; gap:0.25rem;">
+              <button type="button" onclick="document.execCommand('bold',false,null)" style="background:transparent; border:none; color:#f1f5f9; cursor:pointer; font-weight:bold; padding:0.2rem 0.5rem;" title="Negrito">B</button>
+              <button type="button" onclick="document.execCommand('italic',false,null)" style="background:transparent; border:none; color:#f1f5f9; cursor:pointer; font-style:italic; padding:0.2rem 0.5rem;" title="Itálico">I</button>
+              <button type="button" onclick="document.execCommand('underline',false,null)" style="background:transparent; border:none; color:#f1f5f9; cursor:pointer; text-decoration:underline; padding:0.2rem 0.5rem;" title="Sublinhado">U</button>
+              <button type="button" onclick="document.execCommand('insertUnorderedList',false,null)" style="background:transparent; border:none; color:#f1f5f9; cursor:pointer; padding:0.2rem 0.5rem;">• Lista</button>
+              <select onchange="document.execCommand('formatBlock', false, this.value); this.selectedIndex=0;" style="background:#0f172a; color:#f1f5f9; border:1px solid #334155; border-radius:3px; outline:none; font-size:0.75rem; margin-left:0.5rem;">
+                <option value="">Formato...</option>
+                <option value="P">Texto Normal</option>
+                <option value="H3">Título Grande</option>
+                <option value="H4">Subtítulo</option>
+              </select>
+            </div>
+            <div id="bDescription" contenteditable="true" style="${_inp('width:100%; border:none; border-radius:0; min-height:80px;')} outline:none;">${d.description || ''}</div>
+          </div>
         </label>
 
         <label style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:#94a3b8;">
@@ -261,7 +275,7 @@ window.uploadBannerImage = async (input) => {
 
 window.saveBanner = async () => {
   const title = document.getElementById('bTitle')?.value.trim();
-  const description = document.getElementById('bDescription')?.value.trim() || '';
+  const description = document.getElementById('bDescription')?.innerHTML.trim() || '';
   const linkUrl = document.getElementById('bLinkUrl')?.value.trim();
   const order = parseInt(document.getElementById('bOrder')?.value) || 0;
   const active = document.getElementById('bActive')?.checked || false;
