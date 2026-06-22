@@ -14,6 +14,10 @@ require('dotenv').config({ override: true });
 
 const app = express();
 
+// Atrás do Nginx (1 hop): confia no X-Forwarded-For p/ obter o IP real do cliente.
+// Sem isto, req.ip = IP do proxy e o express-rate-limit lança ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({
   origin: true,
