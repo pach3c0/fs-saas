@@ -223,6 +223,30 @@
     .btn-submit:hover { opacity: .88; }
     .btn-submit:active { transform: scale(.98); }
     .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-gallery {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border-radius: var(--radius-sm);
+      padding: .9rem 1rem;
+      margin: 1.25rem 0 .5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-gallery:hover { opacity: .88; }
+    .btn-gallery:active { transform: scale(.98); }
+    .link-text {
+      font-size: .75rem;
+      color: var(--text-muted);
+      word-break: break-all;
+      margin-bottom: 1rem;
+    }
 
     /* States */
     #loadingState, #successState, #errorState { display: none; }
@@ -404,8 +428,8 @@
     </div>
 
     <p class="footer-note">
-      Após o fotógrafo fazer o upload das fotos, você será avisado pelo WhatsApp.<br>
-      <strong>Guarde seu código de acesso</strong> — ele será exibido após a inscrição.
+      Após o fotógrafo liberar as fotos, você será avisado(a) pelo WhatsApp.<br>
+      <strong>Após a inscrição</strong> você receberá o link de acesso à sua galeria.
     </p>
   </div>
 
@@ -416,21 +440,25 @@
     </div>
     <div class="success-title">Inscrição realizada! 🎉</div>
     <div class="success-text">
-      O fotógrafo recebeu seu cadastro na sessão de fotos.<br>
-      Você será avisado(a) pelo WhatsApp quando as fotos forem liberadas.
+      O fotógrafo recebeu seu cadastro na sessão de fotos.
     </div>
+
+    <a id="galleryLink" class="btn-gallery" href="#" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Acessar minha galeria
+    </a>
+    <div class="link-text" id="galleryLinkText">—</div>
+
     <div class="info-note">
-      📸 <strong>Atenção:</strong> esta página é apenas a <strong>inscrição</strong> na sessão.
-      Para <strong>visualizar e selecionar</strong> as suas fotos, o fotógrafo vai enviar
-      <strong>outro link</strong> pelo WhatsApp assim que elas estiverem prontas.
+      📸 <strong>Guarde este link</strong> — é o seu acesso às fotos desta sessão.
+      Se ao abrir as fotos ainda não estiverem lá, é só <strong>aguardar a liberação do fotógrafo</strong>.
+      Você também será avisado(a) pelo WhatsApp quando elas ficarem prontas.
     </div>
+
     <div class="code-box">
-      <div class="label">Seu código de acesso</div>
+      <div class="label">Ou acesse com seu código</div>
       <div class="code" id="participantCode">—</div>
     </div>
-    <p style="font-size:.75rem; color:var(--text-muted); line-height:1.6;">
-      Anote ou salve este código. Você precisará dele para acessar suas fotos quando estiverem prontas.
-    </p>
   </div>
 
 </div>
@@ -567,7 +595,15 @@
         return;
       }
       clearInterval(_countdownInterval);
-      document.getElementById('participantCode').textContent = data.participantCode || '—';
+      const pCode = data.participantCode || '';
+      document.getElementById('participantCode').textContent = pCode || '—';
+      // Link direto da galeria deste participante. Mesma origem da página de
+      // inscrição (subdomínio .cliquezoom.com.br OU domínio próprio do fotógrafo),
+      // então funciona nos dois casos sem precisar saber o slug.
+      const galleryUrl = `${location.origin}/cliente/?code=${encodeURIComponent(pCode)}`;
+      const linkEl = document.getElementById('galleryLink');
+      linkEl.href = galleryUrl;
+      document.getElementById('galleryLinkText').textContent = galleryUrl.replace(/^https?:\/\//, '');
       show('successState');
     } catch (err) {
       alert('Erro de conexão. Tente novamente.');
