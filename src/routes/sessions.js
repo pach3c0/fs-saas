@@ -148,8 +148,8 @@ router.post('/client/verify-code', async (req, res) => {
       commentsEnabled: session.commentsEnabled !== false,
       selectionIcon: (session.organizationId && session.organizationId.preferences && session.organizationId.preferences.selectionIcon) || 'heart',
       extraRequest: (participant ? participant.extraRequest : session.extraRequest) || { status: 'none', photos: [] },
-      // Cortesias explícitas deste participante (multi). Vazia em seleção individual.
-      courtesyPhotos: participant ? (participant.courtesyPhotos || []) : [],
+      // Cortesias explícitas: do participante (multi) ou da sessão (seleção individual).
+      courtesyPhotos: participant ? (participant.courtesyPhotos || []) : (session.courtesyPhotos || []),
       accessCode: session.accessCode,
       selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
@@ -268,9 +268,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     let packageLimit = session.packageLimit;
     let extraPhotoPrice = session.extraPhotoPrice;
     let extraRequest = session.extraRequest;
-    // Cortesia explícita só existe por participante (multi). Em seleção individual a cortesia é
-    // deduzida no front (foto em alta fora da seleção), então aqui vai vazia.
-    let courtesyPhotos = [];
+    // Cortesia EXPLÍCITA: na seleção individual vem de session.courtesyPhotos (o fotógrafo escolhe).
+    // No multi é sobrescrita abaixo pela lista do participante.
+    let courtesyPhotos = session.courtesyPhotos || [];
 
     if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const p = session.participants.id(participantId);
@@ -1720,24 +1720,29 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     const customEmailIntro = typeof req.body?.emailIntro === 'string' ? req.body.emailIntro.trim().slice(0, 1000) : undefined;
 
-    // Validação: todas as fotos selecionadas devem ter urlOriginal
+    // Entrega FLEXÍVEL (seleção individual): entrega o que já tem versão editada (urlOriginal).
+    // Fotos selecionadas ainda sem editada NÃO bloqueiam — ficam "em edição" para o cliente e podem
+    // ser entregues numa próxima entrega (ex.: cliente paga 15 de 30 agora, o resto depois). O front
+    // avisa "X de Y" antes de confirmar. Renomear no Photoshop também deixa de travar a entrega:
+    // a editada (com nome novo) entra como entrega normal, não como pendência.
     const selectedSet = new Set(session.selectedPhotos || []);
     const missing = [];
     const extrasDelivered = [];
+    let deliveredCount = 0;
 
     for (const photo of session.photos) {
-      if (selectedSet.has(photo.id) && !photo.urlOriginal) {
+      if (photo.urlOriginal) {
+        deliveredCount++;
+        if (!selectedSet.has(photo.id)) extrasDelivered.push(photo.id);
+      } else if (selectedSet.has(photo.id)) {
         missing.push(photo.filename || photo.id);
-      }
-      if (photo.urlOriginal && !selectedSet.has(photo.id)) {
-        extrasDelivered.push(photo.id);
       }
     }
 
-    if (missing.length > 0) {
+    // Seleção individual: exige ao menos uma editada (não entrega sessão vazia/só pendências).
+    if (session.mode !== 'gallery' && deliveredCount === 0) {
       return res.status(400).json({
-        error: `${missing.length} foto(s) selecionada(s) sem versão editada. Suba as editadas antes de entregar.`,
-        missing
+        error: 'Nenhuma foto editada foi enviada ainda. Suba ao menos uma versão editada antes de entregar.'
       });
     }
 
@@ -2000,6 +2005,28 @@ router.put('/sessions/:id/participants/:pid/courtesy', authenticateToken, async 
     const clean = [...new Set(requested)].filter(id => poolIds.has(id) && !selectedSet.has(id));
 
     p.courtesyPhotos = clean;
+    await session.save();
+    res.json({ success: true, courtesyPhotos: clean });
+  } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cortesia na SELEÇÃO INDIVIDUAL (espelha o endpoint do participante acima).
+// O fotógrafo presenteia fotos fora da seleção do cliente; idempotente (salva a lista completa).
+router.put('/sessions/:id/courtesy', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const requested = Array.isArray(req.body.photos) ? req.body.photos.map(String) : [];
+    const poolIds = new Set((session.photos || []).map(ph => ph.id));
+    const selectedSet = new Set((session.selectedPhotos || []).map(String));
+    // Só IDs reais do pool e que NÃO estejam na seleção do cliente (o que já é dele não é cortesia).
+    const clean = [...new Set(requested)].filter(id => poolIds.has(id) && !selectedSet.has(id));
+
+    session.courtesyPhotos = clean;
     await session.save();
     res.json({ success: true, courtesyPhotos: clean });
   } catch (error) {

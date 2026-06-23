@@ -41,6 +41,9 @@ const sessionSchema = new mongoose.Schema({
     // Fluxo de selecao
     selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered', 'expired'], default: 'pending' },
     selectedPhotos: [String],
+    // Cortesias EXPLÍCITAS na seleção individual (fotógrafo presenteia fotos fora da seleção).
+    // Espelha participant.courtesyPhotos do multi. Aditivo, nasce vazio — sem auto-dedução por upload.
+    courtesyPhotos: [String],
     selectionSubmittedAt: Date,
     codeSentAt: Date,        // quando admin enviou o código/link por e-mail ao cliente
     firstAccessAt: Date,     // quando o cliente acessou a galeria pela primeira vez

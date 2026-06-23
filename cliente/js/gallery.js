@@ -1187,12 +1187,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Demais fotos do pool seguem disponíveis para compra de extras (não são entrega nem cortesia).
             unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id) && !courtesyIds.has(p.id));
         } else {
-            // Seleção individual: 1 cliente ↔ 1 pool. Cortesia é DEDUZIDA — foto em alta fora da
-            // seleção é presente do fotógrafo. Comportamento original preservado.
+            // Seleção individual: 1 cliente ↔ 1 pool. A entrega é tudo que tem versão editada
+            // (urlOriginal) — a seleção + o que o fotógrafo subiu como editada (ex.: renomeou no
+            // Photoshop). NÃO se deduz mais cortesia do upload: renomear/subir em massa deixou de
+            // virar "★ Cortesia" por engano. O selo "Cortesia" agora é EXPLÍCITO (session.courtesyPhotos),
+            // igual ao multi. Fotos selecionadas ainda sem editada ficam "em edição" (entrega parcial).
+            const courtesyIds = new Set(state.courtesyPhotos || []);
             const selectedCore = state.photos.filter(p => selectedSet.has(p.id));
-            const courtesyPhotos = state.photos.filter(p => !selectedSet.has(p.id) && p.urlOriginal);
-            courtesyPhotos.forEach(p => courtesySet.add(p.id));
-            selectedPhotos = [...selectedCore, ...courtesyPhotos];
+            const deliveredExtras = state.photos.filter(p => !selectedSet.has(p.id) && p.urlOriginal);
+            deliveredExtras.forEach(p => { if (courtesyIds.has(p.id)) courtesySet.add(p.id); });
+            selectedPhotos = [...selectedCore, ...deliveredExtras];
             unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id) && !p.urlOriginal);
         }
 
