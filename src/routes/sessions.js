@@ -140,7 +140,7 @@ router.post('/client/verify-code', async (req, res) => {
       mode: session.mode || 'gallery',
       selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
       galleryDeliveryMode: session.galleryDeliveryMode || null,
-      packageLimit: participant ? participant.packageLimit : (session.packageLimit || 30),
+      packageLimit: participant ? participant.packageLimit : (session.packageLimit ?? 30),
       extraPhotoPrice: (participant && participant.extraPhotoPrice != null) ? participant.extraPhotoPrice : (session.extraPhotoPrice || 25),
       // Tabela de preços por faixa de quantidade (display) — vazia = usa extraPhotoPrice
       pricingTable: session.pricingTable || [],
@@ -2575,7 +2575,7 @@ router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (re
       phone: phone.trim(),
       relationship: relationship.trim(),
       accessCode,
-      packageLimit: session.packageLimit || 30,
+      packageLimit: session.packageLimit ?? 30,
       selectionStatus: 'pending',
       selectedPhotos: []
     });

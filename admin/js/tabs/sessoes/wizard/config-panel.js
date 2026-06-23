@@ -637,13 +637,13 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock
     panel.appendChild(grupo(isMulti ? 'Seleção em Grupo' : 'Seleção'));
     if (isMulti) {
       panel.appendChild(field('Fotos do pacote (padrão)',
-        numberCtl('packageLimit', session.packageLimit || 30, { impactful: true, min: 1 }),
-        { hint: 'Padrão por participante — cada um pode ter um limite próprio ao ser cadastrado.' }
+        numberCtl('packageLimit', session.packageLimit ?? 30, { impactful: true, min: 0 }),
+        { hint: 'Padrão por participante. 0 = sem fotos grátis (cobra desde a 1ª foto).' }
       ));
     } else {
-      const minPkg = Math.max(1, st.selectedCount);
+      const minPkg = Math.max(0, st.selectedCount);
       panel.appendChild(field('Fotos do pacote',
-        numberCtl('packageLimit', session.packageLimit || 30, { locked: st.delivered, impactful: true, min: minPkg }),
+        numberCtl('packageLimit', session.packageLimit ?? 30, { locked: st.delivered, impactful: true, min: minPkg }),
         st.delivered
           ? { lockMsg: 'Trava após a entrega.' }
           : (st.selectedCount > 0 ? { hint: `Mínimo ${minPkg} — o cliente já escolheu ${st.selectedCount}.` } : undefined)
