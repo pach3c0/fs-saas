@@ -2081,6 +2081,16 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
       if (participant.selectionStatus !== 'delivered') {
         return res.status(403).json({ error: 'Fotos ainda não foram entregues para este participante' });
       }
+      // ACL por foto (multi): só libera a alta do que é da SELEÇÃO ou CORTESIA deste participante.
+      // No multi o pool é compartilhado e, com upload em massa em alta, TODAS as fotos teriam
+      // urlOriginal — sem este gate qualquer participante baixaria a sessão inteira em alta.
+      const entitled = new Set([
+        ...(participant.selectedPhotos || []).map(String),
+        ...(participant.courtesyPhotos || []).map(String)
+      ]);
+      if (!entitled.has(String(req.params.photoId))) {
+        return res.status(403).json({ error: 'Esta foto não faz parte da sua seleção' });
+      }
     } else {
       if (session.accessCode !== code) return res.status(403).json({ error: 'Acesso não autorizado' });
       if (session.selectionStatus !== 'delivered') return res.status(403).json({ error: 'Fotos ainda não foram entregues' });
