@@ -11,6 +11,7 @@ const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhot
 const { applyDefaultTemplate } = require('./site');
 const { trackEvent } = require('../utils/activityTracker');
 const { provisionRhynoTenant } = require('../utils/rhynoProvision');
+const { validateSlug } = require('../utils/slug');
 
 router.post('/login', async (req, res) => {
   try {
@@ -128,23 +129,27 @@ router.post('/auth/register', checkHoneyPot, async (req, res) => {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return res.status(400).json({ error: 'Slug deve conter apenas letras minúsculas, números e hifens' });
+    // Trava de segurança: rejeita hífen no começo/fim, espaços, pontuação,
+    // acentos, emojis e nomes reservados (ver src/utils/slug.js).
+    const slugCheck = validateSlug(slug);
+    if (!slugCheck.ok) {
+      return res.status(400).json({ error: slugCheck.error });
     }
+    const cleanSlug = slugCheck.slug;
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json({ error: 'Email já cadastrado' });
     }
 
-    const existingOrg = await Organization.findOne({ slug: slug.toLowerCase().trim() });
+    const existingOrg = await Organization.findOne({ slug: cleanSlug });
     if (existingOrg) {
       return res.status(409).json({ error: 'Slug já está em uso' });
     }
 
     const org = await Organization.create({
       name: orgName,
-      slug: slug.toLowerCase().trim(),
+      slug: cleanSlug,
       isActive: true,
       plan: 'free'
     });
@@ -203,10 +208,18 @@ router.get('/auth/check-slug/:slug', async (req, res) => {
     const { slug } = req.params;
     if (!slug) return res.status(400).json({ error: 'Slug é obrigatório' });
 
-    const existingOrg = await Organization.findOne({ slug: slug.toLowerCase().trim() });
-    res.json({ 
-      success: true, 
+    // Primeiro valida o formato (mesma trava do cadastro) — slug inválido
+    // nunca está "disponível".
+    const slugCheck = validateSlug(slug);
+    if (!slugCheck.ok) {
+      return res.json({ success: true, available: false, valid: false, message: slugCheck.error });
+    }
+
+    const existingOrg = await Organization.findOne({ slug: slugCheck.slug });
+    res.json({
+      success: true,
       available: !existingOrg,
+      valid: true,
       message: existingOrg ? 'Slug já está em uso' : 'Disponível'
     });
   } catch (error) {

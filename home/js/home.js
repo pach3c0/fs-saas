@@ -219,7 +219,8 @@ slugInput.addEventListener('input', function () {
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
-    .replace(/-{2,}/g, '-');
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+/, ''); // nunca comecar com hifen (rotulo DNS invalido -> cert nao vale)
   this.value = value;
 
   if (value && value.length >= 2) {
@@ -294,8 +295,8 @@ form.addEventListener('submit', async function (e) {
     return;
   }
 
-  if (!/^[a-z0-9-]+$/.test(slug)) {
-    showError('A URL deve conter apenas letras minusculas, numeros e hifens.');
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug) || slug.indexOf('--') !== -1) {
+    showError('A URL deve conter apenas letras minusculas, numeros e hifens, sem comecar ou terminar com hifen.');
     return;
   }
 
