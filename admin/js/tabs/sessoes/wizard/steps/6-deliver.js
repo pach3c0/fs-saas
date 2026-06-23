@@ -4,7 +4,7 @@
 // Multi-Seleção: entrega individual por participante.
 
 import { apiPut, apiPost } from '../../../../utils/api.js';
-import { escapeHtml } from '../../../../utils/helpers.js';
+import { escapeHtml, resolveImagePath } from '../../../../utils/helpers.js';
 import { appState } from '../../../../state.js';
 import { icon } from '../../../../utils/icons.js';
 import {
@@ -801,11 +801,13 @@ export function renderParticipantsDeliveryTable(session, refresh) {
 
     const info = document.createElement('div');
     info.style.cssText = 'text-align: left;';
+    const courtesyCount = (p.courtesyPhotos || []).length;
     info.innerHTML = `
       <div style="font-weight:500; color:var(--text-primary); font-size:0.875rem;">${escapeHtml(p.name)}</div>
       <div style="font-size:0.6875rem; color:var(--text-muted);">
         ${(p.selectedPhotos || []).length}${p.packageLimit ? ` / ${p.packageLimit}` : ''} fotos selecionadas
       </div>
+      ${courtesyCount > 0 ? `<div style="font-size:0.6875rem; color:var(--accent);">🎁 ${courtesyCount} cortesia${courtesyCount === 1 ? '' : 's'}</div>` : ''}
     `;
     row.appendChild(info);
 
@@ -894,6 +896,19 @@ export function renderParticipantsDeliveryTable(session, refresh) {
         setTimeout(() => { labelSpan.textContent = prevText; }, 1500);
       };
       actionsDiv.appendChild(copyBtn);
+
+      // Cortesia: presentear fotos extras (fora do pacote) a este participante.
+      const courtesyBtn = document.createElement('button');
+      courtesyBtn.type = 'button';
+      courtesyBtn.className = 'header-expand-btn';
+      courtesyBtn.title = `Dar fotos de cortesia para ${p.name}`;
+      courtesyBtn.style.cssText = 'cursor:pointer; border:1px solid var(--border);';
+      courtesyBtn.innerHTML = `
+        <span class="header-expand-icon" style="display:flex; align-items:center; justify-content:center; font-size:1rem;">🎁</span>
+        <span class="header-expand-label">Cortesia</span>
+      `;
+      courtesyBtn.onclick = () => openCourtesyModal(session, p, refresh);
+      actionsDiv.appendChild(courtesyBtn);
     }
 
     if (actionsDiv.children.length > 0) {
@@ -905,4 +920,143 @@ export function renderParticipantsDeliveryTable(session, refresh) {
 
   wrap.appendChild(list);
   return wrap;
+}
+
+// ── Modal: dar cortesia a um participante ────────────────────────────────────
+// A cortesia é uma decisão deliberada do fotógrafo (diferente do modo seleção, onde é deduzida).
+// Mostra o pool inteiro; o que o participante já selecionou não pode ser cortesia (já é dele).
+// Salva a lista COMPLETA (idempotente) no endpoint /participants/:pid/courtesy.
+function openCourtesyModal(session, p, refresh) {
+  const photos = (session.photos || []).filter(ph => !ph.hidden);
+  const selectedSet = new Set((p.selectedPhotos || []).map(String));
+  const chosen = new Set((p.courtesyPhotos || []).map(String));
+  const giftable = photos.filter(ph => !selectedSet.has(String(ph.id)));
+  const safeName = escapeHtml(p.name || 'participante');
+
+  document.getElementById('courtesyModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'courtesyModal';
+  overlay.style.cssText = 'position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); padding:1rem;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); width:760px; max-width:96vw; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.5);';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:1.25rem 1.25rem 0.75rem;';
+  header.innerHTML = `
+    <div style="font-size:1.0625rem; font-weight:700; color:var(--text-primary);">🎁 Dar cortesia para ${safeName}</div>
+    <p style="font-size:0.8125rem; color:var(--text-secondary); margin:0.375rem 0 0; line-height:1.5;">
+      Escolha fotos para presentear <strong>${safeName}</strong>. Elas entram na galeria dele(a)
+      <strong>de graça, fora do pacote</strong>, com o selo “Cortesia”. As fotos que ele(a) já selecionou não aparecem aqui.
+    </p>
+  `;
+
+  const filterInput = document.createElement('input');
+  filterInput.type = 'search';
+  filterInput.placeholder = 'Filtrar pelo nome do arquivo…';
+  filterInput.className = 'input';
+  filterInput.style.cssText = 'margin:0 1.25rem; font-size:0.8125rem;';
+
+  const gridWrap = document.createElement('div');
+  gridWrap.style.cssText = 'flex:1; overflow-y:auto; padding:0.75rem 1.25rem;';
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:0.5rem;';
+
+  if (giftable.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:var(--text-muted); font-size:0.875rem; padding:1rem 0;';
+    empty.textContent = 'Não há fotos disponíveis para cortesia (este participante já selecionou todas as fotos visíveis).';
+    gridWrap.appendChild(empty);
+  } else {
+    giftable.forEach(ph => {
+      const on = chosen.has(String(ph.id));
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.dataset.id = ph.id;
+      cell.dataset.fname = (ph.filename || '').toLowerCase();
+      cell.style.cssText = `position:relative; padding:0; border:2px solid ${on ? 'var(--accent)' : 'var(--border)'}; border-radius:var(--r-field); overflow:hidden; cursor:pointer; aspect-ratio:1/1; background:var(--bg-base);`;
+      cell.innerHTML = `
+        <img src="${resolveImagePath(ph.url)}" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;">
+        <span class="cz-courtesy-check" style="position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; background:${on ? 'var(--accent)' : 'rgba(0,0,0,0.45)'}; color:#fff; font-size:0.75rem; display:flex; align-items:center; justify-content:center;">${on ? '✓' : ''}</span>
+      `;
+      grid.appendChild(cell);
+    });
+    gridWrap.appendChild(grid);
+  }
+
+  const footer = document.createElement('div');
+  footer.style.cssText = 'padding:0.875rem 1.25rem; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:1rem;';
+  const countEl = document.createElement('div');
+  countEl.style.cssText = 'font-size:0.8125rem; color:var(--text-secondary);';
+  const updateCount = () => { countEl.textContent = `${chosen.size} cortesia${chosen.size === 1 ? '' : 's'} selecionada${chosen.size === 1 ? '' : 's'}`; };
+  updateCount();
+
+  // Toggle por clique (delegação)
+  grid.addEventListener('click', (e) => {
+    const cell = e.target.closest('button[data-id]');
+    if (!cell) return;
+    const id = String(cell.dataset.id);
+    const check = cell.querySelector('.cz-courtesy-check');
+    if (chosen.has(id)) {
+      chosen.delete(id);
+      cell.style.borderColor = 'var(--border)';
+      check.style.background = 'rgba(0,0,0,0.45)';
+      check.textContent = '';
+    } else {
+      chosen.add(id);
+      cell.style.borderColor = 'var(--accent)';
+      check.style.background = 'var(--accent)';
+      check.textContent = '✓';
+    }
+    updateCount();
+  });
+
+  filterInput.addEventListener('input', () => {
+    const q = filterInput.value.trim().toLowerCase();
+    grid.querySelectorAll('button[data-id]').forEach(c => {
+      c.style.display = (!q || c.dataset.fname.includes(q)) ? '' : 'none';
+    });
+  });
+
+  const btns = document.createElement('div');
+  btns.style.cssText = 'display:flex; gap:0.5rem;';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.style.cssText = 'background:transparent; color:var(--text-secondary); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem;';
+  cancelBtn.onclick = () => overlay.remove();
+
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Salvar cortesias';
+  saveBtn.style.cssText = 'background:var(--accent); color:var(--bg-base); border:none; padding:0.5rem 1.25rem; border-radius:var(--r-field); cursor:pointer; font-size:0.8125rem; font-weight:600;';
+  saveBtn.onclick = async () => {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando…';
+    try {
+      await apiPut(`/api/sessions/${session._id}/participants/${p._id}/courtesy`, { photos: [...chosen] });
+      window.showToast?.(`Cortesias de ${p.name} atualizadas.`, 'success');
+      overlay.remove();
+      await refresh();
+    } catch (e) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvar cortesias';
+      window.showToast?.('Erro: ' + e.message, 'error');
+    }
+  };
+
+  btns.appendChild(cancelBtn);
+  btns.appendChild(saveBtn);
+  footer.appendChild(countEl);
+  footer.appendChild(btns);
+
+  box.appendChild(header);
+  box.appendChild(filterInput);
+  box.appendChild(gridWrap);
+  box.appendChild(footer);
+  overlay.appendChild(box);
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  setTimeout(() => filterInput.focus(), 50);
 }

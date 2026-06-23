@@ -265,7 +265,12 @@ export function renderStepEdited({ session, refresh, switchStep, inSinglePage = 
 
   // ── Grid de fotos ─────────────────────────────────────────────────────
   const selectedSet = new Set(selected);
-  const courtesyPhotos = (session.photos || []).filter(p => !selectedSet.has(p.id) && p.urlOriginal);
+  // Cortesia derivada ("foto em alta fora da seleção") só faz sentido no modo seleção individual,
+  // onde há 1 cliente ↔ 1 pool. No multi o pool é compartilhado: "fora da seleção da união" é o caso
+  // normal e NÃO é cortesia — a cortesia ali é explícita e gerida por participante (passo Entregar).
+  const courtesyPhotos = isMulti
+    ? []
+    : (session.photos || []).filter(p => !selectedSet.has(p.id) && p.urlOriginal);
 
   if (selected.length > 0 || courtesyPhotos.length > 0) {
     const grid = document.createElement('div');

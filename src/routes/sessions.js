@@ -148,6 +148,8 @@ router.post('/client/verify-code', async (req, res) => {
       commentsEnabled: session.commentsEnabled !== false,
       selectionIcon: (session.organizationId && session.organizationId.preferences && session.organizationId.preferences.selectionIcon) || 'heart',
       extraRequest: (participant ? participant.extraRequest : session.extraRequest) || { status: 'none', photos: [] },
+      // Cortesias explícitas deste participante (multi). Vazia em seleção individual.
+      courtesyPhotos: participant ? (participant.courtesyPhotos || []) : [],
       accessCode: session.accessCode,
       selectionDeadline: session.selectionDeadline,
       coverPhoto: session.coverPhoto || '',
@@ -266,6 +268,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     let packageLimit = session.packageLimit;
     let extraPhotoPrice = session.extraPhotoPrice;
     let extraRequest = session.extraRequest;
+    // Cortesia explícita só existe por participante (multi). Em seleção individual a cortesia é
+    // deduzida no front (foto em alta fora da seleção), então aqui vai vazia.
+    let courtesyPhotos = [];
 
     if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const p = session.participants.id(participantId);
@@ -275,6 +280,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         packageLimit = p.packageLimit;
         if (p.extraPhotoPrice != null) extraPhotoPrice = p.extraPhotoPrice;
         extraRequest = p.extraRequest;
+        courtesyPhotos = p.courtesyPhotos || [];
       }
     }
 
@@ -284,6 +290,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       type: session.type,
       photos: (session.photos || []).filter(p => !p.hidden),
       selectedPhotos: selectedPhotos,
+      // Cortesias explícitas deste participante (multi). Vazia em seleção individual.
+      courtesyPhotos: courtesyPhotos,
       mode: session.mode,
       selectionStatus: selectionStatus,
       // Em modo galeria: 'direct' = entrega direta sem marca d'água; 'preview' = prévia com marca d'água
@@ -1974,6 +1982,32 @@ router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (
   }
 });
 
+// ADMIN: define a lista de fotos de CORTESIA de um participante (multi_selection / multi_instant).
+// Idempotente — recebe a lista COMPLETA de IDs e substitui. Valida que cada ID existe no pool da
+// sessão e descarta o que já estiver na seleção do participante (cortesia é sempre fora do pacote).
+router.put('/sessions/:id/participants/:pid/courtesy', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const p = session.participants.id(req.params.pid);
+    if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+
+    const requested = Array.isArray(req.body.photos) ? req.body.photos.map(String) : [];
+    const poolIds = new Set((session.photos || []).map(ph => ph.id));
+    const selectedSet = new Set((p.selectedPhotos || []).map(String));
+    // Só IDs reais do pool e que NÃO estejam na seleção do participante.
+    const clean = [...new Set(requested)].filter(id => poolIds.has(id) && !selectedSet.has(id));
+
+    p.courtesyPhotos = clean;
+    await session.save();
+    res.json({ success: true, courtesyPhotos: clean });
+  } catch (error) {
+    req.logger.error('Erro interno', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Exportar seleções dos participantes
 router.get('/sessions/:id/participants/export', authenticateToken, async (req, res) => {
   try {
@@ -2120,7 +2154,8 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     if (isGroupGalleryParticipant) {
       photosToZip = session.photos.filter(p => !p.hidden);
     } else if (participant) {
-      selectedIds = participant.selectedPhotos || [];
+      // Seleção do participante + cortesias explícitas que o fotógrafo deu a ele.
+      selectedIds = [...(participant.selectedPhotos || []), ...(participant.courtesyPhotos || [])];
       photosToZip = session.photos.filter(p => selectedIds.includes(p.id));
     } else {
       selectedIds = session.selectedPhotos || [];

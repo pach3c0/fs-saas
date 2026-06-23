@@ -121,6 +121,12 @@ const sessionSchema = new mongoose.Schema({
         extraPhotoPrice: { type: Number, default: null },
         // Grau de parentesco informado na auto-inscrição (ex: 'Pai/Mãe', 'Professor', etc.)
         relationship: { type: String, default: '' },
+        // Seleção em Grupo — CORTESIA EXPLÍCITA: fotos que o fotógrafo decidiu presentear a ESTE
+        // participante, fora da seleção dele. Diferente do modo seleção individual (onde a cortesia é
+        // DEDUZIDA de "foto em alta fora da seleção"), no multi o pool é compartilhado entre N pessoas —
+        // então "fora da seleção" é o caso normal e NÃO pode virar cortesia automática. Aqui a cortesia
+        // é sempre uma ação deliberada do fotógrafo, isolada por participante. Nasce vazia (aditivo).
+        courtesyPhotos: [String],
         // Seleção em Grupo: este participante pediu reabertura da própria seleção (aguardando o fotógrafo).
         reopenRequested: { type: Boolean, default: false },
         // Seleção em Grupo: solicitação de fotos extras individual deste participante.

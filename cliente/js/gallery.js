@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         session: null,
         photos: [],
         selectedPhotos: [],
+        // Cortesias explícitas (só multi): fotos presenteadas a este participante, fora da seleção.
+        courtesyPhotos: [],
         isParticipant: false,
         participantId: null,
         isSelectionMode: false,
@@ -748,8 +750,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const extraRequest = state.session.extraRequest || { status: 'none', photos: [] };
         const extraPrice = state.session.extraPhotoPrice || 25;
         const selectedSet = new Set(state.selectedPhotos);
-        // Tira cortesias do upsell: foto com urlOriginal já é presente do fotógrafo, não está à venda.
-        const unselectedPhotos = (state.photos || []).filter(p => !selectedSet.has(p.id) && !p.urlOriginal);
+        const isMultiMode = state.session.mode === 'multi_selection' || state.session.mode === 'multi_instant';
+        // Fora do upsell: o que já é do participante. Em seleção individual, foto em alta (urlOriginal)
+        // é cortesia do fotógrafo e sai da venda. No multi o pool é compartilhado e quase tudo pode estar
+        // em alta — então o critério é a cortesia EXPLÍCITA, não o urlOriginal.
+        const courtesyIds = new Set(state.courtesyPhotos || []);
+        const unselectedPhotos = isMultiMode
+            ? (state.photos || []).filter(p => !selectedSet.has(p.id) && !courtesyIds.has(p.id))
+            : (state.photos || []).filter(p => !selectedSet.has(p.id) && !p.urlOriginal);
 
         // Banner de status da solicitação de extras
         let extraStatusBanner = '';
@@ -1162,11 +1170,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Cortesia: foto fora da seleção mas com urlOriginal (fotógrafo subiu editada).
         // Vai pro grid principal com badge "Cortesia"; sai do upsell de extras (já é grátis).
         const courtesySet = new Set();
+        const isMultiMode = state.session.mode === 'multi_selection' || state.session.mode === 'multi_instant';
         let selectedPhotos, unselectedPhotos;
         if (isGalleryMode) {
             selectedPhotos = state.photos;
             unselectedPhotos = [];
+        } else if (isMultiMode) {
+            // Multi: o pool é compartilhado entre vários participantes, então "fora da seleção" é o
+            // caso normal e NÃO vira cortesia. A cortesia aqui é EXPLÍCITA (lista que o fotógrafo
+            // concedeu a este participante). Assim ele sobe todas as fotos em alta sem ruído.
+            const courtesyIds = new Set(state.courtesyPhotos || []);
+            const selectedCore = state.photos.filter(p => selectedSet.has(p.id));
+            const courtesyPhotos = state.photos.filter(p => courtesyIds.has(p.id) && !selectedSet.has(p.id));
+            courtesyPhotos.forEach(p => courtesySet.add(p.id));
+            selectedPhotos = [...selectedCore, ...courtesyPhotos];
+            // Demais fotos do pool seguem disponíveis para compra de extras (não são entrega nem cortesia).
+            unselectedPhotos = state.photos.filter(p => !selectedSet.has(p.id) && !courtesyIds.has(p.id));
         } else {
+            // Seleção individual: 1 cliente ↔ 1 pool. Cortesia é DEDUZIDA — foto em alta fora da
+            // seleção é presente do fotógrafo. Comportamento original preservado.
             const selectedCore = state.photos.filter(p => selectedSet.has(p.id));
             const courtesyPhotos = state.photos.filter(p => !selectedSet.has(p.id) && p.urlOriginal);
             courtesyPhotos.forEach(p => courtesySet.add(p.id));
@@ -1402,6 +1424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.session.clientData = savedClientData;
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
+            state.courtesyPhotos = result.courtesyPhotos || [];
             state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection' || result.mode === 'multi_instant')
                 && result.selectionStatus !== 'delivered'
                 && result.selectionStatus !== 'submitted';
