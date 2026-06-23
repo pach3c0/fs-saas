@@ -248,6 +248,17 @@
       padding: 2.5rem 1.5rem;
       text-align: center;
     }
+    .info-note {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: .875rem 1rem;
+      margin: 1rem 0;
+      text-align: left;
+      font-size: .8125rem;
+      line-height: 1.5;
+      color: #1e40af;
+    }
     .success-icon {
       width: 72px; height: 72px;
       background: #d1fae5;
@@ -405,8 +416,13 @@
     </div>
     <div class="success-title">Inscrição realizada! 🎉</div>
     <div class="success-text">
-      Você está na lista. Assim que as fotos estiverem disponíveis,<br>
-      você receberá uma notificação no WhatsApp.
+      O fotógrafo recebeu seu cadastro na sessão de fotos.<br>
+      Você será avisado(a) pelo WhatsApp quando as fotos forem liberadas.
+    </div>
+    <div class="info-note">
+      📸 <strong>Atenção:</strong> esta página é apenas a <strong>inscrição</strong> na sessão.
+      Para <strong>visualizar e selecionar</strong> as suas fotos, o fotógrafo vai enviar
+      <strong>outro link</strong> pelo WhatsApp assim que elas estiverem prontas.
     </div>
     <div class="code-box">
       <div class="label">Seu código de acesso</div>
@@ -422,9 +438,12 @@
 <script>
   // ======= Utilitários =======
   function show(id) {
+    // Importante: usar 'block' (não '') no elemento ativo. Vários estados têm
+    // `display:none` no CSS; setar '' limparia o inline-style e o elemento
+    // voltaria pro `none` do CSS → tela branca após inscrever.
     ['loadingState','errorState','formState','successState'].forEach(s => {
       const el = document.getElementById(s);
-      if (el) el.style.display = (s === id) ? '' : 'none';
+      if (el) el.style.display = (s === id) ? 'block' : 'none';
     });
   }
 
