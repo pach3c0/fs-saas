@@ -551,6 +551,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).catch(() => {});
     }
 
+    // Ícone que o cliente toca para selecionar a foto. O fotógrafo escolhe em
+    // Configurações > Galeria (Organization.preferences.selectionIcon). Os dois
+    // SVGs combinam com o CSS do .photo-heart (contorno branco + preenche ao selecionar).
+    function selectIconSvg() {
+        if (state.session && state.session.selectionIcon === 'cart') {
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>';
+        }
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+    }
+
+    // Nome do ícone para usar em textos de ajuda ("toque no coração/carrinho…").
+    function selectIconWord() {
+        return (state.session && state.session.selectionIcon === 'cart') ? 'carrinho' : 'coração';
+    }
+
     function renderPhotos() {
         if (!state.photos) return;
 
@@ -578,7 +593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${state.isSelectionMode ? `
                         <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
                             <button class="photo-heart ${isSelected ? 'selected' : ''}" title="Selecionar">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                ${selectIconSvg()}
                             </button>
                             ${state.session.commentsEnabled !== false ? `
                             <button class="photo-comment ${hasComments ? 'has-comments' : ''}" title="Comentários">
@@ -764,7 +779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const heartBtn = canUpsell ? `
                     <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
                         <button class="photo-heart extra-heart" data-extra-id="${photo.id}" title="Selecionar para comprar">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            ${selectIconSvg()}
                         </button>
                     </div>
                 ` : '';
@@ -801,7 +816,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.5rem;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
                     <p style="font-size:0.8125rem; color:#666; margin-bottom:1rem;">
                         ${canUpsell
-                    ? extrasHelpText('Toque no coração nas fotos abaixo para solicitar extras.', state.session.pricingTable, extraPrice)
+                    ? extrasHelpText(`Toque no ${selectIconWord()} nas fotos abaixo para solicitar extras.`, state.session.pricingTable, extraPrice)
                     : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las clicando nelas.'}
                     </p>
                     <div id="extrasGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.375rem; margin-bottom:1rem;">
@@ -1229,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const heartBtn = canUpsell ? `
                     <div style="position:absolute; top:0.5rem; right:0.5rem; display:flex; flex-direction:column; gap:0.375rem; z-index:10;">
                         <button class="photo-heart extra-heart" data-extra-id="${photo.id}" title="Selecionar para comprar">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            ${selectIconSvg()}
                         </button>
                     </div>
                 ` : '';
@@ -1267,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="font-size:0.9375rem; font-weight:600; margin-bottom:0.25rem; color:#111;">${canUpsell ? 'Quer mais fotos?' : 'Outras fotos da sessão'}</p>
                     <p style="font-size:0.8125rem; color:#6b7280; margin-bottom:0.75rem;">
                         ${canUpsell
-                    ? extrasHelpText('O fotógrafo adicionou novas fotos. Clique no coração para solicitar extras.', state.session.pricingTable, extraPrice)
+                    ? extrasHelpText(`O fotógrafo adicionou novas fotos. Clique no ${selectIconWord()} para solicitar extras.`, state.session.pricingTable, extraPrice)
                     : 'Estas fotos não fazem parte da sua seleção principal, mas você pode visualizá-las.'}
                     </p>
                 </div>

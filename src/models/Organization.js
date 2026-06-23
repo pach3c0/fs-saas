@@ -291,6 +291,9 @@ const OrganizationSchema = new mongoose.Schema({
     },
     // Modo Galeria: comportamento padrão ao chegar no passo Compartilhar
     galleryDeliveryDefault: { type: String, enum: ['ask', 'preview', 'direct'], default: 'ask' },
+    // Ícone que o cliente usa para selecionar foto na galeria
+    // (heart = favoritar/escolher · cart = carrinho de compras)
+    selectionIcon: { type: String, enum: ['heart', 'cart'], default: 'heart' },
     // Quais e-mails internos o fotógrafo recebe
     notifications: {
       selectionSubmitted: { type: Boolean, default: true },

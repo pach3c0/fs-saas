@@ -41,6 +41,7 @@ const SECTIONS = [
   { id: 'mensagens',     label: 'Mensagens', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>' },
   { id: 'sessoes',       label: 'Sessões', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>' },
   { id: 'entrega',       label: 'Entrega', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x1="12" y1="15" y2="3"/></svg>' },
+  { id: 'galeria',       label: 'Galeria', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' },
   { id: 'notificacoes',  label: 'Notificações', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' },
   { id: 'vendas',        label: 'Escassês & Vendas', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x1="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { id: 'privacidade',   label: 'Privacidade', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2-1 4-2 7-2 2.5 0 4.5 1 6.5 2a1 1 0 0 1 1 1v7z"/></svg>' }
@@ -108,6 +109,7 @@ function renderLayout(container) {
   if (currentSection === 'mensagens')    content.appendChild(renderMensagens());
   if (currentSection === 'sessoes')      content.appendChild(renderSessoes());
   if (currentSection === 'entrega')      content.appendChild(renderEntrega());
+  if (currentSection === 'galeria')      content.appendChild(renderGaleria());
   if (currentSection === 'notificacoes') content.appendChild(renderNotificacoes());
   if (currentSection === 'vendas')       content.appendChild(renderVendas());
   if (currentSection === 'privacidade')  content.appendChild(renderPrivacidade());
@@ -309,6 +311,23 @@ function renderSessoes() {
     v => scheduleSave({ sessionDefaults: { commentsEnabled: v } }, status, true)));
   card.appendChild(toggles);
 
+  return card;
+}
+
+// ── Seção Galeria ────────────────────────────────────────────────────────────
+function renderGaleria() {
+  const { card, status } = sectionCard('Galeria do cliente', 'Aparência da galeria que seus clientes acessam. Vale para todas as galerias, inclusive as já criadas.');
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;';
+  grid.appendChild(selectField('Ícone de seleção da foto', prefs.selectionIcon || 'heart',
+    [['heart', '❤️ Coração (favoritar)'], ['cart', '🛒 Carrinho (comprar)']],
+    v => { prefs.selectionIcon = v; scheduleSave({ selectionIcon: v }, status, true); }));
+  card.appendChild(grid);
+
+  const hint = document.createElement('p');
+  hint.style.cssText = 'margin-top:0.75rem; font-size:0.8125rem; color:var(--text-muted);';
+  hint.textContent = 'Define o ícone que o cliente toca para selecionar uma foto: ❤️ para "favoritar/escolher" ou 🛒 para um clima de loja/compra.';
+  card.appendChild(hint);
   return card;
 }
 

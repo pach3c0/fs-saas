@@ -350,7 +350,7 @@ router.put('/organization/support-access', authenticateToken, async (req, res) =
 // PUT /api/organization/preferences - Atualizar preferências (whitelist + validação por campo)
 router.put('/organization/preferences', authenticateToken, async (req, res) => {
   try {
-    const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications } = req.body;
+    const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications, selectionIcon } = req.body;
     const $set = {};
 
     // Mensagens — strings (limite de tamanho)
@@ -386,6 +386,11 @@ router.put('/organization/preferences', authenticateToken, async (req, res) => {
     // Padrão de entrega da galeria
     if (['ask', 'preview', 'direct'].includes(galleryDeliveryDefault)) {
       $set['preferences.galleryDeliveryDefault'] = galleryDeliveryDefault;
+    }
+
+    // Ícone de seleção do cliente na galeria
+    if (['heart', 'cart'].includes(selectionIcon)) {
+      $set['preferences.selectionIcon'] = selectionIcon;
     }
 
     // Preferências de notificação
