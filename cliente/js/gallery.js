@@ -1818,10 +1818,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Watermark customizado no lightbox
         if (lightboxWatermark) {
-            const isSelected = state.selectedPhotos.includes(photo.id);
+            // "Minha" = seleção OU cortesia explícita (multi). Cortesia entregue não deve
+            // aparecer com marca d'água na tela cheia — igual à seleção. Em modo seleção
+            // state.courtesyPhotos é [], então o comportamento fica idêntico ao anterior.
+            const courtesyIds = state.courtesyPhotos || [];
+            const isOwned = state.selectedPhotos.includes(photo.id) || courtesyIds.includes(photo.id);
             const isDelivered = state.session.selectionStatus === 'delivered';
             const isReady = state.session.mode === 'gallery' || state.session.mode === 'multi_gallery' || !!photo.urlOriginal;
-            const forceWatermark = isDelivered && (!isSelected || !isReady);
+            const forceWatermark = isDelivered && (!isOwned || !isReady);
             const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, forceWatermark);
             lightboxWatermark.style.cssText = wm.style;
             lightboxWatermark.innerHTML = wm.innerHTML;
