@@ -1837,6 +1837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Botão de seleção
         if (lightboxHeart) {
+            lightboxHeart.innerHTML = selectIconSvg();
             lightboxHeart.style.display = state.isSelectionMode ? 'flex' : 'none';
             lightboxHeart.classList.toggle('selected', state.selectedPhotos.includes(photo.id));
         }
