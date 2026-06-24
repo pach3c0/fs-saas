@@ -15,7 +15,7 @@ import { UploadPanel } from '../../../components/upload-panel.js';
 import { appState } from '../../../state.js';
 import { icon } from '../../../utils/icons.js';
 import { wizardState, stopWizardPolling } from './state.js';
-import { openOverlayModal } from './utils.js';
+import { openOverlayModal, buildGalleryUrlForCode, buildWhatsAppLink, buildWhatsAppDeliveryLink } from './utils.js';
 // Modais/handlers reaproveitados dos step files (mesma lógica, um lugar só):
 import { openSessionCourtesyModal } from './steps/5-edited.js';
 import { openCourtesyModal } from './steps/6-deliver.js';
@@ -1206,8 +1206,7 @@ function renderParticipantsTable(session, refresh) {
     const linkBtn = miniShareBtn(`${icon('link', 13)} Link`);
     linkBtn.title = `Copiar link de ${p.name}`;
     linkBtn.onclick = async () => {
-      const base = window.location.origin;
-      await navigator.clipboard.writeText(`${base}/cliente/?code=${p.accessCode}`);
+      await navigator.clipboard.writeText(buildGalleryUrlForCode(session, p.accessCode));
       window.showToast?.(`Link de ${p.name} copiado`, 'success');
     };
     shareActions.appendChild(linkBtn);
@@ -1215,14 +1214,10 @@ function renderParticipantsTable(session, refresh) {
     const waBtn = miniShareBtn(`${icon('whatsapp', 13)} WhatsApp`);
     waBtn.title = `Enviar WhatsApp para ${p.name}`;
     waBtn.onclick = () => {
-      const phone   = String(p.phone || '').replace(/\D/g, '');
-      const base    = window.location.origin;
-      const gallUrl = `${base}/cliente/?code=${p.accessCode}`;
       const orgName = appState.appData?.organization?.name || 'CliqueZoom';
-      const msg = status === 'delivered' 
-        ? `Olá, ${p.name}! 📸\n\nSuas fotos finais já estão disponíveis para download na ${orgName}!\n\nAcesse: ${gallUrl}\nOu use o código: *${p.accessCode}*`
-        : `Olá, ${p.name}! 📸\n\nSuas fotos estão prontas para seleção na ${orgName}.\n\nAcesse: ${gallUrl}\nOu use o código: *${p.accessCode}*`;
-      const waUrl = phone ? `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      const waUrl = status === 'delivered'
+        ? buildWhatsAppDeliveryLink({ session, accessCode: p.accessCode, recipientName: p.name, recipientPhone: p.phone, orgName })
+        : buildWhatsAppLink({ session, accessCode: p.accessCode, recipientName: p.name, recipientPhone: p.phone, orgName });
       window.open(waUrl, '_blank');
     };
     shareActions.appendChild(waBtn);
@@ -1238,8 +1233,8 @@ function renderParticipantsTable(session, refresh) {
     const previewBtn = miniShareBtn(`${icon('olho', 13)} Preview`);
     previewBtn.title = `Ver galeria de ${p.name} como cliente (nova aba)`;
     previewBtn.onclick = () => {
-      const base = window.location.origin;
-      const url = `${base}/cliente/?code=${p.accessCode}&_ap=${encodeURIComponent(appState.authToken || '')}`;
+      const galleryUrl = buildGalleryUrlForCode(session, p.accessCode);
+      const url = `${galleryUrl}&_ap=${encodeURIComponent(appState.authToken || '')}`;
       window.open(url, '_blank');
     };
     shareActions.appendChild(previewBtn);
