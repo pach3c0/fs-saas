@@ -942,7 +942,8 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
     const session = await Session.findOne({
       _id: req.params.id,
       organizationId: req.user.organizationId
-    }).populate('clientId', 'name email phone');
+    }).populate('clientId', 'name email phone')
+      .populate('organizationId', 'slug name');
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     res.json({ success: true, session });
   } catch (error) {
