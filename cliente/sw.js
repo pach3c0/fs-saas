@@ -1,4 +1,4 @@
-const CACHE_NAME = 'galeria-v1';
+const CACHE_NAME = 'galeria-v2';
 
 const STATIC_ASSETS = [
   '/cliente/',
@@ -57,16 +57,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML, JS, CSS, Fontes: Cache First com fallback Network
+  // HTML, JS, CSS, Fontes: Network First com fallback Cache.
+  // Cache First prendia o gallery.js/HTML antigo no cache para sempre (correções de
+  // código nunca chegavam ao cliente). Network First sempre busca a versão nova quando
+  // online e só recorre ao cache offline. O clone é feito ANTES do return (síncrono):
+  // se feito dentro do .then do caches.open(), o body já foi consumido → "Response body
+  // is already used".
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        if (response.ok && event.request.method === 'GET') {
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
-        }
-        return response;
-      }).catch(() => {
+    fetch(event.request).then(response => {
+      if (response.ok && event.request.method === 'GET') {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+      }
+      return response;
+    }).catch(() => {
+      return caches.match(event.request).then(cached => {
+        if (cached) return cached;
         // Offline e sem cache: retornar página offline genérica se for navegação
         if (event.request.mode === 'navigate') {
           return caches.match('/cliente/');
