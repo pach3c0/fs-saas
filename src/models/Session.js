@@ -45,6 +45,10 @@ const sessionSchema = new mongoose.Schema({
     extraPhotoPrice: { type: Number, default: 25 },
     // Fluxo de selecao
     selectionStatus: { type: String, enum: ['pending', 'in_progress', 'submitted', 'delivered', 'expired'], default: 'pending' },
+    // Caminho de upload escolhido nos cards do estado vazio (selection/multi_selection):
+    // 'originals' = sobe cruas e edita depois; 'edited' = já sobe as finais (pula o re-upload).
+    // Trava a toolbar pra não misturar fluxos — sessão "editadas" não mostra mais "Subir fotos".
+    uploadFlow: { type: String, enum: ['originals', 'edited'], default: 'originals' },
     selectedPhotos: [String],
     // Cortesias EXPLÍCITAS na seleção individual (fotógrafo presenteia fotos fora da seleção).
     // Espelha participant.courtesyPhotos do multi. Aditivo, nasce vazio — sem auto-dedução por upload.

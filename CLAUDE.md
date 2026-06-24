@@ -186,3 +186,22 @@ cd /Users/macbook/Documents/ProjetoEstudio/FsSaaS && npm run dev   # porta 3051
 npx playwright test --workers=1
 ```
 - `tests/1_0_landing-page.spec.js`, `2_0_login.spec.js`, `3_0_sessoes.spec.js`, `3_1_cliente-galeria.spec.js`, `4_0_clientes.spec.js`
+
+---
+
+## 📌 HANDOFF PARA PRÓXIMA SESSÃO (23/06/2026)
+Ocorreu um erro de conexão SSH (timeout) durante o deploy de uma correção no Rhyno ERP.
+
+**O que foi feito:**
+1. No **Rhyno ERP**, adicionamos um botão **"✅ Concluir evento"** nos retornos agendados/eventos próximos (para retirar da lista sem apagar o registro). Ele salva `[COMPLETO_ano]` no campo `notes` de `CustomerSubject`.
+2. Adicionado o modal **"Registrar contato"** em `LeadsSection.tsx`. Ele grava as conversas no campo `notes` (que depois vira a *Observação Interna* quando convertido).
+3. Havia um erro de tipagem no `confirmAction` do frontend do Rhyno durante o build. O erro **já foi corrigido** e enviado para o GitHub (`feat(crm): corrigir tipagem do confirmAction`).
+
+**Próximo passo imediato:**
+Quando a conexão SSH com a VPS (`5.189.174.18`) for reestabelecida, basta finalizar o deploy do Rhyno ERP rodando:
+```bash
+cd /var/www/rhyno-erp
+git pull origin main
+cd backend && pm2 restart erp-backend
+cd ../frontend && npm run build
+```

@@ -196,6 +196,9 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
   stopWizardPolling();
 
   const isMulti   = session.mode === 'multi_selection' || session.mode === 'multi_instant';
+  // Caminho escolhido nos cards do estado vazio: 'edited' = sessão já é de fotos finais
+  // (pula o re-upload), então a toolbar NÃO mostra "Subir fotos" (originais) — seria contraditório.
+  const isEditedFlow = session.uploadFlow === 'edited';
   const allPhotos = session.photos || [];
   const selectedSet     = buildSelectedSet(session);
   const photoSelectorsMap = isMulti ? buildPhotoSelectorsMap(session) : null;
@@ -232,6 +235,14 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
   fileInputEdited.onchange = (e) => handleUploadEdited(e, session, refresh, Array.from(selectedSet));
   wrap.appendChild(fileInputEdited);
 
+  // Caminho B (galeria vazia): subir fotos JÁ EDITADAS direto como pool de escolha.
+  // Vai pro upload-edited (preserva a alta) sem o confirm de "sem correspondente".
+  const fileInputEditedDirect = document.createElement('input');
+  fileInputEditedDirect.type = 'file'; fileInputEditedDirect.accept = '.jpg,.jpeg,.png';
+  fileInputEditedDirect.multiple = true; fileInputEditedDirect.style.display = 'none';
+  fileInputEditedDirect.onchange = (e) => handleUploadEditedDirect(e, session, refresh);
+  wrap.appendChild(fileInputEditedDirect);
+
   // ── STATS / PARTICIPANTES ────────────────────────────────────────────────
   // No multi o painel é a central de participantes (roster + Link/WhatsApp/Código/Preview +
   // Gerenciar/QR de auto-inscrição) — precisa aparecer SEMPRE, inclusive na sessão recém-criada
@@ -258,21 +269,32 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
     border-radius:var(--r-card); padding:0.4rem 0.75rem;
   `;
 
-  // Botão Subir Brutas
-  const btnBrutas = document.createElement('button');
-  btnBrutas.type = 'button';
-  btnBrutas.className = 'cz-ug-pill primary';
-  btnBrutas.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>Subir fotos</span>`;
-  btnBrutas.onclick = () => fileInputBrutas.click();
-  toolbar.appendChild(btnBrutas);
+  // Botão Subir Brutas (originais) — escondido no fluxo "editadas": a sessão já está
+  // comprometida com fotos finais, subir uma crua-sem-edição aqui seria contraditório.
+  if (!isEditedFlow) {
+    const btnBrutas = document.createElement('button');
+    btnBrutas.type = 'button';
+    btnBrutas.className = 'cz-ug-pill primary';
+    btnBrutas.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>Subir fotos</span>`;
+    btnBrutas.title = 'Fotos sem edição: o cliente escolhe em versões leves e você edita as escolhidas depois.';
+    btnBrutas.onclick = () => fileInputBrutas.click();
+    toolbar.appendChild(btnBrutas);
+  }
 
-  // Botão Subir Editadas
+  // Botão Subir Editadas. No fluxo "editadas" vira "Subir mais fotos" e usa o upload direto
+  // (sem o confirm de "sem correspondente") — todas as fotos aqui são finais.
   const btnEdited = document.createElement('button');
   btnEdited.type = 'button';
-  btnEdited.className = 'cz-ug-pill';
-  btnEdited.style.cssText += 'border-color:color-mix(in srgb, var(--yellow) 40%, transparent); color:var(--text-primary);';
-  btnEdited.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>Subir editadas</span>`;
-  btnEdited.onclick = () => fileInputEdited.click();
+  btnEdited.className = isEditedFlow ? 'cz-ug-pill primary' : 'cz-ug-pill';
+  if (!isEditedFlow) {
+    btnEdited.style.cssText += 'border-color:color-mix(in srgb, var(--yellow) 40%, transparent); color:var(--text-primary);';
+  }
+  const editedLabel = isEditedFlow ? 'Subir mais fotos' : 'Subir editadas';
+  btnEdited.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>${editedLabel}</span>`;
+  btnEdited.title = isEditedFlow
+    ? 'Adicionar mais fotos já editadas ao pool de escolha.'
+    : 'Fotos finais já tratadas — casa por nome de arquivo com as fotos da seleção (pula o re-upload).';
+  btnEdited.onclick = () => (isEditedFlow ? fileInputEditedDirect : fileInputEdited).click();
   toolbar.appendChild(btnEdited);
 
   // Botão Cortesia (só seleção individual, quando já há fotos): presentear fotos fora da seleção.
@@ -767,19 +789,27 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
     }
 
   } else {
-    // Sem fotos ainda
-    wrap.appendChild(toolbar);
-    const empty = document.createElement('div');
-    empty.style.cssText = `
-      border:2px dashed var(--border); border-radius:var(--r-card);
-      padding:3rem 1.5rem; text-align:center;
-      color:var(--text-muted); font-size:.875rem;
-    `;
-    empty.innerHTML = `
-      <div style="display:flex;justify-content:center;align-items:center;margin-bottom:.75rem;color:var(--text-muted);">${icon('camera', 36)}</div>
-      <div>Nenhuma foto ainda. Clique em <strong>"Subir fotos"</strong> acima para começar.</div>
-    `;
-    wrap.appendChild(empty);
+    // Sem fotos ainda.
+    // Modos de seleção têm dois caminhos para o mesmo objetivo (cliente escolher):
+    // originais (edita depois) × já editadas (pula o re-upload). O 1º upload é a hora
+    // de decidir — então mostramos cards que explicam o "e depois?" de cada caminho.
+    const isSelectionFork = session.mode === 'selection' || session.mode === 'multi_selection';
+    if (isSelectionFork) {
+      wrap.appendChild(renderUploadChoiceCards(session, fileInputBrutas, fileInputEditedDirect));
+    } else {
+      wrap.appendChild(toolbar);
+      const empty = document.createElement('div');
+      empty.style.cssText = `
+        border:2px dashed var(--border); border-radius:var(--r-card);
+        padding:3rem 1.5rem; text-align:center;
+        color:var(--text-muted); font-size:.875rem;
+      `;
+      empty.innerHTML = `
+        <div style="display:flex;justify-content:center;align-items:center;margin-bottom:.75rem;color:var(--text-muted);">${icon('camera', 36)}</div>
+        <div>Nenhuma foto ainda. Clique em <strong>"Subir fotos"</strong> acima para começar.</div>
+      `;
+      wrap.appendChild(empty);
+    }
   }
 
   return wrap;
@@ -1296,6 +1326,108 @@ function handleUploadBrutas(e, session, refresh) {
   e.target.value = '';
 }
 
+// Caminho B (galeria vazia): fotos JÁ EDITADAS viram o pool de escolha direto.
+// Cada arquivo é uma foto nova com a alta preservada (urlOriginal) + thumb leve pra escolha,
+// então não precisa do passo "Subir editadas" depois. allowUnmatched=true porque aqui é
+// intencional: ainda não há galeria de originais pra casar por nome.
+function handleUploadEditedDirect(e, session, refresh) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  const queue = getOrCreateQueue(async () => {
+    window.showToast?.('Fotos editadas enviadas!', 'success');
+    await refresh();
+  });
+  queue.add(files, `/api/sessions/${session._id}/photos/upload-edited?allowUnmatched=true`);
+  e.target.value = '';
+}
+
+// Cards do estado vazio: explicam os dois caminhos da seleção (originais × já editadas)
+// antes do clique. O upload já vai pro endpoint certo de cada caminho.
+function renderUploadChoiceCards(session, fileInputBrutas, fileInputEditedDirect) {
+  // Persiste o caminho escolhido ANTES de abrir o seletor de arquivos. O refresh pós-upload
+  // recarrega a sessão com o uploadFlow novo → a toolbar já nasce travada no caminho certo.
+  const pickFlow = async (flow, openInput) => {
+    try { await apiPut(`/api/sessions/${session._id}`, { uploadFlow: flow }); }
+    catch (_) { /* falha de rede não deve impedir o upload; o backend revalida */ }
+    openInput.click();
+  };
+  const box = document.createElement('div');
+  box.style.cssText = 'display:flex; flex-direction:column; gap:1rem;';
+
+  const heading = document.createElement('div');
+  heading.style.cssText = 'text-align:center;';
+  heading.innerHTML = `
+    <div style="font-size:1rem; font-weight:600; color:var(--text-primary); margin-bottom:.25rem;">Como você quer enviar as fotos para o cliente escolher?</div>
+    <div style="font-size:.8125rem; color:var(--text-muted);">São dois caminhos para o mesmo objetivo — escolha conforme você já editou ou não.</div>
+  `;
+  box.appendChild(heading);
+
+  const cards = document.createElement('div');
+  cards.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem;';
+
+  const mkCard = ({ ic, title, desc, footnote, btnLabel, accent, onClick }) => {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      display:flex; flex-direction:column; gap:.625rem;
+      background:var(--bg-surface); border:1px solid var(--border);
+      border-radius:var(--r-card); padding:1.25rem; text-align:left;
+      transition:border-color .15s, box-shadow .15s;
+    `;
+    card.onmouseenter = () => { card.style.borderColor = accent; };
+    card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; };
+
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex; align-items:center; gap:.5rem;';
+    head.innerHTML = `
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; background:color-mix(in srgb, ${accent} 14%, transparent); color:${accent}; flex-shrink:0;">${ic}</span>
+      <span style="font-size:.9375rem; font-weight:600; color:var(--text-primary);">${title}</span>
+    `;
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'font-size:.8125rem; color:var(--text-secondary); line-height:1.5;';
+    body.textContent = desc;
+    card.appendChild(body);
+
+    const foot = document.createElement('div');
+    foot.style.cssText = 'font-size:.75rem; color:var(--text-muted); line-height:1.4;';
+    foot.textContent = footnote;
+    card.appendChild(foot);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cz-ug-pill';
+    btn.style.cssText += `margin-top:.25rem; align-self:flex-start; border-color:${accent}; color:${accent};`;
+    btn.innerHTML = `<span style="display:flex;align-items:center;">${icon('upload', 14)}</span><span>${btnLabel}</span>`;
+    btn.onclick = onClick;
+    card.appendChild(btn);
+    return card;
+  };
+
+  cards.appendChild(mkCard({
+    ic: icon('camera', 18),
+    title: 'Fotos originais (sem edição)',
+    desc: 'Suba as fotos da sessão sem tratar. O sistema cria versões leves para o cliente escolher; depois você edita só as escolhidas e sobe as finais.',
+    footnote: '↳ Tem um passo a mais: subir as editadas no fim.',
+    btnLabel: 'Subir originais',
+    accent: 'var(--accent)',
+    onClick: () => pickFlow('originals', fileInputBrutas)
+  }));
+
+  cards.appendChild(mkCard({
+    ic: icon('brilho', 18),
+    title: 'Fotos já editadas',
+    desc: 'Já tem as fotos prontas? Suba as versões finais. O cliente escolhe vendo o tratamento final e você pula o trabalho de subir tudo de novo no fim.',
+    footnote: '↳ Mais rápido: sem re-upload depois da escolha.',
+    btnLabel: 'Subir editadas',
+    accent: 'var(--green)',
+    onClick: () => pickFlow('edited', fileInputEditedDirect)
+  }));
+
+  box.appendChild(cards);
+  return box;
+}
+
 async function handleUploadEdited(e, session, refresh, selectedIds) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
@@ -1338,6 +1470,16 @@ async function handleUploadEdited(e, session, refresh, selectedIds) {
 async function handleDeliver(session, refresh, delivered, selected, isDelivered, isPartial) {
   const { showDeliveryModal } = await import('./steps/2-share.js');
   const { buildWhatsAppDeliveryLink } = await import('./utils.js');
+
+  // Gate de entrega: precisa de ≥1 foto ENTREGÁVEL (editada E que o cliente baixa = seleção ∪ cortesia).
+  // Espelha o guard do backend e evita abrir o modal de entrega à toa: sem isto a sessão "entrega"
+  // mas o cliente abre o download e recebe ZIP vazio → tela preta.
+  const _entitled = new Set([...(selected || []), ...(session.courtesyPhotos || [])]);
+  const _deliverable = (session.photos || []).filter(p => p.urlOriginal && _entitled.has(p.id)).length;
+  if (_deliverable === 0) {
+    window.showToast?.('Não foi possível liberar a entrega: nenhuma das fotos escolhidas pelo cliente está editada ainda. Edite ao menos uma foto da seleção e tente de novo.', 'error');
+    return;
+  }
 
   if (isPartial && !isDelivered) {
     const pendingCount = selected.length - delivered.length;

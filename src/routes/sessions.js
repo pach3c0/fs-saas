@@ -1806,23 +1806,29 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     // avisa "X de Y" antes de confirmar. Renomear no Photoshop também deixa de travar a entrega:
     // a editada (com nome novo) entra como entrega normal, não como pendência.
     const selectedSet = new Set(session.selectedPhotos || []);
+    const courtesySet = new Set(session.courtesyPhotos || []);
     const missing = [];
     const extrasDelivered = [];
-    let deliveredCount = 0;
+    let deliveredCount = 0;     // editadas em geral (extra = editada fora da seleção)
+    let deliverableCount = 0;   // editadas que o cliente REALMENTE baixa (seleção ∪ cortesia)
 
     for (const photo of session.photos) {
       if (photo.urlOriginal) {
         deliveredCount++;
+        if (selectedSet.has(photo.id) || courtesySet.has(photo.id)) deliverableCount++;
         if (!selectedSet.has(photo.id)) extrasDelivered.push(photo.id);
       } else if (selectedSet.has(photo.id)) {
         missing.push(photo.filename || photo.id);
       }
     }
 
-    // Seleção individual: exige ao menos uma editada (não entrega sessão vazia/só pendências).
-    if (session.mode !== 'gallery' && deliveredCount === 0) {
+    // Seleção individual: precisa de ao menos UMA foto ENTREGÁVEL — editada E que o cliente baixa
+    // (seleção ∪ cortesia). Editar fotos FORA da seleção NÃO habilita a entrega: senão a sessão fica
+    // "entregue" mas o ZIP do cliente (urlOriginal ∩ entitled) sai vazio → o download abre tela preta.
+    // multi_selection: gate é por-participante em /participants/:pid/deliver (session.selectedPhotos vazio).
+    if (session.mode === 'selection' && deliverableCount === 0) {
       return res.status(400).json({
-        error: 'Nenhuma foto editada foi enviada ainda. Suba ao menos uma versão editada antes de entregar.'
+        error: 'Não foi possível liberar a entrega: nenhuma das fotos escolhidas pelo cliente está editada ainda. Edite ao menos uma foto da seleção e tente de novo.'
       });
     }
 
@@ -2057,6 +2063,18 @@ router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (
 
     const p = session.participants.id(req.params.pid);
     if (!p) return res.status(404).json({ error: 'Participante não encontrado' });
+
+    // Mesmo gate da seleção individual: só entrega se houver ≥1 foto ENTREGÁVEL deste participante
+    // (editada E na seleção ∪ cortesia dele). Sem isto o participante fica "entregue" mas o download
+    // dele sai vazio (ZIP filtra urlOriginal ∩ entitled) → tela preta na galeria do participante.
+    const selSet = new Set((p.selectedPhotos || []).map(String));
+    const courtSet = new Set((p.courtesyPhotos || []).map(String));
+    const deliverable = (session.photos || []).filter(ph => ph.urlOriginal && (selSet.has(ph.id) || courtSet.has(ph.id))).length;
+    if (deliverable === 0) {
+      return res.status(400).json({
+        error: 'Não foi possível liberar a entrega: nenhuma das fotos escolhidas por este participante está editada ainda. Edite ao menos uma foto da seleção dele e tente de novo.'
+      });
+    }
 
     p.selectionStatus = 'delivered';
     await session.save();

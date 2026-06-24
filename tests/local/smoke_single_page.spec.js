@@ -59,14 +59,19 @@ async function criarViaCard(page, mode, patch = {}) {
   return { sessionId, accessCode, name };
 }
 
-// Upload de fotos brutas pelo botão "Subir fotos" do wizard (página única).
-// Cada foto no grid tem um checkbox com data-id (marcador estável por foto).
+// Upload de fotos brutas pelo caminho "originais". No estado vazio de selection/multi_selection
+// aparecem cards de escolha com "Subir originais"; nos demais modos (ou quando já há fotos)
+// a toolbar mostra "Subir fotos".
 async function subirFotosUI(page, files) {
   const grid = page.locator('#wizardContent input[type="checkbox"][data-id]');
   const before = await grid.count();
+  const btnCard = page.locator('#wizardContent button', { hasText: 'Subir originais' });
+  const isCard = await btnCard.isVisible().catch(() => false);
   const [fc] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Subir fotos', exact: true }).first().click(),
+    isCard
+      ? btnCard.first().click()
+      : page.getByRole('button', { name: 'Subir fotos', exact: true }).first().click(),
   ]);
   await fc.setFiles(files);
   await expect(grid).toHaveCount(before + files.length, { timeout: 30000 });
