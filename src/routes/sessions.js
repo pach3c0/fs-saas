@@ -284,11 +284,29 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       }
     }
 
+    // SANITIZAÇÃO DE SAÍDA — isolamento entre participantes no pool COMPARTILHADO do multi.
+    // 1) Nunca enviar o caminho da alta (urlOriginal/urlRaw) ao cliente. O front só usa urlOriginal
+    //    como BOOLEANO ("foto pronta?") e o download passa pela rota /client/download com ACL. Sem isto,
+    //    qualquer participante leria o path no JSON e baixaria a alta de QUALQUER outro direto pelo
+    //    /uploads estático (sem marca, sem auth) — vazamento cross-participante de alta resolução.
+    // 2) Comentários: devolver só o thread DESTE participante (multi) ou os de sessão (individual),
+    //    espelhando commentsFor() do cliente — evita vazar comentário privado de outro participante.
+    const reqParticipantId = ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) ? String(participantId) : '';
+    const safePhotos = (session.photos || []).filter(p => !p.hidden).map(p => {
+      const o = p.toObject ? p.toObject() : { ...p };
+      o.urlOriginal = o.urlOriginal ? true : '';   // booleano "pronta", sem expor o caminho real
+      delete o.urlRaw; delete o.widthRaw; delete o.heightRaw;
+      if (Array.isArray(o.comments)) {
+        o.comments = o.comments.filter(c => String(c.participantId || '') === reqParticipantId);
+      }
+      return o;
+    });
+
     res.json({
       success: true,
       name: session.name,
       type: session.type,
-      photos: (session.photos || []).filter(p => !p.hidden),
+      photos: safePhotos,
       selectedPhotos: selectedPhotos,
       // Cortesias explícitas deste participante (multi). Vazia em seleção individual.
       courtesyPhotos: courtesyPhotos,
