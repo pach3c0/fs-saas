@@ -57,7 +57,8 @@ async function dismissReopenParticipant(session, refresh, participantId, partici
 }
 
 // Aceita as fotos extras solicitadas por um participante (adiciona à seleção dele).
-async function acceptExtraParticipant(session, refresh, participantId, participantName, count) {
+// Exportada para reuso pelo grid unificado (unified-photo-grid.js).
+export async function acceptExtraParticipant(session, refresh, participantId, participantName, count) {
   const ok = await window.showConfirm?.(
     `Aceitar ${count} foto(s) extra(s) de ${participantName}? Elas serão adicionadas à seleção dele(a).`,
     { confirmText: 'Aceitar', cancelText: 'Cancelar' }
@@ -75,7 +76,7 @@ async function acceptExtraParticipant(session, refresh, participantId, participa
 // Recusa as fotos extras solicitadas por um participante. Abre modal com motivo
 // obrigatório (espelha a recusa da seleção individual em actions.js) — o motivo
 // vai no e-mail enviado ao participante.
-async function rejectExtraParticipant(session, refresh, participantId, participantName) {
+export async function rejectExtraParticipant(session, refresh, participantId, participantName) {
   const modalHtml = `
     <div id="rejectExtraPartModal" style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75);">
       <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:var(--r-card); width:100%; max-width:400px; border:1px solid var(--border); box-shadow:0 10px 15px -3px rgba(0,0,0,0.5);">

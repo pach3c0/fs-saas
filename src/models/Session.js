@@ -17,6 +17,11 @@ const sessionSchema = new mongoose.Schema({
             height: Number,        // altura da thumb (para render do grid)
             widthOriginal: Number, // largura do arquivo original (resolucao real de entrega)
             heightOriginal: Number,
+            // Preview crua preservada: ao subir a 1a editada, guardamos aqui o thumb cru
+            // (em vez de apagar) pra permitir REVERTER a edicao sem tirar a foto da selecao.
+            urlRaw: String,        // thumb cru original (preview que o cliente escolheu)
+            widthRaw: Number,      // dims da thumb crua (pra restaurar no revert)
+            heightRaw: Number,
             uploadedAt: Date,
             comments: [{
                 text: String,

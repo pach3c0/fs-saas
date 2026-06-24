@@ -1435,8 +1435,14 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         await storage.deleteFile(oldPath);
       }
 
-      // Deletar thumb antiga para substituir pela nova (com a edição final)
-      if (photo.url) {
+      // PRESERVAR A CRUA: na 1a edição, guardamos o thumb cru em urlRaw (sem apagar) para
+      // permitir reverter a edição depois sem tirar a foto da seleção de ninguém.
+      // Em re-edições (urlRaw já existe), o photo.url atual é thumb de uma edição anterior → pode apagar.
+      if (!photo.urlRaw) {
+        photo.urlRaw = photo.url;
+        photo.widthRaw = photo.width;
+        photo.heightRaw = photo.height;
+      } else if (photo.url) {
         const oldThumbPath = path.join(__dirname, '../..', photo.url);
         await storage.deleteFile(oldThumbPath);
       }
@@ -1633,6 +1639,62 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
     res.json({ success: true });
   } catch (error) {
     req.logger?.error('Delete Photo Error', { error: error.message, stack: error.stack, sessionId: req.params.sessionId, photoId: req.params.photoId });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Remover SÓ a versão editada de uma foto (reverter), mantendo a foto na galeria
+// e na seleção de todos. Restaura a preview crua (urlRaw) preservada no upload-edited.
+// Não decrementa o contador do plano (a foto continua existindo).
+router.delete('/sessions/:sessionId/photos/:photoId/edited', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      organizationId: req.user.organizationId
+    });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const photo = session.photos.find(p => p.id === req.params.photoId);
+    if (!photo) return res.status(404).json({ error: 'Foto não encontrada' });
+    if (!photo.urlOriginal) return res.status(400).json({ error: 'Esta foto não tem versão editada para remover.' });
+
+    const deletions = [];
+    // Apaga a editada em alta (urlOriginal).
+    if (photo.urlOriginal && photo.urlOriginal.startsWith('/uploads/')) {
+      deletions.push(storage.deleteFile(path.join(__dirname, '../..', photo.urlOriginal)));
+    }
+    // Apaga a editada subida via campo legado urlEditada, se houver.
+    if (photo.urlEditada && photo.urlEditada.startsWith('/uploads/')) {
+      deletions.push(storage.deleteFile(path.join(__dirname, '../..', photo.urlEditada)));
+    }
+
+    if (photo.urlRaw) {
+      // Caminho normal: havia crua preservada → apaga o thumb DA EDIÇÃO e restaura a crua.
+      if (photo.url && photo.url !== photo.urlRaw && photo.url.startsWith('/uploads/')) {
+        deletions.push(storage.deleteFile(path.join(__dirname, '../..', photo.url)));
+      }
+      photo.url = photo.urlRaw;
+      photo.width = photo.widthRaw;
+      photo.height = photo.heightRaw;
+      photo.urlRaw = undefined;
+      photo.widthRaw = undefined;
+      photo.heightRaw = undefined;
+    }
+    // Legado (editada antes da preservação da crua): não há crua para restaurar — mantém o
+    // thumb atual como preview e só limpa a alta. A foto continua na seleção; basta re-subir a editada.
+
+    photo.urlOriginal = '';
+    photo.urlEditada = '';
+    photo.widthOriginal = undefined;
+    photo.heightOriginal = undefined;
+
+    await Promise.all(deletions);
+    session.markModified('photos');
+    await session.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    req.logger?.error('Remove Edited Error', { error: error.message, stack: error.stack, sessionId: req.params.sessionId, photoId: req.params.photoId });
     res.status(500).json({ error: error.message });
   }
 });
@@ -2185,20 +2247,28 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
       }
     }
 
-    // Determinar quais fotos incluir no ZIP
-    // 'multi_gallery': todas as visíveis; 'multi_selection': fotos do participante; 'selection': selecionadas; 'gallery': todas
-    let selectedIds, photosToZip;
+    // Determinar quais fotos incluir no ZIP.
+    // ENTREGA PARCIAL (selection + multi_selection): só entra no ZIP o que JÁ foi editado/entregue
+    // (tem urlOriginal). Foto "em edição" (selecionada mas ainda sem alta) NÃO vai pro ZIP — espelha
+    // o gate por foto do download individual, e nunca entrega a thumb em baixa como se fosse a final.
+    // 'multi_gallery'/'gallery': entrega direta, todas as fotos (sem etapa de edição parcial).
+    let photosToZip;
     if (isGroupGalleryParticipant) {
       photosToZip = session.photos.filter(p => !p.hidden);
     } else if (participant) {
-      // Seleção do participante + cortesias explícitas que o fotógrafo deu a ele.
-      selectedIds = [...(participant.selectedPhotos || []), ...(participant.courtesyPhotos || [])];
-      photosToZip = session.photos.filter(p => selectedIds.includes(p.id));
+      const entitled = new Set([
+        ...(participant.selectedPhotos || []).map(String),
+        ...(participant.courtesyPhotos || []).map(String)
+      ]);
+      photosToZip = session.photos.filter(p => p.urlOriginal && entitled.has(String(p.id)));
+    } else if (session.mode === 'selection') {
+      const entitled = new Set([
+        ...(session.selectedPhotos || []).map(String),
+        ...(session.courtesyPhotos || []).map(String)
+      ]);
+      photosToZip = session.photos.filter(p => p.urlOriginal && entitled.has(String(p.id)));
     } else {
-      selectedIds = session.selectedPhotos || [];
-      photosToZip = session.mode === 'selection'
-        ? session.photos.filter(p => selectedIds.includes(p.id) || p.urlOriginal)
-        : session.photos;
+      photosToZip = session.photos;
     }
 
     if (photosToZip.length === 0) return res.status(404).json({ error: 'Nenhuma foto para download' });

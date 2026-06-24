@@ -926,7 +926,8 @@ export function renderParticipantsDeliveryTable(session, refresh) {
 // A cortesia é uma decisão deliberada do fotógrafo (diferente do modo seleção, onde é deduzida).
 // Mostra o pool inteiro; o que o participante já selecionou não pode ser cortesia (já é dele).
 // Salva a lista COMPLETA (idempotente) no endpoint /participants/:pid/courtesy.
-function openCourtesyModal(session, p, refresh) {
+// Exportada para reuso pelo grid unificado (unified-photo-grid.js) — mesmo modal, um lugar só.
+export function openCourtesyModal(session, p, refresh) {
   const photos = (session.photos || []).filter(ph => !ph.hidden);
   const selectedSet = new Set((p.selectedPhotos || []).map(String));
   const chosen = new Set((p.courtesyPhotos || []).map(String));

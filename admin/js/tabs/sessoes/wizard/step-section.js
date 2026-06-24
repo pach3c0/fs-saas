@@ -24,7 +24,24 @@ export function computeSinglePageSteps(session) {
 // displayNumber: número exibido no círculo (posição visual 1..N, não o id interno do passo).
 // title: texto do cabeçalho.
 // content: HTMLElement já renderizado do passo (pode ser null).
-export function renderStepSection({ stepState, displayNumber, title, content }) {
+// plain: modo card único (sem metáfora de etapa) — só título, sem círculo nem pílula de status.
+//        Usado por selection/multi_selection, que viraram uma seção só ("Fotos da Sessão").
+export function renderStepSection({ stepState, displayNumber, title, content, plain = false }) {
+  if (plain) {
+    const section = document.createElement('section');
+    section.style.cssText = `
+      display:flex; flex-direction:column; gap:1rem;
+      background:var(--bg-surface); border:1px solid var(--border);
+      border-radius:var(--r-card); padding:1.25rem 1.5rem;
+    `;
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = title;
+    titleEl.style.cssText = 'margin:0; font-size:0.9375rem; font-weight:650; color:var(--text-primary);';
+    section.appendChild(titleEl);
+    if (content) section.appendChild(content);
+    return section;
+  }
+
   const done = Boolean(stepState?.done);
   const current = Boolean(stepState?.current);
   const locked = Boolean(stepState?.locked);

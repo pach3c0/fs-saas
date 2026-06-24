@@ -567,7 +567,8 @@ function escapeHtmlSafe(s) {
 // Espelha o modal de cortesia por participante do multi (6-deliver.js), mas salva no nível da sessão
 // (PUT /sessions/:id/courtesy). Mostra o pool inteiro; o que o cliente já selecionou não pode ser
 // cortesia (já é dele). Salva a lista COMPLETA (idempotente).
-function openSessionCourtesyModal(session, refresh) {
+// Exportada para reuso pelo grid unificado (unified-photo-grid.js) — mesmo modal, um lugar só.
+export function openSessionCourtesyModal(session, refresh) {
   const photos = (session.photos || []).filter(ph => !ph.hidden);
   const selectedSet = new Set((session.selectedPhotos || []).map(String));
   const chosen = new Set((session.courtesyPhotos || []).map(String));
