@@ -11,7 +11,8 @@ const TOOL_LABELS = {
   getBusinessMetrics: 'métricas de negócio', getDomains: 'domínios',
   getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
   getSalesOverview: 'motor de vendas', getTickets: 'chamados', searchManual: 'manual da plataforma',
-  proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano'
+  proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano',
+  proposeReplyTicket: 'preparando resposta do chamado', proposeCreateManualModule: 'preparando módulo de manual'
 };
 const PROVIDER_LABELS = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', 'openai-compatible': 'OpenAI-compat' };
 const SUGGESTIONS = ['Quais orgs estão em risco e por quê?', 'Houve algum erro nas últimas 24h?', 'Resumo de assinaturas e MRR', 'Domínios pendentes de verificação', 'Depoimentos pendentes para aprovar'];
@@ -496,7 +497,7 @@ function renderActionCard(bubble, action) {
     statusEl.style.color = 'var(--text-secondary)';
     statusEl.textContent = 'Executando…';
     try {
-      const r = await apiRequest('POST', '/api/admin/saas/agent/action/execute', { type: action.type, orgId: action.orgId, params: action.params });
+      const r = await apiRequest('POST', '/api/admin/saas/agent/action/execute', { type: action.type, params: action.params });
       btns.style.display = 'none';
       statusEl.style.color = 'var(--text-primary)';
       statusEl.textContent = `✓ ${r.message || 'Ação executada.'}`;

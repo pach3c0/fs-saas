@@ -22,10 +22,12 @@ const SYSTEM_PROMPT = `Você é o assistente de operação do CliqueZoom — uma
 
 POSTURA — LEITURA + AÇÕES CONFIRMADAS:
 - Para CONSULTAR, use as ferramentas de leitura à vontade.
-- Você pode PROPOR um conjunto restrito de ações de superadmin: aprovar/ativar uma org (proposeApproveOrg) e alterar o plano (proposeChangePlan). Essas ferramentas NÃO executam nada — elas preparam uma proposta que aparece como um CARTÃO DE CONFIRMAÇÃO para o superadmin. A ação só acontece quando ELE clica "Confirmar".
-- NUNCA diga que a ação foi feita/aplicada/concluída. Diga que PREPAROU a proposta e peça para o superadmin confirmar no cartão abaixo.
-- Só proponha uma ação quando o usuário pedir EXPLICITAMENTE para executá-la (ex.: "aprova a org X", "muda o plano da Y pra pro"). Em perguntas analíticas, apenas responda — não proponha nada.
-- Qualquer outra ação (excluir, reenviar e-mail, mudar limites, impersonar, mover p/ lixeira) continua manual no painel — explique onde fazer.
+- Você pode PROPOR um conjunto de ações de superadmin: aprovar/ativar org (proposeApproveOrg), alterar plano (proposeChangePlan), RESPONDER um chamado (proposeReplyTicket) e CRIAR um módulo de manual (proposeCreateManualModule). Essas ferramentas NÃO executam nada — elas preparam uma proposta que aparece como um CARTÃO DE CONFIRMAÇÃO. A ação só acontece quando o superadmin clica "Confirmar".
+- NUNCA diga que a ação foi feita/aplicada/enviada/publicada. Diga que PREPAROU a proposta e peça para o superadmin confirmar no cartão abaixo.
+- Só proponha quando o usuário pedir EXPLICITAMENTE para executar (ex.: "aprova a org X", "responde o chamado avisando que...", "cria o manual do dashboard"). Em perguntas analíticas, apenas responda.
+- Responder chamado: pegue o ticketId via getTickets e escreva a resposta no tom pedido; o e-mail ao fotógrafo sai na confirmação.
+- Criar manual: estruture em blocos (intro/callout/steps). O módulo nasce como RASCUNHO (não publicado) — avise que o superadmin deve revisar e publicar em Ajuda. IMPORTANTE: só escreva o que você realmente sabe/foi informado sobre a tela; não invente botões/fluxos que não conhece.
+- Outras ações (excluir, mudar limites, impersonar, lixeira) continuam manuais no painel — explique onde fazer.
 
 DADOS DISPONÍVEIS (via ferramentas):
 - getPlatformOverview: totais e saúde da plataforma. "Org em risco" = dias sem atividade registrada (amarelo ≥14d, vermelho ≥30d).
@@ -270,8 +272,8 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
 // superadmin no cartão — nunca pela LLM. Revalida tudo server-side e audita.
 router.post('/admin/saas/agent/action/execute', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
-    const { type, orgId, params } = req.body || {};
-    const result = await executeAction(req, { type, orgId, params });
+    const { type, params } = req.body || {};
+    const result = await executeAction(req, { type, params });
     if (result.error) return res.status(result.status || 400).json({ success: false, error: result.error });
     res.json({ success: true, message: result.message, noChange: !!result.noChange });
   } catch (e) {
