@@ -56,7 +56,7 @@ Botão no SaaS Admin que coloca a plataforma fora do ar com aviso amigável e pr
 - ⏳ Validar no navegador: ligar pela aba Sistema, abrir `/site` ou `/admin` numa aba anônima (deve ver a cortina), confirmar que `/saas-admin` continua acessível, desligar.
 - Esforço: Médio.
 
-### [~] 10. Presença online + **métricas de engajamento do fotógrafo** (painel SaaS) — ⚙️ (companheiro do item 5) ✅ Camada A FEITA (2026-06-25) · ⏳ painel da camada B adiado
+### [~] 10. Presença online + **métricas de engajamento do fotógrafo** (painel SaaS) — ⚙️ (companheiro do item 5) ✅ Camada A FEITA + DEPLOYADA PROD (2026-06-25, commit `56bc29c`) · ⏳ painel da camada B adiado · ⏳ validação E2E no navegador
 Duas camadas, **um único heartbeat alimenta as duas** (não é trabalho dobrado).
 
 **⚠️ Correção de arquitetura vs spec antigo:** o spec previa presença **in-memory** (`Map`+TTL). **NÃO serve aqui** — o PM2 roda `exec_mode:'cluster'` com `instances:2` (visto em `ecosystem.config.js`): cada worker teria seu Map → presença furada. **Decisão final: MongoDB com TTL index** (compartilhado entre workers, sem Redis). As demais "decisões a confirmar" foram resolvidas: clientes finais **incluídos** (pedido do usuário); granularidade = heartbeat com `module` + rollup diário.
