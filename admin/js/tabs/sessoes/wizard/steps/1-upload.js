@@ -10,7 +10,7 @@ import { icon } from '../../../../utils/icons.js';
 
 function getOrCreateQueue(onDone) {
   if (!window.globalUploadPanel) {
-    window.globalUploadPanel = new UploadPanel('upload-panel-root');
+    window.globalUploadPanel = new UploadPanel('upload-panel-root', { title: 'Uploads Originais' });
   }
   const panel = window.globalUploadPanel;
   panel.show();

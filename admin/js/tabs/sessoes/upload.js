@@ -60,7 +60,7 @@ export function showUploadValidationModal(container, report, onConfirm) {
 
 function getOrCreateQueue(container, state, renderSessoes, onDone) {
   if (!window.globalUploadPanel) {
-    window.globalUploadPanel = new UploadPanel('upload-panel-root');
+    window.globalUploadPanel = new UploadPanel('upload-panel-root', { title: 'Uploads Originais' });
   }
   const panel = window.globalUploadPanel;
   panel.show();
@@ -75,7 +75,29 @@ function getOrCreateQueue(container, state, renderSessoes, onDone) {
     panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
     panel.onRetry = (id) => window.globalUploadQueue.retry(id);
   }
+  window.globalUploadQueue.onQueueDone = onDone;
   return window.globalUploadQueue;
+}
+
+function getOrCreateEditedQueue(container, state, renderSessoes, onDone) {
+  if (!window.globalEditedUploadPanel) {
+    window.globalEditedUploadPanel = new UploadPanel('upload-edited-panel-root', { title: 'Uploads Editadas' });
+  }
+  const panel = window.globalEditedUploadPanel;
+  panel.show();
+
+  if (!window.globalEditedUploadQueue) {
+    window.globalEditedUploadQueue = new UploadQueue({
+      concurrency: 3,
+      onItemUpdate: (item) => panel.updateItem(item),
+      onQueueUpdate: (stats) => panel.updateStats(stats),
+      onQueueDone: onDone
+    });
+    panel.onCancel = (id) => window.globalEditedUploadQueue.cancel(id);
+    panel.onRetry = (id) => window.globalEditedUploadQueue.retry(id);
+  }
+  window.globalEditedUploadQueue.onQueueDone = onDone;
+  return window.globalEditedUploadQueue;
 }
 
 export function setupUpload(container, state, renderSessoes) {
@@ -118,7 +140,7 @@ export function setupUpload(container, state, renderSessoes) {
     showUploadValidationModal(container, report, (confirmed) => {
       if (!confirmed) { e.target.value = ''; return; }
 
-      const queue = getOrCreateQueue(container, state, renderSessoes, async () => {
+      const queue = getOrCreateEditedQueue(container, state, renderSessoes, async () => {
         window.showToast?.('Uploads de editadas finalizados!', 'success');
         await renderSessoes(container);
         if (state.currentSessionId) {

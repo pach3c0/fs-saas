@@ -62,23 +62,23 @@ function makeXBtn(iconName, label, { bg, color } = {}) {
 }
 
 function getOrCreateQueue(onDone) {
-  if (!window.globalUploadPanel) {
-    window.globalUploadPanel = new UploadPanel('upload-panel-root');
+  if (!window.globalEditedUploadPanel) {
+    window.globalEditedUploadPanel = new UploadPanel('upload-edited-panel-root', { title: 'Uploads Editadas' });
   }
-  const panel = window.globalUploadPanel;
+  const panel = window.globalEditedUploadPanel;
   panel.show();
-  if (!window.globalUploadQueue) {
-    window.globalUploadQueue = new UploadQueue({
+  if (!window.globalEditedUploadQueue) {
+    window.globalEditedUploadQueue = new UploadQueue({
       concurrency: 3,
       onItemUpdate: (item) => panel.updateItem(item),
       onQueueUpdate: (stats) => panel.updateStats(stats),
       onQueueDone: onDone
     });
-    panel.onCancel = (id) => window.globalUploadQueue.cancel(id);
-    panel.onRetry = (id) => window.globalUploadQueue.retry(id);
+    panel.onCancel = (id) => window.globalEditedUploadQueue.cancel(id);
+    panel.onRetry = (id) => window.globalEditedUploadQueue.retry(id);
   }
-  window.globalUploadQueue.onQueueDone = onDone;
-  return window.globalUploadQueue;
+  window.globalEditedUploadQueue.onQueueDone = onDone;
+  return window.globalEditedUploadQueue;
 }
 
 export function renderStepEdited({ session, refresh, switchStep, inSinglePage = false }) {

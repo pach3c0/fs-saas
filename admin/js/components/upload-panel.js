@@ -1,31 +1,51 @@
 export class UploadPanel {
-  constructor(containerId) {
+  constructor(containerId, options = {}) {
+    let wrapper = document.getElementById('upload-panels-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'upload-panels-wrapper';
+      wrapper.style.cssText = `
+        position: fixed; 
+        bottom: 20px; 
+        right: 20px; 
+        display: flex; 
+        flex-direction: column-reverse; 
+        gap: 10px; 
+        z-index: 9999;
+        align-items: flex-end;
+        pointer-events: none;
+      `;
+      document.body.appendChild(wrapper);
+    }
+
     this.container = document.getElementById(containerId);
     if (!this.container) {
       this.container = document.createElement('div');
       this.container.id = containerId;
-      document.body.appendChild(this.container);
+      this.container.style.pointerEvents = 'auto';
+      wrapper.appendChild(this.container);
     }
     this.items = new Map();
     this.onCancel = null;
     this.onRetry = null;
     this.onClose = null;
     
+    this.options = {
+      title: options.title || 'Uploads'
+    };
+    
     this.renderBase();
   }
 
   renderBase() {
     this.container.innerHTML = `
-      <div id="upload-panel-container" style="
-        position: fixed; 
-        bottom: 20px; 
-        right: 20px; 
+      <div id="${this.container.id}-panel-container" style="
         width: 380px; 
+        max-width: 90vw;
         background: var(--bg-surface, #1f2937); 
         border: 1px solid var(--border, #374151); 
         border-radius: 0.5rem; 
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-        z-index: 9999;
         display: none;
         flex-direction: column;
         overflow: hidden;
@@ -38,17 +58,17 @@ export class UploadPanel {
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
-        " id="upload-panel-header">
+        " id="${this.container.id}-header">
           <div>
-            <h4 style="margin: 0; color: var(--text-primary, #f3f4f6); font-size: 0.875rem; font-weight: 600;">Uploads</h4>
-            <div id="upload-panel-stats" style="font-size: 0.75rem; color: var(--text-secondary, #9ca3af); margin-top: 2px;"></div>
+            <h4 style="margin: 0; color: var(--text-primary, #f3f4f6); font-size: 0.875rem; font-weight: 600;">${this.options.title}</h4>
+            <div id="${this.container.id}-stats" style="font-size: 0.75rem; color: var(--text-secondary, #9ca3af); margin-top: 2px;"></div>
           </div>
           <div style="display:flex; gap:8px;">
-             <button id="upload-panel-toggle" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:1.2rem;">▼</button>
-             <button id="upload-panel-close" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:1.2rem; display:none;">×</button>
+             <button id="${this.container.id}-toggle" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:1.2rem;">▼</button>
+             <button id="${this.container.id}-close" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:1.2rem; display:none;">×</button>
           </div>
         </div>
-        <div id="upload-panel-list" style="
+        <div id="${this.container.id}-list" style="
           max-height: 300px;
           overflow-y: auto;
           padding: 8px;
@@ -59,13 +79,13 @@ export class UploadPanel {
       </div>
     `;
 
-    this.panelContainer = this.container.querySelector('#upload-panel-container');
-    this.listContainer = this.container.querySelector('#upload-panel-list');
-    this.statsContainer = this.container.querySelector('#upload-panel-stats');
+    this.panelContainer = this.container.querySelector(`#${this.container.id}-panel-container`);
+    this.listContainer = this.container.querySelector(`#${this.container.id}-list`);
+    this.statsContainer = this.container.querySelector(`#${this.container.id}-stats`);
     
-    const header = this.container.querySelector('#upload-panel-header');
-    const toggleBtn = this.container.querySelector('#upload-panel-toggle');
-    const closeBtn = this.container.querySelector('#upload-panel-close');
+    const header = this.container.querySelector(`#${this.container.id}-header`);
+    const toggleBtn = this.container.querySelector(`#${this.container.id}-toggle`);
+    const closeBtn = this.container.querySelector(`#${this.container.id}-close`);
 
     header.addEventListener('click', (e) => {
       if (e.target === closeBtn) return;
@@ -81,8 +101,8 @@ export class UploadPanel {
   show() {
     this.panelContainer.style.display = 'flex';
     this.listContainer.style.display = 'flex';
-    this.container.querySelector('#upload-panel-toggle').textContent = '▼';
-    this.container.querySelector('#upload-panel-close').style.display = 'none';
+    this.container.querySelector(`#${this.container.id}-toggle`).textContent = '▼';
+    this.container.querySelector(`#${this.container.id}-close`).style.display = 'none';
   }
 
   hide() {
@@ -92,7 +112,7 @@ export class UploadPanel {
   toggleCollapse() {
     const isVisible = this.listContainer.style.display !== 'none';
     this.listContainer.style.display = isVisible ? 'none' : 'flex';
-    this.container.querySelector('#upload-panel-toggle').textContent = isVisible ? '▲' : '▼';
+    this.container.querySelector(`#${this.container.id}-toggle`).textContent = isVisible ? '▲' : '▼';
   }
 
   updateStats(stats) {
@@ -106,7 +126,7 @@ export class UploadPanel {
     this.statsContainer.textContent = `${done}/${total} concluídos${etaText}`;
 
     if (pending === 0) {
-      this.container.querySelector('#upload-panel-close').style.display = 'block';
+      this.container.querySelector(`#${this.container.id}-close`).style.display = 'block';
     }
   }
 

@@ -450,7 +450,7 @@ export async function renderSessoes(container) {
               <select id="filterMode" class="select input">
                 <option value="all">Todos os modos</option>
                 <option value="selection">Seleção</option>
-                <option value="multi_selection">Multi-Seleção</option>
+                <option value="multi_selection">Seleção em grupo</option>
                 <option value="gallery">Galeria</option>
                 <option value="multi_gallery">Galeria em Grupo</option>
               </select>
@@ -490,10 +490,10 @@ export async function renderSessoes(container) {
            <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Galeria</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Fotos finalizadas prontas para visualização e download.</p>
         </div>
-        <!-- Card Multi-Seleção -->
+        <!-- Card Seleção em grupo -->
         <div class="session-type-card" data-mode="multi_selection" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
            <div style="color:var(--orange);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Multi-Seleção</h4>
+           <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Seleção em grupo</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Formaturas e eventos com múltiplos participantes.</p>
         </div>
         <!-- Card Galeria em Grupo -->

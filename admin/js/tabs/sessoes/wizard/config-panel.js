@@ -280,10 +280,15 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock
   }
 
   // ---------- builders ----------
-  const grupo = (titulo) => {
+  const grupo = (titulo, actionElement = null) => {
     const h = document.createElement('div');
-    h.textContent = titulo;
-    h.style.cssText = 'font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-top:0.375rem; border-bottom:1px solid var(--border); padding-bottom:0.25rem; text-align:center; width:100%;';
+    h.style.cssText = 'font-size:0.6875rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-top:0.375rem; border-bottom:1px solid var(--border); padding-bottom:0.25rem; text-align:center; width:100%; display:flex; justify-content:center; align-items:center; gap:0.5rem;';
+    const span = document.createElement('span');
+    span.textContent = titulo;
+    h.appendChild(span);
+    if (actionElement) {
+      h.appendChild(actionElement);
+    }
     return h;
   };
 
@@ -634,23 +639,33 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock
   // packageLimit é o limite do cliente (com lock pós-entrega); no multi ele é o padrão
   // de fotos por participante (cada participante pode ter o seu ao ser cadastrado).
   if (isSelection || isMultiSelection) {
-    panel.appendChild(grupo(isMulti ? 'Seleção em Grupo' : 'Seleção'));
+    const settingsBtn = document.createElement('button');
+    settingsBtn.innerHTML = icon('settings', 14);
+    settingsBtn.style.cssText = 'background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0;';
+    settingsBtn.title = 'Ajustes de Sessões padrão';
+    settingsBtn.onclick = (e) => {
+      e.preventDefault();
+      window._pendingConfigSection = 'sessoes';
+      window.switchTab?.('configuracoes');
+    };
+    panel.appendChild(grupo(isMulti ? 'Seleção em Grupo' : 'Seleção', settingsBtn));
+    
     if (isMulti) {
       panel.appendChild(field('Fotos do pacote (padrão)',
-        numberCtl('packageLimit', session.packageLimit ?? 30, { impactful: true, min: 0 }),
+        numberCtl('packageLimit', session.packageLimit ?? 1, { impactful: true, min: 0 }),
         { hint: 'Padrão por participante. 0 = sem fotos grátis (cobra desde a 1ª foto).' }
       ));
     } else {
       const minPkg = Math.max(0, st.selectedCount);
       panel.appendChild(field('Fotos do pacote',
-        numberCtl('packageLimit', session.packageLimit ?? 30, { locked: st.delivered, impactful: true, min: minPkg }),
+        numberCtl('packageLimit', session.packageLimit ?? 1, { locked: st.delivered, impactful: true, min: minPkg }),
         st.delivered
           ? { lockMsg: 'Trava após a entrega.' }
           : (st.selectedCount > 0 ? { hint: `Mínimo ${minPkg} — o cliente já escolheu ${st.selectedCount}.` } : undefined)
       ));
     }
     panel.appendChild(field(isMulti ? 'Preço foto extra (padrão)' : 'Preço foto extra (R$)',
-      numberCtl('extraPhotoPrice', session.extraPhotoPrice ?? 25, { min: 0, step: 0.01 }),
+      numberCtl('extraPhotoPrice', session.extraPhotoPrice ?? 5, { min: 0, step: 0.01 }),
       isMulti ? { hint: 'Padrão por participante — pode ser ajustado ao cadastrar cada um.' } : undefined
     ));
     panel.appendChild(checkRow('allowExtraPurchasePostSubmit', session.allowExtraPurchasePostSubmit !== false, 'Permitir venda de fotos extras'));

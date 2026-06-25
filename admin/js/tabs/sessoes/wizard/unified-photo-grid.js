@@ -29,7 +29,7 @@ const FAST_WINDOW_MS   = 120_000;
 // ── Upload Queue global (compartilhado com 1-upload.js) ────────────────────
 function getOrCreateQueue(onDone) {
   if (!window.globalUploadPanel) {
-    window.globalUploadPanel = new UploadPanel('upload-panel-root');
+    window.globalUploadPanel = new UploadPanel('upload-panel-root', { title: 'Uploads Originais' });
   }
   const panel = window.globalUploadPanel;
   panel.show();
@@ -45,6 +45,26 @@ function getOrCreateQueue(onDone) {
   }
   window.globalUploadQueue.onQueueDone = onDone;
   return window.globalUploadQueue;
+}
+
+function getOrCreateEditedQueue(onDone) {
+  if (!window.globalEditedUploadPanel) {
+    window.globalEditedUploadPanel = new UploadPanel('upload-edited-panel-root', { title: 'Uploads Editadas' });
+  }
+  const panel = window.globalEditedUploadPanel;
+  panel.show();
+  if (!window.globalEditedUploadQueue) {
+    window.globalEditedUploadQueue = new UploadQueue({
+      concurrency: 3,
+      onItemUpdate: (item) => panel.updateItem(item),
+      onQueueUpdate: (stats) => panel.updateStats(stats),
+      onQueueDone: onDone
+    });
+    panel.onCancel = (id) => window.globalEditedUploadQueue.cancel(id);
+    panel.onRetry  = (id) => window.globalEditedUploadQueue.retry(id);
+  }
+  window.globalEditedUploadQueue.onQueueDone = onDone;
+  return window.globalEditedUploadQueue;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1328,7 +1348,7 @@ function handleUploadBrutas(e, session, refresh) {
 function handleUploadEditedDirect(e, session, refresh) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
-  const queue = getOrCreateQueue(async () => {
+  const queue = getOrCreateEditedQueue(async () => {
     window.showToast?.('Fotos editadas enviadas!', 'success');
     await refresh();
   });
@@ -1440,7 +1460,7 @@ async function handleUploadEdited(e, session, refresh, selectedIds) {
   const allowUnmatched = unmatched.length > 0;
 
   const proceed = () => {
-    const queue = getOrCreateQueue(async () => {
+    const queue = getOrCreateEditedQueue(async () => {
       window.showToast?.('Editadas enviadas!', 'success');
       await refresh();
     });

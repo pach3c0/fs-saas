@@ -58,6 +58,11 @@ const SALES_STARTERS = {
 
 // ── Entry ───────────────────────────────────────────────────────────────────
 export async function renderConfiguracoes(container) {
+  if (window._pendingConfigSection) {
+    currentSection = window._pendingConfigSection;
+    delete window._pendingConfigSection;
+  }
+
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
       <div class="skeleton" style="height:36px; width:280px; border-radius:6px;"></div>
