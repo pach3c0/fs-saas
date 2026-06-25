@@ -10,7 +10,8 @@ const TOOL_LABELS = {
   getAuditLog: 'auditoria', getSystemStatus: 'status do sistema',
   getBusinessMetrics: 'métricas de negócio', getDomains: 'domínios',
   getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
-  getSalesOverview: 'motor de vendas'
+  getSalesOverview: 'motor de vendas',
+  proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano'
 };
 const PROVIDER_LABELS = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', 'openai-compatible': 'OpenAI-compat' };
 const SUGGESTIONS = ['Quais orgs estão em risco e por quê?', 'Houve algum erro nas últimas 24h?', 'Resumo de assinaturas e MRR', 'Domínios pendentes de verificação', 'Depoimentos pendentes para aprovar'];
@@ -330,7 +331,50 @@ function appendBubble(role) {
   wrap.appendChild(status); wrap.appendChild(text); wrap.appendChild(usage);
   list.appendChild(wrap);
   scrollBottom();
-  return { status, text, usage };
+  return { status, text, usage, wrap };
+}
+
+// Cartão de ação proposta pelo agente. A execução só ocorre no clique "Confirmar"
+// (chama o endpoint que revalida + audita) — a LLM nunca executa.
+const fmtState = (obj) => Object.entries(obj || {}).map(([k, v]) => `${k}: ${v}`).join(', ');
+
+function renderActionCard(bubble, action) {
+  const card = document.createElement('div');
+  card.style.cssText = 'margin-top:0.6rem; border:1px solid var(--accent); border-radius:8px; padding:0.6rem 0.7rem; background:var(--accent-soft);';
+  const beforeAfter = (action.before && action.after)
+    ? `<div style="font-size:0.7rem; color:var(--text-secondary); margin-top:0.2rem;">${esc(fmtState(action.before))} → <strong>${esc(fmtState(action.after))}</strong></div>` : '';
+  card.innerHTML = `
+    <div style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">⚠️ Ação aguardando confirmação</div>
+    <div style="font-size:0.8rem; color:var(--text-primary); margin-top:0.25rem;">${esc(action.summary || '')}</div>
+    ${beforeAfter}
+    <div class="acStatus" style="font-size:0.72rem; color:var(--text-secondary); margin-top:0.45rem; min-height:1em;"></div>
+    <div class="acBtns" style="display:flex; gap:0.4rem; margin-top:0.5rem;">
+      <button class="acConfirm" style="font-size:0.75rem; background:var(--accent); color:#fff; border:none; border-radius:6px; padding:0.35rem 0.9rem; font-weight:600; cursor:pointer; font-family:inherit;">Confirmar</button>
+      <button class="acCancel" style="font-size:0.75rem; background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.35rem 0.9rem; cursor:pointer; font-family:inherit;">Cancelar</button>
+    </div>`;
+  bubble.wrap.appendChild(card);
+  scrollBottom();
+
+  const statusEl = card.querySelector('.acStatus');
+  const btns = card.querySelector('.acBtns');
+  card.querySelector('.acCancel').onclick = () => { btns.style.display = 'none'; statusEl.textContent = 'Cancelado.'; card.style.borderColor = 'var(--border)'; };
+  card.querySelector('.acConfirm').onclick = async () => {
+    btns.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+    statusEl.style.color = 'var(--text-secondary)';
+    statusEl.textContent = 'Executando…';
+    try {
+      const r = await apiRequest('POST', '/api/admin/saas/agent/action/execute', { type: action.type, orgId: action.orgId, params: action.params });
+      btns.style.display = 'none';
+      statusEl.style.color = 'var(--text-primary)';
+      statusEl.textContent = `✓ ${r.message || 'Ação executada.'}`;
+      card.style.borderColor = 'var(--border)';
+      saasToast(r.noChange ? 'Nada a alterar' : 'Ação executada', 'success');
+    } catch (e) {
+      statusEl.style.color = '#f87171';
+      statusEl.textContent = `⚠️ ${e.message}`;
+      btns.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    }
+  };
 }
 
 function scrollBottom() { const l = document.getElementById('agenteMessages'); if (l) l.scrollTop = l.scrollHeight; }
@@ -392,6 +436,7 @@ async function send(raw) {
         let msg; try { msg = JSON.parse(line); } catch { continue; }
         if (msg.t === 'text' && typeof msg.v === 'string') { acc += msg.v; bubble.status.textContent = ''; bubble.text.innerHTML = renderMarkdown(acc); }
         else if (msg.t === 'tool') { bubble.status.textContent = `🔧 consultando ${TOOL_LABELS[msg.name] || msg.name}…`; }
+        else if (msg.t === 'action' && msg.action) { renderActionCard(bubble, msg.action); }
         else if (msg.t === 'usage') { renderUsage(bubble.usage, msg); }
         else if (msg.t === 'error') { acc += (acc ? '\n\n' : '') + `⚠️ ${msg.v}`; bubble.text.innerHTML = renderMarkdown(acc); }
         scrollBottom();

@@ -8,6 +8,7 @@ const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const { describeEnv, AgentConfigError } = require('../services/aiProvider');
 const { resolveAgentModel, computeCost } = require('../services/agentModel');
 const { tools } = require('../services/agentTools');
+const { proposeTools, executeAction } = require('../services/agentActions');
 const AgentConfig = require('../models/AgentConfig');
 const AgentDigest = require('../models/AgentDigest');
 const AgentSettings = require('../models/AgentSettings');
@@ -18,8 +19,12 @@ const PROVIDERS = ['anthropic', 'openai', 'google', 'openai-compatible'];
 
 const SYSTEM_PROMPT = `Você é o assistente de operação do CliqueZoom — uma plataforma SaaS onde fotógrafos (organizações/tenants) criam galerias e seleções para seus clientes. Você atende o SUPERADMIN da plataforma (o dono), ajudando a operar tudo: investigar erros, entender métricas, ver a jornada dos fotógrafos e identificar risco de churn.
 
-POSTURA — SOMENTE LEITURA:
-- Você só consulta dados via ferramentas. Você NUNCA executa ações de escrita (não aprova org, não muda plano, não envia e-mail, não impersona). Se pedirem uma ação, explique que sua função é só análise e indique a aba/botão do painel onde isso é feito manualmente.
+POSTURA — LEITURA + AÇÕES CONFIRMADAS:
+- Para CONSULTAR, use as ferramentas de leitura à vontade.
+- Você pode PROPOR um conjunto restrito de ações de superadmin: aprovar/ativar uma org (proposeApproveOrg) e alterar o plano (proposeChangePlan). Essas ferramentas NÃO executam nada — elas preparam uma proposta que aparece como um CARTÃO DE CONFIRMAÇÃO para o superadmin. A ação só acontece quando ELE clica "Confirmar".
+- NUNCA diga que a ação foi feita/aplicada/concluída. Diga que PREPAROU a proposta e peça para o superadmin confirmar no cartão abaixo.
+- Só proponha uma ação quando o usuário pedir EXPLICITAMENTE para executá-la (ex.: "aprova a org X", "muda o plano da Y pra pro"). Em perguntas analíticas, apenas responda — não proponha nada.
+- Qualquer outra ação (excluir, reenviar e-mail, mudar limites, impersonar, mover p/ lixeira) continua manual no painel — explique onde fazer.
 
 DADOS DISPONÍVEIS (via ferramentas):
 - getPlatformOverview: totais e saúde da plataforma. "Org em risco" = dias sem atividade registrada (amarelo ≥14d, vermelho ≥30d).
@@ -197,7 +202,7 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
       model: resolved.model,
       system: SYSTEM_PROMPT,
       messages,
-      tools,
+      tools: { ...tools, ...proposeTools }, // leitura + propor ações (executar é fora da LLM)
       stopWhen: stepCountIs(8),
       maxOutputTokens: 2000
     });
@@ -209,6 +214,10 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
         if (typeof v === 'string' && v) res.write(JSON.stringify({ t: 'text', v }) + '\n');
       } else if (part.type === 'tool-call') {
         res.write(JSON.stringify({ t: 'tool', name: part.toolName }) + '\n');
+      } else if (part.type === 'tool-result') {
+        // uma propose tool devolveu um descritor → vira cartão de confirmação no front
+        const out = part.output;
+        if (out && out.proposal) res.write(JSON.stringify({ t: 'action', action: out.proposal }) + '\n');
       } else if (part.type === 'error') {
         req.logger.error('Agente IA: erro no stream', { error: String(part.error?.message || part.error) });
         res.write(JSON.stringify({ t: 'error', v: 'Falha ao consultar a IA (verifique a chave/modelo).' }) + '\n');
@@ -235,6 +244,20 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
     req.logger.error('Agente IA: falha', { error: e.message });
     if (!res.headersSent) res.status(500).json({ success: false, error: 'Erro interno do agente.' });
     else { res.write(JSON.stringify({ t: 'error', v: 'Erro interno do agente.' }) + '\n'); res.end(); }
+  }
+});
+
+// Executa uma ação proposta pelo agente. Disparada SÓ pelo clique "Confirmar" do
+// superadmin no cartão — nunca pela LLM. Revalida tudo server-side e audita.
+router.post('/admin/saas/agent/action/execute', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { type, orgId, params } = req.body || {};
+    const result = await executeAction(req, { type, orgId, params });
+    if (result.error) return res.status(result.status || 400).json({ success: false, error: result.error });
+    res.json({ success: true, message: result.message, noChange: !!result.noChange });
+  } catch (e) {
+    req.logger.error('Agente: erro ao executar ação', { error: e.message, type: req.body?.type });
+    res.status(500).json({ success: false, error: 'Erro ao executar a ação.' });
   }
 });
 
