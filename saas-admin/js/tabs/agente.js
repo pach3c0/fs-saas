@@ -10,13 +10,15 @@ const TOOL_LABELS = {
   getAuditLog: 'auditoria', getSystemStatus: 'status do sistema',
   getBusinessMetrics: 'métricas de negócio', getDomains: 'domínios',
   getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
-  getSalesOverview: 'motor de vendas',
+  getSalesOverview: 'motor de vendas', getTickets: 'chamados', searchManual: 'manual da plataforma',
   proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano'
 };
 const PROVIDER_LABELS = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', 'openai-compatible': 'OpenAI-compat' };
 const SUGGESTIONS = ['Quais orgs estão em risco e por quê?', 'Houve algum erro nas últimas 24h?', 'Resumo de assinaturas e MRR', 'Domínios pendentes de verificação', 'Depoimentos pendentes para aprovar'];
 
 let conversation = [];
+let currentConversationId = null;
+let conversations = [];
 let providers = [];
 let built = false;
 let sending = false;
@@ -36,8 +38,10 @@ function buildUI(root) {
         <h2 style="margin:0; font-size:1.1rem; color:var(--text-primary);">🤖 Agente de operação</h2>
         <p style="margin:0.15rem 0 0; font-size:0.75rem; color:var(--text-secondary);">Somente leitura — erros, métricas, jornada e orgs em risco.</p>
       </div>
-      <div style="display:flex; align-items:center; gap:0.4rem;">
+      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
         <select id="agenteProviderSelect" title="IA usada nesta conversa" style="background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; font-family:inherit;"></select>
+        <button id="agenteNovaBtn" title="Iniciar uma nova conversa" style="background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">➕ Nova</button>
+        <button id="agenteHistoricoBtn" title="Conversas anteriores" style="background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">🕘 Histórico</button>
         <button id="agenteResumosBtn" title="Resumos proativos da plataforma" style="background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">📊 Resumos</button>
         <button id="agenteConfigBtn" title="Gerenciar IAs e chaves" style="background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">⚙️ IAs</button>
       </div>
@@ -56,17 +60,20 @@ function buildUI(root) {
 
     <div id="agenteConfig" style="display:none; background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1rem;"></div>
     <div id="agenteResumos" style="display:none; background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1rem;"></div>
+    <div id="agenteHistorico" style="display:none; background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1rem;"></div>
   `;
 
   resetMessages();
   root.querySelector('#agenteSend').onclick = () => send(root.querySelector('#agenteInput').value);
   root.querySelector('#agenteInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e.target.value); } };
   root.querySelectorAll('.agente-sugg').forEach(b => { b.onclick = () => send(b.dataset.q); });
+  root.querySelector('#agenteNovaBtn').onclick = newConversation;
+  root.querySelector('#agenteHistoricoBtn').onclick = () => showPanel('historico');
   root.querySelector('#agenteConfigBtn').onclick = () => showPanel('config');
   root.querySelector('#agenteResumosBtn').onclick = () => showPanel('resumos');
 }
 
-// Alterna entre os 3 painéis (chat / config / resumos). Clicar no painel ativo volta ao chat.
+// Alterna entre os painéis (chat / config / resumos / histórico). Clicar no painel ativo volta ao chat.
 let currentPanel = 'chat';
 function showPanel(which) {
   if (currentPanel === which && which !== 'chat') which = 'chat';
@@ -75,13 +82,103 @@ function showPanel(which) {
   set('agenteChatWrap', which === 'chat');
   set('agenteConfig', which === 'config');
   set('agenteResumos', which === 'resumos');
+  set('agenteHistorico', which === 'historico');
   if (which === 'config') { editingId = null; renderConfig(); }
   if (which === 'resumos') renderResumos();
+  if (which === 'historico') renderHistorico();
 }
 
 function resetMessages() {
   const list = document.getElementById('agenteMessages');
   if (list) list.innerHTML = `<div data-ph="1" style="margin:auto; text-align:center; color:var(--text-secondary); font-size:0.8rem;">Faça uma pergunta para começar.<br>O agente consulta os dados reais antes de responder.</div>`;
+}
+
+// ── Histórico de conversas ───────────────────────────────────────────────────
+function newConversation() {
+  conversation = [];
+  currentConversationId = null;
+  resetMessages();
+  document.getElementById('agenteSuggestions')?.style.setProperty('display', 'flex');
+  showPanel('chat');
+  document.getElementById('agenteInput')?.focus();
+}
+
+// Persiste a conversa atual (cria na 1ª vez, atualiza depois). Best-effort — não trava o chat.
+async function persistConversation() {
+  if (conversation.length < 2) return;
+  try {
+    const r = await apiRequest('POST', '/api/admin/saas/agent/conversations', { id: currentConversationId, messages: conversation });
+    if (r.id) currentConversationId = r.id;
+  } catch { /* silencioso */ }
+}
+
+async function renderHistorico() {
+  const box = document.getElementById('agenteHistorico');
+  if (!box) return;
+  box.innerHTML = `<div style="font-size:0.8rem; color:var(--text-secondary);">Carregando…</div>`;
+  try {
+    const r = await apiRequest('GET', '/api/admin/saas/agent/conversations');
+    conversations = r.conversations || [];
+  } catch (e) {
+    box.innerHTML = `<div style="font-size:0.8rem; color:#f87171;">Erro: ${esc(e.message)}</div>`;
+    return;
+  }
+  const items = conversations.length ? conversations.map(c => `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; background:var(--bg-surface); border:1px solid ${c.id === currentConversationId ? 'var(--accent)' : 'var(--border)'}; border-radius:8px; padding:0.55rem 0.7rem; margin-bottom:0.4rem;">
+      <button data-act="open" data-id="${c.id}" style="flex:1; min-width:0; text-align:left; background:none; border:none; cursor:pointer; color:var(--text-primary); font-family:inherit;">
+        <div style="font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(c.title)}</div>
+        <div style="font-size:0.68rem; color:var(--text-secondary);">${new Date(c.updatedAt).toLocaleString('pt-BR')} · ${c.messageCount} msgs</div>
+      </button>
+      <button data-act="del" data-id="${c.id}" title="Excluir conversa" style="flex-shrink:0; background:var(--bg-base); color:#f87171; border:1px solid var(--border); border-radius:6px; padding:0.25rem 0.5rem; font-size:0.72rem; cursor:pointer;">🗑</button>
+    </div>`).join('') : `<div style="font-size:0.78rem; color:var(--text-secondary);">Nenhuma conversa salva ainda.</div>`;
+
+  box.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.7rem;">
+      <h3 style="margin:0; font-size:0.95rem; color:var(--text-primary);">🕘 Histórico de conversas</h3>
+      <button id="histClose" style="background:none; border:none; color:var(--text-secondary); font-size:1.1rem; cursor:pointer;">✕</button>
+    </div>
+    <button id="histNova" style="font-size:0.8rem; background:var(--accent); color:#fff; border:none; border-radius:7px; padding:0.4rem 1rem; font-weight:600; cursor:pointer; margin-bottom:0.8rem;">➕ Nova conversa</button>
+    <div>${items}</div>
+  `;
+  box.querySelector('#histClose').onclick = () => showPanel('chat');
+  box.querySelector('#histNova').onclick = newConversation;
+  box.querySelectorAll('[data-act]').forEach(b => {
+    b.onclick = () => (b.dataset.act === 'open' ? loadConversation(b.dataset.id) : deleteConversation(b.dataset.id));
+  });
+}
+
+async function loadConversation(id) {
+  try {
+    const r = await apiRequest('GET', `/api/admin/saas/agent/conversations/${id}`);
+    conversation = (r.conversation?.messages || []).map(m => ({ role: m.role, content: m.content }));
+    currentConversationId = r.conversation?.id || id;
+    renderConversationMessages();
+    document.getElementById('agenteSuggestions')?.style.setProperty('display', 'none');
+    showPanel('chat');
+  } catch (e) { saasToast(e.message, 'error'); }
+}
+
+async function deleteConversation(id) {
+  if (!(await saasConfirm('Excluir esta conversa?', { title: 'Excluir conversa', confirmText: 'Excluir', danger: true }))) return;
+  try {
+    await apiRequest('DELETE', `/api/admin/saas/agent/conversations/${id}`);
+    if (id === currentConversationId) { conversation = []; currentConversationId = null; resetMessages(); }
+    saasToast('Conversa excluída', 'success');
+    renderHistorico();
+  } catch (e) { saasToast(e.message, 'error'); }
+}
+
+// Redesenha as bolhas a partir do array `conversation` (ao abrir uma conversa salva).
+function renderConversationMessages() {
+  const list = document.getElementById('agenteMessages');
+  if (!list) return;
+  list.innerHTML = '';
+  conversation.forEach(m => {
+    const b = appendBubble(m.role);
+    if (m.role === 'user') b.text.textContent = m.content;
+    else b.text.innerHTML = renderMarkdown(m.content);
+  });
+  scrollBottom();
 }
 
 // ── Providers (IAs) ─────────────────────────────────────────────────────────
@@ -239,6 +336,7 @@ function drawResumos() {
         <span style="font-size:0.62rem; color:var(--text-secondary); border:1px solid var(--border); border-radius:999px; padding:0 0.4rem;">${PERIOD_PT[d.period] || d.period}</span>
         <span style="font-size:0.62rem; color:var(--text-secondary); border:1px solid var(--border); border-radius:999px; padding:0 0.4rem;">${TRIGGER_PT[d.trigger] || d.trigger}</span>
         ${d.emailedTo ? `<span style="font-size:0.62rem; color:var(--accent);">📧 ${esc(d.emailedTo)}</span>` : ''}
+        <button data-digest="${d.id}" title="Excluir resumo" style="margin-left:auto; background:var(--bg-base); color:#f87171; border:1px solid var(--border); border-radius:6px; padding:0.1rem 0.45rem; font-size:0.72rem; cursor:pointer;">🗑</button>
       </div>
       <div class="agente-md" style="font-size:0.8rem; color:var(--text-primary); word-break:break-word;">${renderMarkdown(d.text)}</div>
     </div>`).join('') : `<div style="font-size:0.78rem; color:var(--text-secondary);">Nenhum resumo gerado ainda. Use "Gerar agora" para criar o primeiro.</div>`;
@@ -265,10 +363,20 @@ function drawResumos() {
       <div style="font-size:0.68rem; color:var(--text-secondary); margin-top:0.5rem;">Último resumo: ${lastTxt}. A verificação roda a cada 6h e gera no máximo 1 por ${s.digestFrequency === 'weekly' ? 'semana' : 'dia'}.</div>
     </div>
 
+    <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.75rem; margin-bottom:0.8rem;">
+      <div style="font-size:0.8rem; color:var(--text-primary); font-weight:600; margin-bottom:0.4rem;">Comportamento do agente</div>
+      <div style="font-size:0.68rem; color:var(--text-secondary); margin-bottom:0.5rem;">Instruções que entram no prompt do chat (tom, formato, o que evitar). Ex.: "Seja conciso e direto", "Responda em tópicos", "Não ofereça próximos passos a menos que eu peça".</div>
+      <textarea id="resInstructions" rows="4" placeholder="Ex.: Seja direto e conciso. Vá ao ponto e não faça varreduras longas sem eu pedir." style="${inp} width:100%; box-sizing:border-box; resize:vertical;">${esc(s.customInstructions || '')}</textarea>
+      <div style="display:flex; justify-content:flex-end; margin-top:0.5rem;">
+        <button id="resSaveInstr" style="font-size:0.8rem; background:var(--accent); color:#fff; border:none; border-radius:7px; padding:0.4rem 1rem; font-weight:600; cursor:pointer;">Salvar instruções</button>
+      </div>
+    </div>
+
     <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.9rem; flex-wrap:wrap;">
       <button id="resRun" style="font-size:0.8rem; background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); border-radius:7px; padding:0.45rem 1rem; font-weight:600; cursor:pointer;">⚡ Gerar agora</button>
       <label style="font-size:0.74rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.3rem;"><input type="checkbox" id="resRunEmail"> também enviar por e-mail</label>
       <span id="resRunStatus" style="font-size:0.74rem; color:var(--text-secondary);"></span>
+      ${digests.length ? `<button id="resClear" style="margin-left:auto; font-size:0.74rem; background:var(--bg-base); color:#f87171; border:1px solid var(--border); border-radius:7px; padding:0.4rem 0.8rem; cursor:pointer;">🗑 Limpar todos</button>` : ''}
     </div>
 
     <div id="resList">${list}</div>
@@ -276,14 +384,39 @@ function drawResumos() {
 
   box.querySelector('#resClose').onclick = () => showPanel('chat');
   box.querySelector('#resSave').onclick = saveSettings;
+  box.querySelector('#resSaveInstr').onclick = saveSettings;
   box.querySelector('#resRun').onclick = runDigestNow;
+  const clearBtn = box.querySelector('#resClear');
+  if (clearBtn) clearBtn.onclick = clearDigests;
+  box.querySelectorAll('[data-digest]').forEach(b => { b.onclick = () => deleteDigest(b.dataset.digest); });
+}
+
+async function deleteDigest(id) {
+  if (!(await saasConfirm('Excluir este resumo?', { title: 'Excluir resumo', confirmText: 'Excluir', danger: true }))) return;
+  try {
+    await apiRequest('DELETE', `/api/admin/saas/agent/digests/${id}`);
+    digests = digests.filter(d => d.id !== id);
+    saasToast('Resumo excluído', 'success');
+    drawResumos();
+  } catch (e) { saasToast(e.message, 'error'); }
+}
+
+async function clearDigests() {
+  if (!(await saasConfirm('Excluir TODOS os resumos? Não dá pra desfazer.', { title: 'Limpar resumos', confirmText: 'Excluir todos', danger: true }))) return;
+  try {
+    await apiRequest('DELETE', '/api/admin/saas/agent/digests');
+    digests = [];
+    saasToast('Resumos excluídos', 'success');
+    drawResumos();
+  } catch (e) { saasToast(e.message, 'error'); }
 }
 
 async function saveSettings() {
   const body = {
     digestEnabled: document.getElementById('resEnabled').checked,
     digestFrequency: document.getElementById('resFreq').value,
-    digestEmail: document.getElementById('resEmail').checked
+    digestEmail: document.getElementById('resEmail').checked,
+    customInstructions: document.getElementById('resInstructions')?.value ?? ''
   };
   try {
     const r = await apiRequest('PUT', '/api/admin/saas/agent/settings', body);
@@ -442,7 +575,7 @@ async function send(raw) {
         scrollBottom();
       }
     }
-    if (acc.trim()) conversation.push({ role: 'assistant', content: acc });
+    if (acc.trim()) { conversation.push({ role: 'assistant', content: acc }); await persistConversation(); }
     else bubble.text.textContent = '(sem resposta)';
   } catch (err) {
     bubble.text.textContent = `⚠️ ${err.message}`;

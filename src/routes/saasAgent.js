@@ -12,6 +12,7 @@ const { proposeTools, executeAction } = require('../services/agentActions');
 const AgentConfig = require('../models/AgentConfig');
 const AgentDigest = require('../models/AgentDigest');
 const AgentSettings = require('../models/AgentSettings');
+const AgentConversation = require('../models/AgentConversation');
 const agentDigest = require('../utils/agentDigest');
 const { encrypt } = require('../utils/secretBox');
 
@@ -36,8 +37,16 @@ DADOS DISPONÍVEIS (via ferramentas):
 - getIntegrationsAdoption: quem ligou Google Analytics / Meta Pixel.
 - getPendingTestimonials: depoimentos de clientes aguardando aprovação do fotógrafo.
 - getSalesOverview: motor de venda de FOTO EXTRA dos fotógrafos (cupons emitidos/resgatados, pedidos pendentes). NÃO é receita da plataforma — é a venda do fotógrafo ao cliente dele.
+- getTickets: chamados de suporte COM a conversa inteira (assunto, categoria, org que abriu, horas em aberto, mensagens). Use sempre que falar de chamado — nunca só a contagem.
+- searchManual: documentação de COMO A PLATAFORMA FUNCIONA (o Manual/Ajuda que o superadmin mantém). É a base de conhecimento do agente.
+
+CHAMADOS DE SUPORTE:
+- Ao falar de um chamado, traga o CONTEXTO via getTickets: quem abriu (org), categoria, o que a pessoa relata, há quantas horas está aberto e se está aguardando resposta do admin. Nunca diga apenas "existe um chamado".
+- Se o chamado for dúvida/"como faço", consulte searchManual e ofereça um RASCUNHO de resposta que o superadmin pode enviar ao fotógrafo — embase no manual; se o manual não cobrir o assunto, diga isso em vez de inventar.
+- Você NÃO envia a resposta nem fecha o chamado — apenas sugere o texto. O envio é manual no painel de suporte.
 
 COMO RESPONDER:
+- Seja CONCISO por padrão: responda direto à pergunta, usando o MÍNIMO de ferramentas necessário. Não faça varreduras longas por várias orgs nem ofereça uma lista de "próximos passos" a menos que peçam. Pergunta simples → resposta curta.
 - Use as ferramentas para buscar dados reais antes de responder — não invente números nem nomes.
 - Para localizar uma org pelo nome, use findOrgs primeiro e depois o slug nas demais ferramentas.
 - Cite números e nomes concretos (org, slug, idleDays, contadores). Seja direto e objetivo.
@@ -67,6 +76,8 @@ function sanitizeMessages(raw) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 8000) }))
     .slice(-20);
 }
+
+const isOid = (s) => /^[a-f0-9]{24}$/i.test(String(s || ''));
 
 // ============================================================================
 // GERENCIAMENTO DE IAs (CRUD) — superadmin
@@ -193,6 +204,14 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
   const messages = sanitizeMessages(req.body?.messages);
   if (!messages.length) return res.status(400).json({ success: false, error: 'Histórico de mensagens vazio.' });
 
+  // Instruções livres do superadmin (tom/formato) entram no fim do prompt base.
+  let system = SYSTEM_PROMPT;
+  try {
+    const s = await AgentSettings.getSingleton();
+    const extra = (s.customInstructions || '').trim();
+    if (extra) system = `${SYSTEM_PROMPT}\n\nINSTRUÇÕES DO SUPERADMIN (siga à risca):\n${extra}`;
+  } catch (_) { /* settings é best-effort; usa só o prompt base */ }
+
   res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Accel-Buffering', 'no');
@@ -200,7 +219,7 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
   try {
     const result = streamText({
       model: resolved.model,
-      system: SYSTEM_PROMPT,
+      system,
       messages,
       tools: { ...tools, ...proposeTools }, // leitura + propor ações (executar é fora da LLM)
       stopWhen: stepCountIs(8),
@@ -262,12 +281,76 @@ router.post('/admin/saas/agent/action/execute', authenticateToken, requireSupera
 });
 
 // ============================================================================
+// HISTÓRICO DE CONVERSAS (chat)
+// ============================================================================
+
+const convListView = (c) => ({ id: String(c._id), title: c.title, updatedAt: c.updatedAt, messageCount: (c.messages || []).length });
+
+// Lista as conversas do superadmin (recentes primeiro), sem o corpo das mensagens.
+router.get('/admin/saas/agent/conversations', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const list = await AgentConversation.find({ adminUserId: req.user.userId })
+      .sort({ updatedAt: -1 }).limit(100).select('title updatedAt messages').lean();
+    res.json({ success: true, conversations: list.map(convListView) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Abre uma conversa (mensagens completas).
+router.get('/admin/saas/agent/conversations/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ success: false, error: 'Conversa não encontrada.' });
+  try {
+    const c = await AgentConversation.findOne({ _id: req.params.id, adminUserId: req.user.userId }).lean();
+    if (!c) return res.status(404).json({ success: false, error: 'Conversa não encontrada.' });
+    res.json({ success: true, conversation: { id: String(c._id), title: c.title, messages: (c.messages || []).map((m) => ({ role: m.role, content: m.content })) } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Salva (cria ou atualiza) uma conversa — o front chama após cada turno.
+router.post('/admin/saas/agent/conversations', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const msgs = sanitizeMessages(req.body?.messages);
+    if (!msgs.length) return res.status(400).json({ success: false, error: 'Conversa vazia.' });
+    const firstUser = msgs.find((m) => m.role === 'user');
+    const title = String(req.body?.title || firstUser?.content || 'Conversa').slice(0, 80);
+    const now = new Date();
+    let doc = isOid(req.body?.id) ? await AgentConversation.findOne({ _id: req.body.id, adminUserId: req.user.userId }) : null;
+    if (doc) {
+      doc.messages = msgs; doc.title = title; doc.updatedAt = now;
+      await doc.save();
+    } else {
+      doc = await AgentConversation.create({ adminUserId: req.user.userId, title, messages: msgs, createdAt: now, updatedAt: now });
+    }
+    res.json({ success: true, id: String(doc._id), title: doc.title, updatedAt: doc.updatedAt });
+  } catch (e) {
+    req.logger.error('Agente: erro ao salvar conversa', { error: e.message });
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Exclui uma conversa.
+router.delete('/admin/saas/agent/conversations/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ success: false, error: 'Conversa não encontrada.' });
+  try {
+    const r = await AgentConversation.deleteOne({ _id: req.params.id, adminUserId: req.user.userId });
+    if (!r.deletedCount) return res.status(404).json({ success: false, error: 'Conversa não encontrada.' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ============================================================================
 // DIGEST PROATIVO + CONFIGURAÇÕES
 // ============================================================================
 
 const settingsView = (s) => ({
   digestEnabled: s.digestEnabled, digestFrequency: s.digestFrequency,
-  digestEmail: s.digestEmail, lastDigestAt: s.lastDigestAt
+  digestEmail: s.digestEmail, lastDigestAt: s.lastDigestAt,
+  customInstructions: s.customInstructions || ''
 });
 
 // Lê as configurações do digest (singleton).
@@ -284,10 +367,11 @@ router.get('/admin/saas/agent/settings', authenticateToken, requireSuperadmin, a
 router.put('/admin/saas/agent/settings', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
     const s = await AgentSettings.getSingleton();
-    const { digestEnabled, digestFrequency, digestEmail } = req.body || {};
+    const { digestEnabled, digestFrequency, digestEmail, customInstructions } = req.body || {};
     if (typeof digestEnabled === 'boolean') s.digestEnabled = digestEnabled;
     if (digestFrequency === 'daily' || digestFrequency === 'weekly') s.digestFrequency = digestFrequency;
     if (typeof digestEmail === 'boolean') s.digestEmail = digestEmail;
+    if (typeof customInstructions === 'string') s.customInstructions = customInstructions.slice(0, 4000);
     s.updatedAt = new Date();
     await s.save();
     res.json({ success: true, settings: settingsView(s) });
@@ -322,6 +406,28 @@ router.post('/admin/saas/agent/digest/run', authenticateToken, requireSuperadmin
   } catch (e) {
     if (e.name === 'AgentConfigError') return res.status(503).json({ success: false, error: e.message });
     req.logger.error('Agente: erro ao gerar digest', { error: e.message });
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Exclui um resumo específico.
+router.delete('/admin/saas/agent/digests/:id', authenticateToken, requireSuperadmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ success: false, error: 'Resumo não encontrado.' });
+  try {
+    const r = await AgentDigest.deleteOne({ _id: req.params.id });
+    if (!r.deletedCount) return res.status(404).json({ success: false, error: 'Resumo não encontrado.' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Limpa todos os resumos.
+router.delete('/admin/saas/agent/digests', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const r = await AgentDigest.deleteMany({});
+    res.json({ success: true, deleted: r.deletedCount });
+  } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
 });

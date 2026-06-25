@@ -9,6 +9,9 @@ const agentSettingsSchema = new mongoose.Schema({
   digestFrequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
   digestEmail: { type: Boolean, default: false },   // enviar o resumo por e-mail ao dono
   lastDigestAt: { type: Date, default: null },        // controle de frequência
+  // Instruções livres do superadmin que entram no prompt do chat (tom, formato,
+  // o que evitar). Ex.: "Seja conciso", "Responda em tópicos". Vazio = só o prompt base.
+  customInstructions: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: false });
 

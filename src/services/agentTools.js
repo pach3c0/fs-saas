@@ -21,6 +21,7 @@ const AuditLog = require('../models/AuditLog');
 const ActivityEvent = require('../models/ActivityEvent');
 const Ticket = require('../models/Ticket');
 const SchedulerRun = require('../models/SchedulerRun');
+const ManualModule = require('../models/ManualModule');
 const PLANS = require('../models/plans');
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -437,6 +438,73 @@ const tools = {
         cupons: { emitidos, resgatados, taxaResgatePct: emitidos ? Math.round((resgatados / emitidos) * 1000) / 10 : 0, recentes: recentes.slice(0, 30) },
         pedidosExtraPendentes: pedidosPendentes
       };
+    }
+  }),
+
+  // ── Chamados de suporte COM contexto (Fala Conosco) ───────────────────────
+  getTickets: tool({
+    description: 'Chamados de suporte COM CONTEXTO completo: assunto, categoria, status, qual org abriu, há quantas horas está aberto e a CONVERSA inteira (mensagens). Sempre traga o conteúdo, nunca só a contagem. Use para "tem chamado aberto?", "qual o contexto do chamado", "o que a org X relatou".',
+    inputSchema: z.object({
+      status: z.enum(['open', 'pending', 'resolved']).optional().describe('default: open'),
+      org: z.string().optional().describe('filtrar por org (slug, id ou nome)'),
+      limit: z.number().int().min(1).max(50).optional()
+    }),
+    execute: async ({ status = 'open', org, limit = 15 }) => {
+      const filtro = { status };
+      if (org) {
+        const found = await resolveOrg(org);
+        if (!found) return { error: `Org não encontrada: "${org}"` };
+        filtro.organizationId = found._id;
+      }
+      const tickets = await Ticket.find(filtro).sort({ updatedAt: -1 }).limit(limit)
+        .populate('organizationId', 'name slug plan').lean();
+      const now = Date.now();
+      return {
+        total: tickets.length,
+        tickets: tickets.map((t) => {
+          const msgs = t.messages || [];
+          const last = msgs[msgs.length - 1];
+          return {
+            id: String(t._id),
+            assunto: t.subject,
+            categoria: t.category,
+            status: t.status,
+            org: t.organizationId ? { name: t.organizationId.name, slug: t.organizationId.slug, plan: t.organizationId.plan } : null,
+            abertoEm: t.createdAt,
+            horasAberto: Math.floor((now - new Date(t.createdAt).getTime()) / 3600000),
+            ultimaAtualizacao: t.updatedAt,
+            // fotógrafo falou por último → o chamado está esperando resposta do admin
+            aguardandoRespostaDoAdmin: last ? last.from === 'photographer' : false,
+            conversa: msgs.map((m) => ({ de: m.from === 'photographer' ? 'fotógrafo' : 'admin', em: m.at, texto: trunc(m.text, 600) }))
+          };
+        })
+      };
+    }
+  }),
+
+  // ── Manual da plataforma (base de conhecimento editável) ──────────────────
+  searchManual: tool({
+    description: 'Documentação de COMO A PLATAFORMA FUNCIONA — o Manual/Ajuda que o superadmin mantém (fluxos, configurações, passo-a-passo). Consulte SEMPRE antes de explicar um fluxo ou embasar a resposta de um chamado; não invente. Sem query = lista os módulos disponíveis.',
+    inputSchema: z.object({ query: z.string().optional().describe('termo/assunto a buscar; vazio = lista os módulos') }),
+    execute: async ({ query }) => {
+      const mods = await ManualModule.find({ isPublished: true }).sort({ order: 1 }).lean();
+      if (!mods.length) return { aviso: 'Nenhum módulo de manual publicado ainda. Para "ensinar" o agente, publique módulos na aba Ajuda/Manual.', modulos: [] };
+      const flatten = (m) => {
+        const parts = [];
+        (m.blocks || []).forEach((b) => {
+          if ((b.type === 'intro' || b.type === 'callout') && b.content) parts.push(b.content);
+          else if (b.type === 'steps') (b.steps || []).forEach((s) => parts.push(`Passo ${s.n} (${s.who}): ${s.title} — ${s.desc}`));
+          else if (b.type === 'image' && b.caption) parts.push(`[imagem] ${b.caption}`);
+        });
+        return parts.join('\n');
+      };
+      const modulosDisponiveis = mods.map((m) => m.label);
+      const q = (query || '').trim();
+      if (!q) return { modulosDisponiveis, conteudo: mods.slice(0, 6).map((m) => ({ modulo: m.label, texto: trunc(flatten(m), 2500) })) };
+      const rx = new RegExp(escapeRegex(q), 'i');
+      const hits = mods.filter((m) => rx.test(m.label) || rx.test(flatten(m)));
+      if (!hits.length) return { modulosDisponiveis, conteudo: [], aviso: `Nada encontrado para "${q}". Veja os módulos disponíveis e tente outro termo.` };
+      return { modulosDisponiveis, conteudo: hits.slice(0, 6).map((m) => ({ modulo: m.label, texto: trunc(flatten(m), 2500) })) };
     }
   })
 };
