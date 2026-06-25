@@ -251,6 +251,7 @@ const { checkOffboarding } = require('./utils/offboardingChecker');
 const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
+const agentDigest = require('./utils/agentDigest');
 
 // Lock anti-sobreposição + telemetria persistida no SchedulerRun (aba Sistema)
 const { safeInterval, recordRun } = require('./utils/schedulerRunner');
@@ -277,6 +278,10 @@ function startDeadlineScheduler() {
   // Retenção de storage: roda 1× por dia às 9h Brasília (12h UTC)
   safeInterval('storageRetention', () => storageRetentionChecker.run(), ONE_DAY);
   logger.info('[scheduler] Storage retention checker iniciado (a cada 24h)');
+
+  // Digest proativo do agente: checa a cada 6h, mas só gera se habilitado e dentro da janela.
+  safeInterval('agentDigest', () => agentDigest.run(), SIX_HOURS);
+  logger.info('[scheduler] Agent digest checker iniciado (a cada 6h, desligado por padrão)');
 
   // CRM reativacao de clientes: roda todo dia às 8h horario de Brasilia (11h UTC)
   function agendarProximaReativacao() {

@@ -33,6 +33,7 @@ function buildUI(root) {
       </div>
       <div style="display:flex; align-items:center; gap:0.4rem;">
         <select id="agenteProviderSelect" title="IA usada nesta conversa" style="background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; font-family:inherit;"></select>
+        <button id="agenteResumosBtn" title="Resumos proativos da plataforma" style="background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">📊 Resumos</button>
         <button id="agenteConfigBtn" title="Gerenciar IAs e chaves" style="background:var(--bg-base); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.5rem; font-size:0.72rem; cursor:pointer; font-family:inherit;">⚙️ IAs</button>
       </div>
     </div>
@@ -49,13 +50,28 @@ function buildUI(root) {
     </div>
 
     <div id="agenteConfig" style="display:none; background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1rem;"></div>
+    <div id="agenteResumos" style="display:none; background:var(--bg-base); border:1px solid var(--border); border-radius:10px; padding:1rem;"></div>
   `;
 
   resetMessages();
   root.querySelector('#agenteSend').onclick = () => send(root.querySelector('#agenteInput').value);
   root.querySelector('#agenteInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e.target.value); } };
   root.querySelectorAll('.agente-sugg').forEach(b => { b.onclick = () => send(b.dataset.q); });
-  root.querySelector('#agenteConfigBtn').onclick = toggleConfig;
+  root.querySelector('#agenteConfigBtn').onclick = () => showPanel('config');
+  root.querySelector('#agenteResumosBtn').onclick = () => showPanel('resumos');
+}
+
+// Alterna entre os 3 painéis (chat / config / resumos). Clicar no painel ativo volta ao chat.
+let currentPanel = 'chat';
+function showPanel(which) {
+  if (currentPanel === which && which !== 'chat') which = 'chat';
+  currentPanel = which;
+  const set = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? 'block' : 'none'; };
+  set('agenteChatWrap', which === 'chat');
+  set('agenteConfig', which === 'config');
+  set('agenteResumos', which === 'resumos');
+  if (which === 'config') { editingId = null; renderConfig(); }
+  if (which === 'resumos') renderResumos();
 }
 
 function resetMessages() {
@@ -81,15 +97,6 @@ async function refreshProviders() {
   if (document.getElementById('agenteConfig')?.style.display === 'block') renderConfig();
 }
 
-function toggleConfig() {
-  const cfg = document.getElementById('agenteConfig');
-  const chat = document.getElementById('agenteChatWrap');
-  const open = cfg.style.display !== 'block';
-  cfg.style.display = open ? 'block' : 'none';
-  chat.style.display = open ? 'none' : 'block';
-  if (open) { editingId = null; renderConfig(); }
-}
-
 function renderConfig() {
   const cfg = document.getElementById('agenteConfig');
   if (!cfg) return;
@@ -97,7 +104,7 @@ function renderConfig() {
     <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.55rem 0.7rem; margin-bottom:0.4rem;">
       <div style="min-width:0;">
         <div style="font-size:0.82rem; color:var(--text-primary); font-weight:600;">${esc(p.label)} ${p.isActive ? '<span style="font-size:0.65rem; color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:0 0.4rem; margin-left:0.3rem;">ativa</span>' : ''}</div>
-        <div style="font-size:0.7rem; color:var(--text-secondary);">${PROVIDER_LABELS[p.provider] || p.provider} · ${esc(p.model)} · chave ····${esc(p.apiKeyLast4 || '????')}${p.baseURL ? ' · ' + esc(p.baseURL) : ''}</div>
+        <div style="font-size:0.7rem; color:var(--text-secondary);">${PROVIDER_LABELS[p.provider] || p.provider} · ${esc(p.model)} · chave ····${esc(p.apiKeyLast4 || '????')}${p.baseURL ? ' · ' + esc(p.baseURL) : ''}${(p.priceInput != null || p.priceOutput != null) ? ` · 💵 $${p.priceInput ?? '?'}/$${p.priceOutput ?? '?'} por M tok` : ''}</div>
       </div>
       <div style="display:flex; gap:0.3rem; flex-shrink:0;">
         ${p.isActive ? '' : `<button data-act="activate" data-id="${p.id}" style="font-size:0.68rem; background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); border-radius:6px; padding:0.25rem 0.5rem; cursor:pointer;">Ativar</button>`}
@@ -126,7 +133,10 @@ function renderConfig() {
         <input id="cfgModel" placeholder="Modelo (ex.: claude-opus-4-8)" value="${editing ? esc(editing.model) : ''}" style="${inp}">
         <input id="cfgKey" type="password" placeholder="${editing ? 'Chave (em branco = manter)' : 'Chave de API'}" style="${inp}">
         <input id="cfgBaseURL" placeholder="baseURL (só openai-compatible)" value="${editing && editing.baseURL ? esc(editing.baseURL) : ''}" style="${inp} grid-column:1 / -1; display:${(editing ? editing.provider : 'anthropic') === 'openai-compatible' ? 'block' : 'none'};">
+        <input id="cfgPriceIn" type="number" step="0.01" min="0" placeholder="US$/M tok entrada (opcional)" value="${editing && editing.priceInput != null ? editing.priceInput : ''}" style="${inp}">
+        <input id="cfgPriceOut" type="number" step="0.01" min="0" placeholder="US$/M tok saída (opcional)" value="${editing && editing.priceOutput != null ? editing.priceOutput : ''}" style="${inp}">
       </div>
+      <div style="font-size:0.68rem; color:var(--text-secondary); margin-top:0.35rem;">As tarifas são opcionais e servem só para estimar o custo por conversa (deixe em branco se não souber).</div>
       <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem;">
         <label style="font-size:0.74rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.3rem;"><input type="checkbox" id="cfgActive" ${editing && editing.isActive ? 'checked' : ''}> tornar ativa</label>
         <div style="flex:1;"></div>
@@ -136,7 +146,7 @@ function renderConfig() {
     </div>
   `;
 
-  cfg.querySelector('#agenteCfgClose').onclick = toggleConfig;
+  cfg.querySelector('#agenteCfgClose').onclick = () => showPanel('chat');
   cfg.querySelector('#cfgProvider').onchange = (e) => {
     cfg.querySelector('#cfgBaseURL').style.display = e.target.value === 'openai-compatible' ? 'block' : 'none';
   };
@@ -165,13 +175,15 @@ async function saveProvider() {
   const model = document.getElementById('cfgModel').value.trim();
   const apiKey = document.getElementById('cfgKey').value.trim();
   const baseURL = document.getElementById('cfgBaseURL').value.trim();
+  const priceInput = document.getElementById('cfgPriceIn').value.trim();
+  const priceOutput = document.getElementById('cfgPriceOut').value.trim();
   const isActive = document.getElementById('cfgActive').checked;
 
   if (!label || !model) return saasToast('Preencha rótulo e modelo', 'error');
   if (!editingId && !apiKey) return saasToast('Informe a chave de API', 'error');
   if (provider === 'openai-compatible' && !baseURL) return saasToast('baseURL é obrigatório para openai-compatible', 'error');
 
-  const body = { provider, label, model, baseURL, isActive };
+  const body = { provider, label, model, baseURL, isActive, priceInput, priceOutput };
   if (apiKey) body.apiKey = apiKey;
   try {
     if (editingId) await apiRequest('PUT', `/api/admin/saas/agent/providers/${editingId}`, body);
@@ -180,6 +192,122 @@ async function saveProvider() {
     editingId = null;
     await refreshProviders();
   } catch (e) { saasToast(e.message, 'error'); }
+}
+
+// ── Resumos (digest proativo) ───────────────────────────────────────────────
+let settings = null;
+let digests = [];
+let runningDigest = false;
+
+async function renderResumos() {
+  const box = document.getElementById('agenteResumos');
+  if (!box) return;
+  box.innerHTML = `<div style="font-size:0.8rem; color:var(--text-secondary);">Carregando…</div>`;
+  try {
+    const [s, d] = await Promise.all([
+      apiRequest('GET', '/api/admin/saas/agent/settings'),
+      apiRequest('GET', '/api/admin/saas/agent/digests')
+    ]);
+    settings = s.settings || {};
+    digests = d.digests || [];
+  } catch (e) {
+    box.innerHTML = `<div style="font-size:0.8rem; color:#f87171;">Erro ao carregar: ${esc(e.message)}</div>`;
+    return;
+  }
+  drawResumos();
+}
+
+const PERIOD_PT = { daily: 'diário', weekly: 'semanal' };
+const TRIGGER_PT = { scheduled: 'agendado', manual: 'manual' };
+
+function drawResumos() {
+  const box = document.getElementById('agenteResumos');
+  if (!box) return;
+  const s = settings || {};
+  const inp = 'background:var(--bg-surface); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.8rem; font-family:inherit;';
+  const lastTxt = s.lastDigestAt ? new Date(s.lastDigestAt).toLocaleString('pt-BR') : 'nunca';
+
+  const list = digests.length ? digests.map(d => `
+    <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.6rem 0.75rem; margin-bottom:0.5rem;">
+      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+        <span style="font-size:0.74rem; color:var(--text-primary); font-weight:600;">${new Date(d.createdAt).toLocaleString('pt-BR')}</span>
+        <span style="font-size:0.62rem; color:var(--text-secondary); border:1px solid var(--border); border-radius:999px; padding:0 0.4rem;">${PERIOD_PT[d.period] || d.period}</span>
+        <span style="font-size:0.62rem; color:var(--text-secondary); border:1px solid var(--border); border-radius:999px; padding:0 0.4rem;">${TRIGGER_PT[d.trigger] || d.trigger}</span>
+        ${d.emailedTo ? `<span style="font-size:0.62rem; color:var(--accent);">📧 ${esc(d.emailedTo)}</span>` : ''}
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-primary); white-space:pre-wrap; word-break:break-word; line-height:1.5;">${esc(d.text)}</div>
+    </div>`).join('') : `<div style="font-size:0.78rem; color:var(--text-secondary);">Nenhum resumo gerado ainda. Use "Gerar agora" para criar o primeiro.</div>`;
+
+  box.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.7rem;">
+      <h3 style="margin:0; font-size:0.95rem; color:var(--text-primary);">📊 Resumos da plataforma</h3>
+      <button id="resClose" style="background:none; border:none; color:var(--text-secondary); font-size:1.1rem; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:0.75rem; margin-bottom:0.8rem;">
+      <div style="font-size:0.8rem; color:var(--text-primary); font-weight:600; margin-bottom:0.55rem;">Automação</div>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.9rem;">
+        <label style="font-size:0.78rem; color:var(--text-primary); display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" id="resEnabled" ${s.digestEnabled ? 'checked' : ''}> gerar automaticamente</label>
+        <label style="font-size:0.78rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.35rem;">frequência
+          <select id="resFreq" style="${inp}">
+            <option value="daily" ${s.digestFrequency === 'daily' ? 'selected' : ''}>diário</option>
+            <option value="weekly" ${s.digestFrequency === 'weekly' ? 'selected' : ''}>semanal</option>
+          </select>
+        </label>
+        <label style="font-size:0.78rem; color:var(--text-primary); display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" id="resEmail" ${s.digestEmail ? 'checked' : ''}> enviar por e-mail ao dono</label>
+        <button id="resSave" style="font-size:0.8rem; background:var(--accent); color:#fff; border:none; border-radius:7px; padding:0.4rem 1rem; font-weight:600; cursor:pointer;">Salvar</button>
+      </div>
+      <div style="font-size:0.68rem; color:var(--text-secondary); margin-top:0.5rem;">Último resumo: ${lastTxt}. A verificação roda a cada 6h e gera no máximo 1 por ${s.digestFrequency === 'weekly' ? 'semana' : 'dia'}.</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.9rem; flex-wrap:wrap;">
+      <button id="resRun" style="font-size:0.8rem; background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); border-radius:7px; padding:0.45rem 1rem; font-weight:600; cursor:pointer;">⚡ Gerar agora</button>
+      <label style="font-size:0.74rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.3rem;"><input type="checkbox" id="resRunEmail"> também enviar por e-mail</label>
+      <span id="resRunStatus" style="font-size:0.74rem; color:var(--text-secondary);"></span>
+    </div>
+
+    <div id="resList">${list}</div>
+  `;
+
+  box.querySelector('#resClose').onclick = () => showPanel('chat');
+  box.querySelector('#resSave').onclick = saveSettings;
+  box.querySelector('#resRun').onclick = runDigestNow;
+}
+
+async function saveSettings() {
+  const body = {
+    digestEnabled: document.getElementById('resEnabled').checked,
+    digestFrequency: document.getElementById('resFreq').value,
+    digestEmail: document.getElementById('resEmail').checked
+  };
+  try {
+    const r = await apiRequest('PUT', '/api/admin/saas/agent/settings', body);
+    settings = r.settings || settings;
+    saasToast('Configuração salva', 'success');
+    drawResumos();
+  } catch (e) { saasToast(e.message, 'error'); }
+}
+
+async function runDigestNow() {
+  if (runningDigest) return;
+  runningDigest = true;
+  const btn = document.getElementById('resRun');
+  const status = document.getElementById('resRunStatus');
+  const sendMail = document.getElementById('resRunEmail')?.checked === true;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (status) status.textContent = 'gerando… (pode levar alguns segundos)';
+  try {
+    const r = await apiRequest('POST', '/api/admin/saas/agent/digest/run', { sendMail });
+    if (r.digest) digests.unshift(r.digest);
+    saasToast('Resumo gerado', 'success');
+    drawResumos();
+  } catch (e) {
+    saasToast(e.message, 'error');
+    if (status) status.textContent = '';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  } finally {
+    runningDigest = false;
+  }
 }
 
 // ── Chat ────────────────────────────────────────────────────────────────────
@@ -192,16 +320,31 @@ function appendBubble(role) {
   const status = document.createElement('div');
   status.style.cssText = 'font-size:0.72rem; color:var(--text-secondary); font-style:italic;';
   const text = document.createElement('div');
-  wrap.appendChild(status); wrap.appendChild(text);
+  const usage = document.createElement('div');
+  usage.style.cssText = 'font-size:0.68rem; color:var(--text-secondary); margin-top:0.4rem; padding-top:0.3rem; border-top:1px dashed var(--border); display:none;';
+  wrap.appendChild(status); wrap.appendChild(text); wrap.appendChild(usage);
   list.appendChild(wrap);
   scrollBottom();
-  return { status, text };
+  return { status, text, usage };
 }
 
 function scrollBottom() { const l = document.getElementById('agenteMessages'); if (l) l.scrollTop = l.scrollHeight; }
 function setSending(on) {
   const btn = document.getElementById('agenteSend');
   if (btn) { btn.disabled = on; btn.style.opacity = on ? '0.5' : '1'; btn.textContent = on ? '…' : 'Enviar'; }
+}
+
+// Linha de uso/custo sob a resposta (custo só aparece se a IA tiver tarifa cadastrada).
+function renderUsage(el, msg) {
+  if (!el) return;
+  const toks = [];
+  if (msg.input != null) toks.push(`↑ ${msg.input}`);
+  if (msg.output != null) toks.push(`↓ ${msg.output}`);
+  let line = toks.length ? `${toks.join('  ')} tokens` : '';
+  if (msg.cost != null) line += `${line ? ' · ' : ''}≈ US$ ${Number(msg.cost).toFixed(4)}`;
+  if (!line) return;
+  el.textContent = line;
+  el.style.display = 'block';
 }
 
 async function send(raw) {
@@ -244,6 +387,7 @@ async function send(raw) {
         let msg; try { msg = JSON.parse(line); } catch { continue; }
         if (msg.t === 'text' && typeof msg.v === 'string') { acc += msg.v; bubble.status.textContent = ''; bubble.text.textContent = acc; }
         else if (msg.t === 'tool') { bubble.status.textContent = `🔧 consultando ${TOOL_LABELS[msg.name] || msg.name}…`; }
+        else if (msg.t === 'usage') { renderUsage(bubble.usage, msg); }
         else if (msg.t === 'error') { acc += (acc ? '\n\n' : '') + `⚠️ ${msg.v}`; bubble.text.textContent = acc; }
         scrollBottom();
       }

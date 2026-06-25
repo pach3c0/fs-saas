@@ -14,6 +14,8 @@ const agentConfigSchema = new mongoose.Schema({
   baseURL: { type: String },                  // só p/ openai-compatible (OpenRouter, DeepSeek...)
   apiKeyEnc: { type: String, required: true },// chave criptografada (AES-256-GCM)
   apiKeyLast4: { type: String },              // últimos 4 chars p/ exibição mascarada
+  priceInput: { type: Number },               // tarifa opcional US$/milhão de tokens (entrada)
+  priceOutput: { type: Number },              // tarifa opcional US$/milhão de tokens (saída)
   isActive: { type: Boolean, default: false, index: true }, // o ativo é o default do agente
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: false });

@@ -3,13 +3,16 @@
 // chaves são gerenciadas pelo superadmin no painel (model AgentConfig).
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const { streamText, stepCountIs } = require('ai');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
-const { buildModel, getModelFromEnv, describeEnv, AgentConfigError } = require('../services/aiProvider');
+const { describeEnv, AgentConfigError } = require('../services/aiProvider');
+const { resolveAgentModel, computeCost } = require('../services/agentModel');
 const { tools } = require('../services/agentTools');
 const AgentConfig = require('../models/AgentConfig');
-const { encrypt, decrypt } = require('../utils/secretBox');
+const AgentDigest = require('../models/AgentDigest');
+const AgentSettings = require('../models/AgentSettings');
+const agentDigest = require('../utils/agentDigest');
+const { encrypt } = require('../utils/secretBox');
 
 const PROVIDERS = ['anthropic', 'openai', 'google', 'openai-compatible'];
 
@@ -31,28 +34,19 @@ COMO RESPONDER:
 - Responda sempre em português do Brasil. Datas em formato legível (pt-BR).
 - Se uma ferramenta retornar { error }, explique o que faltou (ex.: org não encontrada) em vez de inventar.`;
 
-// ── Resolução do modelo: config do banco (por id ou ativa) → fallback env ────
-async function resolveAgentModel(providerId) {
-  let cfg = null;
-  if (providerId && mongoose.Types.ObjectId.isValid(providerId)) {
-    cfg = await AgentConfig.findById(providerId).lean();
-  }
-  if (!cfg) cfg = await AgentConfig.findOne({ isActive: true }).lean();
-  if (cfg) {
-    const apiKey = decrypt(cfg.apiKeyEnc);
-    return {
-      model: buildModel({ provider: cfg.provider, model: cfg.model, apiKey, baseURL: cfg.baseURL }),
-      descriptor: { provider: cfg.provider, model: cfg.model, label: cfg.label, id: String(cfg._id) }
-    };
-  }
-  return { model: getModelFromEnv(), descriptor: describeEnv() };
-}
-
 // View pública (mascarada) de uma config — nunca expõe a chave.
 const maskCfg = (c) => ({
   id: String(c._id), provider: c.provider, label: c.label, model: c.model,
-  baseURL: c.baseURL || null, apiKeyLast4: c.apiKeyLast4 || null, isActive: !!c.isActive
+  baseURL: c.baseURL || null, apiKeyLast4: c.apiKeyLast4 || null,
+  priceInput: c.priceInput ?? null, priceOutput: c.priceOutput ?? null, isActive: !!c.isActive
 });
+
+// Normaliza uma tarifa opcional (US$/milhão de tokens) vinda do form.
+const parsePrice = (v) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+};
 
 function sanitizeMessages(raw) {
   if (!Array.isArray(raw)) return [];
@@ -80,7 +74,7 @@ router.get('/admin/saas/agent/providers', authenticateToken, requireSuperadmin, 
 // Cadastra uma IA.
 router.post('/admin/saas/agent/providers', authenticateToken, requireSuperadmin, async (req, res) => {
   try {
-    const { provider, label, model, baseURL, apiKey, isActive } = req.body || {};
+    const { provider, label, model, baseURL, apiKey, isActive, priceInput, priceOutput } = req.body || {};
     if (!PROVIDERS.includes(provider)) return res.status(400).json({ success: false, error: 'Provider inválido.' });
     if (!label || !model || !apiKey) return res.status(400).json({ success: false, error: 'Preencha rótulo, modelo e chave.' });
     if (provider === 'openai-compatible' && !baseURL) return res.status(400).json({ success: false, error: 'baseURL é obrigatório para openai-compatible.' });
@@ -92,7 +86,9 @@ router.post('/admin/saas/agent/providers', authenticateToken, requireSuperadmin,
     const doc = await AgentConfig.create({
       provider, label: String(label).slice(0, 60), model: String(model).slice(0, 120),
       baseURL: provider === 'openai-compatible' ? String(baseURL).slice(0, 300) : undefined,
-      apiKeyEnc: encrypt(apiKey), apiKeyLast4: String(apiKey).slice(-4), isActive: makeActive
+      apiKeyEnc: encrypt(apiKey), apiKeyLast4: String(apiKey).slice(-4),
+      priceInput: parsePrice(priceInput), priceOutput: parsePrice(priceOutput),
+      isActive: makeActive
     });
     res.json({ success: true, provider: maskCfg(doc) });
   } catch (e) {
@@ -106,12 +102,14 @@ router.put('/admin/saas/agent/providers/:id', authenticateToken, requireSuperadm
   try {
     const cfg = await AgentConfig.findById(req.params.id);
     if (!cfg) return res.status(404).json({ success: false, error: 'IA não encontrada.' });
-    const { provider, label, model, baseURL, apiKey } = req.body || {};
+    const { provider, label, model, baseURL, apiKey, priceInput, priceOutput } = req.body || {};
     if (provider && PROVIDERS.includes(provider)) cfg.provider = provider;
     if (label) cfg.label = String(label).slice(0, 60);
     if (model) cfg.model = String(model).slice(0, 120);
     if (typeof baseURL === 'string') cfg.baseURL = baseURL.slice(0, 300) || undefined;
     if (apiKey) { cfg.apiKeyEnc = encrypt(apiKey); cfg.apiKeyLast4 = String(apiKey).slice(-4); }
+    if (priceInput !== undefined) cfg.priceInput = parsePrice(priceInput);
+    if (priceOutput !== undefined) cfg.priceOutput = parsePrice(priceOutput);
     if (cfg.provider === 'openai-compatible' && !cfg.baseURL) return res.status(400).json({ success: false, error: 'baseURL é obrigatório para openai-compatible.' });
     await cfg.save();
     res.json({ success: true, provider: maskCfg(cfg) });
@@ -209,11 +207,92 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
         res.write(JSON.stringify({ t: 'error', v: 'Falha ao consultar a IA (verifique a chave/modelo).' }) + '\n');
       }
     }
+
+    // Uso/custo da conversa (somatório de todos os steps). Custo só se a IA tiver tarifa cadastrada.
+    try {
+      const usage = await result.totalUsage;
+      if (usage) {
+        const cost = computeCost(usage, resolved.priceInput, resolved.priceOutput);
+        res.write(JSON.stringify({
+          t: 'usage',
+          input: usage.inputTokens ?? null,
+          output: usage.outputTokens ?? null,
+          total: usage.totalTokens ?? null,
+          cost
+        }) + '\n');
+      }
+    } catch (_) { /* usage é best-effort, não quebra o chat */ }
+
     res.end();
   } catch (e) {
     req.logger.error('Agente IA: falha', { error: e.message });
     if (!res.headersSent) res.status(500).json({ success: false, error: 'Erro interno do agente.' });
     else { res.write(JSON.stringify({ t: 'error', v: 'Erro interno do agente.' }) + '\n'); res.end(); }
+  }
+});
+
+// ============================================================================
+// DIGEST PROATIVO + CONFIGURAÇÕES
+// ============================================================================
+
+const settingsView = (s) => ({
+  digestEnabled: s.digestEnabled, digestFrequency: s.digestFrequency,
+  digestEmail: s.digestEmail, lastDigestAt: s.lastDigestAt
+});
+
+// Lê as configurações do digest (singleton).
+router.get('/admin/saas/agent/settings', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const s = await AgentSettings.getSingleton();
+    res.json({ success: true, settings: settingsView(s) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Atualiza as configurações do digest.
+router.put('/admin/saas/agent/settings', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const s = await AgentSettings.getSingleton();
+    const { digestEnabled, digestFrequency, digestEmail } = req.body || {};
+    if (typeof digestEnabled === 'boolean') s.digestEnabled = digestEnabled;
+    if (digestFrequency === 'daily' || digestFrequency === 'weekly') s.digestFrequency = digestFrequency;
+    if (typeof digestEmail === 'boolean') s.digestEmail = digestEmail;
+    s.updatedAt = new Date();
+    await s.save();
+    res.json({ success: true, settings: settingsView(s) });
+  } catch (e) {
+    req.logger.error('Agente: erro ao salvar settings', { error: e.message });
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+const digestView = (d) => ({
+  id: String(d._id), period: d.period, trigger: d.trigger,
+  text: d.text, emailedTo: d.emailedTo, createdAt: d.createdAt
+});
+
+// Lista os resumos gerados (recentes primeiro).
+router.get('/admin/saas/agent/digests', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const digests = await AgentDigest.find().sort({ createdAt: -1 }).limit(limit).lean();
+    res.json({ success: true, digests: digests.map(digestView) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Gera um resumo agora (sob demanda). sendMail no body decide o e-mail (default: não envia).
+router.post('/admin/saas/agent/digest/run', authenticateToken, requireSuperadmin, async (req, res) => {
+  try {
+    const sendMail = req.body?.sendMail === true;
+    const doc = await agentDigest.generate('manual', { sendMail });
+    res.json({ success: true, digest: digestView(doc) });
+  } catch (e) {
+    if (e.name === 'AgentConfigError') return res.status(503).json({ success: false, error: e.message });
+    req.logger.error('Agente: erro ao gerar digest', { error: e.message });
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
