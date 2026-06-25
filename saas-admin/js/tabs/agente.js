@@ -242,7 +242,7 @@ async function send(raw) {
         buf = buf.slice(nl + 1);
         if (!line) continue;
         let msg; try { msg = JSON.parse(line); } catch { continue; }
-        if (msg.t === 'text') { acc += msg.v; bubble.status.textContent = ''; bubble.text.textContent = acc; }
+        if (msg.t === 'text' && typeof msg.v === 'string') { acc += msg.v; bubble.status.textContent = ''; bubble.text.textContent = acc; }
         else if (msg.t === 'tool') { bubble.status.textContent = `🔧 consultando ${TOOL_LABELS[msg.name] || msg.name}…`; }
         else if (msg.t === 'error') { acc += (acc ? '\n\n' : '') + `⚠️ ${msg.v}`; bubble.text.textContent = acc; }
         scrollBottom();

@@ -199,7 +199,9 @@ router.post('/admin/saas/agent/chat', authenticateToken, requireSuperadmin, asyn
 
     for await (const part of result.fullStream) {
       if (part.type === 'text-delta') {
-        res.write(JSON.stringify({ t: 'text', v: part.delta }) + '\n');
+        // fullStream (TextStreamPart) usa .text; .delta é fallback de versão
+        const v = part.text ?? part.delta;
+        if (typeof v === 'string' && v) res.write(JSON.stringify({ t: 'text', v }) + '\n');
       } else if (part.type === 'tool-call') {
         res.write(JSON.stringify({ t: 'tool', name: part.toolName }) + '\n');
       } else if (part.type === 'error') {
