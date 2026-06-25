@@ -1,17 +1,18 @@
 
 
 
-## [x] Card Selecao em grupo
-o carde estava com o nome de multi-selecao(antigo) favor corrigir para "Selecao em grupo" (Feito)
 
 
-## [x] Modal Upload
-    O modal de upload hoje, mostra o upload de fotos originais e editais empilhadas, o que dificulta a visualização de qual foto é original e qual é editada, sugestao é ter um modal de upload e um modal de editadas separados. (Feito: criado painéis e filas separadas para Uploads Originais e Uploads Editadas, com suporte a empilhamento automático na tela).
+Revisar Online ou com o Claude
 
-## [x] Default de Pacote Sessao
-    1 - Deixar como default 1 foto e valor 5,00 (Feito)
-    2 -Deixar um incone de "Ajuste" ao lado do titulo "SELEÇÃO" direcionando o usuario para o ajuste padrao do sistema em configuracoes/sessoes (Feito)
+# Modal de Cadastro de Leads
+    quando abre o modal de criar novos leads e se o mapa estiver aparecendo na tela o nodal é criado atras do mapa, para resolver tenho que rolar a pagina tirar o mapa da minha visao e tentar abreir o modal novamente 
 
+    nao consegui fazer o teste porque estou em local host
+
+
+
+FAzer Solicitcao para o cluade
 ## CDN
     Fazer configuracao de CDN para a plataforma
 
@@ -20,29 +21,25 @@ o carde estava com o nome de multi-selecao(antigo) favor corrigir para "Selecao 
     Mesmo sem sessao o sistema mostre que tem megas em armazenamento e nao deveria mostrar
 
 
-1. Resumo proativo (digest) — minha recomendação. Hoje ele só responde quando você pergunta. O próximo passo óbvio é ele te mandar sozinho um briefing diário/semanal ("3 orgs entraram em risco, 5 erros novos, 2 e-mails falharam, 1 cadastro novo"). A infra de agendamento já existe (schedulerRunner), então é encaixe — entrega valor sem você abrir o painel.
+## Agente Super admin 
 
-2. Markdown no chat (ganho rápido). Hoje a resposta é texto puro. Renderizar negrito, listas e tabelas deixa as análises bem mais legíveis — é pouca coisa de front.
+    O agente esta fazendio a leitura de quantidade de orgs, o resultado que ele esta entregando nao esta sem o mesmo que esta no dashboard
 
-3. Mais ferramentas pro agente. Ampliar o que ele enxerga: vendas/cupons, domínios (pendente/verificado/SSL), MRR/billing, quem ligou GA/Pixel, depoimentos pendentes — seguindo a tabela de telemetria que já mapeamos (skills/14_0). Quanto mais fonte, mais perguntas ele responde.
+     “O assistente consultou a fonte interna de métricas de negócio/assinaturas (getBusinessMetrics), que retornou distribuição por plano com 2 free e 3 pro. Precisamos validar de onde essa métrica lê o plano atribuído e por que diverge da tela do painel que mostra 1 free e 3 pro.”
+Se quiser, eu posso te ajudar a montar uma mensagem objetiva para o engenheiro com o contexto dessa divergência.
 
-4. Ações com confirmação (V2 maior). Hoje ele é só-leitura por decisão. Dá pra deixá-lo executar coisas de superadmin (aprovar org, mudar plano, reenviar e-mail) — cada escrita pedindo confirmação explícita, igual o padrão do Rhyno. É o salto de "analista" pra "operador", mas com mais superfície de risco.
+# Limites de Planos Personalizados por Org
 
-5. Custo/uso por conversa. Como você é sensível a custo, dá pra mostrar tokens/custo de cada resposta (o AI SDK já devolve isso) — ajuda a escolher entre Opus/ChatGPT/Gemini pelo bolso.
+    Necessito que cada org, tenha seus limites de sessões, fotos e armazenamento, e que estes limites possam ser alterados pelo super admin
 
-Eu começaria pelo digest (1) + markdown (2) juntos — é o melhor retorno por esforço. Qual te chama mais? Se quiser, já planejo o que você apontar.
+## Limpeza da Configuração "Padrão de entrega da galeria" (Aba Entrega)
+    - O modo "Galeria" foi refatorado para uma "Página Única" onde a ação de "Entregar" fica embutida dentro de "Compartilhar" (Passo 2). 
+    - O Passo 6 ("Entregar") nem é mais carregado pelo Stepper (`stepper.js`) para galerias. 
+    - Devido a isso, as opções de "Sempre perguntar", "Compartilhar prévia" e "Entregar direto" não têm mais efeito.
+    - O que deve ser feito: 
+      1. Apagar a função `renderEntrega` e remover a aba "Entrega" inteira do arquivo `admin/js/tabs/configuracoes.js`.
+      2. (Opcional/Limpeza profunda) Remover o código legado de `galleryDeliveryMode` que restou no backend (`src/routes/sessions.js`) e referências mortas na interface do fotógrafo (`stepper.js`, `wizard/steps/6-deliver.js`).
 
-
-
-
-
-
-
-
-
-
-## Resumo de como funciona o modo "Selecao"
-
-1 - Upload de Fotos
-    é permitido fazer o upload de fotos originais se ter o vinculo com o Cliente
-    é permitido fazer o upload de fotos já editadas 
+# Storage Adicional
+    é necessario verificar como esta a questao de implementar o storage adicional, e excluir oque tinhamos pensado em deixar o cliente usar o driver dele
+    

@@ -15,15 +15,20 @@ const MODES = [
 ];
 
 let _state = {}; // key -> { key, imageUrl, opacity, active }
+let _platformConfig = {}; // global platform configs
 
 async function loadSessionBackgrounds() {
   const el = document.getElementById('tabSessionBackgrounds');
   if (!el) return;
   el.innerHTML = '<div class="loading">Carregando fundos...</div>';
   try {
-    const data = await apiRequest('GET', '/api/admin/session-card-backgrounds');
+    const [data, configData] = await Promise.all([
+      apiRequest('GET', '/api/admin/session-card-backgrounds'),
+      apiRequest('GET', '/api/admin/saas/platform-config')
+    ]);
     _state = {};
     (data.backgrounds || []).forEach(b => { _state[b.key] = b; });
+    _platformConfig = configData.config || {};
     renderSessionBackgrounds(el);
   } catch (err) {
     el.innerHTML = `<div class="loading" style="color:#f87171">Erro: ${err.message}</div>`;
@@ -31,19 +36,44 @@ async function loadSessionBackgrounds() {
 }
 
 function renderSessionBackgrounds(container) {
+  const wmImageUrl = _platformConfig.watermarkPreviewImage || '';
+  
   container.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+    <div style="display:flex; flex-direction:column; gap:2.5rem;">
+      <!-- Configuração de Previews da Marca d'água -->
+      <div>
+        <h2 style="font-size:1.2rem; font-weight:700; color:#f1f5f9; margin:0;">Preview Global da Marca D'água</h2>
+        <p style="font-size:0.78rem; color:#64748b; margin:0.25rem 0 1rem; max-width:680px;">
+          Imagem usada como plano de fundo para o fotógrafo configurar o tamanho e a posição de sua marca d'água 
+          (simulando uma foto real em proporções 16:9 e 9:16).
+        </p>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1rem; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
+          <div style="width:160px; height:90px; background:#0f172a; border:1px solid #334155; border-radius:0.375rem; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+            ${wmImageUrl ? `<img src="${esc(wmImageUrl)}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#64748b; font-size:0.75rem;">Sem imagem</span>`}
+          </div>
+          <div style="flex:1;">
+            <label style="background:#1e3a5f; color:#93c5fd; border:1px solid #2563eb; border-radius:0.375rem; padding:0.4rem 0.9rem; font-size:0.78rem; cursor:pointer; font-weight:600; display:inline-block; margin-bottom:0.5rem;">
+              ${wmImageUrl ? 'Trocar imagem' : 'Upload imagem'}
+              <input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="window.uploadPlatformWatermarkBg(this)">
+            </label>
+            <p style="font-size:0.68rem; color:#475569; margin:0;">Recomendado: Imagem em alta qualidade (paisagem 16:9), será cortada no admin do fotógrafo para simular fotos em retrato.</p>
+            <span id="wmBgStatus" style="font-size:0.72rem; color:#34d399; margin-left:0.5rem;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuração de Fundo dos Cards de Sessão -->
       <div>
         <h2 style="font-size:1.2rem; font-weight:700; color:#f1f5f9; margin:0;">Fundo dos Cards de Sessão</h2>
-        <p style="font-size:0.78rem; color:#64748b; margin:0.25rem 0 0; max-width:680px;">
+        <p style="font-size:0.78rem; color:#64748b; margin:0.25rem 0 1rem; max-width:680px;">
           Imagem de fundo dos cards no <strong style="color:#cbd5e1;">catálogo de sessões</strong> de todos os fotógrafos,
           por <strong style="color:#cbd5e1;">modo de sessão</strong>. Quando o fotógrafo cria uma sessão de
           <em>Seleção</em>, <em>Galeria</em> ou <em>Multi-Seleção</em>, o card correspondente usa o fundo que você
           definir aqui. Sem imagem, o card mantém o tint sólido padrão. Reflete para todos assim que você salva.
         </p>
-      </div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem;">
-        ${MODES.map(renderModeEditor).join('')}
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem;">
+          ${MODES.map(renderModeEditor).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -189,6 +219,33 @@ window.uploadSessionBgImage = async (input, key) => {
     await loadSessionBackgrounds();
   } catch (err) {
     if (status) status.textContent = '';
+    saasToast('Erro no upload: ' + err.message, 'error');
+  } finally {
+    input.value = '';
+  }
+};
+
+window.uploadPlatformWatermarkBg = async (input) => {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const status = document.getElementById('wmBgStatus');
+  if (status) status.textContent = 'Enviando...';
+  try {
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+      body: fd
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+
+    await apiRequest('PATCH', `/api/admin/saas/platform-config`, { watermarkPreviewImage: json.url });
+    saasToast('Preview da marca d\'água atualizado!', 'success');
+    await loadSessionBackgrounds();
+  } catch (err) {
+    if (status) status.textContent = 'Erro ao enviar.';
     saasToast('Erro no upload: ' + err.message, 'error');
   } finally {
     input.value = '';

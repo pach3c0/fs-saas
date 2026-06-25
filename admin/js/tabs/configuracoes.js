@@ -294,7 +294,7 @@ function renderSessoes() {
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;';
 
-  grid.appendChild(numberField('Pacote padrão (fotos)', d.packageLimit ?? 30, 1, 1000,
+  grid.appendChild(numberField('Pacote padrão (fotos)', d.packageLimit ?? 0, 0, 1000,
     v => scheduleSave({ sessionDefaults: { packageLimit: v } }, status)));
   grid.appendChild(numberField('Preço por foto extra (R$)', d.extraPhotoPrice ?? 25, 0, 10000,
     v => scheduleSave({ sessionDefaults: { extraPhotoPrice: v } }, status), true));

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
+const PlatformConfig = require('../models/PlatformConfig');
 const { trackEvent } = require('../utils/activityTracker');
 
 // Sanitiza um mapa de desconto por dia { '7': 10, '3': 15 } — chaves numéricas, valores 0–100.
@@ -416,6 +417,17 @@ router.put('/organization/preferences', authenticateToken, async (req, res) => {
     res.json({ success: true, preferences: org.preferences || {} });
   } catch (error) {
     req.logger.error('Erro ao salvar preferences', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/platform/config - Dados globais da plataforma (para preencher previews, etc)
+router.get('/platform/config', authenticateToken, async (req, res) => {
+  try {
+    const config = await PlatformConfig.getSingleton();
+    res.json({ success: true, watermarkPreviewImage: config.watermarkPreviewImage });
+  } catch (error) {
+    req.logger.error('Erro ao buscar config da plataforma', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

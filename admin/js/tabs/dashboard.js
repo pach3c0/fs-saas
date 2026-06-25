@@ -263,7 +263,11 @@ async function loadDashboardData(container) {
                     </div>
                     <div style="flex:1;">
                         <div style="font-weight:600; color:var(--text-primary);">${session.name}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary);">${formatDate(session.date)} • ${({ aniversario: 'Aniversário', casamento: 'Casamento', formatura: 'Formatura', corporativo: 'Corporativo', show: 'Show', ensaio: 'Ensaio', gestante: 'Gestante', newborn: 'Newborn', debutante: 'Debutante', batizado: 'Batizado', outro: 'Outro' }[session.eventType]) || ({ selection: 'Seleção', multi_selection: 'Seleção em Grupo', gallery: 'Galeria', multi_gallery: 'Galeria em Grupo', instant: 'Entrega Imediata', multi_instant: 'Imediata em Grupo' }[session.mode]) || 'Sessão'}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                            <span>${formatDate(session.date)}</span>
+                            <span style="background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:var(--r-chip); font-weight:500;">${{ selection: 'Seleção', multi_selection: 'Seleção em Grupo', gallery: 'Galeria', multi_gallery: 'Galeria em Grupo', instant: 'Entrega Imediata', multi_instant: 'Imediata em Grupo' }[session.mode] || 'Sessão'}</span>
+                            ${session.eventType && session.eventType !== 'outro' ? `<span style="background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:var(--r-chip); font-weight:500;">${{ aniversario: 'Aniversário', casamento: 'Casamento', formatura: 'Formatura', corporativo: 'Corporativo', show: 'Show', ensaio: 'Ensaio', gestante: 'Gestante', newborn: 'Newborn', debutante: 'Debutante', batizado: 'Batizado' }[session.eventType] || session.eventType}</span>` : ''}
+                        </div>
                     </div>
                     <div style="padding:0.25rem 0.625rem; border-radius:var(--r-chip); font-size:0.75rem; font-weight:600; background:${getStatusColor(session.selectionStatus).bg}; color:${getStatusColor(session.selectionStatus).text};">
                         ${getStatusLabel(session.selectionStatus)}

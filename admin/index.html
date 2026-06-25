@@ -1192,6 +1192,20 @@
                             <!-- Gerado pelo JS -->
                         </div>
                     </div>
+
+                    <button class="header-expand-btn nav-item" onclick="openGestao('/crm')" title="CRM">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                        </span>
+                        <span class="header-expand-label">CRM</span>
+                    </button>
+
+                    <button class="header-expand-btn nav-item" onclick="openGestao('/goals')" title="Metas">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </span>
+                        <span class="header-expand-label">Metas</span>
+                    </button>
                 </nav>
 
                 <!-- Busca Central -->
@@ -1202,6 +1216,18 @@
 
                 <!-- Bolinhas da Direita (Ajuda, Configurações, Notificações) -->
                 <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <button class="header-expand-btn nav-item" data-tab="marca-dagua" title="Marca D'água">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+                        </span>
+                        <span class="header-expand-label">Marca D'água</span>
+                    </button>
+                    <button class="header-expand-btn nav-item" onclick="openGestao('/tasks')" title="Tarefas">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
+                        </span>
+                        <span class="header-expand-label">Tarefas</span>
+                    </button>
                     <button class="header-expand-btn nav-item" data-tab="ajuda" title="Ajuda">
                         <span class="header-expand-icon">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

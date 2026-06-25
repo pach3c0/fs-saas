@@ -16,6 +16,7 @@ const Ticket = require('../models/Ticket');
 const ActivityEvent = require('../models/ActivityEvent');
 const path = require('path');
 const fs = require('fs');
+const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
 const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
 
@@ -455,6 +456,34 @@ router.get('/admin/saas/security-logs', authenticateToken, requireSuperadmin, as
         res.json({ logs });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================================
+// PLATFORM CONFIGURATION (Superadmin)
+// ============================================================================
+
+router.get('/admin/saas/platform-config', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const config = await PlatformConfig.getSingleton();
+        res.json({ success: true, config });
+    } catch (error) {
+        req.logger.error('Erro ao buscar config da plataforma', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.patch('/admin/saas/platform-config', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const config = await PlatformConfig.getSingleton();
+        if (req.body.watermarkPreviewImage !== undefined) {
+            config.watermarkPreviewImage = req.body.watermarkPreviewImage;
+        }
+        await config.save();
+        res.json({ success: true, config });
+    } catch (error) {
+        req.logger.error('Erro ao atualizar config da plataforma', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
