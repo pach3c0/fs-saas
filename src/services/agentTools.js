@@ -14,12 +14,14 @@ const mongoose = require('mongoose');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
 const Session = require('../models/Session');
+const Subscription = require('../models/Subscription');
 const PlatformLog = require('../models/PlatformLog');
 const EmailLog = require('../models/EmailLog');
 const AuditLog = require('../models/AuditLog');
 const ActivityEvent = require('../models/ActivityEvent');
 const Ticket = require('../models/Ticket');
 const SchedulerRun = require('../models/SchedulerRun');
+const PLANS = require('../models/plans');
 
 const DAY = 24 * 60 * 60 * 1000;
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -283,6 +285,157 @@ const tools = {
           name: s.name, lastStatus: s.lastStatus, lastStartAt: s.lastStartAt, lastEndAt: s.lastEndAt,
           lastDurationMs: s.lastDurationMs, lastError: s.lastError, runCount: s.runCount
         }))
+      };
+    }
+  }),
+
+  // ── Métricas de negócio / assinaturas ─────────────────────────────────────
+  getBusinessMetrics: tool({
+    description: 'Métricas de negócio/assinaturas: distribuição por plano, status (active/trialing/past_due/canceled), MRR POTENCIAL (soma do preço dos planos pagos ativos) e próximos vencimentos. ATENÇÃO: V1 NÃO cobra de verdade — o MRR é o teto teórico baseado no plano atribuído, não receita real. Use para "MRR", "quantos no plano pro", "quem está past_due/em trial".',
+    inputSchema: z.object({}),
+    execute: async () => {
+      const [planAgg, statusAgg, subs] = await Promise.all([
+        Subscription.aggregate([{ $group: { _id: '$plan', count: { $sum: 1 } } }]),
+        Subscription.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+        Subscription.find({ status: { $in: ['active', 'trialing', 'past_due'] } })
+          .populate('organizationId', 'name slug deletedAt').lean()
+      ]);
+      const priceBRL = (p) => (PLANS[p]?.price || 0) / 100; // plans.js guarda centavos
+      const byPlan = {}; planAgg.forEach((g) => { byPlan[g._id || 'sem_plano'] = g.count; });
+      const byStatus = {}; statusAgg.forEach((g) => { byStatus[g._id || 'sem_status'] = g.count; });
+
+      let mrrPotencial = 0; const cancelando = []; const vencimentos = [];
+      subs.forEach((s) => {
+        if (s.organizationId?.deletedAt) return; // ignora orgs na lixeira
+        const org = s.organizationId ? { name: s.organizationId.name, slug: s.organizationId.slug } : null;
+        if (s.status === 'active' && s.plan !== 'free') mrrPotencial += priceBRL(s.plan);
+        if (s.cancelAtPeriodEnd) cancelando.push({ org, plan: s.plan, currentPeriodEnd: s.currentPeriodEnd });
+        if (s.currentPeriodEnd) vencimentos.push({ org, plan: s.plan, status: s.status, currentPeriodEnd: s.currentPeriodEnd });
+      });
+      vencimentos.sort((a, b) => new Date(a.currentPeriodEnd) - new Date(b.currentPeriodEnd));
+      return {
+        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas).',
+        byPlan, byStatus,
+        mrrPotencialBRL: Math.round(mrrPotencial * 100) / 100,
+        precosPlanoBRL: { basic: priceBRL('basic'), pro: priceBRL('pro') },
+        cancelandoNoFimDoPeriodo: cancelando.slice(0, 25),
+        proximosVencimentos: vencimentos.slice(0, 15)
+      };
+    }
+  }),
+
+  // ── Domínios personalizados ───────────────────────────────────────────────
+  getDomains: tool({
+    description: 'Domínios personalizados das orgs: pendente vs verificado e data de verificação. Use para "domínios pendentes", "quem ainda não verificou o domínio", "domínios ativos".',
+    inputSchema: z.object({ status: z.enum(['pending', 'verified']).optional() }),
+    execute: async ({ status }) => {
+      const filtro = { customDomain: { $nin: [null, ''] }, deletedAt: null };
+      if (status) filtro.domainStatus = status;
+      const orgs = await Organization.find(filtro)
+        .select('name slug customDomain domainStatus domainVerifiedAt')
+        .sort({ domainStatus: 1, name: 1 }).lean();
+      const domains = orgs.map((o) => ({
+        org: { name: o.name, slug: o.slug }, domain: o.customDomain,
+        status: o.domainStatus, verifiedAt: o.domainVerifiedAt || null
+      }));
+      return {
+        counters: {
+          total: domains.length,
+          pendentes: domains.filter((d) => d.status === 'pending').length,
+          verificados: domains.filter((d) => d.status === 'verified').length
+        },
+        domains
+      };
+    }
+  }),
+
+  // ── Adoção de integrações (GA / Meta Pixel) ───────────────────────────────
+  getIntegrationsAdoption: tool({
+    description: 'Adoção de integrações de marketing/analytics: quais orgs ligaram Google Analytics e/ou Meta Pixel (com o ID configurado). Use para "quem ativou GA/Pixel", "quantas orgs usam analytics".',
+    inputSchema: z.object({}),
+    execute: async () => {
+      const [orgs, totalOrgs] = await Promise.all([
+        Organization.find({
+          deletedAt: null,
+          $or: [{ 'integrations.googleAnalytics.enabled': true }, { 'integrations.metaPixel.enabled': true }]
+        }).select('name slug integrations.googleAnalytics integrations.metaPixel.enabled integrations.metaPixel.pixelId').lean(),
+        Organization.countDocuments({ deletedAt: null })
+      ]);
+      const ga = []; const pixel = [];
+      orgs.forEach((o) => {
+        const org = { name: o.name, slug: o.slug };
+        if (o.integrations?.googleAnalytics?.enabled) ga.push({ org, measurementId: o.integrations.googleAnalytics.measurementId || null });
+        if (o.integrations?.metaPixel?.enabled) pixel.push({ org, pixelId: o.integrations.metaPixel.pixelId || null }); // nunca expõe accessToken
+      });
+      return {
+        totalOrgs,
+        googleAnalytics: { count: ga.length, orgs: ga },
+        metaPixel: { count: pixel.length, orgs: pixel }
+      };
+    }
+  }),
+
+  // ── Depoimentos pendentes de aprovação ────────────────────────────────────
+  getPendingTestimonials: tool({
+    description: 'Depoimentos enviados por clientes aguardando o fotógrafo aprovar no site. Use para "depoimentos pendentes", "quem tem depoimento para moderar".',
+    inputSchema: z.object({ org: z.string().optional().describe('limitar a uma org (slug, id ou nome)') }),
+    execute: async ({ org }) => {
+      const filtro = { deletedAt: null, 'siteContent.pendingDepoimentos.0': { $exists: true } };
+      if (org) {
+        const found = await resolveOrg(org);
+        if (!found) return { error: `Org não encontrada: "${org}"` };
+        filtro._id = found._id;
+      }
+      const orgs = await Organization.find(filtro).select('name slug siteContent.pendingDepoimentos').lean();
+      let totalPendentes = 0;
+      const lista = orgs.map((o) => {
+        const pend = o.siteContent?.pendingDepoimentos || [];
+        totalPendentes += pend.length;
+        return {
+          org: { name: o.name, slug: o.slug }, pendentes: pend.length,
+          amostra: pend.slice(0, 5).map((p) => ({ name: p.name, rating: p.rating, submittedAt: p.submittedAt, text: trunc(p.text, 160) }))
+        };
+      }).sort((a, b) => b.pendentes - a.pendentes);
+      return { totalPendentes, orgs: lista };
+    }
+  }),
+
+  // ── Motor de vendas dos fotógrafos (cupons + potencial de foto extra) ──────
+  getSalesOverview: tool({
+    description: 'Motor de vendas dos fotógrafos (venda de FOTO EXTRA ao cliente final): cupons emitidos/resgatados pela automação de escassez/reativação e pedidos de extra pendentes. NÃO é receita da plataforma — é a venda do fotógrafo ao cliente dele. Use para "cupons resgatados", "taxa de resgate", "vendas da org X".',
+    inputSchema: z.object({
+      org: z.string().optional().describe('limitar a uma org (slug, id ou nome)'),
+      days: z.number().int().min(1).max(365).optional().describe('janela dos cupons recentes (default 90)')
+    }),
+    execute: async ({ org, days = 90 }) => {
+      const match = {};
+      if (org) {
+        const found = await resolveOrg(org);
+        if (!found) return { error: `Org não encontrada: "${org}"` };
+        match.organizationId = found._id;
+      }
+      const desde = since(days * 24);
+      const [comTriggers, pedidosPendentes] = await Promise.all([
+        Session.find({ ...match, 'salesAutomation.sentTriggers.0': { $exists: true } })
+          .select('organizationId salesAutomation extraRequest').populate('organizationId', 'name slug').lean(),
+        Session.countDocuments({ ...match, 'extraRequest.status': 'pending' })
+      ]);
+      let emitidos = 0; let resgatados = 0; const recentes = [];
+      comTriggers.forEach((s) => {
+        const org2 = s.organizationId ? { name: s.organizationId.name, slug: s.organizationId.slug } : null;
+        (s.salesAutomation?.sentTriggers || []).forEach((t) => {
+          if (!t.couponCode) return;
+          emitidos++;
+          const usado = !!t.redeemedAt || !!(s.extraRequest && s.extraRequest.paid);
+          if (usado) resgatados++;
+          if (t.sentAt && new Date(t.sentAt) >= desde) recentes.push({ code: t.couponCode, trigger: t.trigger, sentAt: t.sentAt, redeemed: usado, org: org2 });
+        });
+      });
+      recentes.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+      return {
+        periodoDias: days,
+        cupons: { emitidos, resgatados, taxaResgatePct: emitidos ? Math.round((resgatados / emitidos) * 1000) / 10 : 0, recentes: recentes.slice(0, 30) },
+        pedidosExtraPendentes: pedidosPendentes
       };
     }
   })

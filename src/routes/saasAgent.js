@@ -26,12 +26,19 @@ DADOS DISPONÍVEIS (via ferramentas):
 - listErrors: erros/avisos (backend + frontend). listEmails: envios de e-mail (falhas primeiro).
 - findOrgs: localizar uma org. getOrgDiagnostics: raio-x de uma org. getOrgJourney: linha do tempo do fotógrafo.
 - getAuditLog: ações do superadmin. getSystemStatus: Mongo, schedulers, processo.
+- getBusinessMetrics: planos, status de assinatura e MRR. ATENÇÃO: V1 não cobra de verdade — o MRR é POTENCIAL/teórico (preço do plano × assinaturas pagas ativas), não receita real; deixe isso claro ao responder.
+- getDomains: domínios personalizados (pendentes × verificados).
+- getIntegrationsAdoption: quem ligou Google Analytics / Meta Pixel.
+- getPendingTestimonials: depoimentos de clientes aguardando aprovação do fotógrafo.
+- getSalesOverview: motor de venda de FOTO EXTRA dos fotógrafos (cupons emitidos/resgatados, pedidos pendentes). NÃO é receita da plataforma — é a venda do fotógrafo ao cliente dele.
 
 COMO RESPONDER:
 - Use as ferramentas para buscar dados reais antes de responder — não invente números nem nomes.
 - Para localizar uma org pelo nome, use findOrgs primeiro e depois o slug nas demais ferramentas.
 - Cite números e nomes concretos (org, slug, idleDays, contadores). Seja direto e objetivo.
+- Formate a resposta em Markdown quando ajudar a leitura: **negrito** para destaques, listas e TABELAS para comparações/rankings.
 - Responda sempre em português do Brasil. Datas em formato legível (pt-BR).
+- Não confunda MRR (potencial, da plataforma) com o motor de vendas (foto extra, do fotógrafo). São coisas diferentes.
 - Se uma ferramenta retornar { error }, explique o que faltou (ex.: org não encontrada) em vez de inventar.`;
 
 // View pública (mascarada) de uma config — nunca expõe a chave.

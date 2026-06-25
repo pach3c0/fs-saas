@@ -2,14 +2,18 @@
 // Chat: POST /api/admin/saas/agent/chat (stream NDJSON).
 // IAs:  CRUD em /api/admin/saas/agent/providers (chaves criptografadas no back).
 import { apiRequest, getToken, esc, saasToast, saasConfirm } from '../core.js';
+import { renderMarkdown } from '../md.js';
 
 const TOOL_LABELS = {
   getPlatformOverview: 'visão geral da plataforma', listErrors: 'erros', listEmails: 'e-mails',
   findOrgs: 'organizações', getOrgDiagnostics: 'diagnóstico da org', getOrgJourney: 'jornada da org',
-  getAuditLog: 'auditoria', getSystemStatus: 'status do sistema'
+  getAuditLog: 'auditoria', getSystemStatus: 'status do sistema',
+  getBusinessMetrics: 'métricas de negócio', getDomains: 'domínios',
+  getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
+  getSalesOverview: 'motor de vendas'
 };
 const PROVIDER_LABELS = { anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', 'openai-compatible': 'OpenAI-compat' };
-const SUGGESTIONS = ['Quais orgs estão em risco e por quê?', 'Houve algum erro nas últimas 24h?', 'Resumo da semana da plataforma'];
+const SUGGESTIONS = ['Quais orgs estão em risco e por quê?', 'Houve algum erro nas últimas 24h?', 'Resumo de assinaturas e MRR', 'Domínios pendentes de verificação', 'Depoimentos pendentes para aprovar'];
 
 let conversation = [];
 let providers = [];
@@ -235,7 +239,7 @@ function drawResumos() {
         <span style="font-size:0.62rem; color:var(--text-secondary); border:1px solid var(--border); border-radius:999px; padding:0 0.4rem;">${TRIGGER_PT[d.trigger] || d.trigger}</span>
         ${d.emailedTo ? `<span style="font-size:0.62rem; color:var(--accent);">📧 ${esc(d.emailedTo)}</span>` : ''}
       </div>
-      <div style="font-size:0.8rem; color:var(--text-primary); white-space:pre-wrap; word-break:break-word; line-height:1.5;">${esc(d.text)}</div>
+      <div class="agente-md" style="font-size:0.8rem; color:var(--text-primary); word-break:break-word;">${renderMarkdown(d.text)}</div>
     </div>`).join('') : `<div style="font-size:0.78rem; color:var(--text-secondary);">Nenhum resumo gerado ainda. Use "Gerar agora" para criar o primeiro.</div>`;
 
   box.innerHTML = `
@@ -320,6 +324,7 @@ function appendBubble(role) {
   const status = document.createElement('div');
   status.style.cssText = 'font-size:0.72rem; color:var(--text-secondary); font-style:italic;';
   const text = document.createElement('div');
+  if (!isUser) text.className = 'agente-md'; // respostas do agente vêm em markdown
   const usage = document.createElement('div');
   usage.style.cssText = 'font-size:0.68rem; color:var(--text-secondary); margin-top:0.4rem; padding-top:0.3rem; border-top:1px dashed var(--border); display:none;';
   wrap.appendChild(status); wrap.appendChild(text); wrap.appendChild(usage);
@@ -385,10 +390,10 @@ async function send(raw) {
         buf = buf.slice(nl + 1);
         if (!line) continue;
         let msg; try { msg = JSON.parse(line); } catch { continue; }
-        if (msg.t === 'text' && typeof msg.v === 'string') { acc += msg.v; bubble.status.textContent = ''; bubble.text.textContent = acc; }
+        if (msg.t === 'text' && typeof msg.v === 'string') { acc += msg.v; bubble.status.textContent = ''; bubble.text.innerHTML = renderMarkdown(acc); }
         else if (msg.t === 'tool') { bubble.status.textContent = `🔧 consultando ${TOOL_LABELS[msg.name] || msg.name}…`; }
         else if (msg.t === 'usage') { renderUsage(bubble.usage, msg); }
-        else if (msg.t === 'error') { acc += (acc ? '\n\n' : '') + `⚠️ ${msg.v}`; bubble.text.textContent = acc; }
+        else if (msg.t === 'error') { acc += (acc ? '\n\n' : '') + `⚠️ ${msg.v}`; bubble.text.innerHTML = renderMarkdown(acc); }
         scrollBottom();
       }
     }
