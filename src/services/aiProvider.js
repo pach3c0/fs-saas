@@ -1,12 +1,6 @@
 // Camada provider-agnóstica do agente do SaaS Admin.
-// Permite trocar a IA (Anthropic / OpenAI / Google) por variável de ambiente,
-// sem reescrever o agente. Anthropic é o default.
-//
-// .env:
-//   SAAS_AGENT_PROVIDER = anthropic (default) | openai | google
-//   SAAS_AGENT_MODEL    = id do modelo (default só p/ anthropic: claude-opus-4-8)
-//   ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY
-//   (só a chave do provider ativo precisa existir)
+// A configuração ativa vem do banco (model AgentConfig, gerenciado no painel);
+// o .env é apenas fallback quando não há nenhuma config cadastrada.
 const { createAnthropic } = require('@ai-sdk/anthropic');
 const { createOpenAI } = require('@ai-sdk/openai');
 const { createGoogleGenerativeAI } = require('@ai-sdk/google');
@@ -19,42 +13,46 @@ class AgentConfigError extends Error {
   }
 }
 
-const DEFAULT_PROVIDER = 'anthropic';
 const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-4-8';
 
-// Devolve o modelo do AI SDK pronto para o streamText(), conforme o env.
-function getModel() {
-  const provider = (process.env.SAAS_AGENT_PROVIDER || DEFAULT_PROVIDER).toLowerCase();
-  const model = process.env.SAAS_AGENT_MODEL || null;
-
+// Constrói o modelo do AI SDK a partir de uma config já resolvida (chave em texto).
+function buildModel({ provider, model, apiKey, baseURL }) {
+  if (!apiKey) throw new AgentConfigError('Chave de API ausente para o provedor selecionado.');
   switch (provider) {
-    case 'anthropic': {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) throw new AgentConfigError('ANTHROPIC_API_KEY não configurada no .env');
+    case 'anthropic':
       return createAnthropic({ apiKey })(model || DEFAULT_ANTHROPIC_MODEL);
-    }
-    case 'openai': {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) throw new AgentConfigError('OPENAI_API_KEY não configurada no .env');
-      if (!model) throw new AgentConfigError('Defina SAAS_AGENT_MODEL para o provider openai (ex.: gpt-4.1)');
+    case 'openai':
       return createOpenAI({ apiKey })(model);
-    }
-    case 'google': {
-      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-      if (!apiKey) throw new AgentConfigError('GOOGLE_GENERATIVE_AI_API_KEY não configurada no .env');
-      if (!model) throw new AgentConfigError('Defina SAAS_AGENT_MODEL para o provider google (ex.: gemini-2.0-flash)');
+    case 'openai-compatible':
+      if (!baseURL) throw new AgentConfigError('baseURL é obrigatório para provider openai-compatible.');
+      return createOpenAI({ apiKey, baseURL })(model);
+    case 'google':
       return createGoogleGenerativeAI({ apiKey })(model);
-    }
     default:
-      throw new AgentConfigError(`SAAS_AGENT_PROVIDER inválido: "${provider}" (use anthropic | openai | google)`);
+      throw new AgentConfigError(`Provider inválido: "${provider}" (use anthropic | openai | google | openai-compatible)`);
   }
 }
 
-// Rótulo legível do provider/modelo ativo (logs e cabeçalho do chat).
-function describeProvider() {
-  const provider = (process.env.SAAS_AGENT_PROVIDER || DEFAULT_PROVIDER).toLowerCase();
-  const model = process.env.SAAS_AGENT_MODEL || (provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : '?');
-  return { provider, model };
+// Fallback: lê provider/modelo/chave do .env (compatibilidade com a 1ª versão).
+function getModelFromEnv() {
+  const provider = (process.env.SAAS_AGENT_PROVIDER || 'anthropic').toLowerCase();
+  const model = process.env.SAAS_AGENT_MODEL || (provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : null);
+  const keyByProvider = {
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+    'openai-compatible': process.env.OPENAI_API_KEY,
+    google: process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  };
+  const apiKey = keyByProvider[provider];
+  if (!apiKey) throw new AgentConfigError('Nenhuma IA configurada. Cadastre uma no painel (⚙️ IAs) ou defina a chave no .env.');
+  if (provider !== 'anthropic' && !model) throw new AgentConfigError(`Defina SAAS_AGENT_MODEL para o provider ${provider}.`);
+  return buildModel({ provider, model, apiKey, baseURL: process.env.SAAS_AGENT_BASE_URL });
 }
 
-module.exports = { getModel, describeProvider, AgentConfigError };
+function describeEnv() {
+  const provider = (process.env.SAAS_AGENT_PROVIDER || 'anthropic').toLowerCase();
+  const model = process.env.SAAS_AGENT_MODEL || (provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : '?');
+  return { provider, model, label: '.env (fallback)', fromEnv: true };
+}
+
+module.exports = { buildModel, getModelFromEnv, describeEnv, AgentConfigError };
