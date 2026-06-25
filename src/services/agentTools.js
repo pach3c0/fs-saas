@@ -292,30 +292,42 @@ const tools = {
 
   // ── Métricas de negócio / assinaturas ─────────────────────────────────────
   getBusinessMetrics: tool({
-    description: 'Métricas de negócio/assinaturas: distribuição por plano, status (active/trialing/past_due/canceled), MRR POTENCIAL (soma do preço dos planos pagos ativos) e próximos vencimentos. ATENÇÃO: V1 NÃO cobra de verdade — o MRR é o teto teórico baseado no plano atribuído, não receita real. Use para "MRR", "quantos no plano pro", "quem está past_due/em trial".',
+    description: 'Métricas de negócio/assinaturas: distribuição por plano, status (active/trialing/past_due/canceled), MRR POTENCIAL (soma do preço dos planos pagos ativos) e próximos vencimentos. A distribuição por plano lê Organization.plan (MESMA fonte do dashboard) e ignora orgs na lixeira/assinaturas órfãs — por isso bate com o painel. ATENÇÃO: V1 NÃO cobra de verdade — o MRR é o teto teórico baseado no plano atribuído, não receita real. Use para "MRR", "quantos no plano pro", "quem está past_due/em trial".',
     inputSchema: z.object({}),
     execute: async () => {
-      const [planAgg, statusAgg, subs] = await Promise.all([
-        Subscription.aggregate([{ $group: { _id: '$plan', count: { $sum: 1 } } }]),
-        Subscription.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-        Subscription.find({ status: { $in: ['active', 'trialing', 'past_due'] } })
-          .populate('organizationId', 'name slug deletedAt').lean()
+      // FONTE ÚNICA: o plano é lido de Organization.plan (mesmo campo do dashboard
+      // em saasAdmin.js:78), NÃO de Subscription.plan, que pode divergir. O $lookup +
+      // $unwind descarta assinaturas órfãs (org já apagada) e o $match remove orgs na
+      // lixeira (deletedAt). Assim a contagem do agente bate com a tela do painel.
+      const liveSubs = await Subscription.aggregate([
+        { $lookup: { from: 'organizations', localField: 'organizationId', foreignField: '_id', as: 'org' } },
+        { $unwind: '$org' },
+        { $match: { 'org.deletedAt': null } },
+        { $project: {
+            status: 1, cancelAtPeriodEnd: 1, currentPeriodEnd: 1,
+            plan: '$org.plan',               // plano canônico (igual ao dashboard)
+            orgName: '$org.name', orgSlug: '$org.slug'
+        } }
       ]);
       const priceBRL = (p) => (PLANS[p]?.price || 0) / 100; // plans.js guarda centavos
-      const byPlan = {}; planAgg.forEach((g) => { byPlan[g._id || 'sem_plano'] = g.count; });
-      const byStatus = {}; statusAgg.forEach((g) => { byStatus[g._id || 'sem_status'] = g.count; });
 
+      const byPlan = {}; const byStatus = {};
       let mrrPotencial = 0; const cancelando = []; const vencimentos = [];
-      subs.forEach((s) => {
-        if (s.organizationId?.deletedAt) return; // ignora orgs na lixeira
-        const org = s.organizationId ? { name: s.organizationId.name, slug: s.organizationId.slug } : null;
-        if (s.status === 'active' && s.plan !== 'free') mrrPotencial += priceBRL(s.plan);
-        if (s.cancelAtPeriodEnd) cancelando.push({ org, plan: s.plan, currentPeriodEnd: s.currentPeriodEnd });
-        if (s.currentPeriodEnd) vencimentos.push({ org, plan: s.plan, status: s.status, currentPeriodEnd: s.currentPeriodEnd });
+      liveSubs.forEach((s) => {
+        const plan = s.plan || 'sem_plano';
+        byPlan[plan] = (byPlan[plan] || 0) + 1;
+        byStatus[s.status || 'sem_status'] = (byStatus[s.status || 'sem_status'] || 0) + 1;
+
+        // MRR/cancelamentos/vencimentos só para assinaturas vigentes
+        if (!['active', 'trialing', 'past_due'].includes(s.status)) return;
+        const org = { name: s.orgName, slug: s.orgSlug };
+        if (s.status === 'active' && plan !== 'free') mrrPotencial += priceBRL(plan);
+        if (s.cancelAtPeriodEnd) cancelando.push({ org, plan, currentPeriodEnd: s.currentPeriodEnd });
+        if (s.currentPeriodEnd) vencimentos.push({ org, plan, status: s.status, currentPeriodEnd: s.currentPeriodEnd });
       });
       vencimentos.sort((a, b) => new Date(a.currentPeriodEnd) - new Date(b.currentPeriodEnd));
       return {
-        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas).',
+        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas). Distribuição por plano lê Organization.plan (mesma fonte do dashboard); órfãs e orgs na lixeira são ignoradas.',
         byPlan, byStatus,
         mrrPotencialBRL: Math.round(mrrPotencial * 100) / 100,
         precosPlanoBRL: { basic: priceBRL('basic'), pro: priceBRL('pro') },

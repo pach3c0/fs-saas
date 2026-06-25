@@ -36,6 +36,9 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         whatsapp: org.whatsapp,
         email: org.email,
         website: org.website,
+        // Somente leitura no perfil — derivados da plataforma, não editáveis pelo fotógrafo
+        customDomain: org.customDomain || null,
+        siteUrl: `https://${org.slug}.${(process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim()}`,
         bio: org.bio,
         address: org.address,
         city: org.city,
@@ -70,8 +73,11 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
 // PUT /api/organization/profile - Atualizar perfil da organizacao
 router.put('/organization/profile', authenticateToken, async (req, res) => {
   try {
+    // 'email' (contato) e 'website'/'slug'/'customDomain' NÃO entram aqui de propósito:
+    // são somente leitura no perfil. Troca de e-mail de contato vai por chamado (Fala Conosco)
+    // para o super admin verificar a identidade — evita perda de contato / sequestro de conta.
     const allowedFields = [
-      'name', 'logo', 'phone', 'whatsapp', 'email', 'website',
+      'name', 'logo', 'phone', 'whatsapp',
       'bio', 'address', 'city', 'state', 'primaryColor',
       'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize',
       'watermarkFontColor', 'watermarkFontFamily', 'watermarkFontWeight', 'watermarkFontStyle',

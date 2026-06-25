@@ -18,7 +18,7 @@ function renderOrgsTable(orgs) {
     const date = new Date(org.createdAt).toLocaleDateString('pt-BR');
     return `
       <tr>
-        <td style="font-weight:600;">${esc(org.name)}</td>
+        <td style="font-weight:600;">${esc(org.name)}${org.isCourtesy ? ' <span title="Conta cortesia" style="font-size:0.7rem; background:#064e3b; color:#6ee7b7; border-radius:0.25rem; padding:0.05rem 0.35rem; font-weight:600;">🎁 cortesia</span>' : ''}</td>
         <td style="color:#94a3b8;">${esc(org.slug)}</td>
         <td>${owner ? esc(owner.name || owner.email) : '-'}</td>
         <td><span style="text-transform:uppercase; font-size:0.6875rem; color:#94a3b8;">${org.plan}</span></td>
@@ -349,7 +349,7 @@ const AUDIT_LABEL = {
   org_approve: 'Aprovou a org', org_deactivate: 'Desativou a org',
   org_trash: 'Moveu para a lixeira', org_restore: 'Restaurou da lixeira',
   org_delete: 'Excluiu definitivamente', plan_change: 'Mudou o plano',
-  limits_change: 'Alterou limites custom', site_reset: 'Resetou seção do site',
+  limits_change: 'Alterou limites custom', courtesy_change: 'Alterou cortesia', site_reset: 'Resetou seção do site',
   plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
 };
 
@@ -547,6 +547,36 @@ async function renderPanelOverview(content) {
     </div>
 
     <div class="detail-section">
+      <h3>Cobrança</h3>
+      <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; margin-top:0.5rem;">
+        <input id="panelCourtesy" type="checkbox" ${stats.isCourtesy ? 'checked' : ''} style="width:1.1rem; height:1.1rem; cursor:pointer; accent-color:#10b981;">
+        <span style="font-size:0.875rem; color:#f1f5f9;">🎁 Conta cortesia <span style="color:#64748b; font-weight:400;">(sem cobrança — esconde upgrade no painel do cliente)</span></span>
+      </label>
+      <input id="panelCourtesyNote" type="text" maxlength="120" placeholder="Nota (ex.: Esposa, Sócio) — opcional" value="${esc(stats.courtesyNote || '')}"
+        style="margin-top:0.6rem; width:100%; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;">
+      <button id="panelSaveCourtesy" style="margin-top:0.6rem; background:#10b981; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar cortesia</button>
+    </div>
+
+    <div class="detail-section">
+      <h3>Override de limites</h3>
+      <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; margin-top:0.5rem;">
+        <input id="panelOverride" type="checkbox" ${stats.overrideEnabled ? 'checked' : ''} style="width:1.1rem; height:1.1rem; cursor:pointer; accent-color:#6366f1;">
+        <span style="font-size:0.875rem; color:#f1f5f9;">Limites customizados <span style="color:#64748b; font-weight:400;">(desligado = segue o plano base)</span></span>
+      </label>
+      <div id="panelLimitsForm" style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-top:0.75rem; ${stats.overrideEnabled ? '' : 'opacity:0.5; pointer-events:none;'}">
+        <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.72rem; color:#94a3b8;">Storage (MB)
+          <input id="ovr_storage" type="number" min="0" value="${stats.maxStorageMB}" style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.85rem;"></label>
+        <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.72rem; color:#94a3b8;">Sessões (-1 = ∞)
+          <input id="ovr_sessions" type="number" min="-1" value="${stats.maxSessions ?? -1}" style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.85rem;"></label>
+        <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.72rem; color:#94a3b8;">Fotos (-1 = ∞)
+          <input id="ovr_photos" type="number" min="-1" value="${stats.maxPhotos ?? -1}" style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.85rem;"></label>
+        <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.72rem; color:#94a3b8;">Álbuns (-1 = ∞)
+          <input id="ovr_albums" type="number" min="-1" value="${stats.maxAlbums ?? -1}" style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.35rem 0.5rem; font-size:0.85rem;"></label>
+      </div>
+      <button id="panelSaveLimits" style="margin-top:0.75rem; background:#0369a1; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar limites</button>
+    </div>
+
+    <div class="detail-section">
       <h3>Usuários</h3>
       <ul class="detail-list">${usersHtml}</ul>
     </div>
@@ -577,6 +607,56 @@ async function renderPanelOverview(content) {
       saasToast('Erro: ' + err.message, 'error');
     } finally {
       btn.textContent = 'Salvar';
+      btn.disabled = false;
+    }
+  };
+
+  // Cortesia
+  content.querySelector('#panelSaveCourtesy').onclick = async () => {
+    const isCourtesy = content.querySelector('#panelCourtesy').checked;
+    const courtesyNote = content.querySelector('#panelCourtesyNote').value.trim();
+    const btn = content.querySelector('#panelSaveCourtesy');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/courtesy`, { isCourtesy, courtesyNote });
+      saasToast(isCourtesy ? 'Marcada como cortesia' : 'Cortesia removida', 'success');
+      const idx = allOrgs.findIndex(o => o._id === currentPanelOrgId);
+      if (idx !== -1) allOrgs[idx].isCourtesy = isCourtesy;
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar cortesia';
+      btn.disabled = false;
+    }
+  };
+
+  // Override de limites: o toggle habilita/desabilita o form visualmente
+  const overrideChk = content.querySelector('#panelOverride');
+  const limitsForm = content.querySelector('#panelLimitsForm');
+  overrideChk.onchange = () => {
+    limitsForm.style.opacity = overrideChk.checked ? '' : '0.5';
+    limitsForm.style.pointerEvents = overrideChk.checked ? '' : 'none';
+  };
+  content.querySelector('#panelSaveLimits').onclick = async () => {
+    const overrideEnabled = overrideChk.checked;
+    const btn = content.querySelector('#panelSaveLimits');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/limits`, {
+        overrideEnabled,
+        maxStorage:  parseInt(content.querySelector('#ovr_storage').value, 10),
+        maxSessions: parseInt(content.querySelector('#ovr_sessions').value, 10),
+        maxPhotos:   parseInt(content.querySelector('#ovr_photos').value, 10),
+        maxAlbums:   parseInt(content.querySelector('#ovr_albums').value, 10),
+      });
+      saasToast(overrideEnabled ? 'Limites salvos' : 'Override desligado (voltou ao plano base)', 'success');
+      if (!overrideEnabled) await renderPanelOverview(content); // recarrega pra mostrar limites base
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar limites';
       btn.disabled = false;
     }
   };

@@ -175,13 +175,19 @@ router.get('/admin/organizations', authenticateToken, requireSuperadmin, async (
         const sessionCounts = await Session.aggregate([
             { $group: { _id: '$organizationId', count: { $sum: 1 }, photos: { $sum: { $size: '$photos' } } } }
         ]);
-        
+
         const countMap = {};
         sessionCounts.forEach(s => { countMap[s._id?.toString()] = { sessions: s.count, photos: s.photos }; });
 
+        // Flag de cortesia por org (uma query, mapeada por organizationId)
+        const subs = await Subscription.find({}, 'organizationId isCourtesy').lean();
+        const courtesyMap = {};
+        subs.forEach(s => { if (s.organizationId) courtesyMap[s.organizationId.toString()] = !!s.isCourtesy; });
+
         const orgsWithStats = organizations.map(org => ({
             ...org,
-            stats: countMap[org._id.toString()] || { sessions: 0, photos: 0 }
+            stats: countMap[org._id.toString()] || { sessions: 0, photos: 0 },
+            isCourtesy: courtesyMap[org._id.toString()] || false
         }));
 
         res.json({ organizations: orgsWithStats });
@@ -236,6 +242,9 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 maxSessions: sub?.limits?.maxSessions ?? 5,
                 maxPhotos: sub?.limits?.maxPhotos ?? 100,
                 maxAlbums: sub?.limits?.maxAlbums ?? 1,
+                isCourtesy: !!sub?.isCourtesy,
+                courtesyNote: sub?.courtesyNote || '',
+                overrideEnabled: !!sub?.overrideEnabled,
                 breakdown: {
                     sessionsMB: toMB(sessionsBytes),
                     siteMB: toMB(siteBytes),
@@ -354,7 +363,15 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
         if (!planLimits[plan]) return res.status(400).json({ error: 'Plano inválido' });
 
         const org = await Organization.findByIdAndUpdate(req.params.id, { plan }, { returnDocument: 'after' });
-        await Subscription.findOneAndUpdate({ organizationId: org._id }, { plan, limits: planLimits[plan] });
+        // Preserva os limites quando há override ligado; senão, aplica os do plano base.
+        let sub = await Subscription.findOne({ organizationId: org._id });
+        if (!sub) {
+            sub = new Subscription({ organizationId: org._id, plan, limits: planLimits[plan] });
+        } else {
+            sub.plan = plan;
+            if (!sub.overrideEnabled) sub.limits = planLimits[plan];
+        }
+        await sub.save();
         audit(req, 'plan_change', org._id, { plan });
         res.json({ success: true, message: `Plano alterado para ${plan}` });
     } catch (error) {
@@ -390,16 +407,55 @@ router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, asyn
     }
 });
 
-// Override de limites por org
+// Override de limites por org.
+// overrideEnabled === false  → reverte ao plano base (limites do planLimits.json).
+// overrideEnabled !== false  → salva os limites customizados e marca override ligado.
 router.put('/admin/organizations/:id/limits', authenticateToken, requireSuperadmin, async (req, res) => {
     try {
-        const { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain } = req.body;
-        await Subscription.findOneAndUpdate(
-            { organizationId: req.params.id },
-            { $set: { limits: { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain } } }
-        );
-        audit(req, 'limits_change', req.params.id, { maxSessions, maxPhotos, maxAlbums, maxStorage });
-        res.json({ success: true, message: 'Limites customizados salvos' });
+        const { maxSessions, maxPhotos, maxAlbums, maxStorage, customDomain, overrideEnabled } = req.body;
+        const org = await Organization.findById(req.params.id).select('plan').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+
+        if (overrideEnabled === false) {
+            const planLimits = await loadPlanLimits();
+            sub.overrideEnabled = false;
+            sub.limits = planLimits[sub.plan] || planLimits[org.plan] || sub.limits;
+        } else {
+            sub.overrideEnabled = true;
+            sub.limits = {
+                maxSessions: Number.isFinite(maxSessions) ? maxSessions : sub.limits.maxSessions,
+                maxPhotos: Number.isFinite(maxPhotos) ? maxPhotos : sub.limits.maxPhotos,
+                maxAlbums: Number.isFinite(maxAlbums) ? maxAlbums : sub.limits.maxAlbums,
+                maxStorage: Number.isFinite(maxStorage) ? maxStorage : sub.limits.maxStorage,
+                customDomain: customDomain !== undefined ? !!customDomain : sub.limits.customDomain,
+            };
+        }
+        await sub.save();
+        audit(req, 'limits_change', req.params.id, { overrideEnabled: sub.overrideEnabled, limits: sub.limits });
+        res.json({ success: true, message: sub.overrideEnabled ? 'Override salvo' : 'Override desligado (voltou ao plano base)', overrideEnabled: sub.overrideEnabled, limits: sub.limits });
+    } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Marcar/desmarcar conta cortesia (sem cobrança).
+router.put('/admin/organizations/:id/courtesy', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const { isCourtesy, courtesyNote } = req.body;
+        const org = await Organization.findById(req.params.id).select('plan').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        sub.isCourtesy = !!isCourtesy;
+        sub.courtesyNote = typeof courtesyNote === 'string' ? courtesyNote.slice(0, 120) : (sub.courtesyNote || '');
+        await sub.save();
+        audit(req, 'courtesy_change', req.params.id, { isCourtesy: sub.isCourtesy });
+        res.json({ success: true, message: sub.isCourtesy ? 'Marcada como cortesia' : 'Cortesia removida', isCourtesy: sub.isCourtesy });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });
@@ -480,7 +536,21 @@ router.patch('/admin/saas/platform-config', authenticateToken, requireSuperadmin
         if (req.body.watermarkPreviewImage !== undefined) {
             config.watermarkPreviewImage = req.body.watermarkPreviewImage;
         }
+        // Modo manutenção global da plataforma
+        if (req.body.maintenance !== undefined && typeof req.body.maintenance === 'object') {
+            const m = req.body.maintenance;
+            const atual = config.maintenance || {};
+            config.maintenance = {
+                enabled: !!m.enabled,
+                message: typeof m.message === 'string' ? m.message.slice(0, 500) : (atual.message || ''),
+                etaText: typeof m.etaText === 'string' ? m.etaText.slice(0, 120) : (atual.etaText || ''),
+                updatedAt: new Date(),
+            };
+        }
         await config.save();
+        // Zera o cache da cortina p/ a mudança valer na hora (ligar/desligar)
+        const invalidate = req.app.get('invalidateMaintenanceCache');
+        if (typeof invalidate === 'function') invalidate();
         res.json({ success: true, config });
     } catch (error) {
         req.logger.error('Erro ao atualizar config da plataforma', { error: error.message });

@@ -23,7 +23,17 @@ const SubscriptionSchema = new mongoose.Schema({
   currentPeriodEnd: { type: Date, default: null },
   cancelAtPeriodEnd: { type: Boolean, default: false },
 
-  // Limites de uso
+  // Conta cortesia (sem cobrança — esposa, sócio, parceiro, conta de admin).
+  // É só rótulo/controle: exibe selo no painel do cliente e some os CTAs de upgrade.
+  // Os limites continuam definidos pelo plano + override.
+  isCourtesy: { type: Boolean, default: false },
+  courtesyNote: { type: String, default: '' },      // ex.: "Esposa", "Sócio"
+
+  // Override de limites por org. Quando ligado, os `limits` abaixo são CUSTOMIZADOS
+  // e não são sobrescritos ao trocar de plano. Desligar reverte ao plano base.
+  overrideEnabled: { type: Boolean, default: false },
+
+  // Limites de uso (efetivos). Espelham o plano base, salvo override ligado.
   limits: {
     maxSessions: { type: Number, default: 5 },      // free: 5, basic: 50, pro: unlimited (-1)
     maxPhotos: { type: Number, default: 100 },      // free: 100, basic: 5000, pro: unlimited

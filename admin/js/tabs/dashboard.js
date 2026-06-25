@@ -178,7 +178,8 @@ async function loadDashboardData(container) {
             apiGet('/api/dashboard-cards').catch(() => ({ success: true, cards: {} }))
         ]);
         const sessions = sessionsData.sessions || [];
-        const storageMB = billingData.usage?.storageMB || 0;
+        // Espaço usado = só fotos das sessões (logo/site e vídeos não contam — ver aba Plano).
+        const storageMB = billingData.usage?.breakdown?.sessionsMB ?? billingData.usage?.storageMB ?? 0;
         const banners = bannersData.banners || [];
         const announcements = annData.announcements || [];
         const updates = updatesData?.updates || [];

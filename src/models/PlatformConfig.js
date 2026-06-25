@@ -5,6 +5,14 @@ const mongoose = require('mongoose');
 const platformConfigSchema = new mongoose.Schema({
   singleton: { type: String, default: 'main', unique: true },
   watermarkPreviewImage: { type: String, default: '' },
+  // Modo manutenção GLOBAL da plataforma (gerenciado pelo Super Admin).
+  // Diferente de SiteData.maintenance, que é por site de fotógrafo.
+  maintenance: {
+    enabled: { type: Boolean, default: false },
+    message: { type: String, default: '' },
+    etaText: { type: String, default: '' }, // previsão de retorno (texto livre)
+    updatedAt: { type: Date },
+  },
 }, { timestamps: true });
 
 platformConfigSchema.statics.getSingleton = async function () {

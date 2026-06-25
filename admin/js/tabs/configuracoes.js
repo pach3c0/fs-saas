@@ -1,5 +1,5 @@
 // Aba Configurações — personalização do app pelo fotógrafo.
-// 5 seções: Mensagens · Sessões · Entrega · Notificações · Escassês & Vendas.
+// Seções: Mensagens · Sessões · Galeria · Notificações · Escassês & Vendas · Privacidade.
 // Persiste em Organization.preferences (/api/organization/preferences) e, na seção
 // de vendas, em Organization.integrations.salesAutomator (/api/organization/integrations).
 
@@ -40,7 +40,6 @@ const VARS_BY_KIND = {
 const SECTIONS = [
   { id: 'mensagens',     label: 'Mensagens', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>' },
   { id: 'sessoes',       label: 'Sessões', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>' },
-  { id: 'entrega',       label: 'Entrega', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x1="12" y1="15" y2="3"/></svg>' },
   { id: 'galeria',       label: 'Galeria', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' },
   { id: 'notificacoes',  label: 'Notificações', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' },
   { id: 'vendas',        label: 'Escassês & Vendas', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x1="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
@@ -113,7 +112,6 @@ function renderLayout(container) {
   const content = document.createElement('div');
   if (currentSection === 'mensagens')    content.appendChild(renderMensagens());
   if (currentSection === 'sessoes')      content.appendChild(renderSessoes());
-  if (currentSection === 'entrega')      content.appendChild(renderEntrega());
   if (currentSection === 'galeria')      content.appendChild(renderGaleria());
   if (currentSection === 'notificacoes') content.appendChild(renderNotificacoes());
   if (currentSection === 'vendas')       content.appendChild(renderVendas());
@@ -334,50 +332,6 @@ function renderGaleria() {
   hint.textContent = 'Define o ícone que o cliente toca para selecionar uma foto: ❤️ para "favoritar/escolher" ou 🛒 para um clima de loja/compra.';
   card.appendChild(hint);
   return card;
-}
-
-// ── Seção Entrega ────────────────────────────────────────────────────────────
-function renderEntrega() {
-  const { card, status } = sectionCard('Padrão de entrega da galeria', 'No modo Galeria, define o que acontece ao chegar no passo Compartilhar.');
-  const current = prefs.galleryDeliveryDefault || 'ask';
-
-  const opts = [
-    ['ask',     'Sempre perguntar',      'Mostra a tela de escolha (Compartilhar prévia ou Entregar direto) a cada galeria.'],
-    ['preview', 'Compartilhar prévia',   'Já abre no fluxo com prévia (cliente vê com marca d\'água, entrega depois).'],
-    ['direct',  'Entregar direto',       'Pula a etapa Compartilhar — vai direto para a entrega do download.']
-  ];
-
-  const list = document.createElement('div');
-  list.style.cssText = 'display:flex; flex-direction:column; gap:0.625rem;';
-  opts.forEach(([val, label, desc]) => {
-    const row = document.createElement('label');
-    const active = current === val;
-    row.style.cssText = `display:flex; flex-direction:column; gap:0.5rem; align-items:center; padding:0.875rem 1rem; border-radius:0.5rem; cursor:pointer; border:1px solid ${active ? 'var(--accent)' : 'var(--border)'}; background:var(--bg-base); text-align:center;`;
-    const radio = document.createElement('input');
-    radio.type = 'radio';
-    radio.name = 'galleryDeliveryDefault';
-    radio.checked = active;
-    radio.style.cssText = 'margin-top:0.2rem; accent-color:var(--accent);';
-    radio.onchange = () => {
-      prefs.galleryDeliveryDefault = val; // reflete na hora antes do re-render
-      scheduleSave({ galleryDeliveryDefault: val }, status, true);
-      renderLayoutAfterRadio();
-    };
-    const txt = document.createElement('div');
-    txt.innerHTML = `<div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${label}</div>
-      <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.125rem;">${desc}</div>`;
-    row.appendChild(radio);
-    row.appendChild(txt);
-    list.appendChild(row);
-  });
-  card.appendChild(list);
-  return card;
-}
-
-// Re-render leve para refletir a borda do radio selecionado
-function renderLayoutAfterRadio() {
-  const container = document.getElementById('tabContent');
-  if (container) renderLayout(container);
 }
 
 // ── Seção Notificações ───────────────────────────────────────────────────────

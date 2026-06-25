@@ -22,6 +22,7 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const limites = subscription.limits;
   const uso     = subscription.usage;
   const planoKey = subscription.plan;
+  const isCortesia = !!subscription.isCourtesy;
 
   const pct = (usado, max) => max === -1 ? 0 : Math.min(100, Math.round((usado / max) * 100));
   const fmtMax = (v) => v === -1 ? '∞' : v.toLocaleString('pt-BR');
@@ -43,7 +44,10 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
       </div>`;
   };
 
-  const storagePct = pct(usage?.storageMB || 0, limites.maxStorage);
+  // Armazenamento contra o limite = SÓ as fotos das sessões (decisão de produto).
+  // Logo/site e vídeos NÃO contam no limite — aparecem só no detalhamento abaixo.
+  const fotosMB = usage?.breakdown?.sessionsMB ?? usage?.storageMB ?? 0;
+  const storagePct = pct(fotosMB, limites.maxStorage);
 
   const _planCard = (key, plan) => {
     const isCurrent = key === planoKey;
@@ -85,30 +89,41 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
       <div style="background:var(--ad-bg-surface); padding:1.75rem; border-radius:0.5rem; border:2px solid var(--ad-accent);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
           <div>
-            <h3 style="font-size:1.25rem; font-weight:700; color:var(--ad-text); margin:0 0 0.25rem;">${planDetails.name}</h3>
+            <h3 style="font-size:1.25rem; font-weight:700; color:var(--ad-text); margin:0 0 0.25rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              ${planDetails.name}
+              ${isCortesia ? `<span style="font-size:0.7rem; font-weight:700; background:color-mix(in srgb, var(--ad-green) 18%, transparent); color:var(--ad-green); border:1px solid color-mix(in srgb, var(--ad-green) 40%, transparent); border-radius:9999px; padding:0.15rem 0.6rem; letter-spacing:0.02em;">🎁 Cortesia</span>` : ''}
+            </h3>
             <p style="color:var(--ad-text); opacity:0.6; margin:0; font-size:0.9rem;">
-              ${planDetails.price === 0 ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`}
-              ${subscription.currentPeriodEnd ? ` · Renova em ${new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}` : ''}
-              ${subscription.cancelAtPeriodEnd ? ` <span style="color:var(--ad-red); font-weight:600;">· Cancelamento agendado</span>` : ''}
+              ${isCortesia ? 'Conta cortesia · sem cobrança' : (planDetails.price === 0 ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`)}
+              ${!isCortesia && subscription.currentPeriodEnd ? ` · Renova em ${new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}` : ''}
+              ${!isCortesia && subscription.cancelAtPeriodEnd ? ` <span style="color:var(--ad-red); font-weight:600;">· Cancelamento agendado</span>` : ''}
             </p>
           </div>
-          ${planoKey !== 'pro' ? `<button id="verPlansBtn" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Ver planos ↓</button>` : ''}
+          ${!isCortesia && planoKey !== 'pro' ? `<button id="verPlansBtn" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Ver planos ↓</button>` : ''}
         </div>
 
         <div style="display:grid; gap:1rem;">
           ${_bar('Sessões', uso.sessions, limites.maxSessions)}
           ${_bar('Fotos', uso.photos, limites.maxPhotos)}
-          ${_bar('Armazenamento (MB)', usage?.storageMB || 0, limites.maxStorage)}
+          ${_bar('Armazenamento — fotos (MB)', fotosMB, limites.maxStorage)}
         </div>
 
         ${usage?.breakdown ? `
-        <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid color-mix(in srgb, var(--ad-text) 10%, transparent);">
-          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Sessões: ${usage.breakdown.sessionsMB} MB</span>
-          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Site: ${usage.breakdown.siteMB} MB</span>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid color-mix(in srgb, var(--ad-text) 10%, transparent);">
+          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Fotos das sessões: ${usage.breakdown.sessionsMB} MB</span>
+          <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Site/logo: ${usage.breakdown.siteMB} MB</span>
           <span style="color:var(--ad-text); opacity:0.55; font-size:0.75rem;">Vídeos: ${usage.breakdown.videosMB} MB</span>
+          <span style="color:var(--ad-text); opacity:0.4; font-size:0.7rem; font-style:italic;">(site/logo e vídeos não contam no limite)</span>
         </div>` : ''}
       </div>
 
+      ${isCortesia ? `
+      <!-- Conta cortesia: sem upgrade -->
+      <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-green) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-green) 30%, transparent); border-radius:0.5rem;">
+        <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">🎁 Conta cortesia</p>
+        <p style="font-size:0.85rem; color:var(--ad-text); opacity:0.7; margin:0;">Sua conta é uma cortesia da plataforma — você tem acesso liberado sem cobrança. Qualquer dúvida sobre limites, fale com o suporte.</p>
+      </div>
+      ` : `
       <!-- Planos disponíveis -->
       <div>
         <h3 id="planosSection" style="font-size:1.125rem; font-weight:700; color:var(--ad-text); margin:0 0 1rem;">Planos Disponíveis</h3>
@@ -116,8 +131,9 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
           ${Object.entries(plans).map(([key, plan]) => _planCard(key, plan)).join('')}
         </div>
       </div>
+      `}
 
-      ${planoKey !== 'free' ? `
+      ${!isCortesia && planoKey !== 'free' ? `
       <!-- Cancelamento -->
       <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-red) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-red) 30%, transparent); border-radius:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
         <div>

@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { ipKeyGenerator } = rateLimit; // helper que normaliza IPv6 (evita bypass por sub-rede)
 const Organization = require('./models/Organization');
 const logger = require('./utils/logger');
@@ -65,6 +66,97 @@ app.use((req, res, next) => {
     next();
 });
 
+
+// ============================================================================
+// CORTINA DE MANUTENÇÃO GLOBAL (Super Admin)
+// Bloqueia a plataforma com aviso amigável. Estado em PlatformConfig.maintenance.
+// Cache curto + fail-open: erro de leitura/DB NUNCA derruba a plataforma.
+// O Super Admin NUNCA é bloqueado (login + /saas-admin + JWT superadmin passam sempre).
+// ============================================================================
+const PlatformConfig = require('./models/PlatformConfig');
+
+let _maintCache = { state: null, at: 0 };
+const MAINT_TTL = 10 * 1000; // 10s — evita ler o DB a cada request (inclusive assets estáticos)
+
+async function getMaintenanceState() {
+  const now = Date.now();
+  if (_maintCache.state && now - _maintCache.at < MAINT_TTL) return _maintCache.state;
+  try {
+    const cfg = await PlatformConfig.getSingleton();
+    _maintCache = { state: cfg.maintenance || { enabled: false }, at: now };
+  } catch {
+    return { enabled: false }; // fail-open
+  }
+  return _maintCache.state;
+}
+// Permite que o handler do Super Admin zere o cache ao ligar/desligar (efeito imediato)
+app.set('invalidateMaintenanceCache', () => { _maintCache = { state: null, at: 0 }; });
+
+// Caminhos que SEMPRE passam (mesmo em manutenção)
+function bypassesMaintenance(p) {
+  return (
+    p === '/api/health' ||
+    p === '/api/login' ||
+    p.startsWith('/api/auth/') ||
+    p.startsWith('/saas-admin')
+  );
+}
+
+// Bypass extra: qualquer requisição autenticada como superadmin (token válido)
+function isSuperadminRequest(req) {
+  try {
+    const token = (req.headers['authorization'] || '').split(' ')[1];
+    if (!token) return false;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fs-fotografias-secret-key');
+    return decoded && decoded.role === 'superadmin';
+  } catch {
+    return false;
+  }
+}
+
+function renderMaintenancePage(state) {
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const msg = esc(state.message) || 'Estamos fazendo uma manutenção rápida para melhorar a plataforma. Já voltamos.';
+  const eta = esc(state.etaText);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Em manutenção</title>
+<style>
+  :root{color-scheme:light dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:#0f1115;color:#e8e8eb}
+  .card{max-width:480px;width:100%;text-align:center;background:#1a1d24;border:1px solid #2a2e38;
+    border-radius:16px;padding:2.5rem 2rem;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .ico{font-size:2.5rem;line-height:1;margin-bottom:1rem}
+  h1{font-size:1.4rem;margin:0 0 .75rem}
+  p{font-size:1rem;line-height:1.55;color:#b9bdc7;margin:0 0 1rem}
+  .eta{display:inline-block;margin-top:.5rem;padding:.5rem .9rem;border-radius:999px;
+    background:#242833;border:1px solid #333845;font-size:.85rem;color:#e8e8eb}
+</style></head>
+<body><div class="card">
+  <div class="ico">🛠️</div>
+  <h1>Voltamos já</h1>
+  <p>${msg}</p>
+  ${eta ? `<div class="eta">Previsão: ${eta}</div>` : ''}
+</div></body></html>`;
+}
+
+app.use(async (req, res, next) => {
+  const state = await getMaintenanceState();
+  if (!state || !state.enabled) return next();
+  if (bypassesMaintenance(req.path) || isSuperadminRequest(req)) return next();
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(503).json({
+      maintenance: true,
+      message: state.message || 'Plataforma em manutenção. Voltamos em breve.',
+      etaText: state.etaText || ''
+    });
+  }
+  res.status(503).set('Retry-After', '600').type('html').send(renderMaintenancePage(state));
+});
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

@@ -1,5 +1,92 @@
 // Sistema — saúde da infraestrutura: Mongo, SMTP, disco, processo e schedulers
-import { apiRequest, saasToast, esc, formatSize } from '../core.js';
+import { apiRequest, saasToast, saasConfirm, esc, formatSize } from '../core.js';
+
+// ============================================================================
+// MANUTENÇÃO GLOBAL DA PLATAFORMA
+// ============================================================================
+
+function _manutencaoCard(m = {}) {
+  const on = !!m.enabled;
+  return `
+    <div style="background:var(--bg-surface); border:1px solid ${on ? '#f59e0b' : 'var(--border)'}; border-radius:0.5rem; padding:1rem 1.25rem; margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="width:10px; height:10px; border-radius:50%; background:${on ? '#f59e0b' : '#34d399'};"></span>
+          <h3 style="font-size:0.95rem; font-weight:700; margin:0;">Modo manutenção da plataforma</h3>
+          <span style="font-size:0.7rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px; background:${on ? 'rgba(245,158,11,0.15)' : 'rgba(52,211,153,0.12)'}; color:${on ? '#f59e0b' : '#34d399'};">
+            ${on ? 'EM MANUTENÇÃO' : 'NO AR'}
+          </span>
+        </div>
+        <button class="btn" id="maintToggleBtn" data-on="${on ? '1' : '0'}"
+          style="${on ? 'background:#f59e0b; color:#1a1a1a; border-color:#f59e0b;' : ''}">
+          ${on ? 'Tirar da manutenção' : 'Colocar em manutenção'}
+        </button>
+      </div>
+      <p style="font-size:0.75rem; color:var(--text-muted); margin:0.6rem 0 0.9rem;">
+        Coloca <strong>toda a plataforma</strong> fora do ar com um aviso amigável (fotógrafos, sites e galerias).
+        Você (super admin) e o painel <code>/saas-admin</code> continuam acessíveis.
+      </p>
+      <div style="display:grid; gap:0.6rem; max-width:560px;">
+        <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Mensagem para os usuários</label>
+        <textarea id="maintMsg" rows="2" placeholder="Estamos fazendo uma manutenção rápida. Já voltamos."
+          style="width:100%; resize:vertical; padding:0.6rem; border-radius:0.4rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-family:inherit; font-size:0.85rem;">${esc(m.message || '')}</textarea>
+        <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Previsão de retorno (opcional)</label>
+        <input id="maintEta" type="text" placeholder="Ex.: hoje às 18h" value="${esc(m.etaText || '')}"
+          style="width:100%; padding:0.6rem; border-radius:0.4rem; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); font-family:inherit; font-size:0.85rem;">
+        <div>
+          <button class="btn" id="maintSaveBtn">Salvar mensagem</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function _saveMaintenance(enabled) {
+  const message = document.getElementById('maintMsg')?.value || '';
+  const etaText = document.getElementById('maintEta')?.value || '';
+  await apiRequest('PATCH', '/api/admin/saas/platform-config', {
+    maintenance: { enabled, message, etaText }
+  });
+}
+
+function _wireMaintenance() {
+  const toggle = document.getElementById('maintToggleBtn');
+  if (toggle) {
+    toggle.onclick = async () => {
+      const turningOn = toggle.dataset.on !== '1';
+      if (turningOn) {
+        const ok = await saasConfirm(
+          'Isso vai tirar TODA a plataforma do ar para os fotógrafos e clientes (você continua com acesso). Confirmar?',
+          { title: 'Colocar em manutenção', confirmText: 'Colocar em manutenção', danger: true }
+        );
+        if (!ok) return;
+      }
+      toggle.disabled = true;
+      try {
+        await _saveMaintenance(turningOn);
+        saasToast(turningOn ? 'Plataforma em manutenção.' : 'Plataforma de volta ao ar.', 'success');
+        loadSistema();
+      } catch (err) {
+        saasToast('Erro: ' + err.message, 'error');
+        toggle.disabled = false;
+      }
+    };
+  }
+  const saveBtn = document.getElementById('maintSaveBtn');
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      try {
+        // Mantém o estado atual (on/off), só atualiza a mensagem/previsão
+        await _saveMaintenance(toggle?.dataset.on === '1');
+        saasToast('Mensagem salva.', 'success');
+      } catch (err) {
+        saasToast('Erro: ' + err.message, 'error');
+      } finally {
+        saveBtn.disabled = false;
+      }
+    };
+  }
+}
 
 // ============================================================================
 // SISTEMA
@@ -52,9 +139,10 @@ async function loadSistema(forceSmtp = false) {
 
   try {
     const url = '/api/admin/saas/system' + (forceSmtp ? '?verifySmtp=1' : '');
-    const [sys, auditData] = await Promise.all([
+    const [sys, auditData, cfgData] = await Promise.all([
       apiRequest('GET', url),
-      apiRequest('GET', '/api/admin/saas/audit?limit=10').catch(() => null)
+      apiRequest('GET', '/api/admin/saas/audit?limit=10').catch(() => null),
+      apiRequest('GET', '/api/admin/saas/platform-config').catch(() => null)
     ]);
 
     // Cards de estado
@@ -95,6 +183,8 @@ async function loadSistema(forceSmtp = false) {
       </li>`).join('') || '<li style="color:#64748b; font-size:0.8rem;">Nenhuma ação registrada</li>';
 
     container.innerHTML = `
+      ${_manutencaoCard(cfgData?.config?.maintenance || {})}
+
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
         ${cards}
       </div>
@@ -120,6 +210,8 @@ async function loadSistema(forceSmtp = false) {
         <ul style="list-style:none; margin:0; padding:0;">${auditHtml}</ul>
       </div>
     `;
+
+    _wireMaintenance();
   } catch (err) {
     container.innerHTML = `<div class="loading" style="color:var(--red);">Erro ao carregar o sistema: ${esc(err.message)}</div>`;
     saasToast('Erro: ' + err.message, 'error');
