@@ -56,24 +56,23 @@ Botão no SaaS Admin que coloca a plataforma fora do ar com aviso amigável e pr
 - ⏳ Validar no navegador: ligar pela aba Sistema, abrir `/site` ou `/admin` numa aba anônima (deve ver a cortina), confirmar que `/saas-admin` continua acessível, desligar.
 - Esforço: Médio.
 
-### [ ] 10. Presença online + **métricas de engajamento do fotógrafo** (painel SaaS) — ⚙️ (companheiro do item 5)
-Duas camadas que andam juntas:
+### [~] 10. Presença online + **métricas de engajamento do fotógrafo** (painel SaaS) — ⚙️ (companheiro do item 5) ✅ Camada A FEITA (2026-06-25) · ⏳ painel da camada B adiado
+Duas camadas, **um único heartbeat alimenta as duas** (não é trabalho dobrado).
 
-**(A) Presença em tempo real** — ver quem está usando a plataforma AGORA, **antes** de entrar em manutenção (fotógrafos no admin + clientes finais em galerias/seleção — o caso crítico). Spec em [`ajustes.md`](ajustes.md) (linhas ~69-324).
-- **Arquitetura decidida:** heartbeat via HTTP polling (o projeto **não** usa WebSocket; evitar `socket.io`/`ws`). Serviço **in-memory** (`Map` + TTL), sem MongoDB (heartbeat a cada 60s = write amplification).
-- Heartbeat 60s (admin + PWA cliente) · TTL 2min · painel SaaS faz poll 30s.
-- Novos: `src/services/presence.js` (registerHeartbeat/getOnlineUsers/cleanup) + `src/routes/presence.js` (`POST /api/presence/heartbeat` público + `GET /api/admin/saas/presence` superadmin). Front: heartbeat no boot do admin e no `verify-code` do cliente; card "Presença Online" + bolinha na tabela de orgs no saas-admin.
+**⚠️ Correção de arquitetura vs spec antigo:** o spec previa presença **in-memory** (`Map`+TTL). **NÃO serve aqui** — o PM2 roda `exec_mode:'cluster'` com `instances:2` (visto em `ecosystem.config.js`): cada worker teria seu Map → presença furada. **Decisão final: MongoDB com TTL index** (compartilhado entre workers, sem Redis). As demais "decisões a confirmar" foram resolvidas: clientes finais **incluídos** (pedido do usuário); granularidade = heartbeat com `module` + rollup diário.
 
-**(B) Métricas de engajamento por fotógrafo (PERSISTENTE — pedido do usuário 2026-06-25)** — não é só "quem está online agora", é histórico/média ao longo do tempo:
-- **Tempo de uso** por fotógrafo (quanto tempo fica na plataforma — soma de sessões de uso).
-- **Onde ele mais usa**: qual parte da plataforma concentra o tempo/ações (ex.: Sessões/Seleções = onde gera dinheiro pra ele → faz sentido ser o calor de movimento; vs Meu Site, vs Gestão/Rhyno ERP).
-- **Uso do Rhyno ERP** entra na conta (o fotógrafo "usa bastante meta"/Gestão) — cruzar com a integração Rhyno.
-- **Perfil ao longo do tempo:** 1ªs semanas = calor no Meu Site (curva de conhecer a plataforma); maduro = média mostrando "esse fotógrafo usa mais Seleções/Sessão" etc. Objetivo: parâmetro de engajamento por fotógrafo pra decisões de produto/retenção/precificação.
-- Diferente da presença (in-memory, efêmera): isso **precisa persistir** (agregação por módulo/tempo). Liga com [[project_saas_admin_v2]] (telemetria por módulo + jornada do cliente) e com `ActivityEvent` já existente. Provável base: eventos de uso por módulo → rollup periódico (scheduler) → métricas por org.
+**(A) Presença em tempo real ✅ FEITA:**
+- `src/models/Presence.js` — doc por sessão de uso (`key` único: `user:<id>` ou `client:<sessionId>:<participantId|anon>`), TTL 150s em `lastSeen` → cai sozinho.
+- `src/services/presence.js` — `touch()` (upsert Presence + `$inc` UsageDaily, fire-and-forget) · `getOnline()` · `getOnlineCount()`.
+- `src/routes/presence.js` — `POST /api/presence/heartbeat` (fotógrafo, autenticado) · `POST /api/presence/heartbeat/client` (público, `heartbeatLimiter` 120/min/IP) · `GET /api/admin/saas/presence` (superadmin). Registrado em `server.js`.
+- Front: `admin/js/app.js` (heartbeat 60s + ping na troca de aba, `module=currentTab`, pausa em aba oculta — raw `fetch`, sem auto-logout no 401) · `cliente/js/gallery.js` (heartbeat 60s na galeria, `module='galeria'|'selecao'`) · card **"Presença online agora"** no topo da aba Sistema do saas-admin (`sistema.js`, poll 30s só do card).
+- ⏳ Validar no navegador (E2E): logar admin + abrir galeria de cliente → ver os dois no card; trocar de aba muda o módulo; fechar/esperar 150s → somem.
 
-**⚠️ Decisões a confirmar antes de codar:** (1) PM2 = **1 worker** (presença in-memory só funciona com 1; cluster exigiria Redis); (2) incluir clientes finais já na V1 da presença ou só fotógrafos; (3) avisar "X clientes serão desconectados" ao confirmar manutenção (liga no item 5); (4) granularidade da telemetria de engajamento (por aba/módulo? amostragem de tempo via heartbeat com `module`? rollup diário?).
-- Depende de: nada técnico bloqueante. (A) fecha o ciclo do item 5; (B) é o maior e cruza com Rhyno + saas_admin_v2.
-- Esforço: (A) Médio · (B) Grande.
+**(B) Engajamento persistente — DADO já coletando, PAINEL adiado:**
+- `src/models/UsageDaily.js` (`{org,user,day,module} → minutes`, `$inc` por heartbeat, **só fotógrafo**) **já grava desde o deploy** → o histórico nasce sendo coletado.
+- A aba **Gestão é iframe do Rhyno** → tempo nela conta como `module='gestao'` **sem** instrumentar o Rhyno por dentro.
+- **Adiado de propósito:** o painel de visualização (gráfico tempo/módulo, ranking Seleções×Meu Site×Gestão, perfil ao longo do tempo) só faz sentido com dias/semanas de histórico — fazer num **2º passo**. Liga com [[project_saas_admin_v2]] e [[project_engajamento_fotografo]].
+- Esforço: (A) Médio ✅ · (B painel) Grande, depois.
 
 ### [x] 2. Armazenamento fantasma (mostra MB sem sessão) — 🐛/billing ✅ FEITO (2026-06-25)
 **Não era bug de cálculo:** `getDirSize` é correto e escopado por org (conta vazia = 0). A barra somava **sessões + site/logo + vídeos** ([`billing.js:30-43`](../src/routes/billing.js#L30-L43)); contas cortesia sem sessão mas com logo/site mostravam MB. Storage é **só exibição** (sem gate em [`planLimits.js`](../src/middleware/planLimits.js)).
@@ -113,7 +112,7 @@ Configurar CDN (assets/uploads). Infra; pode esperar.
 ---
 
 ## Ordem sugerida de execução
-Feitos: `3` `9` `6` `2` `5` `4`. Próximos: `10` → `7` → `8` → `1`
+Feitos: `3` `9` `6` `2` `5` `4` · `10(A)` ✅ (camada B já coletando, painel adiado). Próximos: `7` → `8` → `1` · depois o **painel do 10(B)** quando houver histórico
 
 ## Dependências
 - Bloco financeiro: **3 → 4 → 2 → 7** (acertar métrica → cortesia/override → storage correto → vender storage).

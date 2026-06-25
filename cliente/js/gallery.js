@@ -1406,6 +1406,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusScreen.style.display = 'none';
     }
 
+    // ── Presença online (item 10) ──────────────────────────────────────────
+    // Heartbeat leve enquanto a galeria está aberta: deixa o super admin ver que tem cliente
+    // usando AGORA (caso crítico antes de uma manutenção). Fire-and-forget, nunca quebra a galeria.
+    let _presenceTimer = null;
+    function clientPresenceModule() {
+        const m = state.session && state.session.mode;
+        return (m === 'selection' || m === 'multi_selection' || m === 'multi_instant') ? 'selecao' : 'galeria';
+    }
+    function sendClientPresence() {
+        if (!state.sessionId || !state.accessCode || document.hidden) return;
+        fetch('/api/presence/heartbeat/client', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId: state.sessionId,
+                participantId: state.isParticipant ? state.participantId : null,
+                module: clientPresenceModule()
+            })
+        }).catch(() => {});
+    }
+    function startClientPresence() {
+        if (_presenceTimer) return;
+        sendClientPresence();
+        _presenceTimer = setInterval(sendClientPresence, 60000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sendClientPresence();
+        });
+    }
+
     async function loadSessionData(isPolling = false) {
         try {
             let url = `/api/client/photos/${state.sessionId}?code=${state.accessCode}`;
@@ -1426,6 +1455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const savedClientData = (state.session && state.session.clientData) || state._clientDataFromLogin || null;
             state.session = result;
             state.session.clientData = savedClientData;
+            if (!isPolling) startClientPresence();
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
             state.courtesyPhotos = result.courtesyPhotos || [];

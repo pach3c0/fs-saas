@@ -510,6 +510,7 @@ app.use('/api', require('./routes/sessionCardBackgrounds'));
 app.use('/api', require('./routes/tickets'));
 app.use('/api', require('./routes/saasSystem'));
 app.use('/api', require('./routes/saasAgent'));
+app.use('/api', require('./routes/presence'));
 
 
 

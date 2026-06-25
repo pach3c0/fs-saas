@@ -669,7 +669,31 @@ async function postLoginSetup() {
   setTimeout(startNotificationPolling, 5000);
 
   await switchTab('dashboard');
+  startPresenceHeartbeat();
   showWelcomeBanner();
+}
+
+// ── Presença online (item 10) ──────────────────────────────────────────────
+// Heartbeat leve a cada 60s: alimenta a presença em tempo real + o engajamento por módulo
+// (qual aba o fotógrafo mais usa) no SaaS Admin. Fire-and-forget: erro é ignorado de propósito,
+// nunca afeta o painel. O `module` é a aba atual; o ping também dispara ao trocar de aba.
+let _presenceTimer = null;
+function sendPresenceHeartbeat() {
+  if (!appState.authToken || document.hidden) return;
+  fetch('/api/presence/heartbeat', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${appState.authToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ module: appState.currentTab || 'dashboard', name: appState.orgSlug || '' })
+  }).catch(() => {});
+}
+function startPresenceHeartbeat() {
+  if (_presenceTimer) return;
+  sendPresenceHeartbeat();
+  _presenceTimer = setInterval(sendPresenceHeartbeat, 60000);
+  // Ao voltar o foco pra aba, manda um ping na hora (volta pra presença mais rápido).
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) sendPresenceHeartbeat();
+  });
 }
 
 async function loadSidebarStorage() {
@@ -961,6 +985,7 @@ function showLoginForm() {
 // ── Switch tab ────────────────────────────────────────────────────────────
 export async function switchTab(tabName) {
   appState.currentTab = tabName;
+  if (appState.authToken) sendPresenceHeartbeat(); // atualiza o módulo na presença na hora
   const container = document.getElementById('tabContent');
   if (!container) return;
 

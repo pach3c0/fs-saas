@@ -132,6 +132,79 @@ function _statusCard(titulo, ok, valor, detalhe) {
     </div>`;
 }
 
+// ============================================================================
+// PRESENÇA ONLINE (item 10) — quem está usando a plataforma AGORA
+// ============================================================================
+
+// Rótulo amigável do módulo (aba do admin ou tela do cliente).
+const _MODULE_LABEL = {
+  dashboard: 'Início', sessoes: 'Sessões', clientes: 'Clientes', mensagens: 'Mensagens',
+  crm: 'CRM', 'meu-site': 'Meu Site', dominio: 'Domínio', integracoes: 'Integrações',
+  marketing: 'Marketing', perfil: 'Perfil', plano: 'Plano', ajuda: 'Ajuda',
+  configuracoes: 'Config', gestao: 'Gestão (Rhyno)',
+  galeria: 'Galeria', selecao: 'Seleção', outros: 'Outros'
+};
+
+function _modPill(m) {
+  const label = _MODULE_LABEL[m] || m || '—';
+  return `<span style="font-size:0.65rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:999px; background:var(--bg-base); color:var(--text-muted); border:1px solid var(--border); flex-shrink:0;">${esc(label)}</span>`;
+}
+
+function _presenceRow(name, module) {
+  return `<li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.8rem;">
+    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(name || '—')}</span>
+    ${_modPill(module)}
+  </li>`;
+}
+
+function _presenceCard(p = {}) {
+  const counts = p.counts || { photographers: 0, clients: 0 };
+  const total = p.total || 0;
+  const on = total > 0;
+  const photogs = (p.photographers || []).map(d => _presenceRow(d.name, d.module)).join('')
+    || '<li style="color:#64748b; font-size:0.78rem; padding:0.3rem 0;">Nenhum fotógrafo online</li>';
+  const clients = (p.clients || []).map(d => _presenceRow(d.name, d.module)).join('')
+    || '<li style="color:#64748b; font-size:0.78rem; padding:0.3rem 0;">Nenhum cliente em galeria</li>';
+  return `
+    <div id="presenceCard" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1rem 1.25rem; margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.85rem; flex-wrap:wrap;">
+        <span style="width:10px; height:10px; border-radius:50%; background:${on ? '#34d399' : '#94a3b8'};"></span>
+        <h3 style="font-size:0.95rem; font-weight:700; margin:0;">Presença online agora</h3>
+        <span style="font-size:0.7rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px; background:rgba(52,211,153,0.12); color:#34d399;">
+          ${counts.photographers} fotógrafo${counts.photographers === 1 ? '' : 's'} · ${counts.clients} cliente${counts.clients === 1 ? '' : 's'}
+        </span>
+        <span style="margin-left:auto; font-size:0.68rem; color:var(--text-muted);">atualiza a cada 30s</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem;">
+        <div>
+          <div style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem;">👤 Fotógrafos</div>
+          <ul style="list-style:none; margin:0; padding:0;">${photogs}</ul>
+        </div>
+        <div>
+          <div style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem;">🖼️ Clientes em galeria</div>
+          <ul style="list-style:none; margin:0; padding:0;">${clients}</ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Atualiza só o card de presença a cada 30s (sem recarregar a aba toda). Auto-encerra
+// quando o card sai do DOM (troca de aba no saas-admin).
+let _presencePoll = null;
+function _startPresencePoll() {
+  if (_presencePoll) clearInterval(_presencePoll);
+  _presencePoll = setInterval(async () => {
+    const card = document.getElementById('presenceCard');
+    if (!card) { clearInterval(_presencePoll); _presencePoll = null; return; }
+    try {
+      const data = await apiRequest('GET', '/api/admin/saas/presence');
+      const wrap = document.createElement('div');
+      wrap.innerHTML = _presenceCard(data || {});
+      card.replaceWith(wrap.firstElementChild);
+    } catch (_) { /* ignora — próximo tick tenta de novo */ }
+  }, 30000);
+}
+
 async function loadSistema(forceSmtp = false) {
   const container = document.getElementById('sistemaContent');
   if (!container) return;
@@ -139,10 +212,11 @@ async function loadSistema(forceSmtp = false) {
 
   try {
     const url = '/api/admin/saas/system' + (forceSmtp ? '?verifySmtp=1' : '');
-    const [sys, auditData, cfgData] = await Promise.all([
+    const [sys, auditData, cfgData, presenceData] = await Promise.all([
       apiRequest('GET', url),
       apiRequest('GET', '/api/admin/saas/audit?limit=10').catch(() => null),
-      apiRequest('GET', '/api/admin/saas/platform-config').catch(() => null)
+      apiRequest('GET', '/api/admin/saas/platform-config').catch(() => null),
+      apiRequest('GET', '/api/admin/saas/presence').catch(() => null)
     ]);
 
     // Cards de estado
@@ -185,6 +259,8 @@ async function loadSistema(forceSmtp = false) {
     container.innerHTML = `
       ${_manutencaoCard(cfgData?.config?.maintenance || {})}
 
+      ${_presenceCard(presenceData || {})}
+
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
         ${cards}
       </div>
@@ -212,6 +288,7 @@ async function loadSistema(forceSmtp = false) {
     `;
 
     _wireMaintenance();
+    _startPresencePoll();
   } catch (err) {
     container.innerHTML = `<div class="loading" style="color:var(--red);">Erro ao carregar o sistema: ${esc(err.message)}</div>`;
     saasToast('Erro: ' + err.message, 'error');
