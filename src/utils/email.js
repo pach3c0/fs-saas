@@ -1115,6 +1115,56 @@ async function sendTicketReplyEmail(email, name, ticketSubject, replyText) {
   return sendEmail(email, subject, html, { template: 'ticket_reply' });
 }
 
+const _czHeader = `<div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;"><h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1></div>`;
+const _czFooter = `<div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;"><p>CliqueZoom — Plataforma para fotógrafos</p></div>`;
+const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+// Avisa o dono da plataforma que entrou um chamado novo.
+async function sendNewTicketToAdminEmail(ticketSubject, category, orgName, text) {
+  const ownerEmail = process.env.OWNER_EMAIL || 'contato@cliquezoom.com.br';
+  const subject = `Novo chamado: ${ticketSubject} — CliqueZoom`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      ${_czHeader}
+      <h2 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 0.5rem;">Novo chamado de suporte</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;"><strong>${_esc(orgName)}</strong> abriu um chamado (${_esc(category)}):</p>
+      <p style="color:#1a1a1a; font-size: 1rem; font-weight:600; margin:0.25rem 0 0.75rem;">${_esc(ticketSubject)}</p>
+      <div style="background:#f5f5f5; border-left:3px solid #1a1a1a; padding:1rem 1.25rem; border-radius:0 0.375rem 0.375rem 0; margin:1rem 0; color:#333; font-size:0.9375rem;">${_esc(text)}</div>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Acesse o painel de suporte para responder.</p>
+      ${_czFooter}
+    </div>`;
+  return sendEmail(ownerEmail, subject, html, { template: 'ticket_new_admin' });
+}
+
+// Lembrete ao fotógrafo (chamado aguardando resposta há tempo) — pergunta se já resolveu.
+async function sendTicketFollowupEmail(email, name, ticketSubject) {
+  const subject = `Ainda precisa de ajuda? — ${ticketSubject} — CliqueZoom`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      ${_czHeader}
+      <h2 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 0.5rem;">Olá, ${_esc(name)}!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Estamos aguardando seu retorno no chamado <strong>${_esc(ticketSubject)}</strong>.</p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Se o seu problema <strong>já foi resolvido</strong>, ótimo — pode desconsiderar este aviso. Caso ainda precise de ajuda, é só responder por aqui pelo painel.</p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Sem retorno, vamos concluir este chamado automaticamente em cerca de 1 hora.</p>
+      ${_czFooter}
+    </div>`;
+  return sendEmail(email, subject, html, { template: 'ticket_followup' });
+}
+
+// Aviso final: chamado concluído por falta de resposta.
+async function sendTicketAutoClosedEmail(email, name, ticketSubject) {
+  const subject = `Chamado concluído — ${ticketSubject} — CliqueZoom`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      ${_czHeader}
+      <h2 style="font-size: 1.35rem; font-weight: 600; margin-bottom: 0.5rem;">Olá, ${_esc(name)}!</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Como não tivemos retorno, concluímos o chamado <strong>${_esc(ticketSubject)}</strong>.</p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">Se ainda precisar de ajuda ou o problema voltar, é só abrir um novo chamado quando quiser — estamos por aqui.</p>
+      ${_czFooter}
+    </div>`;
+  return sendEmail(email, subject, html, { template: 'ticket_autoclosed' });
+}
+
 // Verifica a conexão SMTP (aba Sistema do SaaS Admin). Cache de 5 min para
 // não martelar o provedor; force=true revalida na hora (botão da UI).
 let _smtpVerifyCache = null; // { ok, error, at }
@@ -1167,5 +1217,8 @@ module.exports = {
   buildWhatsAppGalleryLink,
   sendStorageRetentionEmail,
   sendPendingDownloadEmail,
-  sendTicketReplyEmail
+  sendTicketReplyEmail,
+  sendNewTicketToAdminEmail,
+  sendTicketFollowupEmail,
+  sendTicketAutoClosedEmail
 };

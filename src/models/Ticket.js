@@ -39,7 +39,13 @@ const ticketSchema = new mongoose.Schema({
     },
     readAt: Date
   }],
-  closedAt: Date
+  closedAt: Date,
+  // Automação de follow-up / auto-encerramento por falta de resposta do fotógrafo.
+  // reminderSentAt = quando o lembrete ("ainda precisa de ajuda?") foi enviado;
+  // zera (=null) sempre que alguém responde (admin/IA ou fotógrafo).
+  autoClose: {
+    reminderSentAt: { type: Date, default: null }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

@@ -171,6 +171,7 @@ const ACTIONS = {
       const user = await User.findOne({ organizationId: t.organizationId }).lean();
       t.messages.push({ from: 'admin', text: text.trim(), at: new Date() });
       t.status = 'pending';
+      t.autoClose = { reminderSentAt: null }; // reinicia o relógio de auto-encerramento
       await t.save();
       await Notification.create({ type: 'ticket_reply', message: `Nova resposta no chamado: ${t.subject}`, organizationId: t.organizationId });
       if (user?.email) {

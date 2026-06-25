@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const { createUploader } = require('../utils/multerConfig');
-const { sendTicketReplyEmail } = require('../utils/email');
+const { sendTicketReplyEmail, sendNewTicketToAdminEmail } = require('../utils/email');
 const Ticket = require('../models/Ticket');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
@@ -43,6 +43,14 @@ router.post('/tickets', authenticateToken, uploader.single('attachment'), async 
       ticketId: ticket._id,
       category: ticket.category
     });
+
+    // Notifica o dono da plataforma por e-mail (best-effort, não bloqueia a criação).
+    try {
+      const org = await Organization.findById(orgId).select('name').lean();
+      await sendNewTicketToAdminEmail(ticket.subject, ticket.category, org?.name || '—', text.trim());
+    } catch (e) {
+      req.logger.error('Falha ao notificar admin de novo chamado', { error: e.message });
+    }
 
     req.logger.info('Ticket criado', { ticketId: ticket._id });
     res.status(201).json({ success: true, ticket });
@@ -105,10 +113,11 @@ router.post('/tickets/:id/reply', authenticateToken, uploader.single('attachment
       at: new Date()
     });
 
-    // Se estava aguardando resposta, volta a aberto
+    // Se estava aguardando resposta, volta a aberto e zera o relógio de auto-encerramento
     if (ticket.status === 'pending') {
       ticket.status = 'open';
     }
+    ticket.autoClose = { reminderSentAt: null };
 
     await ticket.save();
     req.logger.info('Resposta adicionada ao ticket', { ticketId: ticket._id });
@@ -198,8 +207,10 @@ router.post('/admin/tickets/:id/reply', authenticateToken, requireSuperadmin, up
       at: new Date()
     });
 
-    // Mudar status para pendente (aguardando resposta do fotógrafo)
+    // Mudar status para pendente (aguardando resposta do fotógrafo) e reiniciar
+    // o relógio de auto-encerramento (lembrete só dispara após o silêncio inicial).
     ticket.status = 'pending';
+    ticket.autoClose = { reminderSentAt: null };
 
     await ticket.save();
 
