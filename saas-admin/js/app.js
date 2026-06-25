@@ -11,6 +11,7 @@ import { loadLandingEditor } from './tabs/landing.js';
 import { loadSecurityLogs } from './tabs/seguranca.js';
 import { loadEventos } from './tabs/eventos.js';
 import { loadSistema } from './tabs/sistema.js';
+import { loadAgente } from './tabs/agente.js';
 import { loadTutorials } from './tabs/tutoriais.js';
 import { loadManual } from './tabs/manual.js';
 import { loadBanners } from './tabs/banners.js';
@@ -127,6 +128,9 @@ window.switchTab = (tab) => {
   } else if (tab === 'sistema') {
     document.getElementById('tabSistema').classList.add('active');
     loadSistema();
+  } else if (tab === 'agente') {
+    document.getElementById('tabAgente').classList.add('active');
+    loadAgente();
   } else {
     const firstBtn = document.querySelectorAll('.tab-btn')[0];
     if (firstBtn) firstBtn.classList.add('active');

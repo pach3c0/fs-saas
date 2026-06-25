@@ -406,6 +406,7 @@ app.use('/api', require('./routes/dashboardCards'));
 app.use('/api', require('./routes/sessionCardBackgrounds'));
 app.use('/api', require('./routes/tickets'));
 app.use('/api', require('./routes/saasSystem'));
+app.use('/api', require('./routes/saasAgent'));
 
 
 
