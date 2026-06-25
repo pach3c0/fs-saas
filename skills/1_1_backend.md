@@ -24,12 +24,14 @@ src/
     auth.js           # authenticateToken, requireSuperadmin
     tenant.js         # resolveTenant — resolve org pelo subdomínio/slug
     planLimits.js     # checkLimit, checkSessionLimit, checkPhotoLimit, checkAlbumLimit
-    stripe.js         # createCheckoutSession, handleWebhook
+    stripe.js         # Integração Stripe
+    mercadopago.js    # Integração Mercado Pago (assinaturas e fotos extras)
+    security.js       # Rate limiting e proteção
   routes/
     auth.js           # POST /login
     organization.js   # GET/PUT /organization/profile
-    site.js           # GET /site/config (público), PUT /site/admin/config (autenticado)
-    siteData.js       # GET/PUT /site-data, /hero, /faq (legado — SiteData model)
+    site.js           # GET /site/config, PUT /site/admin/config
+    siteData.js       # Legado — SiteData model
     upload.js         # POST /admin/upload, /admin/upload-video
     sessions.js       # CRUD de sessões de fotos
     clients.js        # CRUD de clientes
@@ -37,9 +39,13 @@ src/
     notifications.js  # Notificações
     domains.js        # Domínios customizados
     landing.js        # Landing page pública
-    billing.js        # Planos e pagamento Stripe
-  routes/       # auth, sessions, clients, albums, organization, site, siteData, upload, notifications, domains, landing, saasAdmin
-  utils/        # multerConfig, notifications, deadlineChecker, logger
+    billing.js        # Planos e assinaturas
+    payments.js       # Pagamentos avulsos e webhooks
+    saasAdmin.js      # Painel Super Admin
+    gestao.js         # Integração ERP (Rhyno)
+    tickets.js        # Chamados de suporte
+    sales.js          # CRM e vendas
+  utils/        # logger, email, multerConfig, schedulers, etc
   services/     # storage (abstração de arquivos)
   logs/         # logs diários (winston)
 ecosystem.config.js  # PM2 cluster
@@ -221,7 +227,8 @@ OWNER_EMAIL=admin@cliquezoom.com.br
 SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS
 STRIPE_SECRET_KEY (opcional)
 STRIPE_WEBHOOK_SECRET (opcional)
-BASE_URL (para redirects Stripe)
+MERCADOPAGO_ACCESS_TOKEN (pagamentos BR)
+BASE_URL (para redirects de pagamento)
 ```
 
 ---
@@ -301,3 +308,19 @@ const org = await Organization.findOne({ slug }).select('_id siteTheme').lean();
 - **Mongoose `returnDocument`:** usar `returnDocument: 'after'` em vez do depreciado `new: true` no `findOneAndUpdate`.
 - **Schedulers só no worker 0:** checar `process.env.NODE_APP_INSTANCE === '0'` antes de rodar crons para evitar envios duplicados em cluster PM2.
 
+## resumo do Gemini que fez a ultima atualizacao 
+
+Analisei a skill 1_1_backend.md e a comparei com o código fonte atual da aplicação (diretório src). Havia de fato algumas discrepâncias e funcionalidades novas que ainda não constavam no documento.
+
+Acabei de atualizar a documentação no arquivo 1_1_backend.md com as seguintes correções importantes:
+
+Gateways de Pagamento: Adicionado o mercadopago.js aos middlewares, uma vez que ele agora gerencia pagamentos de assinaturas e fotos extras (antes a doc citava apenas o Stripe).
+Novas Rotas (Features Novas): Adicionei à listagem as rotas recentemente desenvolvidas:
+gestao.js (Integração ERP/Rhyno)
+tickets.js (Chamados de Suporte)
+saasAdmin.js (Painel Super Admin)
+payments.js (Webhooks e Pagamentos Avulsos)
+sales.js (CRM e Vendas)
+Segurança: Listado o novo middleware security.js que trata do rate limiting e sanitização.
+Variáveis de Ambiente: Incluído MERCADOPAGO_ACCESS_TOKEN na lista de variáveis .env para refletir as necessidades do novo gateway de pagamento brasileiro.
+Agora a sua skill reflete 100% a arquitetura e os padrões atuais da versão presente no seu repositório local.

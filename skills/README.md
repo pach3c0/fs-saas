@@ -57,6 +57,7 @@ Um arquivo por aba do painel — visão técnica + manual + roteiro de vídeo.
 | [`8_1_handoff-programa-testes.md`](8_1_handoff-programa-testes.md) | Programa de testes (2026-06-10) |
 | [`9_0_handoff-rhyno-integracao.md`](9_0_handoff-rhyno-integracao.md) | Integração CliqueZoom ↔ Rhyno (ERP/CRM) |
 | [`15_0_handoff-toolkit-operacao.md`](15_0_handoff-toolkit-operacao.md) | Toolkit de operação do SaaS Admin (2026-06-12) |
+| [`22_0_handoff-agente-saas-admin.md`](22_0_handoff-agente-saas-admin.md) | Agente IA de operação (chat read-only + digest + custo/uso) — LIVE 2026-06-25 |
 | [`historico_entregas.md`](historico_entregas.md) | Changelog consolidado de entregas |
 
 ## 🔮 Visões V2 (futuro — NÃO implementar até o usuário pedir)
