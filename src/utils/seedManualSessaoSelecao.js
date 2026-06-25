@@ -20,12 +20,12 @@ const ICON = '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 
 const BLOCKS = [
   {
     type: 'intro',
-    content: 'O modo Seleção é focado em guiar o seu cliente para escolher as fotos favoritas dentro de um limite de prazo. Criamos um Passo a Passo (Wizard) que acompanha você desde o upload das fotos brutas até a entrega do material editado final, garantindo que nada passe batido.'
+    content: 'O modo Seleção é focado em guiar o seu cliente para escolher as fotos favoritas. Agora o fluxo acontece em uma única página dinâmica (Fotos da Sessão), centralizando os uploads, configurações e o compartilhamento em um só lugar.'
   },
   {
     type: 'callout',
     color: 'accent',
-    content: 'Dica: O fluxo é dividido em 5 etapas no topo da tela (Upload → Compartilhar → Acompanhar → Editadas → Entregar). Você só avança para a próxima etapa quando concluir a atual.'
+    content: 'Configurações (Barra Lateral): À direita da tela, você tem todo o controle. Defina o Nome, cadastre ou busque o Cliente, adicione uma Foto de Capa, determine o Prazo de Seleção e os valores de Fotos do Pacote e Extras.'
   },
   {
     type: 'steps',
@@ -33,45 +33,39 @@ const BLOCKS = [
       {
         n: 1,
         who: 'fotógrafo',
-        title: 'Passo 1: Upload (Fotos Brutas)',
-        desc: 'Abra a sessão e clique em **Subir fotos**. Faça o upload das suas imagens originais (brutas). Quando terminar de enviar todas as fotos do ensaio, clique no botão superior **Concluí upload** para travar esta fase e liberar o compartilhamento.'
+        title: 'Escolha o seu caminho de Upload',
+        desc: 'Ao iniciar, você verá duas opções: **Fotos originais (sem edição)**, onde você sobe os arquivos brutos para editar só as escolhidas depois, ou **Fotos já editadas**, ideal se você já tratou o material e quer pular o re-upload no final.'
       },
       {
         n: 2,
         who: 'fotógrafo',
-        title: 'Passo 2: Compartilhar',
-        desc: 'Nesta etapa, o sistema gera o código de acesso único do cliente. Use os botões **E-mail** ou **WhatsApp** para enviar o convite. O texto já vai pronto com o link do seu negócio, código da sessão e a data limite que você definiu.'
+        title: 'Pré-requisitos de Compartilhamento',
+        desc: 'O sistema possui um bloqueio de segurança (faixa laranja "Antes de compartilhar, conclua"). Você só poderá enviar o acesso ao cliente depois de **vincular o cliente** na barra lateral direita e fazer o upload de pelo menos 1 foto.'
       },
       {
         n: 3,
-        who: 'cliente',
-        title: 'Seleção do Cliente',
-        desc: 'O cliente acessa o link, digita o código e entra na galeria. Ele navega pelas fotos, marca suas favoritas clicando no coração, e clica em "Enviar Seleção" quando terminar.'
+        who: 'fotógrafo',
+        title: 'Compartilhar o Código',
+        desc: 'Cumpridos os requisitos, a aba inferior **Compartilhar com o cliente** será liberada. Você pode copiar o link ou enviar as instruções e o código direto para o WhatsApp ou E-mail do cliente.'
       },
       {
         n: 4,
-        who: 'fotógrafo',
-        title: 'Passo 3: Acompanhar',
-        desc: 'Enquanto o cliente escolhe, a etapa **Acompanhar** mostra a barra de progresso em tempo real. Se o cliente deixar comentários (ícone de balão), você pode ler e responder por aqui. Quando o cliente finalizar, a sessão é enviada de volta para você. Se precisar, você também pode clicar em **Travar e iniciar edição** para forçar o encerramento do prazo.'
+        who: 'cliente',
+        title: 'Seleção',
+        desc: 'O cliente acessa a galeria usando o código que você mandou, clica nos corações para marcar suas favoritas, acompanha o limite contratado na barra flutuante e envia a seleção.'
       },
       {
         n: 5,
         who: 'fotógrafo',
-        title: 'Passo 4: Editadas',
-        desc: 'Baixe o **Arquivo .txt** com os nomes das fotos selecionadas e use no Lightroom para filtrar a sua biblioteca. Edite as fotos e depois clique em **Subir fotos tratadas**. O painel vai automaticamente identificar as fotos e sobrepor as versões brutas.'
-      },
-      {
-        n: 6,
-        who: 'fotógrafo',
-        title: 'Passo 5: Entregar',
-        desc: 'Com todas as fotos escolhidas já tratadas, o botão **Entregar e notificar cliente** é liberado. Ao clicar nele, o cliente recebe um e-mail avisando que o álbum final está pronto para download em alta resolução. Você também pode usar a opção "Compartilhar entrega" via WhatsApp nesta tela.'
+        title: 'Acompanhar, Editar e Entregar',
+        desc: 'Na mesma página central, você acompanha o total selecionado. Se escolheu fotos originais, você baixa os nomes (arquivo .txt), trata e depois clica em "Subir editadas". Quando tudo estiver finalizado, o botão "Entregar fotos" é liberado para o cliente baixar em alta resolução.'
       }
     ]
   },
   {
     type: 'callout',
     color: 'yellow',
-    content: 'Fotos Adicionais (Upsell): Se o cliente escolher mais fotos do que o pacote contratado, o sistema avisa e calcula o valor extra. No passo de Acompanhamento, você verá a solicitação e poderá Aceitar ou Recusar as fotos extras antes de iniciar as edições.'
+    content: 'Fotos Adicionais (Upsell): Os limites e os preços de fotos extras são definidos diretamente na barra lateral de configurações. Se o cliente extrapolar a quantidade, o sistema calcula e notifica você na mesma tela, permitindo que aceite a demanda extra com um clique.'
   }
 ];
 
