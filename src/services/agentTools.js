@@ -292,7 +292,7 @@ const tools = {
 
   // ── Métricas de negócio / assinaturas ─────────────────────────────────────
   getBusinessMetrics: tool({
-    description: 'Métricas de negócio/assinaturas: distribuição por plano, status (active/trialing/past_due/canceled), MRR POTENCIAL (soma do preço dos planos pagos ativos) e próximos vencimentos. A distribuição por plano lê Organization.plan (MESMA fonte do dashboard) e ignora orgs na lixeira/assinaturas órfãs — por isso bate com o painel. ATENÇÃO: V1 NÃO cobra de verdade — o MRR é o teto teórico baseado no plano atribuído, não receita real. Use para "MRR", "quantos no plano pro", "quem está past_due/em trial".',
+    description: 'Métricas de negócio/assinaturas: distribuição por plano, status (active/trialing/past_due/canceled), MRR POTENCIAL (soma do preço dos planos pagos ativos, EXCLUINDO contas de cortesia) e próximos vencimentos. A distribuição por plano lê Organization.plan (MESMA fonte do dashboard) e ignora orgs na lixeira/assinaturas órfãs — por isso bate com o painel. ATENÇÃO: V1 NÃO cobra de verdade — o MRR é o teto teórico baseado no plano atribuído, não receita real. Use para "MRR", "quantos no plano pro", "quem está past_due/em trial".',
     inputSchema: z.object({}),
     execute: async () => {
       // FONTE ÚNICA: o plano é lido de Organization.plan (mesmo campo do dashboard
@@ -304,7 +304,7 @@ const tools = {
         { $unwind: '$org' },
         { $match: { 'org.deletedAt': null } },
         { $project: {
-            status: 1, cancelAtPeriodEnd: 1, currentPeriodEnd: 1,
+            status: 1, cancelAtPeriodEnd: 1, currentPeriodEnd: 1, isCourtesy: 1,
             plan: '$org.plan',               // plano canônico (igual ao dashboard)
             orgName: '$org.name', orgSlug: '$org.slug'
         } }
@@ -312,7 +312,8 @@ const tools = {
       const priceBRL = (p) => (PLANS[p]?.price || 0) / 100; // plans.js guarda centavos
 
       const byPlan = {}; const byStatus = {};
-      let mrrPotencial = 0; const cancelando = []; const vencimentos = [];
+      let mrrPotencial = 0; let cortesiasAtivas = 0;
+      const cancelando = []; const vencimentos = [];
       liveSubs.forEach((s) => {
         const plan = s.plan || 'sem_plano';
         byPlan[plan] = (byPlan[plan] || 0) + 1;
@@ -321,15 +322,21 @@ const tools = {
         // MRR/cancelamentos/vencimentos só para assinaturas vigentes
         if (!['active', 'trialing', 'past_due'].includes(s.status)) return;
         const org = { name: s.orgName, slug: s.orgSlug };
-        if (s.status === 'active' && plan !== 'free') mrrPotencial += priceBRL(plan);
+        // Cortesia NÃO entra no MRR: é plano pago de rótulo, sem cobrança real.
+        // (A distribuição por plano acima continua contando, p/ bater com o dashboard.)
+        if (s.status === 'active' && plan !== 'free') {
+          if (s.isCourtesy) cortesiasAtivas++;
+          else mrrPotencial += priceBRL(plan);
+        }
         if (s.cancelAtPeriodEnd) cancelando.push({ org, plan, currentPeriodEnd: s.currentPeriodEnd });
         if (s.currentPeriodEnd) vencimentos.push({ org, plan, status: s.status, currentPeriodEnd: s.currentPeriodEnd });
       });
       vencimentos.sort((a, b) => new Date(a.currentPeriodEnd) - new Date(b.currentPeriodEnd));
       return {
-        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas). Distribuição por plano lê Organization.plan (mesma fonte do dashboard); órfãs e orgs na lixeira são ignoradas.',
+        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas). Contas de CORTESIA são excluídas do MRR (plano pago de rótulo, sem cobrança). Distribuição por plano lê Organization.plan (mesma fonte do dashboard); órfãs e orgs na lixeira são ignoradas.',
         byPlan, byStatus,
         mrrPotencialBRL: Math.round(mrrPotencial * 100) / 100,
+        cortesiasAtivasExcluidasDoMRR: cortesiasAtivas,
         precosPlanoBRL: { basic: priceBRL('basic'), pro: priceBRL('pro') },
         cancelandoNoFimDoPeriodo: cancelando.slice(0, 25),
         proximosVencimentos: vencimentos.slice(0, 15)
