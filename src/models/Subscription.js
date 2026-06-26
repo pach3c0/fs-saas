@@ -54,11 +54,15 @@ const SubscriptionSchema = new mongoose.Schema({
   overrideEnabled: { type: Boolean, default: false },
 
   // Limites de uso (efetivos). Espelham o plano base, salvo override ligado.
+  // Modelo storage-only: sessões/fotos/álbuns são ILIMITADOS (-1) em todos os tiers;
+  // o medidor real é o de storage. Defaults espelham o Free (fonte: models/plans.js).
+  // Mesmo assim, a VERDADE de exibição/enforcement vem de effectiveLimits(sub)
+  // (deriva de plans.js sem override) — estes defaults só evitam snapshot velho.
   limits: {
-    maxSessions: { type: Number, default: 5 },      // free: 5, basic: 50, pro: unlimited (-1)
-    maxPhotos: { type: Number, default: 100 },      // free: 100, basic: 5000, pro: unlimited
-    maxAlbums: { type: Number, default: 1 },        // free: 1, basic: 10, pro: unlimited
-    maxStorage: { type: Number, default: 500 },     // MB
+    maxSessions: { type: Number, default: -1 },     // ilimitado
+    maxPhotos: { type: Number, default: -1 },       // ilimitado
+    maxAlbums: { type: Number, default: -1 },       // ilimitado
+    maxStorage: { type: Number, default: 3072 },    // MB — Free 3 GB
     customDomain: { type: Boolean, default: false }
   },
 

@@ -9,17 +9,18 @@ export async function renderPlano(container) {
       apiGet('/api/billing/plans')
     ]);
 
-    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon } = subRes;
+    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits } = subRes;
     const { plans } = plansRes;
 
-    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon });
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits });
   } catch (error) {
     container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
-function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon }) {
-  const limites = subscription.limits;
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits }) {
+  // Limites efetivos vêm do backend (derivam de plans.js); fallback ao gravado.
+  const limites = effLimits || subscription.limits;
   const uso     = subscription.usage;
   const planoKey = subscription.plan;
   const isCortesia = !!subscription.isCourtesy;

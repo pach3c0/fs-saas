@@ -18,7 +18,7 @@ const path = require('path');
 const fs = require('fs');
 const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
-const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
+const { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
 const { updatePreapprovalAmount } = require('../middleware/mercadopago');
 const plans = require('../models/plans');
 
@@ -247,10 +247,10 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 newsletterSubs: 0,
                 storageMB: toMB(storageBytes),
                 storageBytes,
-                maxStorageMB: sub?.limits?.maxStorage || 500,
-                maxSessions: sub?.limits?.maxSessions ?? 5,
-                maxPhotos: sub?.limits?.maxPhotos ?? 100,
-                maxAlbums: sub?.limits?.maxAlbums ?? 1,
+                maxStorageMB: effectiveStorageMB(sub),
+                maxSessions: effectiveLimits(sub).maxSessions,
+                maxPhotos: effectiveLimits(sub).maxPhotos,
+                maxAlbums: effectiveLimits(sub).maxAlbums,
                 isCourtesy: !!sub?.isCourtesy,
                 courtesyNote: sub?.courtesyNote || '',
                 overrideEnabled: !!sub?.overrideEnabled,

@@ -1,5 +1,5 @@
 const Subscription = require('../models/Subscription');
-const { effectiveStorageMB } = require('../services/subscriptionPricing');
+const { effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
 
 async function checkLimit(req, res, next) {
   try {
@@ -21,9 +21,14 @@ async function checkLimit(req, res, next) {
   }
 }
 
+// Os limites de contagem usam effectiveLimits (deriva de plans.js) — não o
+// sub.limits gravado, que pode estar defasado e reativar caps por engano. No
+// modelo atual todos os planos têm -1 (ilimitado), então isto é um no-op de fato;
+// fica como guarda caso algum override custom defina um teto.
 async function checkSessionLimit(req, res, next) {
   const sub = req.subscription;
-  if (sub.limits.maxSessions !== -1 && sub.usage.sessions >= sub.limits.maxSessions) {
+  const max = effectiveLimits(sub).maxSessions;
+  if (max !== -1 && sub.usage.sessions >= max) {
     return res.status(403).json({
       error: 'Limite de sessões atingido',
       upgrade: true,
@@ -35,7 +40,8 @@ async function checkSessionLimit(req, res, next) {
 
 async function checkPhotoLimit(req, res, next) {
   const sub = req.subscription;
-  if (sub.limits.maxPhotos !== -1 && sub.usage.photos >= sub.limits.maxPhotos) {
+  const max = effectiveLimits(sub).maxPhotos;
+  if (max !== -1 && sub.usage.photos >= max) {
     return res.status(403).json({
       error: 'Limite de fotos atingido',
       upgrade: true
@@ -46,7 +52,8 @@ async function checkPhotoLimit(req, res, next) {
 
 async function checkAlbumLimit(req, res, next) {
   const sub = req.subscription;
-  if (sub.limits.maxAlbums !== -1 && sub.usage.albums >= sub.limits.maxAlbums) {
+  const max = effectiveLimits(sub).maxAlbums;
+  if (max !== -1 && sub.usage.albums >= max) {
     return res.status(403).json({
       error: 'Limite de álbuns atingido',
       upgrade: true

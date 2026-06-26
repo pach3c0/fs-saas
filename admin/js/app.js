@@ -706,9 +706,11 @@ async function loadSidebarStorage() {
     if (!storageRes.ok) return;
     const storage = await storageRes.json();
     const billingData = billingRes.ok ? await billingRes.json() : null;
-    const maxMB = billingData?.subscription?.limits?.maxStorage || 500;
-    
-    const pct = Math.min(storage.storageMB / maxMB * 100, 100).toFixed(1);
+    // Limite efetivo (deriva de plans.js; já vem pronto do endpoint). <=0 = ilimitado.
+    const effMax = billingData?.maxStorageMB ?? billingData?.subscription?.limits?.maxStorage ?? 3072;
+    const unlimited = !(effMax > 0);
+    const maxMB = unlimited ? 0 : effMax;
+    const pct = unlimited ? '0' : Math.min(storage.storageMB / maxMB * 100, 100).toFixed(1);
     const widget = document.getElementById('sidebar-storage');
     const bar = document.getElementById('sidebar-storage-bar');
     const label = document.getElementById('sidebar-storage-label');
@@ -721,8 +723,8 @@ async function loadSidebarStorage() {
     bar.style.background = pct > 90 ? 'var(--red)' : (pct > 70 ? 'var(--yellow)' : 'var(--accent)');
     label.textContent = storage.storageMB + ' MB';
     
-    const maxLabel = maxMB >= 1024 ? (maxMB / 1024).toFixed(0) + ' GB' : maxMB + ' MB';
-    pctEl.textContent = pct + '% de ' + maxLabel;
+    const maxLabel = unlimited ? '∞' : (maxMB >= 1024 ? (maxMB / 1024).toFixed(0) + ' GB' : maxMB + ' MB');
+    pctEl.textContent = unlimited ? (storage.storageMB + ' MB usados') : (pct + '% de ' + maxLabel);
     
     if (breakdownEl && storage.breakdown) {
       const b = storage.breakdown;
