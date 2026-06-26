@@ -232,6 +232,11 @@ export class UploadQueue {
     this.onItemUpdate = options.onItemUpdate || (() => {});
     this.onQueueUpdate = options.onQueueUpdate || (() => {});
     this.onQueueDone = options.onQueueDone || (() => {});
+
+    // Gate de storage (Fase 2): quando o backend recusa por cota cheia
+    // (403 STORAGE_FULL), avisa UMA vez por lote e para o resto da fila.
+    this.onStorageFull = options.onStorageFull || null;
+    this.storageFull = false;
   }
 
   /**
@@ -241,7 +246,8 @@ export class UploadQueue {
    */
   add(files, specificUrl = null) {
     if (!this.startTime) this.startTime = Date.now();
-    
+    this.storageFull = false; // nova ação do usuário → pode avisar de novo
+
     const newItems = Array.from(files).map(file => {
       const item = {
         id: Math.random().toString(36).substr(2, 9),
@@ -381,9 +387,14 @@ export class UploadQueue {
           if (item.xhr.status >= 200 && item.xhr.status < 300) {
             resolve();
           } else {
-            let msg = 'Erro no upload';
-            try { msg = JSON.parse(item.xhr.responseText).error || msg; } catch(e){}
-            reject(new Error(msg));
+            let body = {};
+            try { body = JSON.parse(item.xhr.responseText) || {}; } catch (e) {}
+            // Prefere a mensagem amigável e completa (`message`) do backend;
+            // cai pra `error` curto e depois pra um genérico.
+            const err = new Error(body.message || body.error || 'Erro no upload');
+            err.code = body.code;
+            err.status = item.xhr.status;
+            reject(err);
           }
         });
 
@@ -406,6 +417,12 @@ export class UploadQueue {
       } else {
         item.status = 'error';
         item.errorMsg = err.message;
+        // Armazenamento cheio é uma barra dura do plano: os demais arquivos do
+        // lote cairiam no mesmo 403. Avisa uma vez e para o resto da fila.
+        if (err.code === 'STORAGE_FULL' && !this.storageFull) {
+          this.storageFull = true;
+          this._handleStorageFull(err.message);
+        }
       }
     } finally {
       item.xhr = null;
@@ -413,6 +430,29 @@ export class UploadQueue {
       this.onItemUpdate(item);
       this.onQueueUpdate(this.getStats());
       this._processNext();
+    }
+  }
+
+  /**
+   * Reage ao 403 STORAGE_FULL do backend: cancela o que ainda não subiu (todos
+   * cairiam no mesmo limite) e avisa o fotógrafo com uma mensagem clara — em vez
+   * de N erros vermelhos minúsculos. Usa o callback custom se houver; senão o
+   * toast global do admin.
+   */
+  _handleStorageFull(message) {
+    this.queue.forEach((i) => {
+      if (i.status === 'pending') {
+        i.status = 'cancelled';
+        this.onItemUpdate(i);
+      }
+    });
+    this.onQueueUpdate(this.getStats());
+
+    if (typeof this.onStorageFull === 'function') {
+      this.onStorageFull(message);
+    } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+      // Toast longo (8s): a mensagem é uma frase inteira com a orientação.
+      window.showToast(message, 'error', 8000);
     }
   }
 }

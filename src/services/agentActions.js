@@ -9,8 +9,7 @@
 // reaproveitando a lógica dos endpoints existentes e grava no AuditLog.
 const { tool } = require('ai');
 const { z } = require('zod');
-const path = require('path');
-const fs = require('fs');
+const plans = require('../models/plans');
 
 const Organization = require('../models/Organization');
 const User = require('../models/User');
@@ -24,19 +23,11 @@ const { sendTicketReplyEmail } = require('../utils/email');
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isOid = (s) => /^[a-f0-9]{24}$/i.test(String(s || ''));
 const slugify = (s) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
-const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
-
-// Espelha loadPlanLimits() de saasAdmin.js (mesmo arquivo + fallback).
+// Limites efetivos por plano, derivados da FONTE ÚNICA (models/plans.js).
 async function loadPlanLimits() {
-  try {
-    return JSON.parse(await fs.promises.readFile(PLAN_LIMITS_PATH, 'utf8'));
-  } catch {
-    return {
-      free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
-      basic: { maxSessions: 50,  maxPhotos: 5000, maxAlbums: 10, maxStorage: 10000, customDomain: false },
-      pro:   { maxSessions: -1,  maxPhotos: -1,   maxAlbums: -1, maxStorage: 50000, customDomain: true  }
-    };
-  }
+  return Object.fromEntries(
+    Object.entries(plans).map(([id, p]) => [id, { ...p.limits }])
+  );
 }
 
 async function resolveOrgLean(input) {

@@ -6,7 +6,7 @@ const SubscriptionSchema = new mongoose.Schema({
   // Plano
   plan: {
     type: String,
-    enum: ['free', 'basic', 'pro'],
+    enum: ['free', 'basic', 'pro', 'studio'],
     default: 'free'
   },
 
@@ -67,7 +67,18 @@ const SubscriptionSchema = new mongoose.Schema({
     sessions: { type: Number, default: 0 },
     photos: { type: Number, default: 0 },
     albums: { type: Number, default: 0 },
-    storage: { type: Number, default: 0 }  // MB
+    storage: { type: Number, default: 0 },  // MB — legado/morto, removido na Fase 4
+
+    // Medidor de storage (Fase 1 — SÓ-MEDE, não bloqueia). Gravados pelo
+    // reconciliador diário (src/utils/storageReconciler.js), que varre o disco
+    // real da org. Valores em BYTES.
+    //  • storageQuotaBytes = o que o plano LIMITA (só fotos de sessão; espelha a
+    //    barra do painel do fotógrafo) — será a base do gate na Fase 2.
+    //  • storageBytes = disco total da org (sessions+site+vídeos); informativo
+    //    para o super admin / operação.
+    storageBytes: { type: Number, default: 0 },
+    storageQuotaBytes: { type: Number, default: 0 },
+    storageReconciledAt: { type: Date, default: null }
   }
 
 }, { timestamps: true });

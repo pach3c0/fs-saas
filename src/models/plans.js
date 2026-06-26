@@ -1,63 +1,137 @@
+// Fonte ÚNICA da verdade dos planos da CliqueZoom.
+// Todas as outras camadas derivam DAQUI — nunca duplicar números de plano:
+//   - saasAdmin.js / agentActions.js (loadPlanLimits) lêem daqui
+//   - auth.js (signup) usa plans.free.limits
+//   - webhook do Mercado Pago (mercadopago.js) reseta sub.limits a partir daqui
+//   - subscriptionPricing.js / billing.js calculam preço e storage efetivos daqui
+//
+// Medidor ÚNICO = storage. Sessões/fotos/álbuns são ILIMITADOS em todos os tiers
+// (count caps = -1). O gate real é o de storage (middleware/storageLimit — Fase 2).
+//
+// Unidades: `limits.maxStorage` em MB · `price` em centavos · `seats` = usuários inclusos.
+// `capabilities` = flags de gating de feature (consumidas no gating da Fase 3).
 const plans = {
   free: {
     name: 'Free',
     price: 0,
-    priceId: null,  // Stripe Price ID
+    priceId: null,  // legado Stripe (não usado; remoção na Fase 4)
+    seats: 1,
     limits: {
-      maxSessions: 5,
-      maxPhotos: 100,
-      maxAlbums: 1,
-      maxStorage: 500,  // MB
+      maxSessions: -1,
+      maxPhotos: -1,
+      maxAlbums: -1,
+      maxStorage: 3072,      // 3 GB
       customDomain: false
     },
+    capabilities: {
+      crm: 'taste',          // CRM "gostinho"
+      ordemServico: true,    // ordem de serviço com campo de contrato (desce pra todos)
+      aniversario: false,    // widget de lembrete de aniversário
+      tarefasMetas: false,
+      financasEmpresa: false,
+      financasPessoal: false,
+      gestaoMista: false,
+      dominioProprio: false,
+      selo: true             // selo "powered by CliqueZoom" na galeria
+    },
     features: [
-      '5 sessões por mês',
-      '100 fotos por sessão',
-      '1 prova de álbum',
-      '500MB de armazenamento',
-      'Watermark customizado',
-      'Galeria com seleção'
+      '3 GB de armazenamento',
+      'Sessões ilimitadas',
+      'Entrega em alta resolução',
+      'Galeria com seleção (todos os modos)',
+      'CRM essencial + Ordem de serviço com contrato',
+      'Triagem por reconhecimento facial',
+      'Selo CliqueZoom na galeria'
     ]
   },
   basic: {
     name: 'Basic',
-    price: 4900,  // R$ 49,00 em centavos
-    priceId: 'price_1Qk...',  // Placeholder: Substituir pelo ID real do Stripe
+    price: 3900,             // R$ 39,00
+    priceId: null,
+    seats: 1,
     limits: {
-      maxSessions: 50,
-      maxPhotos: 5000,
-      maxAlbums: 10,
-      maxStorage: 10000,  // 10GB
+      maxSessions: -1,
+      maxPhotos: -1,
+      maxAlbums: -1,
+      maxStorage: 20480,     // 20 GB
       customDomain: false
     },
+    capabilities: {
+      crm: 'full',
+      ordemServico: true,
+      aniversario: true,
+      tarefasMetas: false,
+      financasEmpresa: false,
+      financasPessoal: false,
+      gestaoMista: false,
+      dominioProprio: false,
+      selo: false
+    },
     features: [
-      '50 sessões por mês',
-      '5.000 fotos por sessão',
-      '10 provas de álbum',
-      '10GB de armazenamento',
-      'Todas as features do Free',
-      'Suporte por email'
+      '20 GB de armazenamento',
+      'Tudo do Free, sem o selo na galeria',
+      'CRM completo + lembrete de aniversário'
     ]
   },
   pro: {
     name: 'Pro',
-    price: 9900,  // R$ 99,00
-    priceId: 'price_1Qk...', // Placeholder: Substituir pelo ID real do Stripe
+    price: 11900,            // R$ 119,00
+    priceId: null,
+    seats: 2,
     limits: {
-      maxSessions: -1,  // Ilimitado
+      maxSessions: -1,
       maxPhotos: -1,
       maxAlbums: -1,
-      maxStorage: 50000,  // 50GB
+      maxStorage: 153600,    // 150 GB
       customDomain: true
     },
+    capabilities: {
+      crm: 'full',
+      ordemServico: true,
+      aniversario: true,
+      tarefasMetas: true,
+      financasEmpresa: true,
+      financasPessoal: false,
+      gestaoMista: false,
+      dominioProprio: true,
+      selo: false
+    },
     features: [
-      'Sessões ilimitadas',
-      'Fotos ilimitadas',
-      'Álbuns ilimitados',
-      '50GB de armazenamento',
-      'Domínio personalizado',
-      'Todas as features do Basic',
-      'Suporte prioritário'
+      '150 GB de armazenamento',
+      'Tudo do Basic',
+      'Domínio próprio',
+      'Tarefas, metas e finanças da empresa',
+      '2 usuários inclusos'
+    ]
+  },
+  studio: {
+    name: 'Studio',
+    price: 24900,            // R$ 249,00
+    priceId: null,
+    seats: 3,
+    limits: {
+      maxSessions: -1,
+      maxPhotos: -1,
+      maxAlbums: -1,
+      maxStorage: 614400,    // 600 GB
+      customDomain: true
+    },
+    capabilities: {
+      crm: 'full',
+      ordemServico: true,
+      aniversario: true,
+      tarefasMetas: true,
+      financasEmpresa: true,
+      financasPessoal: true,
+      gestaoMista: true,
+      dominioProprio: true,
+      selo: false
+    },
+    features: [
+      '600 GB de armazenamento',
+      'Tudo do Pro',
+      'Finanças pessoais + gestão "misto"',
+      '3 usuários inclusos'
     ]
   }
 };

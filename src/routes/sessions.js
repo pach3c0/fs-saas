@@ -4,7 +4,7 @@ const Session = require('../models/Session');
 const Notification = require('../models/Notification');
 const Subscription = require('../models/Subscription');
 const { authenticateToken } = require('../middleware/auth');
-const { checkLimit, checkSessionLimit, checkPhotoLimit } = require('../middleware/planLimits');
+const { checkLimit, checkSessionLimit, checkPhotoLimit, checkStorageGate } = require('../middleware/planLimits');
 const { checkHoneyPot } = require('../middleware/security');
 const rateLimit = require('express-rate-limit');
 const { createUploader } = require('../utils/multerConfig');
@@ -1299,7 +1299,7 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLimit, uploadSession.array('photos'), async (req, res) => {
+router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLimit, checkStorageGate, uploadSession.array('photos'), async (req, res) => {
   const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
@@ -1371,6 +1371,14 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       { $inc: { 'usage.photos': newPhotos.length } }
     );
 
+    // Mantém o medidor de storage fresco entre as reconciliações diárias:
+    // re-mede a pasta de sessões da org no disco (fire-and-forget, não trava a
+    // resposta). O reconciliador diário (storageReconciler) segue como fonte de
+    // verdade / backstop. Ver gate em middleware/planLimits.js (checkStorageGate).
+    storage.getDirSize(`/${orgId}/sessions`)
+      .then(bytes => Subscription.updateOne({ organizationId: orgId }, { $set: { 'usage.storageQuotaBytes': bytes } }))
+      .catch(() => { });
+
     // Update onboarding step
     await Organization.findByIdAndUpdate(req.user.organizationId, {
       'onboarding.steps.photosUploaded': true
@@ -1391,7 +1399,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 });
 
 // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo
-router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSession.array('photos'), async (req, res) => {
+router.post('/sessions/:id/photos/upload-edited', authenticateToken, checkStorageGate, uploadSession.array('photos'), async (req, res) => {
   const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
@@ -1500,6 +1508,12 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, uploadSessi
         { $inc: { 'usage.photos': newPhotos.length } }
       );
     }
+
+    // Re-mede a pasta de sessões no disco (fire-and-forget) — mantém o medidor de
+    // storage fresco após trocas/edições. Reconciliador diário = backstop.
+    storage.getDirSize(`/${orgId}/sessions`)
+      .then(bytes => Subscription.updateOne({ organizationId: orgId }, { $set: { 'usage.storageQuotaBytes': bytes } }))
+      .catch(() => { });
 
     session.markModified('photos');
     session.lastEditedUploadAt = new Date();

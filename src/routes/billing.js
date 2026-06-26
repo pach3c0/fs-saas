@@ -28,12 +28,9 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
     
     const orgId = req.user.organizationId;
     const toMB = b => Math.round(b / 1024 / 1024 * 100) / 100;
-    const [sessionsBytes, siteBytes, videosBytes] = await Promise.all([
-      storage.getDirSize(`/${orgId}/sessions`),
-      storage.getDirSize(`/${orgId}/site`),
-      storage.getDirSize(`/${orgId}/videos`),
-    ]);
-    const storageBytes = sessionsBytes + siteBytes + videosBytes;
+    // Fonte única da fórmula de storage (ver storage.getOrgStorageBytes).
+    const { sessions: sessionsBytes, site: siteBytes, videos: videosBytes, total: storageBytes } =
+      await storage.getOrgStorageBytes(orgId);
     const storageMB = toMB(storageBytes);
 
     res.json({

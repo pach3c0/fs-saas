@@ -343,6 +343,7 @@ const { checkOffboarding } = require('./utils/offboardingChecker');
 const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
+const storageReconciler = require('./utils/storageReconciler');
 const agentDigest = require('./utils/agentDigest');
 const ticketAutomation = require('./utils/ticketAutomation');
 
@@ -371,6 +372,11 @@ function startDeadlineScheduler() {
   // Retenção de storage: roda 1× por dia às 9h Brasília (12h UTC)
   safeInterval('storageRetention', () => storageRetentionChecker.run(), ONE_DAY);
   logger.info('[scheduler] Storage retention checker iniciado (a cada 24h)');
+
+  // Medidor de storage (Fase 1 — SÓ-MEDE): varre o disco real de cada org e
+  // grava o uso na Subscription. Roda 1× por dia; a 1ª execução (boot) backfilla.
+  safeInterval('storageReconciler', () => storageReconciler.run(), ONE_DAY);
+  logger.info('[scheduler] Storage reconciler (medidor) iniciado (a cada 24h)');
 
   // Digest proativo do agente: checa a cada 6h, mas só gera se habilitado e dentro da janela.
   safeInterval('agentDigest', () => agentDigest.run(), SIX_HOURS);

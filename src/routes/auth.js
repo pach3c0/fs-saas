@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
+const plans = require('../models/plans');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const { checkHoneyPot } = require('../middleware/security');
 const { sendWelcomeEmail, sendApprovalEmail, sendPasswordResetEmail, sendNewPhotographerNotificationEmail } = require('../utils/email');
@@ -174,13 +175,7 @@ router.post('/auth/register', checkHoneyPot, async (req, res) => {
       organizationId: org._id,
       plan: 'free',
       status: 'active',
-      limits: {
-        maxSessions: 5,
-        maxPhotos: 100,
-        maxAlbums: 1,
-        maxStorage: 500,
-        customDomain: false
-      },
+      limits: { ...plans.free.limits },  // fonte única: models/plans.js
       usage: { sessions: 0, photos: 0, albums: 0, storage: 0 }
     });
 

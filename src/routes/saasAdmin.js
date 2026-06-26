@@ -20,19 +20,14 @@ const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
 const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
 const { updatePreapprovalAmount } = require('../middleware/mercadopago');
-const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
+const plans = require('../models/plans');
 
+// Limites efetivos por plano, derivados da FONTE ÚNICA (models/plans.js).
+// Devolve uma cópia rasa pra ninguém mutar o catálogo compartilhado por engano.
 async function loadPlanLimits() {
-    try {
-        const data = await fs.promises.readFile(PLAN_LIMITS_PATH, 'utf8');
-        return JSON.parse(data);
-    } catch {
-        return {
-            free:  { maxSessions: 5,   maxPhotos: 100,  maxAlbums: 1,  maxStorage: 500,   customDomain: false },
-            basic: { maxSessions: 50,  maxPhotos: 5000, maxAlbums: 10, maxStorage: 10000, customDomain: false },
-            pro:   { maxSessions: -1,  maxPhotos: -1,   maxAlbums: -1, maxStorage: 50000, customDomain: true  }
-        };
-    }
+    return Object.fromEntries(
+        Object.entries(plans).map(([id, p]) => [id, { ...p.limits }])
+    );
 }
 
 async function getDirSizeAbs(dirPath) {
@@ -181,16 +176,30 @@ router.get('/admin/organizations', authenticateToken, requireSuperadmin, async (
         const countMap = {};
         sessionCounts.forEach(s => { countMap[s._id?.toString()] = { sessions: s.count, photos: s.photos }; });
 
-        // Flag de cortesia por org (uma query, mapeada por organizationId)
-        const subs = await Subscription.find({}, 'organizationId isCourtesy').lean();
-        const courtesyMap = {};
-        subs.forEach(s => { if (s.organizationId) courtesyMap[s.organizationId.toString()] = !!s.isCourtesy; });
+        // Cortesia + storage medido por org (uma query, mapeada por organizationId).
+        // O storage vem do campo persistido pelo reconciliador (storageReconciler),
+        // então a listagem NÃO varre o disco — é barata mesmo com muitas orgs.
+        const subs = await Subscription.find(
+            {},
+            'organizationId isCourtesy usage.storageBytes usage.storageQuotaBytes usage.storageReconciledAt'
+        ).lean();
+        const subMap = {};
+        subs.forEach(s => { if (s.organizationId) subMap[s.organizationId.toString()] = s; });
 
-        const orgsWithStats = organizations.map(org => ({
-            ...org,
-            stats: countMap[org._id.toString()] || { sessions: 0, photos: 0 },
-            isCourtesy: courtesyMap[org._id.toString()] || false
-        }));
+        const toMB = b => Math.round((b || 0) / 1024 / 1024 * 100) / 100;
+        const orgsWithStats = organizations.map(org => {
+            const sub = subMap[org._id.toString()];
+            return {
+                ...org,
+                stats: {
+                    ...(countMap[org._id.toString()] || { sessions: 0, photos: 0 }),
+                    storageMB: toMB(sub?.usage?.storageBytes),
+                    storageQuotaMB: toMB(sub?.usage?.storageQuotaBytes),
+                    storageReconciledAt: sub?.usage?.storageReconciledAt || null
+                },
+                isCourtesy: !!sub?.isCourtesy
+            };
+        });
 
         res.json({ organizations: orgsWithStats });
     } catch (error) {
@@ -221,13 +230,11 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
         const sessions = await Session.find({ organizationId: org._id }).select('name type mode selectionStatus photos createdAt');
 
         const orgId = org._id.toString();
-        const [sessionsBytes, siteBytes, videosBytes, sub] = await Promise.all([
-            storage.getDirSize(`/${orgId}/sessions`),
-            storage.getDirSize(`/${orgId}/site`),
-            storage.getDirSize(`/${orgId}/videos`),
+        // Fonte única da fórmula de storage (ver storage.getOrgStorageBytes).
+        const [{ sessions: sessionsBytes, site: siteBytes, videos: videosBytes, total: storageBytes }, sub] = await Promise.all([
+            storage.getOrgStorageBytes(orgId),
             Subscription.findOne({ organizationId: org._id }).lean()
         ]);
-        const storageBytes = sessionsBytes + siteBytes + videosBytes;
         const toMB = b => Math.round(b / 1024 / 1024 * 100) / 100;
         const totalPhotos = sessions.reduce((sum, s) => sum + (s.photos?.length || 0), 0);
 
@@ -385,35 +392,15 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
     }
 });
 
-// Limites padrão dos planos
+// Limites padrão dos planos (derivados da fonte única models/plans.js).
+// Os números dos planos são editados em CÓDIGO (plans.js), não em runtime — por isso
+// não há mais PUT aqui (o antigo editor por arquivo foi aposentado na unificação da fonte).
 router.get('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, async (req, res) => {
     res.json(await loadPlanLimits());
 });
 
-router.put('/admin/saas/plan-limits', authenticateToken, requireSuperadmin, async (req, res) => {
-    try {
-        const limits = req.body;
-        const valid = ['free', 'basic', 'pro'];
-        for (const plan of valid) {
-            if (!limits[plan]) return res.status(400).json({ error: `Faltando plano: ${plan}` });
-        }
-        await fs.promises.writeFile(PLAN_LIMITS_PATH, JSON.stringify(limits, null, 2));
-
-        // Atualizar Subscriptions no banco para refletir os novos limites de cada plano
-        await Promise.all(valid.map(plan =>
-            Subscription.updateMany({ plan }, { $set: { limits: limits[plan] } })
-        ));
-
-        audit(req, 'plan_limits_change', null, { limits });
-        res.json({ success: true, message: 'Limites dos planos atualizados' });
-    } catch (error) {
-        req.logger.error('Erro no SaaS Admin', { error: error.message });
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // Override de limites por org.
-// overrideEnabled === false  → reverte ao plano base (limites do planLimits.json).
+// overrideEnabled === false  → reverte ao plano base (limites de models/plans.js).
 // overrideEnabled !== false  → salva os limites customizados e marca override ligado.
 router.put('/admin/organizations/:id/limits', authenticateToken, requireSuperadmin, async (req, res) => {
     try {

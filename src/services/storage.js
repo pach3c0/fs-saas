@@ -105,6 +105,22 @@ class StorageService {
         }
         return size;
     }
+
+    /**
+     * Mede o storage de UMA org no disco, em bytes, com o breakdown padrão da
+     * plataforma (fotos de sessão + site/logo + vídeos). Fonte única da fórmula —
+     * usada pelo painel do fotógrafo (billing), pelo super admin e pelo
+     * reconciliador diário (storageReconciler), para que todos contem igual.
+     * `sessions` é o que conta contra o limite do plano (ver medidor/Fase 2).
+     */
+    async getOrgStorageBytes(orgId) {
+        const [sessions, site, videos] = await Promise.all([
+            this.getDirSize(`/${orgId}/sessions`),
+            this.getDirSize(`/${orgId}/site`),
+            this.getDirSize(`/${orgId}/videos`),
+        ]);
+        return { sessions, site, videos, total: sessions + site + videos };
+    }
 }
 
 module.exports = new StorageService();
