@@ -281,10 +281,10 @@ function renderBlockItem(b, i) {
       </div>
       ${b.url ? `
         <div style="margin-top:0.625rem; display:flex; flex-direction:column; gap:0.3rem;">
-          <span style="font-size:0.7rem; color:#94a3b8;">Link da imagem (copie para usar inline nos passos):</span>
+          <span style="font-size:0.7rem; color:#94a3b8;">Código HTML da imagem (copie e cole dentro da descrição do passo):</span>
           <div style="display:flex; gap:0.5rem;">
-            <input type="text" readonly value="${esc(b.url)}" style="${_inp('flex:1; font-family:monospace; font-size:0.72rem; opacity:0.8; background:#0b0f19; color:#94a3b8;')}" onclick="this.select()">
-            <button type="button" onclick="navigator.clipboard.writeText('${esc(b.url)}'); saasToast('Link copiado!', 'success')" style="background:#1e3a5f; color:#93c5fd; border:none; border-radius:0.25rem; padding:0.35rem 0.75rem; font-size:0.72rem; cursor:pointer; font-weight:600;">Copiar</button>
+            <input type="text" readonly value="${esc(`<img src="${b.url}" style="max-width:100%; max-height:240px; border-radius:8px; margin-top:0.5rem; display:block; border:1px solid var(--border); object-fit:contain;" />`)}" style="${_inp('flex:1; font-family:monospace; font-size:0.72rem; opacity:0.8; background:#0b0f19; color:#94a3b8;')}" onclick="this.select()">
+            <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value); saasToast('Código HTML copiado!', 'success')" style="background:#1e3a5f; color:#93c5fd; border:none; border-radius:0.25rem; padding:0.35rem 0.75rem; font-size:0.72rem; cursor:pointer; font-weight:600; white-space:nowrap;">Copiar Tag</button>
           </div>
         </div>
       ` : ''}
