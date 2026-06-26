@@ -1,4 +1,4 @@
-const CACHE_NAME = 'galeria-v2';
+const CACHE_NAME = 'galeria-v3';
 
 const STATIC_ASSETS = [
   '/cliente/',

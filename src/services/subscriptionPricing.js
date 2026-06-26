@@ -41,4 +41,15 @@ function effectiveStorageMB(sub) {
   return effectiveLimits(sub).maxStorage;
 }
 
-module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits };
+// Capability EFETIVA de uma assinatura, derivada da fonte única (models/plans.js).
+// Diferente de limites/preço, as capabilities NÃO são customizáveis por org hoje:
+// derivam puramente do `sub.plan` (override mexe só em limite/preço, não em feature).
+// Org sem assinatura → Free. Retorna o valor da flag (boolean — ou 'taste'/'full' no
+// caso de `crm`); undefined se a capability não existir no plano.
+function can(sub, capability) {
+  const planId = (sub && plans[sub.plan]) ? sub.plan : 'free';
+  const caps = plans[planId].capabilities || {};
+  return caps[capability];
+}
+
+module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits, can };

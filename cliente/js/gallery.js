@@ -534,6 +534,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
+
+        renderSelo();
+    }
+
+    // Selo "powered by CliqueZoom" no rodapé da galeria — só no plano Free
+    // (state.session.organization.selo vem do back via can(sub,'selo')). Idempotente:
+    // remove/recria conforme a flag para nunca duplicar entre re-renders do header.
+    function renderSelo() {
+        const sec = document.getElementById('gallerySection');
+        if (!sec) return;
+        const existing = document.getElementById('czSelo');
+        const org = state.session && state.session.organization;
+        if (!org || !org.selo) { if (existing) existing.remove(); return; }
+        if (existing) return; // já no DOM, mantém
+        const url = org.seloUrl || 'https://cliquezoom.com.br';
+        const el = document.createElement('div');
+        el.id = 'czSelo';
+        el.style.cssText = 'text-align:center; padding:1.75rem 1rem 2.25rem; opacity:0.5; font-size:0.75rem; letter-spacing:0.01em;';
+        el.innerHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">Galeria criada com <strong style="font-weight:700;">CliqueZoom</strong></a>`;
+        sec.appendChild(el);
     }
 
     // Registra evento de download no histórico da sessão (fire-and-forget)

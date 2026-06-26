@@ -20,6 +20,22 @@ const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmit
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 const { trackEvent } = require('../utils/activityTracker');
+const { can } = require('../services/subscriptionPricing');
+
+// Selo "powered by CliqueZoom" na galeria pública — diferenciador do plano Free
+// (planos pagos não exibem). Deriva da fonte única via can(sub, 'selo'); org sem
+// assinatura cai em Free → selo ligado. Devolve também a URL da plataforma (sem
+// hardcode: BASE_DOMAIN) para o link de volta ao site.
+async function computeSelo(organizationId) {
+  try {
+    const orgSub = await Subscription.findOne({ organizationId }).lean();
+    if (can(orgSub, 'selo')) {
+      const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
+      return { selo: true, seloUrl: `https://${baseDomain}` };
+    }
+  } catch (e) { /* fail-open: sem selo em caso de erro de leitura */ }
+  return { selo: false, seloUrl: null };
+}
 
 const uploadSession = createUploader('sessions');
 
@@ -130,6 +146,9 @@ router.post('/client/verify-code', async (req, res) => {
       } catch (e) { }
     }
 
+    // Selo "powered by CliqueZoom" — só no Free.
+    const { selo, seloUrl } = await computeSelo(session.organizationId?._id || session.organizationId);
+
     res.json({
       success: true,
       sessionId: session._id,
@@ -163,6 +182,8 @@ router.post('/client/verify-code', async (req, res) => {
         id: session.organizationId._id,
         name: session.organizationId.name,
         logo: session.organizationId.logo,
+        selo,
+        seloUrl,
         watermark: {
           watermarkType: session.organizationId.watermarkType,
           watermarkText: session.organizationId.watermarkText,
@@ -302,6 +323,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       return o;
     });
 
+    // Selo "powered by CliqueZoom" — só no Free (também no refresh da galeria).
+    const { selo, seloUrl } = await computeSelo(session.organizationId?._id || session.organizationId);
+
     res.json({
       success: true,
       name: session.name,
@@ -331,6 +355,8 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         id: session.organizationId._id,
         name: session.organizationId.name,
         logo: session.organizationId.logo,
+        selo,
+        seloUrl,
         watermark: {
           watermarkType: session.organizationId.watermarkType,
           watermarkText: session.organizationId.watermarkText,

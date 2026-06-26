@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Organization = require('../models/Organization');
+const Subscription = require('../models/Subscription');
+const { can } = require('../services/subscriptionPricing');
 const { authenticateToken } = require('../middleware/auth');
 const { verifyDomain } = require('../utils/dnsVerifier');
 const { checkAvailability, DEFAULT_TLDS, PRICE_ESTIMATES } = require('../utils/domainAvailability');
@@ -32,6 +34,22 @@ router.post('/domains', authenticateToken, async (req, res) => {
     // Validar formato do domínio
     if (!/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/.test(domain)) {
       return res.status(400).json({ error: 'Domínio inválido' });
+    }
+
+    // Gate de plano: domínio próprio é capability de Pro+ (dominioProprio). Free/Basic
+    // recebem 403 com mensagem de upgrade. Fail-open em erro de leitura para nunca
+    // bloquear um plano pago por uma falha de DB (domínios já conectados não são tocados).
+    try {
+      const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
+      if (!can(sub, 'dominioProprio')) {
+        return res.status(403).json({
+          error: 'Domínio próprio está disponível a partir do plano Pro.',
+          code: 'PLAN_REQUIRED',
+          message: 'Conecte um domínio próprio no plano Pro ou superior. Seu plano atual usa o endereço gratuito (subdomínio CliqueZoom).'
+        });
+      }
+    } catch (e) {
+      req.logger.error('Falha ao checar plano para domínio próprio (fail-open)', { error: e.message });
     }
 
     // Verificar se já está em uso por OUTRA conta (re-salvar o próprio é permitido)
