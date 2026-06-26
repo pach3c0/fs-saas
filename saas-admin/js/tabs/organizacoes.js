@@ -5,10 +5,54 @@ import { loadDashboard } from './dashboard.js';
 // Cache das orgs para filtro client-side
 let allOrgs = [];
 
+// Presença online (item 10): orgIds com alguém online AGORA (fotógrafo ou cliente).
+// Reusa o GET /api/admin/saas/presence do card "Presença online" da aba Sistema.
+let onlineOrgIds = new Set();
+let _orgPresencePoll = null;
+
+async function fetchOnlineOrgIds() {
+  try {
+    const data = await apiRequest('GET', '/api/admin/saas/presence');
+    const ids = new Set();
+    (data.photographers || []).forEach(d => d.organizationId && ids.add(String(d.organizationId)));
+    (data.clients || []).forEach(d => d.organizationId && ids.add(String(d.organizationId)));
+    return ids;
+  } catch (_) {
+    return new Set(); // presença é cosmética: falhou → tudo vermelho, nunca quebra a tabela
+  }
+}
+
+// Bolinha de presença: verde (alguém online) ou vermelha (ninguém). data-org-dot
+// permite o poll atualizar só a cor, sem re-renderizar a tabela (preserva a busca).
+function presenceDot(orgId) {
+  const on = onlineOrgIds.has(String(orgId));
+  return `<span data-org-dot="${orgId}" title="${on ? 'Alguém online agora' : 'Ninguém online'}"
+    style="display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align:middle;
+    background:${on ? '#34d399' : '#f87171'}; box-shadow:${on ? '0 0 5px #34d399' : 'none'};"></span>`;
+}
+
+function applyPresenceDots() {
+  document.querySelectorAll('[data-org-dot]').forEach(el => {
+    const on = onlineOrgIds.has(el.getAttribute('data-org-dot'));
+    el.style.background = on ? '#34d399' : '#f87171';
+    el.style.boxShadow = on ? '0 0 5px #34d399' : 'none';
+    el.title = on ? 'Alguém online agora' : 'Ninguém online';
+  });
+}
+
+function startOrgPresencePoll() {
+  if (_orgPresencePoll) clearInterval(_orgPresencePoll);
+  _orgPresencePoll = setInterval(async () => {
+    if (!document.getElementById('orgsTable')) { clearInterval(_orgPresencePoll); _orgPresencePoll = null; return; }
+    onlineOrgIds = await fetchOnlineOrgIds();
+    applyPresenceDots();
+  }, 30000);
+}
+
 function renderOrgsTable(orgs) {
   const tbody = document.getElementById('orgsTable');
   if (!orgs.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="loading">Nenhuma organizacao encontrada</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="loading">Nenhuma organizacao encontrada</td></tr>';
     return;
   }
   tbody.innerHTML = orgs.map(org => {
@@ -18,6 +62,7 @@ function renderOrgsTable(orgs) {
     const date = new Date(org.createdAt).toLocaleDateString('pt-BR');
     return `
       <tr>
+        <td style="text-align:center;">${presenceDot(org._id)}</td>
         <td style="font-weight:600;">${esc(org.name)}${org.isCourtesy ? ' <span title="Conta cortesia" style="font-size:0.7rem; background:#064e3b; color:#6ee7b7; border-radius:0.25rem; padding:0.05rem 0.35rem; font-weight:600;">🎁 cortesia</span>' : ''}</td>
         <td style="color:#94a3b8;">${esc(org.slug)}</td>
         <td>${owner ? esc(owner.name || owner.email) : '-'}</td>
@@ -43,8 +88,12 @@ function renderOrgsTable(orgs) {
 
 async function loadOrganizations() {
   try {
-    const data = await apiRequest('GET', '/api/admin/organizations');
+    const [data, ids] = await Promise.all([
+      apiRequest('GET', '/api/admin/organizations'),
+      fetchOnlineOrgIds()
+    ]);
     allOrgs = data.organizations;
+    onlineOrgIds = ids;
 
     // Adicionar barra de busca acima da tabela (se ainda não existe)
     let searchBar = document.getElementById('orgsSearchBar');
@@ -78,8 +127,9 @@ async function loadOrganizations() {
 
     document.getElementById('orgsCount').textContent = `${allOrgs.length} organizacoes`;
     renderOrgsTable(allOrgs);
+    startOrgPresencePoll();
   } catch (err) {
-    document.getElementById('orgsTable').innerHTML = `<tr><td colspan="9" class="loading" style="color:#f87171;">Erro: ${err.message}</td></tr>`;
+    document.getElementById('orgsTable').innerHTML = `<tr><td colspan="10" class="loading" style="color:#f87171;">Erro: ${err.message}</td></tr>`;
   }
 }
 
