@@ -3,6 +3,7 @@ const Subscription = require('../models/Subscription');
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
 const plans = require('../models/plans');
+const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
 
 // Configuração do Client do Mercado Pago (SDK v2)
 const client = process.env.MERCADOPAGO_ACCESS_TOKEN
@@ -19,18 +20,19 @@ async function createCheckoutSession(organizationId, planName) {
         throw new Error('Plano inválido');
     }
 
-    // Preço: usa o personalizado da org (se houver) em vez do catálogo.
+    // Preço: usa o personalizado da org (se houver) + adicional de storage, em vez do catálogo.
     // Grava o plano pendente p/ o webhook mapear sem depender do `reason`.
     let sub = await Subscription.findOne({ organizationId });
     if (!sub) sub = new Subscription({ organizationId, plan: 'free' });
-    const cents = sub.customPriceCents > 0 ? sub.customPriceCents : plan.price;
+    // O plano que está fechando ainda não foi gravado — calcula o efetivo já com ele.
     sub.pendingPlan = planName;
+    const cents = effectiveMonthlyCents({ ...sub.toObject(), plan: planName });
     await sub.save();
 
     // Cria a preferência de assinatura (PreApprovalPlan)
     const planObj = new PreApprovalPlan(client);
 
-    const priceAmount = cents / 100; // plans.price e customPriceCents são sempre em centavos
+    const priceAmount = cents / 100; // valores sempre em centavos
 
     const response = await planObj.create({
         body: {
@@ -150,6 +152,25 @@ async function cancelPreapproval(preapprovalId) {
     return preApproval.update({ id: preapprovalId, body: { status: 'cancelled' } });
 }
 
+// Atualiza o valor cobrado de uma assinatura (PreApproval) JÁ ATIVA no Mercado Pago.
+// Usado quando o adicional de storage muda o total da mensalidade de quem já assina —
+// o checkout normal só vale p/ assinatura nova. amountCents sempre em centavos.
+async function updatePreapprovalAmount(preapprovalId, amountCents) {
+    if (!client) {
+        throw new Error('Mercado Pago não configurado.');
+    }
+    const preApproval = new PreApproval(client);
+    return preApproval.update({
+        id: preapprovalId,
+        body: {
+            auto_recurring: {
+                transaction_amount: amountCents / 100,
+                currency_id: 'BRL'
+            }
+        }
+    });
+}
+
 async function createExtraPhotosPreference(organizationId, sessionId, photosCount, totalPrice) {
     if (!client) {
         throw new Error('Mercado Pago não configurado.');
@@ -186,4 +207,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, cancelPreapproval };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, cancelPreapproval, updatePreapprovalAmount };

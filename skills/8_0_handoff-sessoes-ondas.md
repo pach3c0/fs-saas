@@ -84,8 +84,8 @@ Todo o foco até aqui foi **modo `selection`**. `gallery` e `multi_selection` pr
 - Backend: rota `POST /api/sessions/:id/archive` recebe `externalStorageUrl`, marca `archivedAt`, mantém capa, remove fotos do disco (após o fotógrafo confirmar).
 - Backend: rota `POST /api/sessions/:id/export-backup` gera ZIP com metadados + imagens em alta.
 
-**Em decisão pelo usuário (provável V2):**
-- Usar o Drive externo do fotógrafo como storage dinâmico (OAuth, substituir `uploads/`). Complexidade alta (quotas, custo de banda, latência). Não está no MVP.
+**~~Em decisão pelo usuário (provável V2)~~ → DESCARTADO (item 7 do roadmap-ajustes, 2026-06-26):**
+- ~~Usar o Drive externo do fotógrafo como storage dinâmico (OAuth, substituir `uploads/`)~~. **Abandonado:** em vez de "traga seu próprio drive" (BYO), o produto **vende storage adicional na própria plataforma** (adicional recorrente na mensalidade via Mercado Pago — ver `subscriptionPricing.js` + endpoint `/admin/organizations/:id/storage-addon`). Nunca chegou a ter código de OAuth. ⚠️ Não confundir com `Session.externalStorageUrl` (link de backup que o fotógrafo cola **depois de arquivar** uma sessão) — isso é retenção legítima e **fica**.
 
 ---
 

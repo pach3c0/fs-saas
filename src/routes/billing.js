@@ -5,6 +5,7 @@ const { createCheckoutSession, handleWebhook, cancelPreapproval } = require('../
 const Subscription = require('../models/Subscription');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
+const { effectiveStorageMB } = require('../services/subscriptionPricing');
 const paymentConfigured = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
 
 // Listar planos disponíveis
@@ -39,6 +40,9 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       subscription: sub,
       planDetails: plans[sub.plan],
       stripeConfigured: paymentConfigured,
+      // Limite efetivo de storage (base do plano/override + adicional recorrente).
+      maxStorageMB: effectiveStorageMB(sub),
+      storageAddon: { gb: sub.storageAddonGB || 0, priceCents: sub.storageAddonPriceCents || 0 },
       usage: {
         storageMB,
         storageBytes,

@@ -18,6 +18,8 @@ const path = require('path');
 const fs = require('fs');
 const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
+const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
+const { updatePreapprovalAmount } = require('../middleware/mercadopago');
 const PLAN_LIMITS_PATH = path.join(__dirname, '../../config/planLimits.json');
 
 async function loadPlanLimits() {
@@ -246,6 +248,8 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 courtesyNote: sub?.courtesyNote || '',
                 overrideEnabled: !!sub?.overrideEnabled,
                 customPriceCents: sub?.customPriceCents ?? null,
+                storageAddonGB: sub?.storageAddonGB || 0,
+                storageAddonPriceCents: sub?.storageAddonPriceCents || 0,
                 breakdown: {
                     sessionsMB: toMB(sessionsBytes),
                     siteMB: toMB(siteBytes),
@@ -483,6 +487,54 @@ router.put('/admin/organizations/:id/custom-price', authenticateToken, requireSu
             success: true,
             message: customPriceCents ? 'Preço personalizado salvo' : 'Preço personalizado removido (voltou ao plano)',
             customPriceCents
+        });
+    } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Storage adicional recorrente por org. `extraGB`/`priceCents` <= 0 (ou vazio) → remove o adicional.
+// O limite efetivo sobe sozinho (effectiveStorageMB). Se a org já tem assinatura ativa no MP,
+// tenta atualizar o valor da preapproval p/ refletir o novo total na próxima fatura.
+router.put('/admin/organizations/:id/storage-addon', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const org = await Organization.findById(req.params.id).select('plan').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+        const gb = Number(req.body.extraGB);
+        const cents = Number(req.body.priceCents);
+        const storageAddonGB = Number.isFinite(gb) && gb > 0 ? Math.round(gb) : 0;
+        const storageAddonPriceCents = Number.isFinite(cents) && cents > 0 ? Math.round(cents) : 0;
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        sub.storageAddonGB = storageAddonGB;
+        sub.storageAddonPriceCents = storageAddonPriceCents;
+        await sub.save();
+
+        // Reflete o novo total na assinatura JÁ ATIVA no MP (checkout normal só vale p/ assinatura nova).
+        // Falha aqui não desfaz o save: o adicional já vale como limite; o valor entra no próximo checkout.
+        let mpUpdated = false;
+        let mpError = null;
+        if (sub.mpPreapprovalId && sub.status === 'active') {
+            try {
+                await updatePreapprovalAmount(sub.mpPreapprovalId, effectiveMonthlyCents(sub));
+                mpUpdated = true;
+            } catch (e) {
+                mpError = e.message;
+                req.logger.error('Falha ao atualizar valor da preapproval no MP', { error: e.message, orgId: req.params.id });
+            }
+        }
+
+        audit(req, 'storage_addon_change', req.params.id, { storageAddonGB, storageAddonPriceCents, mpUpdated });
+        res.json({
+            success: true,
+            message: storageAddonGB > 0 ? 'Storage adicional salvo' : 'Storage adicional removido',
+            storageAddonGB,
+            storageAddonPriceCents,
+            mpUpdated,
+            mpError
         });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });

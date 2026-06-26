@@ -9,22 +9,26 @@ export async function renderPlano(container) {
       apiGet('/api/billing/plans')
     ]);
 
-    const { subscription, planDetails, usage, stripeConfigured } = subRes;
+    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon } = subRes;
     const { plans } = plansRes;
 
-    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured });
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon });
   } catch (error) {
     container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
-function _render(container, { subscription, planDetails, usage, plans, stripeAtivo }) {
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon }) {
   const limites = subscription.limits;
   const uso     = subscription.usage;
   const planoKey = subscription.plan;
   const isCortesia = !!subscription.isCourtesy;
   // Preço personalizado da org (centavos) — sobrescreve o preço do catálogo na exibição.
   const customCents = subscription.customPriceCents > 0 ? subscription.customPriceCents : null;
+  // Limite efetivo de storage = base do plano + adicional recorrente (vem pronto do backend).
+  const effMaxStorage = Number.isFinite(maxStorageMB) ? maxStorageMB : limites.maxStorage;
+  const addonGB = storageAddon?.gb || 0;
+  const addonPriceCents = storageAddon?.priceCents || 0;
 
   const pct = (usado, max) => max === -1 ? 0 : Math.min(100, Math.round((usado / max) * 100));
   const fmtMax = (v) => v === -1 ? '∞' : v.toLocaleString('pt-BR');
@@ -49,7 +53,6 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   // Armazenamento contra o limite = SÓ as fotos das sessões (decisão de produto).
   // Logo/site e vídeos NÃO contam no limite — aparecem só no detalhamento abaixo.
   const fotosMB = usage?.breakdown?.sessionsMB ?? usage?.storageMB ?? 0;
-  const storagePct = pct(fotosMB, limites.maxStorage);
 
   const _planCard = (key, plan) => {
     const isCurrent = key === planoKey;
@@ -111,8 +114,12 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         <div style="display:grid; gap:1rem;">
           ${_bar('Sessões', uso.sessions, limites.maxSessions)}
           ${_bar('Fotos', uso.photos, limites.maxPhotos)}
-          ${_bar('Armazenamento — fotos (MB)', fotosMB, limites.maxStorage)}
+          ${_bar('Armazenamento — fotos (MB)', fotosMB, effMaxStorage)}
         </div>
+        ${addonGB > 0 ? `
+        <p style="font-size:0.75rem; color:var(--ad-text); opacity:0.6; margin:0.5rem 0 0;">
+          Inclui <strong>+${addonGB} GB</strong> de armazenamento adicional${addonPriceCents > 0 ? ` (R$ ${(addonPriceCents / 100).toFixed(2)}/mês)` : ''}.
+        </p>` : ''}
 
         ${usage?.breakdown ? `
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid color-mix(in srgb, var(--ad-text) 10%, transparent);">

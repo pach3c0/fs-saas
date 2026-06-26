@@ -8,8 +8,14 @@ FAzer Solicitcao para o cluade
     Fazer configuracao de CDN para a plataforma
 
 
-# Storage Adicional
+# Storage Adicional  ✅ FEITO (Passo 1 — 2026-06-26)
     é necessario verificar como esta a questao de implementar o storage adicional, e excluir oque tinhamos pensado em deixar o cliente usar o driver dele
+
+    > RESOLVIDO (item 7 do roadmap-ajustes): storage adicional virou **adicional recorrente na mensalidade** (Mercado Pago).
+    > - Camada aditiva em `Subscription` (`storageAddonGB`/`storageAddonPriceCents`) + helper `src/services/subscriptionPricing.js` (preço/storage efetivos).
+    > - Super admin controla por org via `PUT /admin/organizations/:id/storage-addon` (UI na aba Cobrança do painel). Auto-serviço do fotógrafo = Passo 2 (depois).
+    > - A ideia de "deixar o cliente usar o drive dele" (BYO/OAuth) foi **descartada** — nunca teve código. `Session.externalStorageUrl` (backup pós-arquivamento) é outra coisa e ficou.
+    > - ⏳ Validar no sandbox do MP que dá pra atualizar o valor de uma assinatura ativa (`updatePreapprovalAmount`).
 
 
 # precisamos também criar um sistema pra inserir usuário
@@ -49,3 +55,8 @@ Quando o status retornar como approved (aprovado):
 O sistema do CliqueZoom altera o status do pedido para "Pago".
 O CliqueZoom libera instantaneamente o download das fotos para o cliente final.
 Enviar uma notificação para o painel do fotógrafo avisando que a sessão dele gerou uma nova venda.
+
+## Preview Site
+ preciso que o preview do "Meu site" dos novos clientes inicialize como desativado
+
+ 

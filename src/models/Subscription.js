@@ -36,6 +36,13 @@ const SubscriptionSchema = new mongoose.Schema({
   // Vale só na próxima assinatura — não altera assinatura já ativa no MP.
   customPriceCents: { type: Number, default: null },
 
+  // Storage adicional recorrente (camada aditiva sobre o plano). É somado por cima
+  // do limite base e do valor mensal — ver src/services/subscriptionPricing.js.
+  // Sobrevive a troca de plano (o webhook só reseta `limits`, não estes campos).
+  // 0 = sem adicional. Cobrado na mensalidade enquanto a assinatura estiver ativa.
+  storageAddonGB: { type: Number, default: 0 },          // GB extras sobre o plano
+  storageAddonPriceCents: { type: Number, default: 0 },  // R$/mês extra (centavos)
+
   // Conta cortesia (sem cobrança — esposa, sócio, parceiro, conta de admin).
   // É só rótulo/controle: exibe selo no painel do cliente e some os CTAs de upgrade.
   // Os limites continuam definidos pelo plano + override.

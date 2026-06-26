@@ -401,6 +401,7 @@ const AUDIT_LABEL = {
   org_delete: 'Excluiu definitivamente', plan_change: 'Mudou o plano',
   limits_change: 'Alterou limites custom', courtesy_change: 'Alterou cortesia', site_reset: 'Resetou seção do site',
   custom_price_change: 'Alterou preço personalizado',
+  storage_addon_change: 'Alterou storage adicional',
   plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
 };
 
@@ -616,6 +617,20 @@ async function renderPanelOverview(content) {
         </div>
         <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Vale na próxima assinatura; quem já assina precisa reassinar. Vazio = preço do plano.</p>
       </div>
+
+      <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
+        <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Storage adicional recorrente</label>
+        <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:end;">
+          <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.7rem; color:#94a3b8;">+GB
+            <input id="panelAddonGB" type="number" min="0" step="1" placeholder="0" value="${stats.storageAddonGB || ''}"
+              style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;"></label>
+          <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.7rem; color:#94a3b8;">+R$/mês
+            <input id="panelAddonPrice" type="number" min="0" step="0.01" placeholder="0,00" value="${stats.storageAddonPriceCents ? (stats.storageAddonPriceCents / 100).toFixed(2) : ''}"
+              style="background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;"></label>
+          <button id="panelSaveAddon" style="background:#0369a1; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap;">Salvar</button>
+        </div>
+        <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Soma no limite e na mensalidade. Se a org já assina, tenta atualizar o valor no Mercado Pago. Zerar = remover o adicional.</p>
+      </div>
     </div>
 
     <div class="detail-section">
@@ -706,6 +721,28 @@ async function renderPanelOverview(content) {
       saasToast('Erro: ' + err.message, 'error');
     } finally {
       btn.textContent = 'Salvar preço';
+      btn.disabled = false;
+    }
+  };
+
+  // Storage adicional recorrente (GB extra + R$/mês; zerar = remover)
+  content.querySelector('#panelSaveAddon').onclick = async () => {
+    const extraGB = parseInt(content.querySelector('#panelAddonGB').value, 10) || 0;
+    const reais = parseFloat(content.querySelector('#panelAddonPrice').value);
+    const priceCents = Number.isFinite(reais) && reais > 0 ? Math.round(reais * 100) : 0;
+    const btn = content.querySelector('#panelSaveAddon');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      const r = await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/storage-addon`, { extraGB, priceCents });
+      let msg = extraGB > 0 ? `Storage adicional salvo (+${extraGB} GB)` : 'Storage adicional removido';
+      if (r && r.mpUpdated) msg += ' · valor atualizado no MP';
+      else if (r && r.mpError) msg += ' · falha ao atualizar no MP (entra no próximo checkout)';
+      saasToast(msg, r && r.mpError ? 'warning' : 'success');
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar';
       btn.disabled = false;
     }
   };
