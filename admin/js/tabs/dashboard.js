@@ -141,6 +141,8 @@ export async function renderDashboard(container) {
                             </div>
                             <span style="font-weight:500;">Ver meu Site</span>
                         </button>
+
+                        <div id="clients-online-card"></div>
                     </div>
                 </div>
                 <!-- Container de Novidades da Plataforma -->
@@ -283,6 +285,15 @@ async function loadDashboardData(container) {
         const onboardingData = await apiGet('/api/onboarding');
         if (onboardingData.success && !onboardingData.onboarding?.completed) {
             renderOnboardingChecklist(container, onboardingData.onboarding.steps);
+        }
+
+        // Card de clientes online (fire-and-forget: presença é cosmética)
+        const clientsOnlineEl = container.querySelector('#clients-online-card');
+        if (clientsOnlineEl) {
+            apiGet('/api/presence/clients').then(data => {
+                clientsOnlineEl.innerHTML = renderClientsOnlineCard(data);
+                startClientsOnlinePoll();
+            }).catch(() => {});
         }
 
     } catch (error) {
@@ -988,6 +999,53 @@ function renderPlatformNews(updates) {
         </div>
     `;
 }
+
+// ── Clientes online ─────────────────────────────────────────────────────────
+
+let _clientsPoll = null;
+
+function renderClientsOnlineCard(data) {
+    const clients = (data && data.clients) || [];
+    const total = (data && data.total) || 0;
+    const on = total > 0;
+
+    const rows = clients.map(c => {
+        const moduleLabel = c.module === 'selecao' ? 'Seleção' : 'Galeria';
+        const countBadge = c.count > 1
+            ? `<span style="font-size:0.63rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:999px; background:rgba(52,211,153,0.15); color:#34d399;">${c.count} online</span>`
+            : '';
+        return `<li style="display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid var(--border); gap:0.5rem;">
+      <span style="font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${esc(c.name)}">${esc(c.name || 'Galeria')}</span>
+      <span style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+        <span style="font-size:0.63rem; font-weight:600; padding:0.1rem 0.4rem; border-radius:999px; background:var(--bg-elevated); color:var(--text-secondary);">${moduleLabel}</span>
+        ${countBadge}
+      </span>
+    </li>`;
+    }).join('') || `<li style="font-size:0.78rem; color:var(--text-secondary); padding:0.3rem 0;">Nenhum cliente online no momento</li>`;
+
+    return `<div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1rem;">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+      <span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background:${on ? '#34d399' : 'var(--text-muted)'};${on ? ' box-shadow:0 0 5px #34d399;' : ''}"></span>
+      <span style="font-size:0.8rem; font-weight:700; color:var(--text);">Clientes online agora</span>
+      ${on ? `<span style="margin-left:auto; font-size:0.65rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(52,211,153,0.12); color:#34d399;">${total}</span>` : ''}
+    </div>
+    <ul style="list-style:none; margin:0; padding:0;">${rows}</ul>
+  </div>`;
+}
+
+function startClientsOnlinePoll() {
+    if (_clientsPoll) clearInterval(_clientsPoll);
+    _clientsPoll = setInterval(async () => {
+        const card = document.getElementById('clients-online-card');
+        if (!card) { clearInterval(_clientsPoll); _clientsPoll = null; return; }
+        try {
+            const data = await apiGet('/api/presence/clients');
+            card.innerHTML = renderClientsOnlineCard(data);
+        } catch (_) { /* ignora — próximo tick tenta de novo */ }
+    }, 30000);
+}
+
+// ── Fim: Clientes online ─────────────────────────────────────────────────────
 
 function setupNewsCarousel(container, updatesCount) {
     const scrollContainer = container.querySelector('.news-scroll-container');

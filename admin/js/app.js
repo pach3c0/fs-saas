@@ -671,6 +671,7 @@ async function postLoginSetup() {
   const savedTab = sessionStorage.getItem('activeTab') || 'dashboard';
   await switchTab(savedTab);
   startPresenceHeartbeat();
+  setTimeout(startClientsOnlineHeaderPoll, 3000);
   showOnboardingNudges();
 }
 
@@ -1162,6 +1163,79 @@ function logout() {
   showLoginForm();
 }
 
+// ── Clientes online — indicador no header ────────────────────────────────
+let _coHeaderTimer = null;
+
+function _escCo(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _updateClientsOnlineUI(data) {
+  const dot   = document.getElementById('clientsOnlineDot');
+  const list  = document.getElementById('clientsOnlineList');
+  const count = document.getElementById('clientsOnlineCount');
+  if (!dot || !list) return;
+
+  const clients = (data && data.clients) || [];
+  const total   = (data && data.total)   || 0;
+
+  dot.style.display = total > 0 ? 'block' : 'none';
+  if (count) count.textContent = total > 0 ? `${total} online` : '';
+
+  if (clients.length === 0) {
+    list.innerHTML = '<p style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.8rem;">Nenhum cliente online no momento</p>';
+    return;
+  }
+
+  list.innerHTML = clients.map(c => {
+    const sid    = _escCo(c.sessionId || '');
+    const label  = c.module === 'selecao' ? 'Seleção' : 'Galeria';
+    const badge  = c.count > 1
+      ? `<span style="font-size:0.63rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:999px;background:rgba(52,211,153,0.15);color:#34d399;">${c.count}×</span>`
+      : '';
+    return `<button onclick="openClientSession('${sid}')"
+      style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:0.5rem 0.625rem;border-radius:8px;border:none;background:transparent;cursor:pointer;text-align:left;gap:0.5rem;"
+      onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background='transparent'">
+      <span style="font-size:0.8125rem;color:var(--text-primary);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${_escCo(c.name || 'Galeria')}</span>
+      <span style="display:flex;align-items:center;gap:0.25rem;flex-shrink:0;">
+        <span style="font-size:0.63rem;font-weight:600;padding:0.1rem 0.35rem;border-radius:999px;background:var(--bg-base);color:var(--text-muted);">${label}</span>
+        ${badge}
+      </span>
+    </button>`;
+  }).join('');
+}
+
+async function _fetchClientsOnlineHeader() {
+  try {
+    const data = await apiGet('/api/presence/clients');
+    _updateClientsOnlineUI(data);
+  } catch (_) {}
+}
+
+function toggleClientsOnlineDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('clientsOnlineDropdown');
+  if (!dd) return;
+  const opening = !dd.classList.contains('open');
+  document.querySelectorAll('.header-dropdown-menu').forEach(m => { if (m !== dd) m.classList.remove('open'); });
+  dd.classList.toggle('open');
+  if (opening) _fetchClientsOnlineHeader();
+}
+
+async function openClientSession(sessionId) {
+  if (!sessionId) return;
+  const dd = document.getElementById('clientsOnlineDropdown');
+  if (dd) dd.classList.remove('open');
+  await switchTab('sessoes');
+  window.openSessionWizard?.(sessionId);
+}
+
+function startClientsOnlineHeaderPoll() {
+  _fetchClientsOnlineHeader();
+  if (_coHeaderTimer) clearInterval(_coHeaderTimer);
+  _coHeaderTimer = setInterval(_fetchClientsOnlineHeader, 30000);
+}
+
 // ── Global exports ────────────────────────────────────────────────────────
 window.appState = appState;
 window.switchTab = switchTab;
@@ -1175,6 +1249,8 @@ window.showUploadProgress = showUploadProgress;
 window.toggleNotifications = toggleNotifications;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.deleteAllNotifications = deleteAllNotifications;
+window.toggleClientsOnlineDropdown = toggleClientsOnlineDropdown;
+window.openClientSession = openClientSession;
 window.showToast = showToast;
 window.showConfirm = showConfirm;
 

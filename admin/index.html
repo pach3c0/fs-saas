@@ -1241,6 +1241,26 @@
                         <span class="header-expand-label">Configurações</span>
                     </button>
                     
+                    <!-- Clientes online ao vivo -->
+                    <div style="position:relative; display:inline-block;">
+                        <button id="clientsOnlineBtn" onclick="toggleClientsOnlineDropdown(event)" class="header-expand-btn" title="Clientes online agora" style="overflow:visible !important;">
+                            <span class="header-expand-icon" style="position:relative;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <span id="clientsOnlineDot" style="display:none; position:absolute; top:-3px; right:-3px; width:8px; height:8px; border-radius:50%; background:#34d399; box-shadow:0 0 6px #34d399; z-index:10;"></span>
+                            </span>
+                            <span class="header-expand-label">Ao vivo</span>
+                        </button>
+                        <div id="clientsOnlineDropdown" class="header-dropdown-menu pop-right" style="position:absolute; top:calc(100% + 0.5rem); right:0; width:280px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100;">
+                            <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated); border-top-left-radius:12px; border-top-right-radius:12px;">
+                                <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Clientes online agora</span>
+                                <span id="clientsOnlineCount" style="font-size:0.7rem; color:#34d399; font-weight:600;"></span>
+                            </div>
+                            <div id="clientsOnlineList" style="padding:0.25rem; min-height:60px; max-height:280px; overflow-y:auto;">
+                                <p style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.8rem;">Nenhum cliente online</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="position:relative; display:inline-block;">
                         <button id="notificationBell" onclick="toggleNotifications(event)" class="header-expand-btn" title="Notificações" style="overflow: visible !important;">
                             <span class="header-expand-icon" style="position:relative;">

@@ -62,6 +62,17 @@ router.post('/presence/heartbeat/client', heartbeatLimiter, async (req, res) => 
   res.status(204).end();
 });
 
+// FOTÓGRAFO: clientes da sua org online agora (agrupados por sessão).
+router.get('/presence/clients', authenticateToken, async (req, res) => {
+  try {
+    const data = await presence.getClientsOnline(req.user.organizationId);
+    res.json(data);
+  } catch (err) {
+    if (req.logger) req.logger.error('[presence] erro ao listar clientes online', { error: err.message });
+    res.status(500).json({ error: 'Erro ao buscar presença' });
+  }
+});
+
 // SUPER ADMIN: quem está online agora (fotógrafos × clientes, por módulo/org).
 router.get('/admin/saas/presence', authenticateToken, requireSuperadmin, async (req, res) => {
   try {

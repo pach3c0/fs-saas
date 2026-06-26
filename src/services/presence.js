@@ -66,4 +66,34 @@ async function getOnlineCount() {
   return Presence.countDocuments({ lastSeen: { $gte: cutoff } });
 }
 
-module.exports = { touch, getOnline, getOnlineCount };
+// Clientes de UMA org online agora, agrupados por sessão.
+// multi_selection pode ter vários participantes — count indica quantos simultaneamente.
+async function getClientsOnline(organizationId) {
+  const cutoff = new Date(Date.now() - ONLINE_WINDOW_MS);
+  const docs = await Presence.find({
+    role: 'client',
+    organizationId,
+    lastSeen: { $gte: cutoff }
+  }).sort({ lastSeen: -1 }).lean();
+
+  const bySession = {};
+  for (const d of docs) {
+    const sid = String(d.sessionId || 'unknown');
+    if (!bySession[sid]) {
+      bySession[sid] = {
+        sessionId: d.sessionId || null,
+        name: d.name || '',
+        module: d.module || 'galeria',
+        count: 0,
+        lastSeen: d.lastSeen
+      };
+    }
+    bySession[sid].count++;
+    if (d.lastSeen > bySession[sid].lastSeen) bySession[sid].lastSeen = d.lastSeen;
+  }
+
+  const clients = Object.values(bySession).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
+  return { total: docs.length, sessions: clients.length, clients };
+}
+
+module.exports = { touch, getOnline, getOnlineCount, getClientsOnline };
