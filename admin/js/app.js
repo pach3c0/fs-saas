@@ -668,7 +668,8 @@ async function postLoginSetup() {
   // Delay no polling para não competir com o carregamento inicial do dashboard
   setTimeout(startNotificationPolling, 5000);
 
-  await switchTab('dashboard');
+  const savedTab = sessionStorage.getItem('activeTab') || 'dashboard';
+  await switchTab(savedTab);
   startPresenceHeartbeat();
   showOnboardingNudges();
 }
@@ -1073,6 +1074,7 @@ function showLoginForm() {
 // ── Switch tab ────────────────────────────────────────────────────────────
 export async function switchTab(tabName) {
   appState.currentTab = tabName;
+  sessionStorage.setItem('activeTab', tabName);
   if (appState.authToken) sendPresenceHeartbeat(); // atualiza o módulo na presença na hora
   const container = document.getElementById('tabContent');
   if (!container) return;
@@ -1153,6 +1155,7 @@ function logout() {
   localStorage.removeItem('authToken');
   localStorage.removeItem('organizationId');
   localStorage.removeItem('orgSlug');
+  sessionStorage.removeItem('activeTab');
   document.getElementById('adminPanel').style.display = 'none';
   showLoginForm();
 }

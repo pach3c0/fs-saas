@@ -19,6 +19,7 @@ históricos (convivem dois esquemas antigos) — **use as categorias abaixo**, n
 | [`1_6_testes.md`](1_6_testes.md) | Padrões de QA e testes |
 | [`1_7_design_system_morph_e_fontes.md`](1_7_design_system_morph_e_fontes.md) | Design system: animação morph e consistência de fontes |
 | [`7_0_desenvolvimento-local.md`](7_0_desenvolvimento-local.md) | Subir o app/testes localmente (workflow seguro) |
+| [`24_0_guia-criar-manual.md`](24_0_guia-criar-manual.md) | Criar um módulo do **Manual do Usuário** (seed) e publicar (beta → produção) |
 | [`3_0_payment-gateway.md`](3_0_payment-gateway.md) | Pagamentos/checkout/assinatura — referência para a monetização (Mercado Pago) |
 
 ## 🔵 Documentação por módulo do Admin (série canônica)

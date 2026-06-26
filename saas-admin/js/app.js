@@ -31,6 +31,9 @@ function showApp() {
   document.getElementById('app').style.display = 'block';
   document.getElementById('userInfo').textContent = getUserEmail();
   loadDashboard();
+
+  const savedTab = sessionStorage.getItem('saasActiveTab') || 'orgs';
+  window.switchTab(savedTab);
 }
 
 async function doLogin() {
@@ -66,6 +69,7 @@ async function doLogin() {
 
 function logout() {
   clearAuth();
+  sessionStorage.removeItem('saasActiveTab');
   showLogin();
 }
 setUnauthorizedHandler(logout);
@@ -75,6 +79,7 @@ setUnauthorizedHandler(logout);
 // ============================================================================
 
 window.switchTab = (tab) => {
+  sessionStorage.setItem('saasActiveTab', tab);
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));

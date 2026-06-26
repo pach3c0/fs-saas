@@ -135,6 +135,7 @@ function renderManualEditor() {
       <div style="display:flex; align-items:center; gap:0.75rem;">
         <button onclick="window.backToManualList()" style="background:#1e293b; color:#94a3b8; border:1px solid #334155; border-radius:0.375rem; padding:0.375rem 0.75rem; font-size:0.8rem; cursor:pointer;">← Voltar</button>
         <h2 style="font-size:1.1rem; font-weight:700; color:#f1f5f9; margin:0;">${isNew ? 'Novo Módulo' : `Editar: ${esc(d.label)}`}</h2>
+        <span id="manualAutoSaveStatus" style="font-size:0.75rem; color:#64748b; margin-left:auto; transition:color 0.2s;"></span>
       </div>
 
       <!-- Dados do módulo -->
@@ -187,6 +188,21 @@ function renderManualEditor() {
   `;
 
   _bindBlockDrag();
+
+  // Configurar listeners de auto-save reativos nos inputs
+  const container = document.getElementById('tabManual');
+  if (container) {
+    container.oninput = (e) => {
+      if (_manualEditMode && _manualEditMode !== 'new') {
+        window.triggerManualAutoSave();
+      }
+    };
+    container.onchange = (e) => {
+      if (_manualEditMode && _manualEditMode !== 'new') {
+        window.triggerManualAutoSave();
+      }
+    };
+  }
 }
 
 // Drag & drop dos blocos: segure a alça ⠿, arraste e solte sobre outro bloco.
@@ -226,6 +242,7 @@ function _bindBlockDrag() {
       _manualEditData.blocks.splice(to, 0, movido);
       dragIdx = null;
       renderManualEditor();
+      window.triggerManualAutoSave();
     });
   });
 }
@@ -344,6 +361,8 @@ window._mInsertTag = (bi, field, tag) => {
   const insert = `<${tag}>${selected}</${tag}>`;
   ta.value = ta.value.slice(0, s) + insert + ta.value.slice(e);
   ta.focus();
+  // Disparar evento de input para acionar o auto-save
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
 };
 
 // ── Adicionar / remover blocos ────────────────────────────────────────────────
@@ -357,6 +376,7 @@ window.addManualBlock = (type) => {
   };
   _manualEditData.blocks.push(defaults[type]);
   renderManualEditor();
+  window.triggerManualAutoSave();
 };
 
 // Upload da captura de tela do bloco de imagem (POST /api/admin/upload, campo "image")
@@ -378,6 +398,7 @@ window.uploadManualImage = async (i, input) => {
     if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
     _manualEditData.blocks[i].url = json.url;
     renderManualEditor();
+    window.triggerManualAutoSave();
     saasToast('Imagem enviada!', 'success');
   } catch (err) {
     if (status) status.textContent = '';
@@ -390,6 +411,7 @@ window.uploadManualImage = async (i, input) => {
 window.removeManualBlock = (i) => {
   _manualEditData.blocks.splice(i, 1);
   renderManualEditor();
+  window.triggerManualAutoSave();
 };
 
 window.addManualStep = (bi) => {
@@ -397,6 +419,7 @@ window.addManualStep = (bi) => {
   steps.push({ n: steps.length + 1, who: 'fotógrafo', color: 'accent', title: '', desc: '' });
   _manualEditData.blocks[bi].steps = steps;
   renderManualEditor();
+  window.triggerManualAutoSave();
 };
 
 window.removeManualStep = (bi, si) => {
@@ -404,6 +427,7 @@ window.removeManualStep = (bi, si) => {
   // renumerar
   _manualEditData.blocks[bi].steps.forEach((s, i) => { s.n = i + 1; });
   renderManualEditor();
+  window.triggerManualAutoSave();
 };
 
 // ── Coletar dados do DOM antes de salvar ──────────────────────────────────────
@@ -436,6 +460,33 @@ function _collectManualForm() {
     }
   });
 }
+
+// ── Auto-Salvar ──────────────────────────────────────────────────────────────
+
+window.triggerManualAutoSave = async () => {
+  if (!_manualEditMode || _manualEditMode === 'new') return;
+  _collectManualForm();
+
+  const statusEl = document.getElementById('manualAutoSaveStatus');
+  if (statusEl) {
+    statusEl.style.color = '#94a3b8';
+    statusEl.textContent = 'Salvando...';
+  }
+
+  try {
+    await apiRequest('PUT', `/api/admin/manual/${_manualEditMode}`, _manualEditData);
+    if (statusEl) {
+      statusEl.style.color = '#10b981';
+      statusEl.textContent = '✓ Salvo automaticamente';
+    }
+  } catch (err) {
+    console.error('Erro no auto-save:', err);
+    if (statusEl) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = '✗ Erro ao salvar';
+    }
+  }
+};
 
 // ── Salvar ───────────────────────────────────────────────────────────────────
 
