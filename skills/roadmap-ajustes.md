@@ -90,14 +90,15 @@ MP já era integrado (sandbox/test). Agora super admin pode setar preço custom 
 - **Decisões:** vale só na próxima assinatura (não empurra pra assinatura viva); **pró-rata/crédito ADIADOS** (MP não prora automático; fazer quando os planos forem definidos — calcular crédito por dias restantes e aplicar como desconto/cobrança avulsa).
 - ⏳ Validar no navegador + testar checkout/webhook no sandbox.
 
-### [~] 7. Storage adicional + remover "drive do cliente" — 💰 ✅ Passo 1 FEITO (2026-06-26, não validado/deployado)
+### [~] 7. Storage adicional + remover "drive do cliente" — 💰 ✅ Passo 1 FEITO + DEPLOYADO PROD + MOTOR VALIDADO no navegador (2026-06-26, commit 859c454; falta só o gate do MP no sandbox)
 Storage adicional virou **adicional recorrente na mensalidade** (Mercado Pago). Decisão: cobrança recorrente; controle pelo super admin agora (Passo 1), auto-serviço do fotógrafo depois (Passo 2).
 - ✅ Camada aditiva separada em [`Subscription.js`](../src/models/Subscription.js): `storageAddonGB`, `storageAddonPriceCents` (defaults 0, sobrevivem a troca de plano). Helper único [`src/services/subscriptionPricing.js`](../src/services/subscriptionPricing.js): `effectiveMonthlyCents` (base/custom + adicional) e `effectiveStorageMB` (limite base + GB).
 - ✅ [`mercadopago.js`](../src/middleware/mercadopago.js): checkout usa `effectiveMonthlyCents`; novo `updatePreapprovalAmount` atualiza o valor da assinatura JÁ ATIVA no MP.
 - ✅ Super admin: `PUT /admin/organizations/:id/storage-addon` ([`saasAdmin.js`](../src/routes/saasAdmin.js)) + mini-form "+GB / +R$/mês" na aba Cobrança ([`organizacoes.js`](../saas-admin/js/tabs/organizacoes.js)). Auditoria `storage_addon_change`.
 - ✅ Cliente: [`billing.js`](../src/routes/billing.js) GET devolve `maxStorageMB` efetivo + `storageAddon`; [`plano.js`](../admin/js/tabs/plano.js) usa o teto efetivo + nota "inclui +X GB". Dashboard sem mudança (card só mostra usado).
 - ✅ "Drive do cliente" (BYO/OAuth) **descartado** em doc — nunca teve código. `Session.externalStorageUrl` (backup pós-arquivamento) **fica**.
-- ⚠️ **Risco a validar 1º:** o MP aceita aumentar `transaction_amount` de uma preapproval `authorized`? Testar no sandbox (fallback = cancelar+reassinar).
+- ✅ Motor validado no navegador (2026-06-26): super admin adiciona +GB/+R$ → painel do fotógrafo reflete o teto novo + nota; zera → volta ao base. (Org de teste, sem assinatura MP — não dispara o `updatePreapprovalAmount`.)
+- ⚠️ **Gate ainda aberto (leitura do código confirma o risco):** nosso checkout cria a assinatura via `PreApprovalPlan` → ela é **atrelada a plano**, e no MP o valor é governado pelo PLANO, não pela preapproval individual → `PreApproval.update({transaction_amount})` provavelmente é ignorado em assinatura viva. **Fix limpo:** migrar checkout p/ `PreApproval` avulsa por org (aceita update de valor nativo; ajuda tb o item 11). Mexe na cobrança ao vivo → exige sandbox antes. Alternativa zero-risco: adicional vale só "na próxima assinatura".
 - ⏳ Passo 2 (depois): auto-serviço do fotógrafo (endpoint autenticado + UI "comprar espaço" + tratar free sem assinatura).
 - Depende de: 2 (storage correto) e 4 (limites por org). Esforço: Médio.
 
