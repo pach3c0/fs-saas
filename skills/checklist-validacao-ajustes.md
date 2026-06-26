@@ -84,6 +84,23 @@
 
 ---
 
+## Item 8 — Captura de WhatsApp pós-cadastro 💬
+
+### No cadastro (landing)
+- [ ] Abrir a página de cadastro → existe o campo **WhatsApp** marcado **"(opcional)"** (não bloqueia o envio se ficar vazio).
+- [ ] Cadastrar **com** WhatsApp → conferir que o número ficou salvo na org (aba Perfil mostra preenchido).
+- [ ] Cadastrar **sem** WhatsApp → cadastro conclui normal (campo fica vazio).
+
+### Gatilho suave (painel do fotógrafo)
+- [ ] **[ADM]** Org **sem** WhatsApp e com **≥ 2 sessões** → ao logar aparece o banner **"💬 Qual é o seu WhatsApp?"** no canto inferior.
+- [ ] **[ADM]** Org **com** WhatsApp preenchido → o banner **não** aparece.
+- [ ] **[ADM]** Org com **0 ou 1 sessão** → o banner de WhatsApp **não** aparece (com 0 sessões aparece o de boas-vindas, como antes).
+- [ ] **[ADM] Salvar:** digitar um número válido + **Salvar** → toast de sucesso, banner some, e o número aparece na aba Perfil.
+- [ ] **[ADM] Validação:** número curto/sem DDD → toast de aviso, não salva.
+- [ ] **[ADM] Soneca:** "Agora não" ou × → banner some; **recarregar a página no mesmo dia não traz de volta** (volta só após ~7 dias).
+
+---
+
 ## Sanidade geral pós-deploy ✅
 - [ ] Site público abre normal.
 - [ ] Login do fotógrafo OK.

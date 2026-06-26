@@ -123,7 +123,7 @@ router.post('/auth/reset-password', async (req, res) => {
 // Registro self-service (cria org + user já ativos)
 router.post('/auth/register', checkHoneyPot, async (req, res) => {
   try {
-    const { email, password, name, orgName, slug } = req.body;
+    const { email, password, name, orgName, slug, whatsapp } = req.body;
 
     if (!email || !password || !name || !orgName || !slug) {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
@@ -151,7 +151,10 @@ router.post('/auth/register', checkHoneyPot, async (req, res) => {
       name: orgName,
       slug: cleanSlug,
       isActive: true,
-      plan: 'free'
+      plan: 'free',
+      // WhatsApp é opcional no cadastro (item 8): se não vier, fica vazio e o
+      // gatilho suave no painel pede o número depois de algumas sessões criadas.
+      whatsapp: (whatsapp || '').trim()
     });
 
     const passwordHash = await bcrypt.hash(password, 10);

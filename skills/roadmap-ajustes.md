@@ -93,8 +93,13 @@ Implementar venda de storage adicional. Remover a ideia antiga de deixar o clien
 
 ## 🟡 P2 — Crescimento / Limpeza
 
-### [ ] 8. Captura de WhatsApp pós-cadastro (gatilho suave) — 📈
+### [x] 8. Captura de WhatsApp pós-cadastro (gatilho suave) — 📈 ✅ FEITO (2026-06-25)
 WhatsApp opcional no cadastro; depois de N ações (ex.: 2 sessões criadas) pedir o número de forma não intrusiva. Base para 2FA futuro (e-mail garantido, WhatsApp quando viável).
+- ✅ **Cadastro (opcional):** campo WhatsApp no form da landing ([`home/index.html`](../home/index.html)) marcado "(opcional)" + hint; [`home/js/home.js`](../home/js/home.js) envia no POST; [`auth.js`](../src/routes/auth.js) aceita `whatsapp` e grava em `org.whatsapp` no cadastro (vazio se não vier). Sem validação obrigatória → não atrapalha quem quer "conhecer primeiro".
+- ✅ **Gatilho suave (admin):** [`app.js`](../admin/js/app.js) — orquestrador `showOnboardingNudges()` faz **uma** leitura de `/api/sessions` e escolhe NO MÁXIMO um banner: 0 sessões → boas-vindas (já existia); `≥ WHATSAPP_NUDGE_THRESHOLD` (=2) sessões **e** `org.whatsapp` vazio → `showWhatsappNudge()`. `appState.orgData.whatsapp` já vem do boot (`loadOrgSlug`).
+- ✅ **Não intrusivo:** banner canto inferior com input + "Salvar"; "Agora não"/× **adiam 7 dias** (`localStorage cz_whatsapp_nudge_snooze`) — nunca insiste no mesmo dia, mas volta depois (não some de vez sem o número). Salvar → `PUT /api/organization/profile { whatsapp }` (campo já no `allowedFields`), atualiza `appState.orgData` e some. Validação leve: ≥10 dígitos (DDD).
+- ⏳ Validar no navegador: cadastrar com/sem WhatsApp; no admin de uma org sem WhatsApp com ≥2 sessões → ver o banner, testar salvar/soneca; confirmar que não aparece pra quem já tem WhatsApp.
+- Refator de baixo risco: `showWelcomeBanner` deixou de fazer o próprio fetch (o orquestrador gateia). Tokens CSS inline (sem Tailwind).
 - Esforço: Médio.
 
 ### [x] 6. Limpeza da config "Padrão de entrega da galeria" — 🧹 ✅ FEITO (parte obrigatória, 2026-06-25)
@@ -112,7 +117,7 @@ Configurar CDN (assets/uploads). Infra; pode esperar.
 ---
 
 ## Ordem sugerida de execução
-Feitos: `3` `9` `6` `2` `5` `4` · `10(A)` ✅ (camada B já coletando, painel adiado). Próximos: `7` → `8` → `1` · depois o **painel do 10(B)** quando houver histórico
+Feitos: `3` `9` `6` `2` `5` `4` `8` · `10(A)` ✅ (camada B já coletando, painel adiado). Próximos: `7` (só limpeza no V1; venda depende de pagamentos) → `1` · depois o **painel do 10(B)** quando houver histórico
 
 ## Dependências
 - Bloco financeiro: **3 → 4 → 2 → 7** (acertar métrica → cortesia/override → storage correto → vender storage).

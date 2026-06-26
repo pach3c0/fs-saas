@@ -279,6 +279,7 @@ form.addEventListener('submit', async function (e) {
 
   var name = document.getElementById('name').value.trim();
   var email = document.getElementById('email').value.trim();
+  var whatsapp = document.getElementById('whatsapp').value.trim();
   var orgName = document.getElementById('orgName').value.trim();
   var slug = document.getElementById('slug').value.trim();
   var password = document.getElementById('password').value;
@@ -317,13 +318,14 @@ form.addEventListener('submit', async function (e) {
     var res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: email, 
-        password: password, 
-        name: name, 
-        orgName: orgName, 
+      body: JSON.stringify({
+        email: email,
+        password: password,
+        name: name,
+        orgName: orgName,
         slug: slug,
-        _hp_trap: document.getElementById('_hp_trap').value 
+        whatsapp: whatsapp,
+        _hp_trap: document.getElementById('_hp_trap').value
       })
     });
 

@@ -7,7 +7,7 @@ import { resolveImagePath, copyToClipboard } from './utils/helpers.js';
 import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
-import { apiGet } from './utils/api.js';
+import { apiGet, apiPut } from './utils/api.js';
 import { GRUPOS } from './tabs/gestao.js';
 
 const tabModules = {};
@@ -670,7 +670,7 @@ async function postLoginSetup() {
 
   await switchTab('dashboard');
   startPresenceHeartbeat();
-  showWelcomeBanner();
+  showOnboardingNudges();
 }
 
 // ── Presença online (item 10) ──────────────────────────────────────────────
@@ -776,15 +776,35 @@ async function loadOrgSlug() {
   } catch (e) { console.error('Erro ao buscar profile:', e); }
 }
 
-// ── Welcome banner ────────────────────────────────────────────────────────
-async function showWelcomeBanner() {
-  const LS_BANNER_KEY = 'fs_welcome_banner_dismissed';
-  if (localStorage.getItem(LS_BANNER_KEY)) return;
-
+// ── Gatilhos de onboarding ──────────────────────────────────────────────────
+// Uma única leitura de sessões decide qual banner mostrar (no máximo um):
+//  • 0 sessões        → banner de boas-vindas (configure sua conta)
+//  • ≥ N sessões e
+//    sem WhatsApp     → gatilho suave pedindo o WhatsApp (item 8)
+// Nada agressivo: ambos são dispensáveis e o de WhatsApp respeita um "soneca".
+const WHATSAPP_NUDGE_THRESHOLD = 2; // nº de sessões criadas que destrava o pedido
+async function showOnboardingNudges() {
+  let sessions = [];
   try {
     const data = await apiGet('/api/sessions');
-    if (data.sessions && data.sessions.length > 0) return;
+    sessions = data.sessions || [];
   } catch (e) { return; }
+
+  if (sessions.length === 0) {
+    showWelcomeBanner();
+    return;
+  }
+
+  const whatsapp = (appState.orgData?.whatsapp || '').trim();
+  if (sessions.length >= WHATSAPP_NUDGE_THRESHOLD && !whatsapp) {
+    showWhatsappNudge();
+  }
+}
+
+// ── Welcome banner ────────────────────────────────────────────────────────
+function showWelcomeBanner() {
+  const LS_BANNER_KEY = 'fs_welcome_banner_dismissed';
+  if (localStorage.getItem(LS_BANNER_KEY)) return;
 
   const banner = document.createElement('div');
   banner.id = 'welcome-banner';
@@ -833,6 +853,74 @@ async function showWelcomeBanner() {
       localStorage.setItem(LS_BANNER_KEY, '1');
     };
   });
+}
+
+// ── Gatilho suave: capturar WhatsApp (item 8) ───────────────────────────────
+// Mostrado quando o fotógrafo já criou algumas sessões mas não informou WhatsApp.
+// "Agora não" e o × adiam por 7 dias (soneca) — nunca some de vez sem o número,
+// mas também nunca insiste no mesmo dia. Salvar grava direto no perfil da org.
+function showWhatsappNudge() {
+  const LS_SNOOZE_KEY = 'cz_whatsapp_nudge_snooze';
+  const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+  const snoozeUntil = parseInt(localStorage.getItem(LS_SNOOZE_KEY) || '0', 10);
+  if (snoozeUntil && Date.now() < snoozeUntil) return;
+  if (document.getElementById('whatsapp-nudge')) return;
+
+  const snooze = () => {
+    localStorage.setItem(LS_SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
+    banner.remove();
+  };
+
+  const banner = document.createElement('div');
+  banner.id = 'whatsapp-nudge';
+  banner.style.cssText = 'position:fixed;bottom:1.5rem;left:calc(var(--sidebar-w, 220px) + 1.5rem);z-index:9998;background:var(--bg-elevated);border:1px solid var(--border);border-radius:0.75rem;padding:1.25rem 1.5rem;width:320px;box-shadow:0 8px 30px rgba(0,0,0,0.4);';
+
+  banner.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+      <div style="font-weight:700;color:var(--text-primary);font-size:0.9375rem;">💬 Qual é o seu WhatsApp?</div>
+      <button id="waNudgeClose" title="Agora não" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.25rem;line-height:1;padding:0 0 0 0.5rem;">×</button>
+    </div>
+    <p style="color:var(--text-secondary);font-size:0.8125rem;margin-bottom:0.875rem;line-height:1.5;">Assim conseguimos te avisar de novidades e dar suporte mais rápido quando precisar. Leva 5 segundos.</p>
+    <input id="waNudgeInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999"
+      style="width:100%;box-sizing:border-box;background:var(--bg-base);border:1px solid var(--border);border-radius:0.375rem;padding:0.5rem 0.625rem;color:var(--text-primary);font-size:0.875rem;margin-bottom:0.75rem;">
+    <div style="display:flex;gap:0.5rem;">
+      <button id="waNudgeSave" style="flex:1;background:var(--accent);color:var(--accent-on);border:none;border-radius:0.375rem;padding:0.5rem;cursor:pointer;font-size:0.8125rem;font-weight:600;">Salvar</button>
+      <button id="waNudgeLater" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);border-radius:0.375rem;padding:0.5rem 0.75rem;cursor:pointer;font-size:0.8125rem;">Agora não</button>
+    </div>
+  `;
+
+  document.body.appendChild(banner);
+
+  const input = banner.querySelector('#waNudgeInput');
+  const saveBtn = banner.querySelector('#waNudgeSave');
+  input.focus();
+
+  banner.querySelector('#waNudgeClose').onclick = snooze;
+  banner.querySelector('#waNudgeLater').onclick = snooze;
+
+  const save = async () => {
+    const whatsapp = input.value.trim();
+    if (whatsapp.replace(/\D/g, '').length < 10) {
+      showToast('Informe um número de WhatsApp válido com DDD.', 'warning');
+      input.focus();
+      return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando...';
+    try {
+      await apiPut('/api/organization/profile', { whatsapp });
+      if (appState.orgData) appState.orgData.whatsapp = whatsapp;
+      banner.remove();
+      showToast('WhatsApp salvo. Obrigado!', 'success');
+    } catch (err) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvar';
+      showToast('Erro ao salvar: ' + (err.message || 'tente novamente.'), 'error');
+    }
+  };
+
+  saveBtn.onclick = save;
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────
