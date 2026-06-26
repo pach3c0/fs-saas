@@ -400,6 +400,7 @@ const AUDIT_LABEL = {
   org_trash: 'Moveu para a lixeira', org_restore: 'Restaurou da lixeira',
   org_delete: 'Excluiu definitivamente', plan_change: 'Mudou o plano',
   limits_change: 'Alterou limites custom', courtesy_change: 'Alterou cortesia', site_reset: 'Resetou seção do site',
+  custom_price_change: 'Alterou preço personalizado',
   plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
 };
 
@@ -605,6 +606,16 @@ async function renderPanelOverview(content) {
       <input id="panelCourtesyNote" type="text" maxlength="120" placeholder="Nota (ex.: Esposa, Sócio) — opcional" value="${esc(stats.courtesyNote || '')}"
         style="margin-top:0.6rem; width:100%; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;">
       <button id="panelSaveCourtesy" style="margin-top:0.6rem; background:#10b981; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar cortesia</button>
+
+      <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
+        <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Preço personalizado (R$/mês)</label>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <input id="panelCustomPrice" type="number" min="0" step="0.01" placeholder="vazio = preço do plano" value="${stats.customPriceCents ? (stats.customPriceCents / 100).toFixed(2) : ''}"
+            style="flex:1; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;">
+          <button id="panelSaveCustomPrice" style="background:#0369a1; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap;">Salvar preço</button>
+        </div>
+        <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Vale na próxima assinatura; quem já assina precisa reassinar. Vazio = preço do plano.</p>
+      </div>
     </div>
 
     <div class="detail-section">
@@ -677,6 +688,24 @@ async function renderPanelOverview(content) {
       saasToast('Erro: ' + err.message, 'error');
     } finally {
       btn.textContent = 'Salvar cortesia';
+      btn.disabled = false;
+    }
+  };
+
+  // Preço personalizado (R$ → centavos; vazio/<=0 → null)
+  content.querySelector('#panelSaveCustomPrice').onclick = async () => {
+    const reais = parseFloat(content.querySelector('#panelCustomPrice').value);
+    const customPriceCents = Number.isFinite(reais) && reais > 0 ? Math.round(reais * 100) : null;
+    const btn = content.querySelector('#panelSaveCustomPrice');
+    btn.textContent = '...';
+    btn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/custom-price`, { customPriceCents });
+      saasToast(customPriceCents ? 'Preço personalizado salvo' : 'Preço personalizado removido', 'success');
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      btn.textContent = 'Salvar preço';
       btn.disabled = false;
     }
   };

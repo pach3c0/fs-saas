@@ -18,10 +18,23 @@ const SubscriptionSchema = new mongoose.Schema({
   },
 
   // Pagamento
+  // (legados Stripe — não usados; o gateway ativo é o Mercado Pago)
   stripeCustomerId: { type: String, default: null },
   stripeSubscriptionId: { type: String, default: null },
   currentPeriodEnd: { type: Date, default: null },
   cancelAtPeriodEnd: { type: Boolean, default: false },
+
+  // Mercado Pago
+  // id da assinatura (PreApproval) no MP — vem do webhook; usado p/ cancelar de verdade.
+  mpPreapprovalId: { type: String, default: null },
+  // plano que a org está fechando no checkout (gravado em /billing/checkout,
+  // lido pelo webhook p/ mapear o plano sem depender de parsear o `reason`).
+  pendingPlan: { type: String, default: null },
+
+  // Preço personalizado por org (em centavos). Quando `> 0`, sobrescreve o preço
+  // do catálogo (plans.js) no checkout DESTA org. `null` = usa o preço do plano.
+  // Vale só na próxima assinatura — não altera assinatura já ativa no MP.
+  customPriceCents: { type: Number, default: null },
 
   // Conta cortesia (sem cobrança — esposa, sócio, parceiro, conta de admin).
   // É só rótulo/controle: exibe selo no painel do cliente e some os CTAs de upgrade.

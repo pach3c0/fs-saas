@@ -19,10 +19,18 @@ async function createCheckoutSession(organizationId, planName) {
         throw new Error('Plano inválido');
     }
 
+    // Preço: usa o personalizado da org (se houver) em vez do catálogo.
+    // Grava o plano pendente p/ o webhook mapear sem depender do `reason`.
+    let sub = await Subscription.findOne({ organizationId });
+    if (!sub) sub = new Subscription({ organizationId, plan: 'free' });
+    const cents = sub.customPriceCents > 0 ? sub.customPriceCents : plan.price;
+    sub.pendingPlan = planName;
+    await sub.save();
+
     // Cria a preferência de assinatura (PreApprovalPlan)
     const planObj = new PreApprovalPlan(client);
 
-    const priceAmount = plan.price > 1000 ? plan.price / 100 : plan.price;
+    const priceAmount = cents / 100; // plans.price e customPriceCents são sempre em centavos
 
     const response = await planObj.create({
         body: {
@@ -53,24 +61,29 @@ async function handleWebhook(eventBody, eventQuery) {
         if (type === 'subscription_preapproval' && paymentId) {
             const preApproval = new PreApproval(client);
             const subscriptionData = await preApproval.get({ id: paymentId });
-            
+
             const orgId = subscriptionData.external_reference;
             const status = subscriptionData.status; // 'authorized', 'paused', 'cancelled'
-            
-            // Tenta deduzir qual plano foi assinado a partir da descrição ("Plano basic - CliqueZoom")
-            let planName = 'basic';
-            if (subscriptionData.reason && subscriptionData.reason.includes('pro')) planName = 'pro';
 
             if (orgId && status) {
-                await Subscription.findOneAndUpdate(
-                    { organizationId: orgId },
-                    {
-                        plan: planName,
-                        status: status === 'authorized' ? 'active' : status,
-                        limits: plans[planName]?.limits
-                    },
-                    { upsert: true }
-                );
+                let sub = await Subscription.findOne({ organizationId: orgId });
+                if (!sub) sub = new Subscription({ organizationId: orgId, plan: 'free' });
+
+                // Mapeia o plano: prioriza o pendingPlan gravado no checkout;
+                // fallback p/ a descrição ("Plano pro - CliqueZoom"); senão mantém 'basic'.
+                const planName = sub.pendingPlan
+                    || (subscriptionData.reason && subscriptionData.reason.includes('pro') ? 'pro' : 'basic');
+
+                sub.plan = planName;
+                sub.status = status === 'authorized' ? 'active' : status;
+                sub.mpPreapprovalId = subscriptionData.id || paymentId;
+                sub.pendingPlan = null;
+                // Só aplica os limites do plano base quando NÃO há override custom
+                // (senão apagaria os limites personalizados da org). customPriceCents é preservado.
+                if (!sub.overrideEnabled && plans[planName]?.limits) {
+                    sub.limits = plans[planName].limits;
+                }
+                await sub.save();
             }
             return; // Webhook tratado
         }
@@ -122,10 +135,19 @@ async function handleWebhook(eventBody, eventQuery) {
             }
         }
     } catch (error) {
-        console.error('Erro ao processar Webhook do Mercado Pago:', error);
-        // Permite que o controller retorne um erro 500 para que o MP realize retentativas
+        // Sem `req` aqui — deixa o controller (billing.js) logar com req.logger.
+        // Propaga para o MP fazer as retentativas.
         throw error;
     }
+}
+
+// Cancela de fato a assinatura no Mercado Pago.
+async function cancelPreapproval(preapprovalId) {
+    if (!client) {
+        throw new Error('Mercado Pago não configurado.');
+    }
+    const preApproval = new PreApproval(client);
+    return preApproval.update({ id: preapprovalId, body: { status: 'cancelled' } });
 }
 
 async function createExtraPhotosPreference(organizationId, sessionId, photosCount, totalPrice) {
@@ -164,4 +186,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, cancelPreapproval };

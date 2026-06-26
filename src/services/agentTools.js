@@ -304,7 +304,7 @@ const tools = {
         { $unwind: '$org' },
         { $match: { 'org.deletedAt': null } },
         { $project: {
-            status: 1, cancelAtPeriodEnd: 1, currentPeriodEnd: 1, isCourtesy: 1,
+            status: 1, cancelAtPeriodEnd: 1, currentPeriodEnd: 1, isCourtesy: 1, customPriceCents: 1,
             plan: '$org.plan',               // plano canônico (igual ao dashboard)
             orgName: '$org.name', orgSlug: '$org.slug'
         } }
@@ -326,14 +326,15 @@ const tools = {
         // (A distribuição por plano acima continua contando, p/ bater com o dashboard.)
         if (s.status === 'active' && plan !== 'free') {
           if (s.isCourtesy) cortesiasAtivas++;
-          else mrrPotencial += priceBRL(plan);
+          // Preço personalizado da org tem prioridade sobre o preço do catálogo.
+          else mrrPotencial += s.customPriceCents > 0 ? s.customPriceCents / 100 : priceBRL(plan);
         }
         if (s.cancelAtPeriodEnd) cancelando.push({ org, plan, currentPeriodEnd: s.currentPeriodEnd });
         if (s.currentPeriodEnd) vencimentos.push({ org, plan, status: s.status, currentPeriodEnd: s.currentPeriodEnd });
       });
       vencimentos.sort((a, b) => new Date(a.currentPeriodEnd) - new Date(b.currentPeriodEnd));
       return {
-        observacao: 'V1 sem cobrança real na plataforma — MRR é o teto teórico (preço do plano × assinaturas ativas pagas). Contas de CORTESIA são excluídas do MRR (plano pago de rótulo, sem cobrança). Distribuição por plano lê Organization.plan (mesma fonte do dashboard); órfãs e orgs na lixeira são ignoradas.',
+        observacao: 'MRR é o teto teórico (preço do plano × assinaturas ativas pagas), usando o PREÇO PERSONALIZADO da org quando houver (customPriceCents). Contas de CORTESIA são excluídas do MRR (plano pago de rótulo, sem cobrança). Distribuição por plano lê Organization.plan (mesma fonte do dashboard); órfãs e orgs na lixeira são ignoradas.',
         byPlan, byStatus,
         mrrPotencialBRL: Math.round(mrrPotencial * 100) / 100,
         cortesiasAtivasExcluidasDoMRR: cortesiasAtivas,

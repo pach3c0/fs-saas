@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { createCheckoutSession, handleWebhook } = require('../middleware/mercadopago');
+const { createCheckoutSession, handleWebhook, cancelPreapproval } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
@@ -87,9 +87,14 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Nenhuma assinatura ativa para cancelar' });
     }
 
-    // Como estamos no MP e ainda não armazenamos o preapproval_id no MongoDB, 
-    // faremos o downgrade para "free" no final do período no próprio banco de dados
-    sub.cancelAtPeriodEnd = true;
+    // Se temos o id da assinatura no MP, cancelamos de fato lá; senão, marcamos
+    // para downgrade no fim do período no próprio banco (fallback).
+    if (sub.mpPreapprovalId) {
+      await cancelPreapproval(sub.mpPreapprovalId);
+      sub.status = 'canceled';
+    } else {
+      sub.cancelAtPeriodEnd = true;
+    }
     await sub.save();
 
     res.json({ success: true, message: 'Assinatura cancelada com sucesso. Voltará ao plano Free no próximo ciclo.' });

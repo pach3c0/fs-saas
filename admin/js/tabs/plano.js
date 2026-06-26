@@ -23,6 +23,8 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const uso     = subscription.usage;
   const planoKey = subscription.plan;
   const isCortesia = !!subscription.isCourtesy;
+  // Preço personalizado da org (centavos) — sobrescreve o preço do catálogo na exibição.
+  const customCents = subscription.customPriceCents > 0 ? subscription.customPriceCents : null;
 
   const pct = (usado, max) => max === -1 ? 0 : Math.min(100, Math.round((usado / max) * 100));
   const fmtMax = (v) => v === -1 ? '∞' : v.toLocaleString('pt-BR');
@@ -94,7 +96,11 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
               ${isCortesia ? `<span style="font-size:0.7rem; font-weight:700; background:color-mix(in srgb, var(--ad-green) 18%, transparent); color:var(--ad-green); border:1px solid color-mix(in srgb, var(--ad-green) 40%, transparent); border-radius:9999px; padding:0.15rem 0.6rem; letter-spacing:0.02em;">🎁 Cortesia</span>` : ''}
             </h3>
             <p style="color:var(--ad-text); opacity:0.6; margin:0; font-size:0.9rem;">
-              ${isCortesia ? 'Conta cortesia · sem cobrança' : (planDetails.price === 0 ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`)}
+              ${isCortesia
+                ? 'Conta cortesia · sem cobrança'
+                : (customCents
+                    ? `R$ ${(customCents / 100).toFixed(2)}/mês <span style="font-size:0.7rem; font-weight:700; background:color-mix(in srgb, var(--ad-accent) 14%, transparent); color:var(--ad-accent); border:1px solid color-mix(in srgb, var(--ad-accent) 35%, transparent); border-radius:9999px; padding:0.1rem 0.5rem; letter-spacing:0.02em;">preço especial</span>`
+                    : (planDetails.price === 0 ? 'Gratuito' : `R$ ${(planDetails.price / 100).toFixed(2)}/mês`))}
               ${!isCortesia && subscription.currentPeriodEnd ? ` · Renova em ${new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}` : ''}
               ${!isCortesia && subscription.cancelAtPeriodEnd ? ` <span style="color:var(--ad-red); font-weight:600;">· Cancelamento agendado</span>` : ''}
             </p>

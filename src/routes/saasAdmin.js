@@ -245,6 +245,7 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 isCourtesy: !!sub?.isCourtesy,
                 courtesyNote: sub?.courtesyNote || '',
                 overrideEnabled: !!sub?.overrideEnabled,
+                customPriceCents: sub?.customPriceCents ?? null,
                 breakdown: {
                     sessionsMB: toMB(sessionsBytes),
                     siteMB: toMB(siteBytes),
@@ -456,6 +457,33 @@ router.put('/admin/organizations/:id/courtesy', authenticateToken, requireSupera
         await sub.save();
         audit(req, 'courtesy_change', req.params.id, { isCourtesy: sub.isCourtesy });
         res.json({ success: true, message: sub.isCourtesy ? 'Marcada como cortesia' : 'Cortesia removida', isCourtesy: sub.isCourtesy });
+    } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Preço personalizado por org (em centavos). <= 0 / vazio → null (volta ao preço do plano).
+// Vale na próxima assinatura — não altera assinatura já ativa no MP.
+router.put('/admin/organizations/:id/custom-price', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const raw = req.body.customPriceCents;
+        const org = await Organization.findById(req.params.id).select('plan').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+        const cents = Number(raw);
+        const customPriceCents = Number.isFinite(cents) && cents > 0 ? Math.round(cents) : null;
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        sub.customPriceCents = customPriceCents;
+        await sub.save();
+        audit(req, 'custom_price_change', req.params.id, { customPriceCents });
+        res.json({
+            success: true,
+            message: customPriceCents ? 'Preço personalizado salvo' : 'Preço personalizado removido (voltou ao plano)',
+            customPriceCents
+        });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });

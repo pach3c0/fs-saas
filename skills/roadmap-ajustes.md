@@ -84,6 +84,12 @@ Duas camadas, **um único heartbeat alimenta as duas** (não é trabalho dobrado
 - ⏳ Validar no navegador (Plano + Dashboard).
 - Esforço: Pequeno.
 
+### [x] 11. Preço personalizado por org (Mercado Pago) — 💰 ✅ FEITO (2026-06-25, não validado/deployado)
+MP já era integrado (sandbox/test). Agora super admin pode setar preço custom por org (ex.: Pro a R$80).
+- ✅ `Subscription`: `customPriceCents`, `mpPreapprovalId`, `pendingPlan`. Checkout usa o preço custom; webhook corrigido (não clobbera override de limites + mapeia plano por `pendingPlan` + salva `mpPreapprovalId`). `/billing/cancel` cancela de fato no MP. UI no painel super-admin (Cobrança) + selo "preço especial" no painel do cliente + MRR usa o preço custom.
+- **Decisões:** vale só na próxima assinatura (não empurra pra assinatura viva); **pró-rata/crédito ADIADOS** (MP não prora automático; fazer quando os planos forem definidos — calcular crédito por dias restantes e aplicar como desconto/cobrança avulsa).
+- ⏳ Validar no navegador + testar checkout/webhook no sandbox.
+
 ### [ ] 7. Storage adicional + remover "drive do cliente" — 💰
 Implementar venda de storage adicional. Remover a ideia antiga de deixar o cliente usar o próprio drive.
 - Depende de: 2 (storage correto) e 4 (limites por org).
