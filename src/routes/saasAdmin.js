@@ -62,7 +62,8 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
             assetsBytes,
             clienteBytes,
             albumBytes,
-            homeBytes
+            homeBytes,
+            paidSubs
         ] = await Promise.all([
             Organization.countDocuments(),
             Organization.countDocuments({ isActive: true }),
@@ -80,11 +81,17 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
             getDirSizeAbs(path.join(__dirname, '../../cliente')),
             getDirSizeAbs(path.join(__dirname, '../../album')),
             getDirSizeAbs(path.join(__dirname, '../../home')),
+            // MRR real: assinaturas que geram receita (ativas/em atraso). O valor de cada
+            // uma vem de effectiveMonthlyCents (fonte única: preço custom + adicional de
+            // storage), não de um mapa hardcoded no front.
+            Subscription.find({ status: { $in: ['active', 'past_due'] } })
+                .select('plan customPriceCents storageAddonPriceCents').lean(),
         ]);
 
         const byPlan = {};
         planGroups.forEach(g => { byPlan[g._id] = g.count; });
         const platformBytes = adminBytes + siteBytes + assetsBytes + clienteBytes + albumBytes + homeBytes;
+        const mrrCents = paidSubs.reduce((sum, s) => sum + effectiveMonthlyCents(s), 0);
 
         res.json({
             organizations: { total: totalOrgs, active: activeOrgs, pending: totalOrgs - activeOrgs, byPlan },
@@ -92,7 +99,8 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
             sessions: totalSessions,
             photos: totalPhotos[0]?.total || 0,
             storageBytes: storageSize,
-            platformBytes
+            platformBytes,
+            mrrCents
         });
     } catch (error) {
         req.logger.error('Saas Metrics Error', { error: error.message });

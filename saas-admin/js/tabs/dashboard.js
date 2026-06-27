@@ -1,5 +1,5 @@
 // Dashboard — métricas da plataforma, saúde das orgs e limites de planos
-import { apiRequest, saasToast, esc, formatSize } from '../core.js';
+import { apiRequest, esc, formatSize } from '../core.js';
 import { loadOrganizations } from './organizacoes.js';
 
 // ============================================================================
@@ -92,44 +92,30 @@ async function loadPlanLimitsConfig() {
   const grid = document.getElementById('planLimitsGrid');
   try {
     const limits = await apiRequest('GET', '/api/admin/saas/plan-limits');
-    const plans = ['free', 'basic', 'pro'];
-    const labels = { maxStorage: 'Storage (MB)', maxSessions: 'Sessões (-1=∞)', maxPhotos: 'Fotos (-1=∞)', maxAlbums: 'Álbuns (-1=∞)' };
+    // Somente leitura: os números dos planos são editados em CÓDIGO (src/models/plans.js).
+    // O endpoint só faz GET — o antigo editor por arquivo (PUT) foi aposentado na
+    // unificação da fonte única, então aqui apenas exibimos os 4 tiers, sem inputs/Salvar.
+    const plans = ['free', 'basic', 'pro', 'studio'];
+    const fmt = (v) => v === -1 ? '∞' : v;
+    const rows = [
+      ['Storage', (l) => l.maxStorage === -1 ? '∞' : `${(l.maxStorage / 1024).toLocaleString('pt-BR')} GB`],
+      ['Sessões', (l) => fmt(l.maxSessions)],
+      ['Fotos', (l) => fmt(l.maxPhotos)],
+      ['Álbuns', (l) => fmt(l.maxAlbums)],
+      ['Domínio próprio', (l) => l.customDomain ? 'Sim' : '—'],
+    ];
 
-    grid.innerHTML = plans.map(plan => `
+    grid.innerHTML = plans.filter(p => limits[p]).map(plan => `
       <div style="background:#0f172a; border:1px solid #334155; border-radius:0.375rem; padding:0.875rem;">
         <div style="font-size:0.75rem; font-weight:700; color:#93c5fd; text-transform:uppercase; margin-bottom:0.625rem;">${plan}</div>
-        ${Object.entries(labels).map(([key, label]) => `
-          <label style="display:flex; flex-direction:column; gap:0.2rem; font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem;">
-            ${label}
-            <input data-plan="${plan}" data-key="${key}" type="number" value="${limits[plan][key]}" min="-1"
-              style="background:#1e293b; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.3rem 0.5rem; font-size:0.8rem; width:100%;">
-          </label>
+        ${rows.map(([label, get]) => `
+          <div style="display:flex; justify-content:space-between; gap:0.5rem; font-size:0.75rem; color:#94a3b8; margin-bottom:0.4rem;">
+            <span>${label}</span>
+            <span style="color:#f1f5f9; font-weight:600;">${get(limits[plan])}</span>
+          </div>
         `).join('')}
       </div>
     `).join('');
-
-    document.getElementById('savePlanLimitsBtn').onclick = async () => {
-      const btn = document.getElementById('savePlanLimitsBtn');
-      btn.textContent = 'Salvando...';
-      btn.disabled = true;
-      try {
-        const payload = {};
-        plans.forEach(plan => {
-          payload[plan] = { customDomain: plan === 'pro' };
-          Object.keys(labels).forEach(key => {
-            payload[plan][key] = parseInt(grid.querySelector(`[data-plan="${plan}"][data-key="${key}"]`).value);
-          });
-        });
-        await apiRequest('PUT', '/api/admin/saas/plan-limits', payload);
-        btn.textContent = 'Salvo!';
-        btn.style.background = '#065f46';
-        setTimeout(() => { btn.textContent = 'Salvar'; btn.style.background = '#0369a1'; btn.disabled = false; }, 2000);
-      } catch (err) {
-        saasToast('Erro: ' + err.message, 'error');
-        btn.textContent = 'Salvar';
-        btn.disabled = false;
-      }
-    };
   } catch (err) {
     grid.innerHTML = `<div style="color:#f87171; font-size:0.8rem;">Erro ao carregar limites: ${err.message}</div>`;
   }
@@ -139,12 +125,15 @@ async function loadMetrics() {
   try {
     const data = await apiRequest('GET', '/api/admin/saas/metrics');
 
-    // MRR estimado: basic=R$49, pro=R$99 (planos pagos)
-    const PLAN_PRICES = { free: 0, basic: 49, pro: 99 };
+    // MRR: usa o valor REAL do backend (soma de effectiveMonthlyCents das assinaturas
+    // ativas — respeita preço personalizado + adicional de storage). Fallback p/ a
+    // estimativa por contagem × preço de catálogo (R$) só se um backend antigo não enviar
+    // mrrCents. Preços de catálogo derivados da fonte única (plans.js): 39/119/249.
+    const PLAN_PRICES = { free: 0, basic: 39, pro: 119, studio: 249 };
     const byPlan = data.organizations.byPlan || {};
-    const mrr = Object.entries(byPlan).reduce((sum, [plan, count]) => {
-      return sum + (PLAN_PRICES[plan] || 0) * count;
-    }, 0);
+    const mrr = (data.mrrCents != null)
+      ? data.mrrCents / 100
+      : Object.entries(byPlan).reduce((sum, [plan, count]) => sum + (PLAN_PRICES[plan] || 0) * count, 0);
     const mrrLabel = mrr.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     const planBadges = Object.entries(byPlan).map(([p, c]) =>
@@ -161,7 +150,7 @@ async function loadMetrics() {
       <div class="metric-card">
         <div class="metric-label">MRR Estimado</div>
         <div class="metric-value" style="font-size:1.375rem; color:#34d399;">${mrrLabel}</div>
-        <div class="metric-sub">planos pagos × preco do plano</div>
+        <div class="metric-sub">${data.mrrCents != null ? 'assinaturas ativas (preço real)' : 'estimativa por plano'}</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Usuarios</div>
