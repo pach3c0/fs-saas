@@ -569,7 +569,7 @@ async function renderPanelOverview(content) {
   const org = data.organization;
   const stats = data.stats;
 
-  const planOptions = ['free', 'basic', 'pro'].map(p =>
+  const planOptions = ['free', 'basic', 'pro', 'studio'].map(p =>
     `<option value="${p}" ${org.plan === p ? 'selected' : ''}>${p.toUpperCase()}</option>`
   ).join('');
 
@@ -600,6 +600,13 @@ async function renderPanelOverview(content) {
 
     <div class="detail-section">
       <h3>Cobrança</h3>
+      ${org.plan === 'free' ? `
+      <label style="display:flex; align-items:center; gap:0.6rem; margin-top:0.5rem; opacity:0.55;">
+        <input id="panelCourtesy" type="checkbox" disabled style="width:1.1rem; height:1.1rem; accent-color:#10b981;">
+        <span style="font-size:0.875rem; color:#f1f5f9;">🎁 Conta cortesia</span>
+      </label>
+      <p style="font-size:0.75rem; color:#94a3b8; margin:0.4rem 0 0;">O plano <strong>Free já é gratuito</strong> — cortesia só faz sentido em planos pagos. Mude o plano para um pago e salve antes de presentear.</p>
+      ` : `
       <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; margin-top:0.5rem;">
         <input id="panelCourtesy" type="checkbox" ${stats.isCourtesy ? 'checked' : ''} style="width:1.1rem; height:1.1rem; cursor:pointer; accent-color:#10b981;">
         <span style="font-size:0.875rem; color:#f1f5f9;">🎁 Conta cortesia <span style="color:#64748b; font-weight:400;">(sem cobrança — esconde upgrade no painel do cliente)</span></span>
@@ -607,6 +614,7 @@ async function renderPanelOverview(content) {
       <input id="panelCourtesyNote" type="text" maxlength="120" placeholder="Nota (ex.: Esposa, Sócio) — opcional" value="${esc(stats.courtesyNote || '')}"
         style="margin-top:0.6rem; width:100%; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;">
       <button id="panelSaveCourtesy" style="margin-top:0.6rem; background:#10b981; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar cortesia</button>
+      `}
 
       <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
         <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Preço personalizado (R$/mês)</label>
@@ -687,8 +695,9 @@ async function renderPanelOverview(content) {
     }
   };
 
-  // Cortesia
-  content.querySelector('#panelSaveCourtesy').onclick = async () => {
+  // Cortesia (o botão não existe no plano Free — guarda contra null)
+  const saveCourtesyBtn = content.querySelector('#panelSaveCourtesy');
+  if (saveCourtesyBtn) saveCourtesyBtn.onclick = async () => {
     const isCourtesy = content.querySelector('#panelCourtesy').checked;
     const courtesyNote = content.querySelector('#panelCourtesyNote').value.trim();
     const btn = content.querySelector('#panelSaveCourtesy');

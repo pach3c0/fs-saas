@@ -81,11 +81,12 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
             getDirSizeAbs(path.join(__dirname, '../../cliente')),
             getDirSizeAbs(path.join(__dirname, '../../album')),
             getDirSizeAbs(path.join(__dirname, '../../home')),
-            // MRR real: assinaturas que geram receita (ativas/em atraso). O valor de cada
-            // uma vem de effectiveMonthlyCents (fonte única: preço custom + adicional de
-            // storage), não de um mapa hardcoded no front.
-            Subscription.find({ status: { $in: ['active', 'past_due'] } })
-                .select('plan customPriceCents storageAddonPriceCents').lean(),
+            // MRR real: assinaturas que geram receita (ativas/em atraso) e que NÃO são
+            // cortesia — cortesia = sem cobrança, então fica FORA da contabilidade de
+            // receita (não há lucro nela). O valor de cada uma vem de effectiveMonthlyCents
+            // (fonte única: preço custom + adicional de storage), não de um mapa no front.
+            Subscription.find({ status: { $in: ['active', 'past_due'] }, isCourtesy: { $ne: true } })
+                .select('plan customPriceCents storageAddonPriceCents isCourtesy').lean(),
         ]);
 
         const byPlan = {};
@@ -451,6 +452,12 @@ router.put('/admin/organizations/:id/courtesy', authenticateToken, requireSupera
 
         let sub = await Subscription.findOne({ organizationId: req.params.id });
         if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        // Free já é gratuito → cortesia não se aplica (não há cobrança a isentar). Cortesia
+        // = presentear um plano PAGO sem cobrar. Só barra ao LIGAR; desligar é sempre livre.
+        const effPlan = sub.plan || org.plan || 'free';
+        if (isCourtesy && effPlan === 'free') {
+            return res.status(400).json({ error: 'O plano Free já é gratuito — cortesia só em planos pagos. Mude o plano para um pago antes de marcar cortesia.' });
+        }
         sub.isCourtesy = !!isCourtesy;
         sub.courtesyNote = typeof courtesyNote === 'string' ? courtesyNote.slice(0, 120) : (sub.courtesyNote || '');
         await sub.save();
