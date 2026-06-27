@@ -19,7 +19,8 @@ const fs = require('fs');
 const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
 const { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
-const { updatePreapprovalAmount } = require('../middleware/mercadopago');
+const { syncPreapprovalAmount } = require('../middleware/mercadopago');
+const { isProtectedSlug } = require('../utils/protectedOrgs');
 const plans = require('../models/plans');
 
 // Limites efetivos por plano, derivados da FONTE ÚNICA (models/plans.js).
@@ -307,7 +308,8 @@ router.get('/admin/organizations', authenticateToken, requireSuperadmin, async (
                     storageQuotaMB: toMB(sub?.usage?.storageQuotaBytes),
                     storageReconciledAt: sub?.usage?.storageReconciledAt || null
                 },
-                isCourtesy: !!sub?.isCourtesy
+                isCourtesy: !!sub?.isCourtesy,
+                isProtected: isProtectedSlug(org.slug)
             };
         });
 
@@ -363,6 +365,13 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 maxAlbums: effectiveLimits(sub).maxAlbums,
                 isCourtesy: !!sub?.isCourtesy,
                 courtesyNote: sub?.courtesyNote || '',
+                graceUntil: sub?.graceUntil || null,
+                isProtected: isProtectedSlug(org.slug),
+                suspendedReason: org.suspendedReason || null,
+                isActive: org.isActive === true,
+                subStatus: sub?.status || 'active',
+                lastPaymentAt: sub?.lastPaymentAt || null,
+                lastPaymentStatus: sub?.lastPaymentStatus || null,
                 overrideEnabled: !!sub?.overrideEnabled,
                 customPriceCents: sub?.customPriceCents ?? null,
                 storageAddonGB: sub?.storageAddonGB || 0,
@@ -394,8 +403,11 @@ router.put('/admin/organizations/:id/approve', authenticateToken, requireSuperad
         const org = await Organization.findById(req.params.id);
         if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
         org.isActive = true;
+        org.suspendedReason = null;   // sai de qualquer suspensão (inclui billing)
         await org.save();
         await User.updateMany({ organizationId: org._id }, { approved: true });
+        // Reativar zera a carência (senão um prazo vencido suspenderia de novo no próximo tick)
+        await Subscription.updateOne({ organizationId: org._id }, { $set: { graceUntil: null, graceWarnedAt: null } });
         audit(req, 'org_approve', org._id);
         res.json({ success: true, message: `Organização "${org.name}" aprovada!` });
     } catch (error) {
@@ -442,8 +454,10 @@ router.put('/admin/organizations/:id/restore', authenticateToken, requireSuperad
         org.isActive = true;
         org.deletedAt = null;
         org.deactivatedAt = null;
+        org.suspendedReason = null;
         await org.save();
         await User.updateMany({ organizationId: org._id }, { approved: true });
+        await Subscription.updateOne({ organizationId: org._id }, { $set: { graceUntil: null, graceWarnedAt: null } });
         audit(req, 'org_restore', org._id);
         res.json({ success: true, message: `"${org.name}" restaurada com sucesso` });
     } catch (error) {
@@ -570,8 +584,52 @@ router.put('/admin/organizations/:id/courtesy', authenticateToken, requireSupera
     }
 });
 
+// F3 — Carência de regularização por org. Body: { graceUntil } = 'yyyy-mm-dd' (ou null/'' p/ limpar).
+// Define o prazo (o dia que o super-admin quiser, POR ORG) até quando a org tem que regularizar a
+// assinatura. Vencido sem regularizar, o graceChecker SUSPENDE a org (sem excluir nada). Não cobra
+// aqui — só agenda o prazo. Contas protegidas (PROTECTED_ORG_SLUGS/OWNER_SLUG) nunca são suspensas
+// automaticamente, mas o prazo pode ser registrado mesmo assim (o front reforça a confirmação).
+router.put('/admin/organizations/:id/grace', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const org = await Organization.findById(req.params.id).select('plan slug').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+
+        const raw = req.body.graceUntil;
+        let graceUntil = null;
+        if (raw) {
+            // Data-only 'yyyy-mm-dd' (do <input type=date>) → fim do dia no fuso de Brasília
+            // (UTC-3, sem horário de verão desde 2019). Assim "prazo até 27/06" vence no fim do
+            // 27/06 no horário do Brasil — e não às ~21h por causa do UTC.
+            const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T23:59:59-03:00` : raw;
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return res.status(400).json({ error: 'Data inválida' });
+            if (d.getTime() < Date.now()) return res.status(400).json({ error: 'O prazo não pode estar no passado' });
+            graceUntil = d;
+        }
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        sub.graceUntil = graceUntil;
+        sub.graceWarnedAt = null;   // redefiniu o prazo → permite um novo aviso prévio
+        await sub.save();
+
+        const protectedOrg = isProtectedSlug(org.slug);
+        audit(req, 'grace_change', req.params.id, { graceUntil: graceUntil ? graceUntil.toISOString() : null, protectedOrg });
+        res.json({
+            success: true,
+            message: graceUntil ? 'Prazo de regularização salvo' : 'Prazo de regularização removido',
+            graceUntil: graceUntil ? graceUntil.toISOString() : null,
+            isProtected: protectedOrg
+        });
+    } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Preço personalizado por org (em centavos). <= 0 / vazio → null (volta ao preço do plano).
-// Vale na próxima assinatura — não altera assinatura já ativa no MP.
+// Reflete na assinatura JÁ ATIVA no MP quando há preapproval avulsa (flag MP_USE_PREAPPROVAL);
+// no modo legado vale só na próxima assinatura (mpSkipped='legacy_flag_off').
 router.put('/admin/organizations/:id/custom-price', authenticateToken, requireSuperadmin, async (req, res) => {
     try {
         const raw = req.body.customPriceCents;
@@ -585,11 +643,25 @@ router.put('/admin/organizations/:id/custom-price', authenticateToken, requireSu
         if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
         sub.customPriceCents = customPriceCents;
         await sub.save();
-        audit(req, 'custom_price_change', req.params.id, { customPriceCents });
+
+        // Reflete o novo preço na assinatura JÁ ATIVA no MP. Falha não desfaz o save:
+        // vale como base e entra no próximo checkout.
+        let mpUpdated = false, mpSkipped = null, mpError = null;
+        try {
+            ({ updated: mpUpdated, skipped: mpSkipped } = await syncPreapprovalAmount(sub));
+        } catch (e) {
+            mpError = e.message;
+            req.logger.error('Falha ao atualizar valor da preapproval no MP', { error: e.message, orgId: req.params.id });
+        }
+
+        audit(req, 'custom_price_change', req.params.id, { customPriceCents, mpUpdated, mpSkipped });
         res.json({
             success: true,
             message: customPriceCents ? 'Preço personalizado salvo' : 'Preço personalizado removido (voltou ao plano)',
-            customPriceCents
+            customPriceCents,
+            mpUpdated,
+            mpSkipped,
+            mpError
         });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
@@ -618,25 +690,22 @@ router.put('/admin/organizations/:id/storage-addon', authenticateToken, requireS
 
         // Reflete o novo total na assinatura JÁ ATIVA no MP (checkout normal só vale p/ assinatura nova).
         // Falha aqui não desfaz o save: o adicional já vale como limite; o valor entra no próximo checkout.
-        let mpUpdated = false;
-        let mpError = null;
-        if (sub.mpPreapprovalId && sub.status === 'active') {
-            try {
-                await updatePreapprovalAmount(sub.mpPreapprovalId, effectiveMonthlyCents(sub));
-                mpUpdated = true;
-            } catch (e) {
-                mpError = e.message;
-                req.logger.error('Falha ao atualizar valor da preapproval no MP', { error: e.message, orgId: req.params.id });
-            }
+        let mpUpdated = false, mpSkipped = null, mpError = null;
+        try {
+            ({ updated: mpUpdated, skipped: mpSkipped } = await syncPreapprovalAmount(sub));
+        } catch (e) {
+            mpError = e.message;
+            req.logger.error('Falha ao atualizar valor da preapproval no MP', { error: e.message, orgId: req.params.id });
         }
 
-        audit(req, 'storage_addon_change', req.params.id, { storageAddonGB, storageAddonPriceCents, mpUpdated });
+        audit(req, 'storage_addon_change', req.params.id, { storageAddonGB, storageAddonPriceCents, mpUpdated, mpSkipped });
         res.json({
             success: true,
             message: storageAddonGB > 0 ? 'Storage adicional salvo' : 'Storage adicional removido',
             storageAddonGB,
             storageAddonPriceCents,
             mpUpdated,
+            mpSkipped,
             mpError
         });
     } catch (error) {

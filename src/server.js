@@ -168,6 +168,9 @@ app.use('/saas-admin', express.static(path.join(__dirname, '../saas-admin')));
 app.use('/home', express.static(path.join(__dirname, '../home')));
 // Fase 8: servir visualizador de álbum de prova
 app.use('/album', express.static(path.join(__dirname, '../album')));
+// Triagem: PWA de separação facial (dev=pasta irmã, prod=TRIAGEM_PATH)
+const TRIAGEM_DIR = process.env.TRIAGEM_PATH || path.join(__dirname, '../../cliquezoom-triagem');
+app.use('/triagem', express.static(TRIAGEM_DIR));
 
 // ============================================================================
 // DYNAMIC ROUTES (must come BEFORE static middleware for /site)
@@ -340,6 +343,7 @@ const connectWithRetry = async () => {
 
 const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
+const { checkGracePeriods } = require('./utils/graceChecker');
 const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
@@ -364,6 +368,10 @@ function startDeadlineScheduler() {
   // Roda 1x por dia — verifica orgs suspensas e aplica offboarding após grace period
   safeInterval('offboardingChecker', () => checkOffboarding(), ONE_DAY);
   logger.info('[scheduler] Offboarding checker iniciado (a cada 24h)');
+
+  // F3 — Carência de regularização: avisa e suspende (NÃO exclui) orgs cujo prazo venceu
+  safeInterval('graceChecker', () => checkGracePeriods(), ONE_DAY);
+  logger.info('[scheduler] Grace checker (carência de cobrança) iniciado (a cada 24h)');
 
   // Escassês de vendas: upsell pós-entrega na janela entre a entrega e a exclusão do storage
   safeInterval('postDeliveryUpsell', () => postDeliveryAutomator.run(), SIX_HOURS);
@@ -517,6 +525,7 @@ app.use('/api', require('./routes/tickets'));
 app.use('/api', require('./routes/saasSystem'));
 app.use('/api', require('./routes/saasAgent'));
 app.use('/api', require('./routes/presence'));
+app.use('/api', require('./routes/triagem'));
 
 
 

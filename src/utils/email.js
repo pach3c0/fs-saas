@@ -727,6 +727,74 @@ async function sendOffboardingDeletedEmail(ownerEmail, orgName) {
 }
 
 /**
+ * F3 — Aviso prévio: a carência de regularização está vencendo.
+ * IMPORTANTE: suspensão por cobrança NÃO exclui arquivos — não citar exclusão aqui.
+ */
+async function sendBillingGraceWarningEmail(ownerEmail, orgName, daysLeft) {
+  const subject = `Sua conta "${orgName}" precisa ser regularizada em ${daysLeft} dia(s)`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Regularize sua assinatura</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        A conta <strong>${orgName}</strong> está dentro do prazo de regularização da CliqueZoom.
+        Faltam <strong>${daysLeft} dia(s)</strong> para o prazo encerrar.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Se a assinatura não for regularizada até lá, o acesso à conta será <strong>suspenso temporariamente</strong>.
+        Seus dados e fotos <strong>não são apagados</strong> — basta entrar em contato para reativar.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Fale com a gente para resolver e escolher o melhor plano para você.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html, { template: 'billing_grace_warning' });
+}
+
+/**
+ * F3 — Conta suspensa por carência vencida. Suspensão INDEFINIDA, sem exclusão:
+ * a reativação é manual (o fotógrafo precisa entrar em contato).
+ */
+async function sendBillingSuspendedEmail(ownerEmail, orgName) {
+  const subject = `Conta "${orgName}" suspensa — entre em contato para reativar`;
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Sua conta foi suspensa</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        O prazo de regularização da conta <strong>${orgName}</strong> encerrou e o acesso foi suspenso.
+      </p>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Fique tranquilo: seus dados e fotos <strong>continuam guardados</strong> e não foram apagados.
+        Para reativar a conta e escolher o plano, <strong>entre em contato com a CliqueZoom</strong>.
+      </p>
+
+      <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 0.5rem; padding: 1rem; margin: 1.5rem 0;">
+        <p style="margin: 0; color: #856404; font-size: 0.9375rem;">
+          📩 Responda este e-mail ou fale com o suporte para reativar e negociar seu plano.
+        </p>
+      </div>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html, { template: 'billing_suspended' });
+}
+
+/**
  * E-mail para o cliente: fotos extras recusadas
  */
 async function sendExtraPhotosRejectedEmail(clientEmail, clientName, orgName, reason, orgSlug) {
@@ -1205,6 +1273,8 @@ module.exports = {
   sendDeadlineExpiredEmail,
   sendOffboardingWarningEmail,
   sendOffboardingDeletedEmail,
+  sendBillingGraceWarningEmail,
+  sendBillingSuspendedEmail,
   sendUpsellEmail,
   sendExtraPhotosRejectedEmail,
   sendPostDeliveryUpsellEmail,

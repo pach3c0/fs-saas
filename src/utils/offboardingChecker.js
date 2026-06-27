@@ -18,7 +18,10 @@ const WARN_DAYS = parseInt(process.env.OFFBOARDING_WARN_DAYS || '7');
 async function checkOffboarding() {
   const orgs = await Organization.find({
     isActive: false,
-    deactivatedAt: { $ne: null }
+    deactivatedAt: { $ne: null },
+    // Blindagem F3: suspensão por carência de cobrança é INDEFINIDA e NUNCA é excluída.
+    // (Por construção ela não seta deactivatedAt; o guard abaixo protege contra regressão.)
+    suspendedReason: { $ne: 'billing' }
   }).select('_id name email deactivatedAt').lean();
 
   if (!orgs.length) return { warned: 0, deleted: 0 };

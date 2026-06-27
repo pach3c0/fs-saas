@@ -17,6 +17,10 @@ const OrganizationSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
   deactivatedAt: { type: Date, default: null },
+  // Motivo da suspensão (isActive=false). 'billing' = carência de cobrança vencida:
+  // suspensão INDEFINIDA (não entra na fila de exclusão do offboarding; só volta com
+  // reativação manual). null = desativação comum (offboarding pode excluir após grace).
+  suspendedReason: { type: String, default: null },
   betaFeatures: { type: [String], default: [] },
   // Perfil do fotografo
   logo: { type: String, default: '' },

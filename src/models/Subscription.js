@@ -13,7 +13,7 @@ const SubscriptionSchema = new mongoose.Schema({
   // Status da assinatura
   status: {
     type: String,
-    enum: ['active', 'past_due', 'canceled', 'trialing'],
+    enum: ['active', 'past_due', 'canceled', 'trialing', 'pending'],
     default: 'active'
   },
 
@@ -26,10 +26,23 @@ const SubscriptionSchema = new mongoose.Schema({
 
   // Mercado Pago
   // id da assinatura (PreApproval) no MP — vem do webhook; usado p/ cancelar de verdade.
-  mpPreapprovalId: { type: String, default: null },
+  // unique+sparse: impede 2 orgs com a mesma preapproval (findOne da fatura recorrente seria
+  // ambíguo); sparse permite múltiplos `null` (orgs sem assinatura viva).
+  mpPreapprovalId: { type: String, default: null, unique: true, sparse: true },
+  // ID da última notificação processada (idempotência). Impede reprocessar o mesmo evento
+  // quando o MP faz retry automático da mesma notificação.
+  lastEventId: { type: String, default: null },
   // plano que a org está fechando no checkout (gravado em /billing/checkout,
   // lido pelo webhook p/ mapear o plano sem depender de parsear o `reason`).
   pendingPlan: { type: String, default: null },
+
+  // F4 — Faturas recorrentes (evento `subscription_authorized_payment` do MP).
+  // Observabilidade + inadimplência: cada cobrança mensal da PreApproval viva atualiza isto.
+  lastPaymentAt: { type: Date, default: null },          // data da última fatura processada
+  lastPaymentStatus: { type: String, default: null },    // 'approved' | 'rejected' | status do MP
+  // Idempotência DEDICADA das faturas (separada de lastEventId, que é do ciclo de vida da
+  // assinatura) — evita que um evento de fatura sobrescreva a idempotência do preapproval e vice-versa.
+  lastPaymentEventId: { type: String, default: null },
 
   // Preço personalizado por org (em centavos). Quando `> 0`, sobrescreve o preço
   // do catálogo (plans.js) no checkout DESTA org. `null` = usa o preço do plano.
@@ -48,6 +61,16 @@ const SubscriptionSchema = new mongoose.Schema({
   // Os limites continuam definidos pelo plano + override.
   isCourtesy: { type: Boolean, default: false },
   courtesyNote: { type: String, default: '' },      // ex.: "Esposa", "Sócio"
+
+  // F3 — Carência de regularização (exit-cortesia / início de cobrança).
+  // `graceUntil` = prazo POR ORG definido pelo super-admin (o dia que ele quiser).
+  // Enquanto não vence, a org funciona normal (só recebe aviso). Quando vence sem
+  // regularizar, o graceChecker SUSPENDE a org (Organization.isActive=false +
+  // suspendedReason='billing') — NUNCA deleta (offboarding ignora suspensão por billing).
+  // `graceWarnedAt` = quando o aviso prévio foi enviado (idempotência do aviso).
+  // Ambos são zerados ao redefinir o prazo e ao reativar a org.
+  graceUntil: { type: Date, default: null },
+  graceWarnedAt: { type: Date, default: null },
 
   // Override de limites por org. Quando ligado, os `limits` abaixo são CUSTOMIZADOS
   // e não são sobrescritos ao trocar de plano. Desligar reverte ao plano base.

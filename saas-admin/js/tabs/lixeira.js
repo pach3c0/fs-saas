@@ -45,8 +45,11 @@ async function loadTrash() {
   }
 }
 
-window.trashOrg = async (id, name) => {
-  if (!await saasConfirm(`Mover "${name}" para a lixeira?`, { title: 'Mover para Lixeira', confirmText: 'Mover', danger: true })) return;
+window.trashOrg = async (id, name, isProtected = false) => {
+  const msg = isProtected
+    ? `🛡️ "${name}" é uma conta PROTEGIDA (produção). Mover para a lixeira agenda a EXCLUSÃO definitiva dela. Tem certeza absoluta?`
+    : `Mover "${name}" para a lixeira?`;
+  if (!await saasConfirm(msg, { title: isProtected ? '⚠️ Conta protegida' : 'Mover para Lixeira', confirmText: isProtected ? 'Sim, mover' : 'Mover', danger: true })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/trash`);
     saasToast(`"${name}" movida para a lixeira.`, 'warning');

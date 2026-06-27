@@ -63,7 +63,7 @@ function renderOrgsTable(orgs) {
     return `
       <tr>
         <td style="text-align:center;">${presenceDot(org._id)}</td>
-        <td style="font-weight:600;">${esc(org.name)}${org.isCourtesy ? ' <span title="Conta cortesia" style="font-size:0.7rem; background:#064e3b; color:#6ee7b7; border-radius:0.25rem; padding:0.05rem 0.35rem; font-weight:600;">🎁 cortesia</span>' : ''}</td>
+        <td style="font-weight:600;">${esc(org.name)}${org.isCourtesy ? ' <span title="Conta cortesia" style="font-size:0.7rem; background:#064e3b; color:#6ee7b7; border-radius:0.25rem; padding:0.05rem 0.35rem; font-weight:600;">🎁 cortesia</span>' : ''}${org.isProtected ? ' <span title="Conta protegida — não suspende automaticamente" style="font-size:0.7rem;">🛡️</span>' : ''}</td>
         <td style="color:#94a3b8;">${esc(org.slug)}</td>
         <td>${owner ? esc(owner.name || owner.email) : '-'}</td>
         <td><span style="text-transform:uppercase; font-size:0.6875rem; color:#94a3b8;">${org.plan}</span></td>
@@ -75,9 +75,9 @@ function renderOrgsTable(orgs) {
           <div class="btn-actions">
             <button class="btn btn-panel" onclick="openOrgPanel('${org._id}', '${esc(org.name)}', '${esc(org.slug)}')">Painel</button>
             ${org.isActive
-              ? `<button class="btn btn-deactivate" onclick="deactivateOrg('${org._id}', '${esc(org.name)}')">Desativar</button>`
+              ? `<button class="btn btn-deactivate" onclick="deactivateOrg('${org._id}', '${esc(org.name)}', ${!!org.isProtected})">Desativar</button>`
               : `<button class="btn btn-approve" onclick="approveOrg('${org._id}', '${esc(org.name)}')">Aprovar</button>
-                 <button class="btn btn-trash" onclick="trashOrg('${org._id}', '${esc(org.name)}')">Excluir</button>`
+                 <button class="btn btn-trash" onclick="trashOrg('${org._id}', '${esc(org.name)}', ${!!org.isProtected})">Excluir</button>`
             }
           </div>
         </td>
@@ -148,8 +148,11 @@ window.approveOrg = async (id, name) => {
   }
 };
 
-window.deactivateOrg = async (id, name) => {
-  if (!await saasConfirm(`Desativar a organização "${name}"? O site dela ficará offline.`, { title: 'Desativar', confirmText: 'Desativar', danger: true })) return;
+window.deactivateOrg = async (id, name, isProtected = false) => {
+  const msg = isProtected
+    ? `🛡️ "${name}" é uma conta PROTEGIDA (produção). Desativar tira o site dela do ar IMEDIATAMENTE. Tem certeza absoluta?`
+    : `Desativar a organização "${name}"? O site dela ficará offline.`;
+  if (!await saasConfirm(msg, { title: isProtected ? '⚠️ Conta protegida' : 'Desativar', confirmText: isProtected ? 'Sim, desativar' : 'Desativar', danger: true })) return;
   try {
     await apiRequest('PUT', `/api/admin/organizations/${id}/deactivate`);
     saasToast('Organização desativada.', 'warning');
@@ -402,6 +405,7 @@ const AUDIT_LABEL = {
   limits_change: 'Alterou limites custom', courtesy_change: 'Alterou cortesia', site_reset: 'Resetou seção do site',
   custom_price_change: 'Alterou preço personalizado',
   storage_addon_change: 'Alterou storage adicional',
+  grace_change: 'Alterou prazo de regularização',
   plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
 };
 
@@ -600,6 +604,13 @@ async function renderPanelOverview(content) {
 
     <div class="detail-section">
       <h3>Cobrança</h3>
+      ${(() => {
+        const st = stats.subStatus || 'active';
+        const map = { active: ['#064e3b', '#6ee7b7', 'ativa'], past_due: ['#7f1d1d', '#fecaca', 'inadimplente'], pending: ['#78350f', '#fde68a', 'pendente'], canceled: ['#334155', '#cbd5e1', 'cancelada'], trialing: ['#1e3a5f', '#93c5fd', 'trial'] };
+        const [bg, fg, label] = map[st] || ['#334155', '#cbd5e1', st];
+        const last = stats.lastPaymentAt ? ` · última fatura ${stats.lastPaymentStatus === 'rejected' ? 'recusada' : 'ok'} em ${new Date(stats.lastPaymentAt).toLocaleDateString('pt-BR')}` : '';
+        return `<p style="margin:0 0 0.6rem; font-size:0.78rem; color:#94a3b8;">Assinatura: <span style="background:${bg}; color:${fg}; border-radius:0.25rem; padding:0.05rem 0.4rem; font-weight:600;">${label}</span>${last}</p>`;
+      })()}
       ${org.plan === 'free' ? `
       <label style="display:flex; align-items:center; gap:0.6rem; margin-top:0.5rem; opacity:0.55;">
         <input id="panelCourtesy" type="checkbox" disabled style="width:1.1rem; height:1.1rem; accent-color:#10b981;">
@@ -638,6 +649,21 @@ async function renderPanelOverview(content) {
           <button id="panelSaveAddon" style="background:#0369a1; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap;">Salvar</button>
         </div>
         <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Soma no limite e na mensalidade. Se a org já assina, tenta atualizar o valor no Mercado Pago. Zerar = remover o adicional.</p>
+      </div>
+
+      <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
+        <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Prazo de regularização (carência)${stats.isProtected ? ' <span title="Conta protegida" style="margin-left:0.3rem; font-size:0.65rem; background:#1e3a5f; color:#93c5fd; border-radius:0.25rem; padding:0.05rem 0.35rem;">🛡️ protegida</span>' : ''}</label>
+        ${(stats.suspendedReason === 'billing' && !stats.isActive) ? `
+        <div style="background:#7f1d1d; border:1px solid #f87171; border-radius:0.35rem; padding:0.5rem 0.65rem; margin-bottom:0.55rem;">
+          <p style="margin:0 0 0.45rem; color:#fecaca; font-size:0.78rem;">⛔ Conta <strong>suspensa por cobrança</strong>. Reative depois de negociar o plano.</p>
+          <button id="panelReactivateBilling" style="background:#10b981; color:#fff; border:none; border-radius:0.25rem; padding:0.3rem 0.85rem; font-size:0.78rem; font-weight:600; cursor:pointer;">Reativar conta</button>
+        </div>` : ''}
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <input id="panelGraceUntil" type="date" min="${new Date().toISOString().slice(0, 10)}" value="${stats.graceUntil ? new Date(stats.graceUntil).toISOString().slice(0, 10) : ''}"
+            style="flex:1; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:0.25rem; padding:0.375rem 0.5rem; font-size:0.8125rem; box-sizing:border-box;">
+          <button id="panelSaveGrace" style="background:#b45309; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap;">Salvar prazo</button>
+        </div>
+        <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Vencido sem regularizar, a conta é <strong>suspensa</strong> (não excluída) e só volta com reativação manual. Aviso por e-mail 7 dias antes. Vazio = sem prazo.${stats.isProtected ? ' Conta protegida: o robô <strong>nunca</strong> suspende automaticamente.' : ''}</p>
       </div>
     </div>
 
@@ -713,6 +739,45 @@ async function renderPanelOverview(content) {
     } finally {
       btn.textContent = 'Salvar cortesia';
       btn.disabled = false;
+    }
+  };
+
+  // Carência de regularização (data por org). Protegida → confirmação reforçada.
+  const saveGraceBtn = content.querySelector('#panelSaveGrace');
+  if (saveGraceBtn) saveGraceBtn.onclick = async () => {
+    const val = content.querySelector('#panelGraceUntil').value; // 'yyyy-mm-dd' ou ''
+    if (stats.isProtected && val) {
+      const ok = await saasConfirm(
+        `"${org.name}" é uma conta PROTEGIDA. O robô nunca vai suspendê-la automaticamente, mas o prazo será registrado mesmo assim. Confirmar?`,
+        { title: '🛡️ Conta protegida', confirmText: 'Salvar mesmo assim', danger: true }
+      );
+      if (!ok) return;
+    }
+    saveGraceBtn.textContent = '...';
+    saveGraceBtn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/grace`, { graceUntil: val || null });
+      saasToast(val ? 'Prazo de regularização salvo' : 'Prazo removido', 'success');
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+    } finally {
+      saveGraceBtn.textContent = 'Salvar prazo';
+      saveGraceBtn.disabled = false;
+    }
+  };
+
+  // Reativar conta suspensa por cobrança (zera a carência no backend via /approve)
+  const reactivateBtn = content.querySelector('#panelReactivateBilling');
+  if (reactivateBtn) reactivateBtn.onclick = async () => {
+    if (!await saasConfirm(`Reativar "${org.name}"? A conta volta ao ar e o prazo de carência é zerado.`, { title: 'Reativar', confirmText: 'Reativar' })) return;
+    reactivateBtn.disabled = true;
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/approve`);
+      saasToast('Conta reativada!', 'success');
+      loadPanelTab('overview');   // re-renderiza o painel com o novo estado
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+      reactivateBtn.disabled = false;
     }
   };
 
