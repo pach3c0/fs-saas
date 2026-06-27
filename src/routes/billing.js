@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
+const User = require('../models/User');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
 const { effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
@@ -27,6 +28,9 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
     }
     
     const orgId = req.user.organizationId;
+    // E-mail do usuário logado → pré-preenchido (e travado) no CardForm como payer_email,
+    // pra não pedir e-mail ao fotógrafo (evita confusão "que e-mail eu ponho?").
+    const loggedUser = await User.findById(req.user.userId).select('email').lean();
     const toMB = b => Math.round(b / 1024 / 1024 * 100) / 100;
     // Fonte única da fórmula de storage (ver storage.getOrgStorageBytes).
     const { sessions: sessionsBytes, site: siteBytes, videos: videosBytes, total: storageBytes } =
@@ -40,6 +44,8 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       // Public Key do MP (segura no browser) — presença habilita o CardForm in-page.
       // Ausente → front cai no checkout hospedado legado (redirect).
       mpPublicKey: process.env.MERCADOPAGO_PUBLIC_KEY || null,
+      // E-mail do pagador (= usuário logado) pro CardForm preencher sozinho e travar.
+      ownerEmail: loggedUser?.email || null,
       // Limites EFETIVOS (derivam de plans.js sem override) — a UI usa estes, não o
       // sub.limits gravado, que pode estar defasado (ex.: Free velho 500MB/5/100).
       limits: effectiveLimits(sub),

@@ -22,7 +22,7 @@ function loadMercadoPagoSdk() {
 // chega ao nosso backend. Sem conta MP, sem redirect.
 // NOTA DE TEMA: o cartão do modal é forçado a paleta CLARA (hexcodes), de propósito —
 // os iframes seguros do MP renderizam texto escuro e ficariam invisíveis sobre o tema dark.
-async function openCardCheckout({ plan, planName, amountReais, publicKey, onDone }) {
+async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerEmail, onDone }) {
   await loadMercadoPagoSdk();
 
   const _inp = 'width:100%; height:42px; box-sizing:border-box; padding:0 0.75rem; border:1px solid #d0d0d5; border-radius:0.5rem; background:#ffffff; color:#1a1a1a; font-size:0.95rem;';
@@ -46,7 +46,10 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, onDone
           <div style="flex:1;">${_fld('CVV', `<div id="form-checkout__securityCode" style="${_box}"></div>`)}</div>
         </div>
         ${_fld('Nome impresso no cartão', `<input id="form-checkout__cardholderName" type="text" autocomplete="cc-name" style="${_inp}" />`)}
-        ${_fld('E-mail', `<input id="form-checkout__cardholderEmail" type="email" autocomplete="email" style="${_inp}" />`)}
+        <!-- E-mail do pagador: pré-preenchido com o e-mail da conta e travado (fora da tela).
+             O fotógrafo não digita e-mail — o MP exige o campo só p/ associar o recibo. -->
+        <input id="form-checkout__cardholderEmail" type="email" value="${ownerEmail || ''}" readonly tabindex="-1" aria-hidden="true" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" />
+        ${ownerEmail ? `<p style="font-size:0.72rem; color:#777; margin:-0.2rem 0 0.85rem;">Recibo e cobrança no e-mail <strong>${ownerEmail}</strong> da sua conta.</p>` : ''}
         <div style="display:flex; gap:0.75rem;">
           <div style="width:130px;">${_fld('Documento', `<select id="form-checkout__identificationType" style="${_inp}"></select>`)}</div>
           <div style="flex:1;">${_fld('Número do documento', `<input id="form-checkout__identificationNumber" type="text" inputmode="numeric" style="${_inp}" />`)}</div>
@@ -142,16 +145,16 @@ export async function renderPlano(container) {
       apiGet('/api/billing/plans')
     ]);
 
-    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits, mpPublicKey } = subRes;
+    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits, mpPublicKey, ownerEmail } = subRes;
     const { plans } = plansRes;
 
-    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits, mpPublicKey });
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits, mpPublicKey, ownerEmail });
   } catch (error) {
     container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
-function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits, mpPublicKey }) {
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits, mpPublicKey, ownerEmail }) {
   // Limites efetivos vêm do backend (derivam de plans.js); fallback ao gravado.
   const limites = effLimits || subscription.limits;
   const uso     = subscription.usage;
@@ -388,6 +391,7 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
           planName: planObj.name || 'plano',
           amountReais: cents / 100,
           publicKey: mpPublicKey,
+          ownerEmail,
           onDone: () => renderPlano(container),
         });
         return;
