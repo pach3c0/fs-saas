@@ -62,7 +62,15 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
 
     let btnHtml = '';
     if (isCurrent) {
-      btnHtml = `<button disabled style="width:100%; padding:0.625rem; border-radius:0.375rem; border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); background:transparent; color:var(--ad-text); opacity:0.5; cursor:not-allowed; font-size:0.9rem;">Plano Atual</button>`;
+      const rotulo = isCortesia ? 'Plano Atual · cortesia' : 'Plano Atual';
+      btnHtml = `<button disabled style="width:100%; padding:0.625rem; border-radius:0.375rem; border:1px solid color-mix(in srgb, var(--ad-text) 20%, transparent); background:transparent; color:var(--ad-text); opacity:0.5; cursor:not-allowed; font-size:0.9rem;">${rotulo}</button>`;
+    } else if (!isFree && isCortesia) {
+      // Cortesia enxerga todos os planos, mas a troca encerra a cortesia e passa
+      // a cobrar — não dispara checkout silencioso (viraria "paga e segue cortesia").
+      // Roteia pela conversa com o suporte (fluxo definido pelo dono).
+      btnHtml = `
+        <button class="cortesiaUpgradeBtn" data-plan="${key}" data-planname="${plan.name}" style="width:100%; padding:0.625rem; border-radius:0.375rem; border:1px solid var(--ad-accent); background:transparent; color:var(--ad-accent); cursor:pointer; font-weight:600; font-size:0.9rem;">Mudar para este plano</button>
+        <p style="text-align:center; font-size:0.72rem; color:var(--ad-text); opacity:0.55; margin-top:0.4rem;">Encerra sua cortesia e inicia a cobrança</p>`;
     } else if (!isFree) {
       if (stripeAtivo) {
         btnHtml = `<button class="selectPlanBtn" data-plan="${key}" style="width:100%; padding:0.625rem; border-radius:0.375rem; border:none; background:var(--ad-accent); color:var(--ad-bg-base); cursor:pointer; font-weight:600; font-size:0.9rem;">Selecionar</button>`;
@@ -89,8 +97,9 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
 
   // ── Mini-vitrine "bloqueado-mas-visível" ─────────────────────────────────
   // Mostra, de forma honesta, o que o plano ATUAL não entrega e em qual tier
-  // desbloqueia — alimenta a evolução de plano sem esconder nada. Só aparece
-  // para contas pagas (cortesia não tem upgrade) e quando há algo travado.
+  // desbloqueia — alimenta a evolução de plano sem esconder nada. Aparece para
+  // TODOS (inclusive cortesia: ela precisa enxergar o que ganha ao sair da
+  // cortesia) sempre que houver algo travado.
   const _curCaps = planDetails.capabilities || {};
   // Planos por ordem de preço (mais barato → mais caro) p/ achar o 1º que libera.
   const _ordered = Object.values(plans).sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -155,7 +164,7 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
               ${!isCortesia && subscription.cancelAtPeriodEnd ? ` <span style="color:var(--ad-red); font-weight:600;">· Cancelamento agendado</span>` : ''}
             </p>
           </div>
-          ${!isCortesia && planoKey !== 'pro' ? `<button id="verPlansBtn" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Ver planos ↓</button>` : ''}
+          ${planoKey !== 'pro' || isCortesia ? `<button id="verPlansBtn" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Ver planos ↓</button>` : ''}
         </div>
 
         <div style="display:grid; gap:1rem;">
@@ -177,23 +186,23 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         </div>` : ''}
       </div>
 
-      ${!isCortesia ? vitrineHtml : ''}
+      ${vitrineHtml}
 
       ${isCortesia ? `
-      <!-- Conta cortesia: sem upgrade -->
+      <!-- Conta cortesia: enxerga TUDO; upgrade/compra encerra a cortesia -->
       <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-green) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-green) 30%, transparent); border-radius:0.5rem;">
-        <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">🎁 Conta cortesia</p>
-        <p style="font-size:0.85rem; color:var(--ad-text); opacity:0.7; margin:0;">Sua conta é uma cortesia da plataforma — você tem acesso liberado sem cobrança. Qualquer dúvida sobre limites, fale com o suporte.</p>
+        <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">🎁 Conta cortesia · plano ${planDetails.name}</p>
+        <p style="font-size:0.85rem; color:var(--ad-text); opacity:0.75; margin:0;">Você tem acesso liberado sem cobrança. Veja abaixo o que cada plano oferece — ao fazer <strong>upgrade</strong> ou comprar um <strong>adicional</strong>, a cortesia é encerrada e a cobrança começa. Fale com o suporte quando quiser trocar.</p>
       </div>
-      ` : `
-      <!-- Planos disponíveis -->
+      ` : ''}
+
+      <!-- Planos disponíveis (todos enxergam, inclusive cortesia) -->
       <div>
         <h3 id="planosSection" style="font-size:1.125rem; font-weight:700; color:var(--ad-text); margin:0 0 1rem;">Planos Disponíveis</h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1.25rem;">
           ${Object.entries(plans).map(([key, plan]) => _planCard(key, plan)).join('')}
         </div>
       </div>
-      `}
 
       ${!isCortesia && planoKey !== 'free' ? `
       <!-- Cancelamento -->
@@ -216,6 +225,19 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   if (verBtn2) {
     verBtn2.onclick = () => container.querySelector('#planosSection')?.scrollIntoView({ behavior: 'smooth' });
   }
+
+  // Cortesia querendo trocar de plano: explica a fronteira (encerra a cortesia)
+  // e roteia pelo suporte — não dispara checkout (evita "paga e segue cortesia").
+  container.querySelectorAll('.cortesiaUpgradeBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const nome = btn.dataset.planname || 'este plano';
+      await window.showConfirm(`Mudar para o ${nome}?`, {
+        message: `Sua conta é uma cortesia da plataforma. Trocar para o ${nome} encerra a cortesia e inicia a cobrança do plano. Fale com o suporte para confirmar a troca — assim ajustamos tudo certinho pra você.`,
+        confirmText: 'Entendi',
+        cancelText: 'Voltar'
+      });
+    };
+  });
 
   // Selecionar plano (só quando Stripe ativo)
   container.querySelectorAll('.selectPlanBtn').forEach(btn => {
