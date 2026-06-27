@@ -19,9 +19,11 @@ async function checkOffboarding() {
   const orgs = await Organization.find({
     isActive: false,
     deactivatedAt: { $ne: null },
-    // Blindagem F3: suspensão por carência de cobrança é INDEFINIDA e NUNCA é excluída.
-    // (Por construção ela não seta deactivatedAt; o guard abaixo protege contra regressão.)
-    suspendedReason: { $ne: 'billing' }
+    // Blindagem: suspensões que NUNCA podem virar exclusão automática —
+    //  • 'billing'    = carência de cobrança vencida (F3), suspensão indefinida;
+    //  • 'chargeback' = org em DISPUTA de chargeback (dados são evidência; não destruir).
+    // (Por construção nenhuma das duas seta deactivatedAt; o guard protege contra regressão.)
+    suspendedReason: { $nin: ['billing', 'chargeback'] }
   }).select('_id name email deactivatedAt').lean();
 
   if (!orgs.length) return { warned: 0, deleted: 0 };

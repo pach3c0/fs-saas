@@ -324,6 +324,19 @@ const connectWithRetry = async () => {
     });
     isConnected = true;
     logger.info('MongoDB conectado com sucesso');
+
+    // Salvaguarda de cobrança (ALERTA de boot — só registra, NÃO interrompe o processo): com
+    // MP_USE_PREAPPROVAL ligado, a 1ª rede da reversão automática (PROTECTED_ORG_SLUGS/OWNER_SLUG)
+    // só blinda contas reais (Flávia/Davi) enquanto estiver setada. A 2ª rede (overrideEnabled, vinda
+    // do banco) cobre essas contas mesmo sem a env, por isso aqui é alerta ALTO (PlatformLog/Eventos)
+    // e não process.exit — derrubar o boot por env ausente seria pior que o risco já duplamente coberto.
+    if (process.env.MP_USE_PREAPPROVAL === 'true') {
+      const { protectedSlugs } = require('./utils/protectedOrgs');
+      if (protectedSlugs().length === 0) {
+        logger.error('[billing] PERIGO: MP_USE_PREAPPROVAL=true mas PROTECTED_ORG_SLUGS/OWNER_SLUG VAZIO — estorno/chargeback pode rebaixar/suspender contas reais. Configurar no .env IMEDIATAMENTE.');
+      }
+    }
+
     // Em cluster PM2, apenas o worker 0 roda os schedulers para evitar envios duplicados.
     // Trava de ambiente: em beta/staging os schedulers NÃO sobem (nada de automação/e-mail
     // disparando contra dados reais a partir de um ambiente de teste).

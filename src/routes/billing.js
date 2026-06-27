@@ -116,17 +116,36 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Nenhuma assinatura ativa para cancelar' });
     }
 
-    // Se temos o id da assinatura no MP, cancelamos de fato lá; senão, marcamos
-    // para downgrade no fim do período no próprio banco (fallback).
+    // Cancelamento VOLUNTÁRIO do fotógrafo (resilição). Mata a recorrência no MP, mas
+    // MANTÉM o acesso até o fim do ciclo já pago — CDC: cancelamento após 7 dias não dá
+    // reembolso retroativo. NÃO rebaixa o plano aqui (isso é só pro ESTORNO, via webhook
+    // revertSubscriptionToFree). O cancelamento no MP dispara o webhook subscription_preapproval
+    // (cancelled), que confirma status=canceled + cancelAtPeriodEnd de forma idempotente.
     if (sub.mpPreapprovalId) {
-      await cancelPreapproval(sub.mpPreapprovalId);
-      sub.status = 'canceled';
-    } else {
-      sub.cancelAtPeriodEnd = true;
+      try {
+        await cancelPreapproval(sub.mpPreapprovalId);
+        sub.status = 'canceled';
+      } catch (e) {
+        // Distingue erro DEFINITIVO (já cancelada/inexistente) de TRANSIENTE (5xx/timeout).
+        // Transiente: agenda retry no graceChecker (mpCancelPending), senão a recorrência seguiria
+        // viva cobrando mesmo o fotógrafo tendo clicado cancelar. Espelha o revert por estorno.
+        const code = e?.status || e?.statusCode || e?.cause?.status || e?.response?.status;
+        const definitive = code === 400 || code === 404 ||
+          /already.*cancel|not.*found|cancelad|does not exist/i.test(e?.message || '');
+        if (definitive) {
+          sub.status = 'canceled'; // já estava cancelada no MP
+        } else {
+          sub.mpCancelPending = true; // graceChecker.retryPendingCancellations re-tenta
+          req.logger.error('[billing] cancel voluntário falhou (transiente) — retry agendado', { error: e.message });
+        }
+      }
     }
+    sub.cancelAtPeriodEnd = true;
     await sub.save();
+    // TODO Fase 2: gravar currentPeriodEnd (next_payment_date do MP) + scheduler que rebaixa pro
+    // Free ao vencer o ciclo. Hoje o acesso permanece até downgrade manual (erra a favor do cliente).
 
-    res.json({ success: true, message: 'Assinatura cancelada com sucesso. Voltará ao plano Free no próximo ciclo.' });
+    res.json({ success: true, message: 'Assinatura cancelada — não haverá novas cobranças. Seu acesso ao plano atual continua ativo.' });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });

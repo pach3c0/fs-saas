@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 // Auditoria de ações do superadmin sobre as organizações.
 // SEM TTL — auditoria é permanente (volume baixíssimo: só ações manuais).
 const auditLogSchema = new mongoose.Schema({
-  adminUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  // Opcional: ações automáticas do sistema (ex.: reversão por estorno/chargeback no webhook
+  // do Mercado Pago) não têm admin humano → ficam null com meta.system=true (ver auditSystem).
+  adminUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   action: {
     type: String,
     required: true,

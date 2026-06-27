@@ -26,15 +26,25 @@ const SubscriptionSchema = new mongoose.Schema({
 
   // Mercado Pago
   // id da assinatura (PreApproval) no MP — vem do webhook; usado p/ cancelar de verdade.
-  // unique+sparse: impede 2 orgs com a mesma preapproval (findOne da fatura recorrente seria
-  // ambíguo); sparse permite múltiplos `null` (orgs sem assinatura viva).
-  mpPreapprovalId: { type: String, default: null, unique: true, sparse: true },
+  // Unicidade garantida por ÍNDICE PARCIAL (definido após o schema), não no campo:
+  // o antigo `unique+sparse` indexava `null` explícito (default do campo) e fazia o 2º
+  // cadastro novo colidir (E11000 {mpPreapprovalId:null}). O índice parcial só indexa
+  // quando o valor é STRING → nulls/ausentes ilimitados, strings continuam únicas.
+  mpPreapprovalId: { type: String, default: null },
   // ID da última notificação processada (idempotência). Impede reprocessar o mesmo evento
   // quando o MP faz retry automático da mesma notificação.
   lastEventId: { type: String, default: null },
   // plano que a org está fechando no checkout (gravado em /billing/checkout,
   // lido pelo webhook p/ mapear o plano sem depender de parsear o `reason`).
   pendingPlan: { type: String, default: null },
+
+  // Data em que a assinatura paga ATUAL entrou em vigor. Base para calcular a janela de
+  // arrependimento do CDC (Art. 49 — 7 dias corridos). Gravada quando a assinatura vira
+  // `active` (checkout autorizado ou webhook), zerada ao reverter pro Free.
+  subscribedAt: { type: Date, default: null },
+  // Plano imediatamente ANTES da troca atual (gravado no checkout, antes de aplicar o novo).
+  // Reservado p/ Fase 2 (reverter pro plano pago anterior num upgrade estornado). Hoje só registro.
+  previousPlan: { type: String, default: null },
 
   // F4 — Faturas recorrentes (evento `subscription_authorized_payment` do MP).
   // Observabilidade + inadimplência: cada cobrança mensal da PreApproval viva atualiza isto.
@@ -43,6 +53,28 @@ const SubscriptionSchema = new mongoose.Schema({
   // Idempotência DEDICADA das faturas (separada de lastEventId, que é do ciclo de vida da
   // assinatura) — evita que um evento de fatura sobrescreva a idempotência do preapproval e vice-versa.
   lastPaymentEventId: { type: String, default: null },
+  // (Legado) Idempotência por id de NOTIFICAÇÃO. Substituída por refundedPaymentIds: o mesmo
+  // estorno físico chega por 2 tópicos com ids de notificação DIFERENTES → dedup por evento
+  // deixava passar a 2ª entrega. Mantido só p/ não exigir migração; não é mais a chave de dedup.
+  lastRefundEventId: { type: String, default: null },
+  // Idempotência de ESTORNO/CHARGEBACK pelo PAGAMENTO FÍSICO (payment.id). Um mesmo estorno
+  // tem o MESMO payment.id nos tópicos 'payment', 'subscription_authorized_payment' e
+  // 'topic_chargebacks_wh' → dedup cross-tópico. Persiste através de re-assinatura, então um
+  // estorno antigo reentregue DEPOIS de o cliente re-assinar NÃO derruba a sub nova. O id só é
+  // gravado APÓS o revert concluir → se o revert lançar, o MP retenta e o estorno não se perde.
+  refundedPaymentIds: { type: [String], default: [] },
+
+  // Marca terminal de "revertida por estorno/chargeback" (CDC). Serve de:
+  //  • idempotência do PRÓPRIO revert (não rebaixa/audita 2× para o mesmo estorno);
+  //  • guarda anti-RESSURREIÇÃO: eventos de ativação atrasados/reenviados (payment approved,
+  //    preapproval authorized) NÃO podem reativar uma sub já revertida (recobrar pós-estorno
+  //    violaria o CDC Art. 42). É LIMPA em um novo checkout legítimo (re-assinatura).
+  revertedAt: { type: Date, default: null },
+
+  // O cancelamento da recorrência no MP falhou de forma TRANSIENTE (5xx/timeout) durante um
+  // estorno. O id da preapproval é PRESERVADO e este flag liga → o graceChecker re-tenta
+  // cancelar (senão a recorrência seguiria viva cobrando após o estorno — devolução em dobro).
+  mpCancelPending: { type: Boolean, default: false },
 
   // Preço personalizado por org (em centavos). Quando `> 0`, sobrescreve o preço
   // do catálogo (plans.js) no checkout DESTA org. `null` = usa o preço do plano.
@@ -109,5 +141,15 @@ const SubscriptionSchema = new mongoose.Schema({
   }
 
 }, { timestamps: true });
+
+// Unicidade do id de assinatura do MP via ÍNDICE PARCIAL: só vale quando mpPreapprovalId
+// é uma STRING (assinatura viva). Assim `null`/ausente (orgs sem assinatura) NÃO entram no
+// índice → cadastros ilimitados, sem o footgun do unique+sparse (que indexava null explícito
+// e quebrava o 2º cadastro com E11000). Em prod exige migração: dropar `mpPreapprovalId_1`
+// antigo antes de este criar (autoIndex não dropa índices fora do schema).
+SubscriptionSchema.index(
+  { mpPreapprovalId: 1 },
+  { unique: true, partialFilterExpression: { mpPreapprovalId: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Subscription', SubscriptionSchema);

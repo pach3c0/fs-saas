@@ -7,6 +7,9 @@ const Session = require('../models/Session');
 const Notification = require('../models/Notification');
 const plans = require('../models/plans');
 const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
+const { isProtectedSlug } = require('../utils/protectedOrgs');
+const { auditSystem } = require('../utils/auditLogger');
+const logger = require('../utils/logger');
 
 // Mapa de status MP → enum interno da Subscription.
 // Necessário porque: (a) MP usa 'cancelled' (2 l) mas nosso enum é 'canceled';
@@ -58,6 +61,15 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
     let sub = await Subscription.findOne({ organizationId });
     if (!sub) sub = new Subscription({ organizationId, plan: 'free' });
     sub.pendingPlan = planName;
+    // Registra o plano ANTES da troca (reservado p/ Fase 2 — reverter pro plano anterior).
+    sub.previousPlan = sub.plan;
+    // Novo checkout = re-assinatura EXPLÍCITA → libera a ativação (zera a marca anti-ressurreição
+    // de um estorno anterior). Sem isto, o webHook 'authorized' da nova assinatura seria ignorado.
+    sub.revertedAt = null;
+    // Invariante: uma sub que inicia novo checkout NUNCA carrega cancel pendente de uma assinatura
+    // anterior. Sem isto, se um estorno deixou mpCancelPending=true (cancel transiente) e o cliente
+    // re-assina antes da varredura, o graceChecker cancelaria a assinatura NOVA e paga (id vivo).
+    sub.mpCancelPending = false;
     const cents = effectiveMonthlyCents({ ...sub.toObject(), plan: planName });
     const priceAmount = cents / 100;
 
@@ -143,6 +155,8 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
         sub.plan = planName;
         sub.status = normalizeMpStatus(response.status);
         sub.pendingPlan = null;
+        // Marca o início da assinatura paga (base do D+7 do CDC) quando já nasce ativa.
+        if (sub.status === 'active') sub.subscribedAt = new Date();
         if (!sub.overrideEnabled && plans[planName]?.limits) sub.limits = plans[planName].limits;
     }
     try {
@@ -225,15 +239,50 @@ async function handleWebhook(eventBody, eventQuery) {
                 // Idempotência: descarta reenvios do mesmo evento (retry automático do MP).
                 if (eventId && sub.lastEventId === eventId) return;
 
+                const internalStatus = normalizeMpStatus(mpStatus);
+
+                if (internalStatus === 'canceled') {
+                    // Assinatura CANCELADA no MP (cliente cancelou no app, cancelamento automático
+                    // após 3 falhas, ou o painel cancelou junto de um estorno). A recorrência morre.
+                    // NÃO rebaixa o plano aqui: cancelamento simples (CDC > 7 dias) mantém o acesso
+                    // até o fim do ciclo já pago. A REMOÇÃO de acesso por ESTORNO (dinheiro devolvido)
+                    // é feita pelos branches de pagamento estornado → revertSubscriptionToFree.
+                    sub.status = 'canceled';
+                    sub.cancelAtPeriodEnd = true;
+                    sub.pendingPlan = null;
+                    if (eventId) sub.lastEventId = eventId;
+                    await sub.save();
+                    return;
+                }
+
+                // Guarda anti-RESSURREIÇÃO: sub já revertida por estorno (revertedAt) e SEM novo
+                // checkout (que limpa revertedAt) → um 'authorized' atrasado/reenviado NÃO reativa o
+                // plano pago (recobrar pós-estorno violaria o CDC Art. 42). Re-assinatura legítima
+                // passa pelo checkout, que zera revertedAt.
+                if (internalStatus === 'active' && sub.revertedAt) {
+                    logger.warn(`[billing] ativação ignorada: sub revertida por estorno sem novo checkout org=${orgId}`,
+                        { orgId: String(orgId) });
+                    if (eventId) await Subscription.updateOne({ _id: sub._id }, { $set: { lastEventId: eventId } });
+                    return;
+                }
+
+                // authorized → active | paused → past_due: ativa/atualiza o plano.
                 // Mapeia o plano: pendingPlan (gravado no checkout) > reason > fallback 'basic'.
                 const planName = sub.pendingPlan
                     || parsePlanFromReason(subscriptionData.reason)
                     || 'basic';
 
                 sub.plan = planName;
-                sub.status = normalizeMpStatus(mpStatus);
+                sub.status = internalStatus;
                 sub.mpPreapprovalId = subscriptionData.id || paymentId;
                 sub.pendingPlan = null;
+                if (internalStatus === 'active') {
+                    // Marca o início da assinatura paga (base do D+7 do CDC) na 1ª ativação.
+                    if (!sub.subscribedAt) sub.subscribedAt = new Date();
+                    // Pagou/ativou → regulariza: limpa carência (senão o graceChecker suspende depois).
+                    sub.graceUntil = null;
+                    sub.graceWarnedAt = null;
+                }
                 // Só grava quando há eventId (notificação webhook v2). Evento via IPN/query
                 // não tem id → NÃO sobrescreve o lastEventId anterior com null (senão perderia
                 // a proteção de idempotência no próximo reenvio).
@@ -268,7 +317,35 @@ async function handleWebhook(eventBody, eventQuery) {
             // ap.status: 'processed' (cobrada) | 'recycling'/'rejected' (falhou, MP retenta)
             //            | 'scheduled' (agendada) | 'cancelled'. Pagamento real em ap.payment.status.
             const apStatus = ap?.status;
-            const payStatus = ap?.payment?.status; // 'approved' | 'rejected' | ...
+            const payStatus = ap?.payment?.status; // 'approved' | 'rejected' | 'refunded' | 'charged_back' | ...
+
+            // Estorno/chargeback de uma fatura → dinheiro DEVOLVIDO: remove acesso + mata a
+            // recorrência (CDC Art. 49 = arrependimento 7d; Art. 42 §ú = cobrar após estorno = dobro).
+            // revertSubscriptionToFree é idempotente e respeita org protegida/cortesia.
+            const estornado = payStatus === 'refunded';
+            const chargeback = payStatus === 'charged_back';
+            // Estorno parcial pode SOMAR até o total (MP só acumula transaction_amount_refunded e
+            // mantém o status). Confere o valor real do pagamento p/ não deixar acesso pago após
+            // 100% devolvido (CDC Art. 42).
+            let parcialVirouTotal = false;
+            if (payStatus === 'partially_refunded' && ap?.payment?.id) {
+                try {
+                    const p = await new Payment(client).get({ id: ap.payment.id });
+                    const amt = p?.transaction_amount, ref = p?.transaction_amount_refunded;
+                    if (typeof amt === 'number' && typeof ref === 'number' && ref >= amt - 0.01) parcialVirouTotal = true;
+                } catch (e) { logger.warn(`[billing] falha ao conferir estorno parcial ap=${paymentId}: ${e.message}`); }
+            }
+            if (estornado || chargeback || parcialVirouTotal) {
+                // Observabilidade (idempotente). A idempotência do ESTORNO é por payment.id
+                // (handleRefundRevert), cross-tópico e à prova de re-entrega pós-re-assinatura.
+                await Subscription.updateOne({ _id: sub._id }, { $set: { lastPaymentAt: new Date(), lastPaymentStatus: payStatus } });
+                await handleRefundRevert(sub, ap?.payment?.id, {
+                    reason: chargeback ? 'invoice_charged_back' : 'invoice_refunded',
+                    suspend: chargeback
+                });
+                return;
+            }
+
             const aprovado = payStatus === 'approved' || apStatus === 'processed';
             const falhou = payStatus === 'rejected' || apStatus === 'recycling' || apStatus === 'rejected';
 
@@ -286,9 +363,44 @@ async function handleWebhook(eventBody, eventQuery) {
             // garante que uma cortesia jamais é cobrada/rebaixada por fatura, mesmo que alguém
             // ligue/desligue cortesia em paralelo com o webhook (sem janela de corrida).
             if (aprovado) {
-                await Subscription.updateOne({ _id: sub._id, isCourtesy: { $ne: true } }, { $set: { status: 'active' } });
+                // Pagou → ativa e REGULARIZA: limpa carência (graceChecker não suspende depois).
+                // Filtro revertedAt:null impede que uma fatura "fantasma" (recorrência que ainda não
+                // foi cancelada por falha transiente) reative uma sub já revertida por estorno.
+                await Subscription.updateOne(
+                    { _id: sub._id, isCourtesy: { $ne: true }, revertedAt: null },
+                    { $set: { status: 'active', graceUntil: null, graceWarnedAt: null } }
+                );
             } else if (falhou) {
                 await Subscription.updateOne({ _id: sub._id, isCourtesy: { $ne: true } }, { $set: { status: 'past_due' } });
+            }
+            return; // Webhook tratado
+        }
+
+        // --- CHARGEBACK (contestação no cartão) ---
+        // Exige o tópico `topic_chargebacks_wh` HABILITADO no painel do MP. Resolução best-effort:
+        // chargeback → payment → external_reference (orgId) → sub. Resolveu: reverte + suspende
+        // (em disputa). Não resolveu: warn p/ tratamento manual. Validar E2E quando houver 1 real.
+        if ((type === 'topic_chargebacks_wh' || type === 'chargebacks') && paymentId) {
+            try {
+                const cb = await getChargeback(paymentId);
+                const payId = Array.isArray(cb?.payments) ? cb.payments[0] : (cb?.payment_id || null);
+                let orgId = null;
+                if (payId) {
+                    const payment = new Payment(client);
+                    const pd = await payment.get({ id: payId });
+                    const extRef = pd?.external_reference;
+                    if (extRef && !String(extRef).includes(':')) orgId = extRef;
+                }
+                const sub = orgId ? await Subscription.findOne({ organizationId: orgId }) : null;
+                if (sub) {
+                    // Dedup pelo payment.id da disputa (mesmo estorno em vários tópicos).
+                    await handleRefundRevert(sub, payId, { reason: 'chargeback', suspend: true });
+                    logger.warn(`[billing] chargeback → org revertida e suspensa org=${orgId} cb=${paymentId}`, { orgId });
+                } else {
+                    logger.warn(`[billing] chargeback recebido sem org resolvida cb=${paymentId} — tratar manualmente`);
+                }
+            } catch (e) {
+                logger.error(`[billing] erro ao processar chargeback cb=${paymentId}: ${e.message}`);
             }
             return; // Webhook tratado
         }
@@ -297,9 +409,48 @@ async function handleWebhook(eventBody, eventQuery) {
         if (type === 'payment' && paymentId) {
             const payment = new Payment(client);
             const paymentData = await payment.get({ id: paymentId });
+            const extRef = paymentData.external_reference;
+            const st = paymentData.status;
+
+            const orgRef = (extRef && !String(extRef).includes(':')) ? extRef : null; // só orgId puro (extra-fotos tem ':')
+
+            // Estorno/chargeback TOTAL de fatura de ASSINATURA. Rede de segurança caso o MP notifique
+            // pelo tópico 'payment' em vez de 'subscription_authorized_payment'. Idempotente com aquele branch.
+            if (st === 'refunded' || st === 'charged_back') {
+                if (orgRef) {
+                    const sub = await Subscription.findOne({ organizationId: orgRef });
+                    if (sub) {
+                        await handleRefundRevert(sub, paymentId, {
+                            reason: st === 'charged_back' ? 'payment_charged_back' : 'payment_refunded',
+                            suspend: st === 'charged_back'
+                        });
+                    } else {
+                        logger.warn(`[billing] estorno em 'payment' sem sub p/ org=${orgRef} payment=${paymentId} — conciliação manual`, { orgId: orgRef });
+                    }
+                } else {
+                    // Fatura recorrente pode não carregar external_reference no objeto payment → não
+                    // some silenciosamente: registra p/ conciliação (o branch authorized_payment é o primário).
+                    logger.error(`[billing] estorno em 'payment' sem org resolvível payment=${paymentId} status=${st} extRef=${extRef} — conciliação manual`);
+                }
+                return;
+            }
+            // Estorno PARCIAL: só reverte se a SOMA dos parciais atingiu o total (CDC); senão, registra.
+            if (st === 'partially_refunded') {
+                const amt = paymentData.transaction_amount, ref = paymentData.transaction_amount_refunded;
+                const virouTotal = typeof amt === 'number' && typeof ref === 'number' && ref >= amt - 0.01;
+                if (virouTotal && orgRef) {
+                    const sub = await Subscription.findOne({ organizationId: orgRef });
+                    if (sub) {
+                        await handleRefundRevert(sub, paymentId, { reason: 'payment_refunded_cumulative', suspend: false });
+                    }
+                    return;
+                }
+                logger.warn(`[billing] estorno PARCIAL payment=${paymentId} ref=${ref}/${amt} extRef=${extRef} — sem reversão automática`,
+                    orgRef ? { orgId: orgRef } : {});
+                return;
+            }
 
             if (paymentData.status === 'approved') {
-                const extRef = paymentData.external_reference;
 
                 // Caso 1: Pagamento de Fotos Extras (orgId:sessionId)
                 if (extRef && extRef.includes(':')) {
@@ -330,11 +481,12 @@ async function handleWebhook(eventBody, eventQuery) {
                 // Caso 2: Pagamento de fatura de Assinatura (apenas orgId)
                 else {
                     const orgId = extRef;
-                    // Se for pagamento atrelado a um plano (Subscription invoice), confirmamos que está ativo
-                    await Subscription.findOneAndUpdate(
-                        { organizationId: orgId },
-                        { status: 'active' },
-                        { upsert: true }
+                    // Confirma assinatura ativa, MAS nunca RESSUSCITA uma sub revertida por estorno
+                    // (plan free / revertedAt) — um 'approved' atrasado/reenviado recobrando pós-estorno
+                    // violaria o CDC Art. 42. Sem upsert (org real já tem sub; não criar do nada).
+                    await Subscription.updateOne(
+                        { organizationId: orgId, plan: { $ne: 'free' }, revertedAt: null },
+                        { $set: { status: 'active' } }
                     );
                 }
             }
@@ -357,6 +509,162 @@ async function getAuthorizedPayment(authorizedPaymentId) {
     });
     if (!resp.ok) throw new Error(`MP authorized_payments ${authorizedPaymentId}: HTTP ${resp.status}`);
     return resp.json();
+}
+
+// Busca um chargeback no MP (API crua — sem classe no SDK v2). Campos usados: payments[]/payment_id.
+async function getChargeback(chargebackId) {
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!token) throw new Error('Mercado Pago não configurado.');
+    const resp = await fetch(`https://api.mercadopago.com/v1/chargebacks/${chargebackId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resp.ok) throw new Error(`MP chargebacks ${chargebackId}: HTTP ${resp.status}`);
+    return resp.json();
+}
+
+// Estorno já tratado? Dedup pelo PAGAMENTO FÍSICO (payment.id), não pelo id da notificação:
+// o mesmo estorno chega por vários tópicos com ids de notificação diferentes, mas SEMPRE com o
+// mesmo payment.id. Persiste através de re-assinatura. Sem payId (não resolvido) → processa e
+// deixa o gate revertedAt do revert cuidar da idempotência da escrita.
+async function refundAlreadyHandled(subId, payId) {
+    if (!payId) return false;
+    const s = await Subscription.findById(subId).select('refundedPaymentIds').lean();
+    return !!(s && Array.isArray(s.refundedPaymentIds) && s.refundedPaymentIds.includes(String(payId)));
+}
+
+// Marca um estorno como consumido — chamado SÓ DEPOIS do revert concluir. $addToSet é idempotente.
+async function markRefundHandled(subId, payId) {
+    if (!payId) return;
+    await Subscription.updateOne({ _id: subId }, { $addToSet: { refundedPaymentIds: String(payId) } });
+}
+
+// Reverte por estorno/chargeback de forma idempotente e SEGURA contra perda de evento:
+//  1) se o payment.id já foi tratado → no-op (cross-tópico + sobrevive re-assinatura);
+//  2) reverte (idempotente via revertedAt:null dentro do próprio revert);
+//  3) marca o payment.id APENAS após o revert concluir. Se o revert lançar (ex.: DB transiente),
+//     o id NÃO é marcado → o MP retenta e o estorno é reprocessado (CDC Art. 42 — nunca perder
+//     um estorno e seguir cobrando). Retorna true se reverteu agora, false se já estava tratado.
+async function handleRefundRevert(sub, payId, opts) {
+    if (await refundAlreadyHandled(sub._id, payId)) return false;
+    await revertSubscriptionToFree(sub, opts);
+    await markRefundHandled(sub._id, payId);
+    return true;
+}
+
+// Reverte uma assinatura para o plano Free e mata a recorrência no MP (se ainda viva).
+// Chamado quando o dinheiro é DEVOLVIDO (estorno total / chargeback) — diferente de um
+// cancelamento simples, que mantém acesso até o fim do ciclo (CDC > 7 dias). Idempotente,
+// fail-soft e RESPEITA contas protegidas/cortesia (nunca rebaixa Flávia/Davi/dono).
+//   reason  → rótulo p/ auditoria (invoice_refunded | payment_refunded | chargeback | ...)
+//   suspend → true (chargeback) também desativa a org (em disputa), espelhando o F3 (sem excluir).
+async function revertSubscriptionToFree(sub, { reason = 'refund', suspend = false } = {}) {
+    if (!sub || !sub._id) return { reverted: false, skipped: 'no_sub' };
+
+    const org = await Organization.findById(sub.organizationId)
+        .select('slug name ownerId isActive').lean();
+
+    // FAIL-CLOSED: se a org não resolve (apagada / lag de réplica), ABORTA — uma salvaguarda de
+    // conta protegida não pode rodar cega. Melhor não rebaixar do que rebaixar a Flávia por engano.
+    if (!org) {
+        logger.error(`[billing-revert] org NÃO resolvida reason=${reason} org=${sub.organizationId} — abortando reversão (conciliação manual)`,
+            { orgId: String(sub.organizationId) });
+        return { reverted: false, skipped: 'org_not_found' };
+    }
+
+    // Rede de segurança 1: contas protegidas (dono/sócios/produção) NUNCA são rebaixadas/suspensas.
+    if (isProtectedSlug(org.slug)) {
+        logger.warn(`[billing-revert] org PROTEGIDA não rebaixada reason=${reason} org=${sub.organizationId} slug=${org.slug}`,
+            { orgId: String(sub.organizationId) });
+        return { reverted: false, skipped: 'protected' };
+    }
+    // Rede de segurança 2 (NÃO depende de env): override = org curada à mão pelo super-admin
+    // (limites/preço customizados). Toda conta real curada carrega override → blindagem extra
+    // caso PROTECTED_ORG_SLUGS suma/tenha typo. Cliente comum NÃO tem override → é revertido normal.
+    if (sub.overrideEnabled) {
+        logger.warn(`[billing-revert] org com OVERRIDE não rebaixada automaticamente reason=${reason} org=${sub.organizationId} — revisar manualmente`,
+            { orgId: String(sub.organizationId) });
+        return { reverted: false, skipped: 'override' };
+    }
+    // Cortesia nunca foi cobrada → não há o que reverter (e nunca rebaixa cortesia).
+    if (sub.isCourtesy) {
+        return { reverted: false, skipped: 'courtesy' };
+    }
+
+    const fromPlan = sub.plan;
+
+    // Mata a recorrência no MP se ainda existir. Distingue erro DEFINITIVO (já cancelada /
+    // inexistente → seguro apagar o id) de TRANSIENTE (5xx/timeout → PRESERVA o id e marca
+    // mpCancelPending p/ o graceChecker re-tentar; senão a recorrência seguiria viva cobrando
+    // após o estorno = devolução em dobro, CDC Art. 42).
+    let cancelConfirmed = true, cancelPending = false;
+    if (sub.mpPreapprovalId) {
+        try {
+            await cancelPreapproval(sub.mpPreapprovalId);
+        } catch (e) {
+            const code = e?.status || e?.statusCode || e?.cause?.status || e?.response?.status;
+            const definitive = code === 400 || code === 404 ||
+                /already.*cancel|not.*found|cancelad|does not exist/i.test(e?.message || '');
+            if (definitive) {
+                logger.warn(`[billing-revert] preapproval já cancelada/inexistente org=${sub.organizationId}: ${e.message}`);
+            } else {
+                cancelConfirmed = false; cancelPending = true;
+                logger.error(`[billing-revert] cancel preapproval FALHOU (transiente) org=${sub.organizationId}: ${e.message} — mantém id p/ retry`,
+                    { orgId: String(sub.organizationId) });
+            }
+        }
+    }
+
+    const set = {
+        plan: 'free',
+        status: 'canceled',
+        pendingPlan: null,
+        subscribedAt: null,
+        customPriceCents: null,
+        storageAddonGB: 0,
+        storageAddonPriceCents: 0,
+        // Conta no Free não tem carência de cobrança nem ciclo a "cancelar no fim" → limpa o estado
+        // (senão o graceChecker suspenderia indevidamente e o painel mostraria "cancelamento agendado").
+        graceUntil: null,
+        graceWarnedAt: null,
+        cancelAtPeriodEnd: false,
+        revertedAt: new Date(),
+        mpCancelPending: cancelPending,
+    };
+    // Sem override → volta aos limites do Free (override já saiu antes, mas mantém a checagem por clareza).
+    if (!sub.overrideEnabled) set.limits = plans.free.limits;
+    const update = { $set: set };
+    if (cancelConfirmed) update.$unset = { mpPreapprovalId: '' }; // só apaga o id quando o cancel foi CONFIRMADO
+
+    // Escrita ATÔMICA com dupla guarda: isCourtesy (cortesia ligada em paralelo = TOCTOU) e
+    // revertedAt:null (idempotência do próprio revert — só rebaixa/audita 1× por estorno).
+    const result = await Subscription.updateOne(
+        { _id: sub._id, isCourtesy: { $ne: true }, revertedAt: null },
+        update
+    );
+    const reverted = result.matchedCount === 1;
+
+    // Suspensão (chargeback) é independente do gate de revertedAt: um chargeback pode chegar DEPOIS
+    // de um estorno já ter revertido (eventos diferentes). Mas cortesia nunca é suspensa → relê do banco.
+    let didSuspend = false;
+    if (suspend && org.isActive !== false) {
+        const fresh = await Subscription.findById(sub._id).select('isCourtesy').lean();
+        if (fresh && !fresh.isCourtesy) {
+            // Chargeback: suspende a org (em disputa) — espelha o F3 (isActive=false), NUNCA exclui dados.
+            await Organization.updateOne(
+                { _id: sub.organizationId },
+                { $set: { isActive: false, suspendedReason: 'chargeback' } }
+            );
+            didSuspend = true;
+        }
+    }
+
+    // Auditoria/loga só quando ALGO mudou (evita poluir o AuditLog permanente em retries no-op).
+    if (reverted || didSuspend) {
+        auditSystem('billing_revert', sub.organizationId, { reason, suspend: didSuspend, fromPlan, cancelPending });
+        logger.warn(`[billing-revert] revertida reason=${reason} suspend=${didSuspend} cancelPending=${cancelPending} de=${fromPlan} org=${sub.organizationId}`,
+            { orgId: String(sub.organizationId) });
+    }
+    return { reverted, suspended: didSuspend, cancelPending, skipped: reverted ? null : 'noop' };
 }
 
 // Cancela de fato a assinatura no Mercado Pago.
@@ -442,4 +750,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, updatePreapprovalAmount, syncPreapprovalAmount };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled };

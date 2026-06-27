@@ -2,6 +2,7 @@ const Organization = require('../models/Organization');
 const User = require('../models/User');
 const Subscription = require('../models/Subscription');
 const { isProtectedSlug } = require('./protectedOrgs');
+const { cancelPreapproval } = require('../middleware/mercadopago');
 const { sendBillingGraceWarningEmail, sendBillingSuspendedEmail } = require('./email');
 const logger = require('./logger');
 
@@ -23,7 +24,43 @@ async function ownerEmailFor(org) {
   return (org.email || '').trim() || null;
 }
 
+// Retry de cancelamento de recorrência no MP que falhou de forma TRANSIENTE durante um estorno
+// (revertSubscriptionToFree preservou o mpPreapprovalId e ligou mpCancelPending). Sem isto, a
+// assinatura seguiria viva no MP cobrando após o estorno = devolução em dobro (CDC Art. 42).
+async function retryPendingCancellations() {
+  const subs = await Subscription.find({ mpCancelPending: true, mpPreapprovalId: { $type: 'string' } })
+    .select('organizationId mpPreapprovalId').lean();
+  if (!subs.length) return { retried: 0, ok: 0 };
+
+  let ok = 0;
+  for (const sub of subs) {
+    try {
+      await cancelPreapproval(sub.mpPreapprovalId);
+      await Subscription.updateOne({ _id: sub._id }, { $set: { mpCancelPending: false }, $unset: { mpPreapprovalId: '' } });
+      logger.info(`[graceChecker] recorrência cancelada no retry org=${sub.organizationId}`);
+      ok++;
+    } catch (e) {
+      const code = e?.status || e?.statusCode || e?.cause?.status || e?.response?.status;
+      const definitive = code === 400 || code === 404 ||
+        /already.*cancel|not.*found|cancelad|does not exist/i.test(e?.message || '');
+      if (definitive) {
+        // Já não cobra mais no MP → encerra o retry e solta o id.
+        await Subscription.updateOne({ _id: sub._id }, { $set: { mpCancelPending: false }, $unset: { mpPreapprovalId: '' } });
+        ok++;
+      } else {
+        logger.warn(`[graceChecker] retry de cancelamento ainda falhando org=${sub.organizationId}: ${e.message}`);
+      }
+    }
+  }
+  logger.info(`[graceChecker] retry de cancelamentos pendentes: ${ok}/${subs.length}`);
+  return { retried: subs.length, ok };
+}
+
 async function checkGracePeriods() {
+  // Antes da carência: re-tenta cancelamentos de recorrência que falharam (transiente) num estorno.
+  await retryPendingCancellations().catch(e =>
+    logger.error('[graceChecker] erro no retry de cancelamentos pendentes', { message: e.message }));
+
   // populate evita N+1 (1 query em vez de 1 + N findById por org em carência).
   const subs = await Subscription.find({ graceUntil: { $ne: null } })
     .select('organizationId graceUntil graceWarnedAt isCourtesy')
@@ -96,4 +133,4 @@ async function checkGracePeriods() {
   return { warned, suspended, skipped };
 }
 
-module.exports = { checkGracePeriods };
+module.exports = { checkGracePeriods, retryPendingCancellations };
