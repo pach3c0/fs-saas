@@ -87,6 +87,52 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
       </div>`;
   };
 
+  // ── Mini-vitrine "bloqueado-mas-visível" ─────────────────────────────────
+  // Mostra, de forma honesta, o que o plano ATUAL não entrega e em qual tier
+  // desbloqueia — alimenta a evolução de plano sem esconder nada. Só aparece
+  // para contas pagas (cortesia não tem upgrade) e quando há algo travado.
+  const _curCaps = planDetails.capabilities || {};
+  // Planos por ordem de preço (mais barato → mais caro) p/ achar o 1º que libera.
+  const _ordered = Object.values(plans).sort((a, b) => (a.price || 0) - (b.price || 0));
+  const CAP_VITRINE = [
+    { label: 'Galeria sem o selo CliqueZoom', has: c => c.selo === false },
+    { label: 'CRM completo',                  has: c => c.crm === 'full' },
+    { label: 'Lembrete de aniversário',       has: c => !!c.aniversario },
+    { label: 'Domínio próprio',               has: c => !!c.dominioProprio },
+    { label: 'Tarefas e metas',               has: c => !!c.tarefasMetas },
+    { label: 'Finanças da empresa',           has: c => !!c.financasEmpresa },
+    { label: 'Finanças pessoais',             has: c => !!c.financasPessoal },
+    { label: 'Gestão no modo "misto"',        has: c => !!c.gestaoMista },
+  ];
+  const travados = CAP_VITRINE
+    .filter(cap => !cap.has(_curCaps))
+    .map(cap => {
+      const tier = _ordered.find(p => cap.has(p.capabilities || {}));
+      return tier ? { label: cap.label, planName: tier.name } : null;
+    })
+    .filter(Boolean);
+  // Usuários inclusos (seats) — numérico, não boolean.
+  const _curSeats = planDetails.seats || 1;
+  const tierSeats = _ordered.find(p => (p.seats || 1) > _curSeats);
+  if (tierSeats) travados.push({ label: `${tierSeats.seats} usuários na equipe`, planName: tierSeats.name });
+
+  const vitrineHtml = travados.length ? `
+    <div style="background:var(--ad-bg-surface); padding:1.25rem 1.5rem; border-radius:0.5rem; border:1px solid color-mix(in srgb, var(--ad-accent) 25%, transparent);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.875rem;">
+        <h3 style="font-size:1rem; font-weight:700; color:var(--ad-text); margin:0;">Desbloqueie mais ao subir de plano</h3>
+        <button id="verPlansBtn2" style="background:transparent; border:1px solid var(--ad-accent); color:var(--ad-accent); padding:0.4rem 0.9rem; border-radius:0.375rem; cursor:pointer; font-size:0.8rem; font-weight:600;">Ver planos ↓</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        ${travados.map(it => `
+          <span style="display:inline-flex; align-items:center; gap:0.4rem; background:color-mix(in srgb, var(--ad-text) 6%, transparent); border:1px solid color-mix(in srgb, var(--ad-text) 12%, transparent); border-radius:9999px; padding:0.3rem 0.7rem; font-size:0.8rem; color:var(--ad-text);">
+            <span style="opacity:0.5;">🔒</span>
+            ${it.label}
+            <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--ad-accent); background:color-mix(in srgb, var(--ad-accent) 14%, transparent); border-radius:9999px; padding:0.1rem 0.45rem;">${it.planName}</span>
+          </span>
+        `).join('')}
+      </div>
+    </div>` : '';
+
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:2rem; max-width:900px;">
       <h2 style="font-size:1.5rem; font-weight:700; color:var(--ad-text); margin:0;">Seu Plano</h2>
@@ -131,6 +177,8 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         </div>` : ''}
       </div>
 
+      ${!isCortesia ? vitrineHtml : ''}
+
       ${isCortesia ? `
       <!-- Conta cortesia: sem upgrade -->
       <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-green) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-green) 30%, transparent); border-radius:0.5rem;">
@@ -163,6 +211,10 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const verBtn = container.querySelector('#verPlansBtn');
   if (verBtn) {
     verBtn.onclick = () => container.querySelector('#planosSection').scrollIntoView({ behavior: 'smooth' });
+  }
+  const verBtn2 = container.querySelector('#verPlansBtn2');
+  if (verBtn2) {
+    verBtn2.onclick = () => container.querySelector('#planosSection')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   // Selecionar plano (só quando Stripe ativo)
