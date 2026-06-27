@@ -92,6 +92,22 @@
 
 ---
 
+## 🟢 HANDOFF ATIVO (2026-06-27) — Billing MP F0–F4 + Triagem em PRODUÇÃO
+
+> **Detalhe completo:** [`skills/handoff-2026-06-27.md`](skills/handoff-2026-06-27.md). Tudo **commitado e deployado** hoje (≠ handoffs antigos abaixo, que eram working-tree não commitado).
+
+**Subiu pra prod** (commits `d955678` código + `528c436` docs; HEAD prod `528c436`; pm2 online): migração MP `PreApproval` avulsa **F0–F4** + **F3 exit-cortesia** + **integração Triagem** (da outra IA).
+
+- **Cobrança INERTE:** `MP_USE_PREAPPROVAL` OFF no `.env` prod → checkout legado, webhooks novos não disparam. Nada mudou pra Flávia. Ligar = 5 decisões + flip da flag + 1ª fatura real.
+- **F3 proteção ATIVA:** `.env` prod tem `PROTECTED_ORG_SLUGS=fsfotografias,daviconecta,rhynoproject,cliquezoom-admin` + `OWNER_SLUG=pacheco`. Robô `graceChecker` LIVE (`SchedulerRun` ok), inerte (nenhuma org com `graceUntil`).
+- **Triagem:** app (183M, modelos ONNX) em `/var/www/cliquezoom-triagem`, servido em `/triagem/` (botão no admin funciona). Falta validação browser E2E (lane front).
+- **`STORAGE_GATE_ENFORCE=true` em prod** (gate de storage ENFORCANDO) — **intencional** desde 2026-06-26 (dono delegou); reais Davi/Flávia blindados por override, só a fixture `rhynoproject` barra.
+- **Bug pré-existente nos logs prod:** agente IA do SaaS Admin com modelo inexistente `'GPT-5.4 mini'`.
+
+> Handoffs abaixo (2026-06-19 / 2026-06-20) são **históricos** — aquele working tree já foi commitado.
+
+---
+
 ## 🔴 HANDOFF ATIVO (2026-06-19) — Paridade multi_selection
 
 > **Working tree não commitado.** Não dar `git add -A` às cegas. Validado por `node --check`; testes manuais parciais.
@@ -117,7 +133,7 @@
 
 > ✅ Paridade `multi_selection` completa no código (itens 1–10). Falta só validação manual.
 
-> Histórico completo: `skills/historico_entregas.md` · Detalhes das ondas: `skills/8_0_handoff-sessoes-ondas.md`
+> Histórico completo: `skills/archive/historico_entregas.md` · Detalhes das ondas: `skills/archive/8_0_handoff-sessoes-ondas.md`
 
 ---
 
@@ -150,7 +166,7 @@
 - **Session:** `rhynoCustomerId` + snapshot `clientName`/`clientPhone`. Modal de sessão busca clientes no Rhyno.
 - **Config .env:** `SSO_SHARED_SECRET`, `RHYNO_BASE_URL`, `RHYNO_API_URL`, `RHYNO_POC_EMAIL`.
 - **Identidade embed:** `ERP1/frontend/src/utils/embedMode.ts` + `embed-theme.css` — mexer **só nesses dois** para ajustar a cara do iframe.
-- **Detalhes completos:** `skills/9_0_handoff-rhyno-integracao.md`
+- **Detalhes completos:** `skills/archive/9_0_handoff-rhyno-integracao.md`
 
 ### ⚠️ Dev local — Sequência de startup (copiar e colar)
 ```bash
