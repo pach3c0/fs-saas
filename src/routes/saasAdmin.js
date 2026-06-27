@@ -508,8 +508,25 @@ router.put('/admin/organizations/:id/plan', authenticateToken, requireSuperadmin
             if (!sub.overrideEnabled) sub.limits = planLimits[plan];
         }
         await sub.save();
-        audit(req, 'plan_change', org._id, { plan });
-        res.json({ success: true, message: `Plano alterado para ${plan}` });
+
+        // Reflete o novo plano na assinatura JÁ ATIVA no MP (espelha /custom-price e /storage-addon).
+        // Free (valor 0) não tem cobrança recorrente → não sincroniza (R$0 não é assinatura válida no
+        // MP; rebaixar p/ free é caso de cancelamento). Falha não desfaz o save: o plano já vale e o
+        // valor entra no próximo checkout/ciclo.
+        let mpUpdated = false, mpSkipped = null, mpError = null;
+        if (effectiveMonthlyCents(sub) > 0) {
+            try {
+                ({ updated: mpUpdated, skipped: mpSkipped } = await syncPreapprovalAmount(sub));
+            } catch (e) {
+                mpError = e.message;
+                req.logger.error('Falha ao atualizar valor da preapproval no MP', { error: e.message, orgId: org._id });
+            }
+        } else {
+            mpSkipped = 'free_no_charge';
+        }
+
+        audit(req, 'plan_change', org._id, { plan, mpUpdated, mpSkipped });
+        res.json({ success: true, message: `Plano alterado para ${plan}`, mpUpdated, mpSkipped, mpError });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });

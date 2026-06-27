@@ -1,4 +1,5 @@
 const { MercadoPagoConfig, Preference, Payment, PreApprovalPlan, PreApproval } = require('mercadopago');
+const crypto = require('crypto');
 const Subscription = require('../models/Subscription');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
@@ -130,6 +131,46 @@ async function createCheckoutSession(organizationId, planName) {
     }
 
     return response.init_point;
+}
+
+// Verifica a assinatura HMAC-SHA256 do webhook do Mercado Pago.
+// O MP assina cada notificação no header `x-signature` (formato `ts=<unix>,v1=<hash>`).
+// O manifesto assinado é exatamente: `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+// onde data.id vem da query (lowercase se alfanumérico) e x-request-id do header.
+// Gate de rollout: SEM `MP_WEBHOOK_SECRET` no .env → retorna { ok:true, enforced:false }
+// (não bloqueia, só permite avisar no log). Assim o código sobe inerte e passa a EXIGIR
+// assinatura no instante em que o segredo for configurado em produção (fail-closed daí).
+function verifyWebhookSignature({ headers = {}, query = {} } = {}) {
+    const secret = process.env.MP_WEBHOOK_SECRET;
+    if (!secret) return { ok: true, enforced: false };
+
+    const xSignature = headers['x-signature'];
+    const xRequestId = headers['x-request-id'];
+    if (!xSignature) return { ok: false, enforced: true, reason: 'sem header x-signature' };
+
+    // Extrai ts e v1 de `ts=...,v1=...`
+    let ts, v1;
+    for (const part of String(xSignature).split(',')) {
+        const idx = part.indexOf('=');
+        if (idx === -1) continue;
+        const key = part.slice(0, idx).trim();
+        const value = part.slice(idx + 1).trim();
+        if (key === 'ts') ts = value;
+        else if (key === 'v1') v1 = value;
+    }
+    if (!ts || !v1) return { ok: false, enforced: true, reason: 'x-signature sem ts/v1' };
+
+    const rawId = query['data.id'] != null ? query['data.id'] : query.id;
+    const dataId = rawId != null ? String(rawId).toLowerCase() : '';
+
+    const manifest = `id:${dataId};request-id:${xRequestId || ''};ts:${ts};`;
+    const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+    // Comparação em tempo constante; tamanhos diferentes já reprovam.
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(String(v1), 'hex');
+    const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+    return ok ? { ok: true, enforced: true } : { ok: false, enforced: true, reason: 'hash não confere' };
 }
 
 async function handleWebhook(eventBody, eventQuery) {
@@ -375,4 +416,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, cancelPreapproval, updatePreapprovalAmount, syncPreapprovalAmount };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, updatePreapprovalAmount, syncPreapprovalAmount };

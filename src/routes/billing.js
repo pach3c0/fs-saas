@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { createCheckoutSession, handleWebhook, cancelPreapproval } = require('../middleware/mercadopago');
+const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
@@ -74,6 +74,17 @@ router.post('/billing/checkout', authenticateToken, async (req, res) => {
 // Webhook do Mercado Pago
 router.post('/billing/webhook', express.json(), async (req, res) => {
   try {
+    // Segurança: valida a assinatura HMAC do Mercado Pago (header x-signature) antes de
+    // confiar no evento. Sem MP_WEBHOOK_SECRET no .env NÃO bloqueia (só avisa) — o código
+    // sobe inerte e passa a exigir assinatura assim que o segredo for setado em prod.
+    const sig = verifyWebhookSignature({ headers: req.headers, query: req.query });
+    if (!sig.ok) {
+      req.logger.warn('Webhook MP rejeitado: assinatura inválida', { reason: sig.reason });
+      return res.status(401).json({ error: 'invalid signature' });
+    }
+    if (!sig.enforced) {
+      req.logger.warn('Webhook MP: MP_WEBHOOK_SECRET ausente — verificação de assinatura DESLIGADA');
+    }
     // No Mercado Pago, os dados podem vir no body ou na query
     await handleWebhook(req.body, req.query);
     res.json({ received: true });

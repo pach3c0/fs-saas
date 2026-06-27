@@ -19,6 +19,8 @@ const ManualModule = require('../models/ManualModule');
 const Notification = require('../models/Notification');
 const { audit } = require('../utils/auditLogger');
 const { sendTicketReplyEmail } = require('../utils/email');
+const { syncPreapprovalAmount } = require('../middleware/mercadopago');
+const { effectiveMonthlyCents } = require('../services/subscriptionPricing');
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isOid = (s) => /^[a-f0-9]{24}$/i.test(String(s || ''));
@@ -124,9 +126,25 @@ const ACTIONS = {
     async exec(req, o, { plan }) {
       const planLimits = await loadPlanLimits();
       await Organization.findByIdAndUpdate(o._id, { plan });
-      await Subscription.findOneAndUpdate({ organizationId: o._id }, { plan, limits: planLimits[plan] });
+      const sub = await Subscription.findOneAndUpdate(
+        { organizationId: o._id },
+        { plan, limits: planLimits[plan] },
+        { new: true }
+      );
+      // Reflete o novo plano na assinatura ativa no MP (espelha a rota /plan). Free (0) não cobra.
+      // Falha não derruba a ação: o plano já mudou no banco.
+      let mpNote = '';
+      if (sub && effectiveMonthlyCents(sub) > 0) {
+        try {
+          const { updated, skipped } = await syncPreapprovalAmount(sub);
+          mpNote = updated ? ' Valor atualizado no Mercado Pago.' : (skipped ? ` (MP: ${skipped})` : '');
+        } catch (e) {
+          mpNote = ' (falha ao atualizar valor no MP — registrado nos logs)';
+          req.logger?.error?.('Falha ao sincronizar valor no MP (change_plan)', { error: e.message, orgId: String(o._id) });
+        }
+      }
       audit(req, 'plan_change', o._id, { plan, via: 'agente' });
-      return `Plano de "${o.name}" alterado para ${plan}.`;
+      return `Plano de "${o.name}" alterado para ${plan}.${mpNote}`;
     }
   },
 
