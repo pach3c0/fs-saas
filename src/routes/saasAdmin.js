@@ -153,6 +153,107 @@ router.get('/admin/saas/health', authenticateToken, requireSuperadmin, async (re
     }
 });
 
+// ============================================================================
+// CUSTO & MARGEM — unit economics por organização
+// ============================================================================
+//
+// Taxa de custo de storage por GB/mês em R$ (referência: Object Storage Contabo).
+// É uma PREMISSA DE PLANEJAMENTO — o storage atual é disco LOCAL fixo (custo em
+// degrau ao expandir, não cobrança contínua por GB). Usar só para comparação e
+// decisão de precificação, nunca como fluxo de caixa.
+const COST_RATE_PER_GB = 0.07; // R$/GB/mês — premissa de planejamento
+
+router.get('/admin/saas/cost-margin', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        // Carrega TODAS as assinaturas relevantes, inclusive cortesia
+        // (cortesia fica fora do MRR, mas aqui precisamos do custo dela).
+        const subs = await Subscription.find({
+            status: { $in: ['active', 'past_due', 'trialing'] }
+        }).select('organizationId plan customPriceCents storageAddonPriceCents isCourtesy usage').lean();
+
+        if (!subs.length) {
+            return res.json({
+                totalReceitaCents: 0,
+                totalCustoCents: 0,
+                totalMargemCents: 0,
+                porOrg: []
+            });
+        }
+
+        // Busca org (slug + nome) para cada subscription
+        const orgIds = subs.map(s => s.organizationId).filter(Boolean);
+        const orgs = await Organization.find({ _id: { $in: orgIds } })
+            .select('_id slug name').lean();
+        const orgMap = {};
+        orgs.forEach(o => { orgMap[o._id.toString()] = o; });
+
+        // Calcula storage por org em paralelo.
+        // Preferência: uso medido pelo reconciliador (persistido — sem I/O de disco).
+        // Fallback: leitura real do disco via getOrgStorageBytes (mais lento, mas exato).
+        const porOrg = await Promise.all(subs.map(async (sub) => {
+            const orgId = sub.organizationId?.toString() || '';
+            const org = orgMap[orgId] || { slug: orgId, name: orgId };
+
+            // Storage: usa o persistido se disponível (evita varredura no disco)
+            let storageBytes = sub.usage?.storageBytes || 0;
+            if (!storageBytes && orgId) {
+                try {
+                    const medido = await storage.getOrgStorageBytes(orgId);
+                    storageBytes = medido.total || 0;
+                } catch (_) {
+                    storageBytes = 0;
+                }
+            }
+
+            const storageGB = storageBytes / (1024 * 1024 * 1024);
+
+            // Receita mensal: 0 para cortesia (sem cobrança), efetiva p/ as demais
+            const receitaCents = sub.isCourtesy ? 0 : effectiveMonthlyCents(sub);
+
+            // Custo estimado (R$ × 100 para trabalhar em centavos)
+            const custoCents = Math.round(storageGB * COST_RATE_PER_GB * 100);
+
+            const margemCents = receitaCents - custoCents;
+
+            return {
+                slug: org.slug || orgId,
+                nome: org.name || orgId,
+                plano: sub.plan || 'free',
+                isCourtesy: !!sub.isCourtesy,
+                receitaCents,
+                storageGB: Math.round(storageGB * 1000) / 1000, // 3 casas
+                custoCents,
+                margemCents
+            };
+        }));
+
+        // Ordena por margem ASC (cortesia/negativas primeiro)
+        porOrg.sort((a, b) => a.margemCents - b.margemCents);
+
+        const totalReceitaCents = porOrg.reduce((s, o) => s + o.receitaCents, 0);
+        const totalCustoCents   = porOrg.reduce((s, o) => s + o.custoCents, 0);
+        const totalMargemCents  = totalReceitaCents - totalCustoCents;
+
+        req.logger.info('Saas Cost-Margin consultado', {
+            orgs: porOrg.length,
+            mrrCents: totalReceitaCents,
+            totalCustoCents,
+            totalMargemCents
+        });
+
+        res.json({
+            taxaGBMes: COST_RATE_PER_GB,
+            totalReceitaCents,
+            totalCustoCents,
+            totalMargemCents,
+            porOrg
+        });
+    } catch (error) {
+        req.logger.error('Saas Cost-Margin Error', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Jornada do cliente: timeline de eventos de uma org (ActivityEvent)
 router.get('/admin/organizations/:id/activity', authenticateToken, requireSuperadmin, async (req, res) => {
     try {

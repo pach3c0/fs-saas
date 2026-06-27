@@ -7,7 +7,7 @@ import { loadOrganizations } from './organizacoes.js';
 // ============================================================================
 
 async function loadDashboard() {
-  await Promise.all([loadMetrics(), loadHealth(), loadOrganizations(), loadPlanLimitsConfig()]);
+  await Promise.all([loadMetrics(), loadHealth(), loadOrganizations(), loadPlanLimitsConfig(), loadCostMargin()]);
 }
 
 // ============================================================================
@@ -184,6 +184,106 @@ async function loadMetrics() {
     `;
   } catch (err) {
     document.getElementById('metricsGrid').innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
+  }
+}
+
+// ============================================================================
+// CUSTO & MARGEM — unit economics por organização
+// ============================================================================
+
+// Formata centavos → R$ (ex.: 3900 → "R$ 39,00")
+function _brl(cents) {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+async function loadCostMargin() {
+  const section = document.getElementById('costMarginSection');
+  if (!section) return;
+  try {
+    const d = await apiRequest('GET', '/api/admin/saas/cost-margin');
+
+    const totalMargem = d.totalMargemCents;
+    const margemColor = totalMargem >= 0 ? '#34d399' : '#f87171';
+
+    // Linhas por organização
+    const linhas = (d.porOrg || []).map(o => {
+      const mc = o.margemCents;
+      const mc_color = mc >= 0 ? '#34d399' : '#f87171';
+      const cortesiaTag = o.isCourtesy
+        ? `<span style="font-size:0.6rem; background:rgba(251,191,36,0.15); color:#fbbf24; border-radius:4px; padding:0.1rem 0.4rem; margin-left:0.35rem; font-weight:600; vertical-align:middle;">cortesia</span>`
+        : '';
+      return `
+        <tr>
+          <td style="font-weight:600; color:var(--text-primary);">${esc(o.nome)} ${cortesiaTag}</td>
+          <td style="color:var(--text-secondary); font-size:0.75rem; text-transform:uppercase;">${esc(o.plano)}</td>
+          <td style="color:var(--text-secondary);">${_brl(o.receitaCents)}</td>
+          <td style="color:var(--text-secondary);">${o.storageGB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GB</td>
+          <td style="color:var(--text-secondary);">${_brl(o.custoCents)}</td>
+          <td style="font-weight:700; color:${mc_color};">${_brl(mc)}</td>
+        </tr>`;
+    }).join('');
+
+    section.innerHTML = `
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem;">
+
+        <!-- Cabeçalho com título e nota de honestidade -->
+        <div style="margin-bottom:1rem;">
+          <div style="display:flex; align-items:baseline; gap:0.75rem; flex-wrap:wrap;">
+            <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary); margin:0;">
+              Custo &amp; Margem
+            </h3>
+            <span style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">
+              Modelo de margem (unit economics) — não é fluxo de caixa real.
+            </span>
+          </div>
+          <p style="margin:0.5rem 0 0; font-size:0.72rem; line-height:1.5; color:var(--text-muted); max-width:60rem;">
+            Storage hoje é <strong style="color:var(--text-secondary);">disco LOCAL fixo do VPS</strong>
+            (custo em degrau ao expandir, não cobrança por GB).
+            A taxa <strong style="color:var(--text-secondary);">R$/GB (~R$&nbsp;0,06–0,07, referência Object Storage Contabo)</strong>
+            é só para planejamento e comparação — não é saída de caixa.
+            Cortesia aparece como margem negativa = custo da cortesia.
+          </p>
+        </div>
+
+        <!-- Totalizadores -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Receita (subs ativas)</div>
+            <div style="font-size:1.375rem; font-weight:700; color:#34d399;">${_brl(d.totalReceitaCents)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">exclui cortesia</div>
+          </div>
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Custo estimado</div>
+            <div style="font-size:1.375rem; font-weight:700; color:#f87171;">${_brl(d.totalCustoCents)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">R$${d.taxaGBMes?.toFixed(2)}/GB/mês</div>
+          </div>
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Margem estimada</div>
+            <div style="font-size:1.375rem; font-weight:700; color:${margemColor};">${_brl(totalMargem)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">receita − custo storage</div>
+          </div>
+        </div>
+
+        <!-- Tabela por org -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.8125rem;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Organização</th>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Plano</th>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Receita/mês</th>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Storage</th>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Custo est.</th>
+                <th style="text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);">Margem est.</th>
+              </tr>
+            </thead>
+            <tbody id="costMarginTable">${linhas}</tbody>
+          </table>
+        </div>
+
+      </div>`;
+  } catch (err) {
+    section.innerHTML = `<div style="color:#f87171; font-size:0.8rem;">Erro ao carregar custo &amp; margem: ${esc(err.message)}</div>`;
   }
 }
 
