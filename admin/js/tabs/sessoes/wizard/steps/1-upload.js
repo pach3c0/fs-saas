@@ -616,8 +616,7 @@ function openLightbox(photos, startIndex) {
         color: white; cursor: pointer;
         overflow: hidden; white-space: nowrap;
         font-family: inherit; font-weight: 500; font-size: 0.875rem;
-        transition: background 0.2s, min-width 0.3s cubic-bezier(0.4,0,0.2,1),
-                    border-color 0.2s, filter 0.15s;
+        transition: background 0.2s, border-color 0.2s, filter 0.15s;
         backdrop-filter: blur(8px);
       }
       .cz-lb-btn:hover {
@@ -630,17 +629,10 @@ function openLightbox(photos, startIndex) {
         display: flex; align-items: center; justify-content: center;
       }
       .cz-lb-btn .cz-lb-lbl {
-        max-width: 0; opacity: 0; overflow: hidden;
-        transition: max-width 0.3s cubic-bezier(0.4,0,0.2,1),
-                    opacity 0.2s ease,
-                    padding-right 0.3s cubic-bezier(0.4,0,0.2,1);
-      }
-      .cz-lb-btn:hover .cz-lb-lbl,
-      .cz-lb-btn:focus-visible .cz-lb-lbl {
-        max-width: 10rem; opacity: 1; padding-right: 1rem;
+        overflow: hidden;
+        padding-right: 1rem;
       }
       .cz-lb-btn[disabled] { opacity: 0.3; cursor: not-allowed; }
-      .cz-lb-btn[disabled]:hover .cz-lb-lbl { max-width: 0; opacity: 0; padding-right: 0; }
 
       #czLbCounter {
         font-size: 0.75rem; color: rgba(255,255,255,0.5);

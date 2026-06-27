@@ -233,17 +233,10 @@ function renderLayout(container) {
       flex-shrink: 0;
     }
     .morph-btn-main .morph-label {
-      max-width: 0;
-      opacity: 0;
       overflow: hidden;
       white-space: nowrap;
       display: inline-block;
       vertical-align: middle;
-      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .morph-btn-main:hover .morph-label {
-      max-width: 14rem;
-      opacity: 1;
       padding-right: 1.25rem;
     }
     
@@ -283,18 +276,10 @@ function renderLayout(container) {
       flex-shrink: 0;
     }
     .morph-tab .morph-label {
-      max-width: 0;
-      opacity: 0;
       overflow: hidden;
       white-space: nowrap;
       display: inline-block;
       vertical-align: middle;
-      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .morph-tab:hover .morph-label,
-    .morph-tab.active .morph-label {
-      max-width: 14rem;
-      opacity: 1;
       padding-right: 1rem;
     }
 

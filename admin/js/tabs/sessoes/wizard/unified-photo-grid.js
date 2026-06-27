@@ -152,13 +152,12 @@ function ensureStyles() {
       color:white; cursor:pointer;
       overflow:hidden; white-space:nowrap;
       font-family:inherit; font-weight:500; font-size:.875rem;
-      transition:background .2s, min-width .3s cubic-bezier(.4,0,.2,1), border-color .2s;
+      transition:background .2s, border-color .2s;
       backdrop-filter:blur(8px);
     }
     .cz-ug-btn:hover { background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.35); }
     .cz-ug-btn .cz-ug-ic { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .cz-ug-btn .cz-ug-lbl { max-width:0; opacity:0; overflow:hidden; transition:max-width .3s cubic-bezier(.4,0,.2,1), opacity .2s ease, padding-right .3s; }
-    .cz-ug-btn:hover .cz-ug-lbl { max-width:10rem; opacity:1; padding-right:1rem; }
+    .cz-ug-btn .cz-ug-lbl { overflow:hidden; padding-right:1rem; }
     .cz-ug-btn[disabled] { opacity:.3; cursor:not-allowed; }
     #czUGCounter { font-size:.75rem; color:rgba(255,255,255,.5); font-variant-numeric:tabular-nums; letter-spacing:.04em; }
 

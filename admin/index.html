@@ -330,6 +330,7 @@
             align-items: center;
             justify-content: space-between;
             padding: var(--sp-0) 1.25rem;
+            gap: 1.25rem;
             flex-shrink: 0;
         }
 
@@ -375,19 +376,19 @@
             box-sizing: border-box;
             display: inline-flex !important;
             align-items: center;
-            gap: 0.375rem !important;
-            height: 36px !important;
+            gap: 0.25rem !important;
+            height: 30px !important;
             width: auto !important;
-            min-width: 36px !important;
+            min-width: 30px !important;
             flex-shrink: 0 !important;
-            padding: 0 0.875rem 0 0.25rem !important;
+            padding: 0 0.625rem 0 0.125rem !important;
             border: 1px solid var(--border);
             border-radius: 9999px !important;
             cursor: pointer;
             white-space: nowrap;
             font-family: inherit;
             font-weight: 500;
-            font-size: 0.8125rem;
+            font-size: 0.75rem;
             outline: none;
             position: relative;
             background: var(--bg-elevated);
@@ -410,8 +411,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 26px;
+            height: 26px;
             flex-shrink: 0;
         }
         .header-expand-btn .header-expand-label {
@@ -1152,7 +1153,7 @@
             </div>
 
             <!-- Centro: Navegação + Busca + Utilidades (Tudo encostado na busca) -->
-            <div style="display:flex; align-items:center; gap:0.25rem; flex:1; justify-content:center;">
+            <div style="display:flex; align-items:center; gap:0.625rem; flex:1; justify-content:center;">
                 <!-- Bolinhas da Esquerda (Sessões, Gestão, Site) -->
                 <nav style="display:flex; align-items:center; gap:0.5rem;">
                     <!-- Botão Sessões Morph -->
@@ -1209,7 +1210,7 @@
                 </nav>
 
                 <!-- Busca Central -->
-                <div style="width:100%; max-width:400px; position:relative;">
+                <div style="width:100%; max-width:520px; position:relative;">
                     <svg style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="topbar-search" placeholder="Pesquisar..." style="width:100%; padding:0.4rem 1rem 0.4rem 2.25rem; border-radius:9999px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); outline:none; font-size:0.8125rem;">
                 </div>
@@ -1234,13 +1235,6 @@
                         </span>
                         <span class="header-expand-label">Ajuda</span>
                     </button>
-                    <button class="header-expand-btn nav-item" data-tab="configuracoes" title="Configurações">
-                        <span class="header-expand-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        </span>
-                        <span class="header-expand-label">Configurações</span>
-                    </button>
-                    
                     <!-- Clientes online ao vivo -->
                     <div style="position:relative; display:inline-block;">
                         <button id="clientsOnlineBtn" onclick="toggleClientsOnlineDropdown(event)" class="header-expand-btn" title="Clientes online agora" style="overflow:visible !important;">
@@ -1261,6 +1255,12 @@
                         </div>
                     </div>
 
+                    <button class="header-expand-btn nav-item" data-tab="configuracoes" title="Configurações">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </span>
+                    </button>
+
                     <div style="position:relative; display:inline-block;">
                         <button id="notificationBell" onclick="toggleNotifications(event)" class="header-expand-btn" title="Notificações" style="overflow: visible !important;">
                             <span class="header-expand-icon" style="position:relative;">
@@ -1270,7 +1270,6 @@
                                 </svg>
                                 <span id="notifBadge" style="display:none; position:absolute; top:-2px; right:-2px; background:var(--red); color:white; font-size:9px; font-weight:700; min-width:14px; height:14px; border-radius:50%; align-items:center; justify-content:center; padding:0 3px; line-height:14px; z-index: 10;"></span>
                             </span>
-                            <span class="header-expand-label">Notificações</span>
                         </button>
                         <!-- Notification Dropdown -->
                         <div id="notifDropdown" class="header-dropdown-menu pop-right" style="position:absolute; top:100%; right:0; margin-top:0.5rem; width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100;">

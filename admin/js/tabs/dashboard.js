@@ -61,23 +61,11 @@ export async function renderDashboard(container) {
                 flex-shrink: 0;
             }
             .dash-tab-btn .dash-tab-label {
-                max-width: 0;
-                opacity: 0;
                 overflow: hidden;
                 white-space: nowrap;
                 display: inline-block;
                 vertical-align: middle;
-                transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .dash-tab-btn:hover .dash-tab-label {
-                max-width: 14rem;
-                opacity: 1;
                 padding-right: 1.15rem;
-            }
-            @media (prefers-reduced-motion: reduce) {
-                .dash-tab-btn .dash-tab-label {
-                    transition: opacity 0.2s ease;
-                }
             }
         </style>
 
@@ -572,19 +560,24 @@ function renderBanners(banners) {
                 transform: scale(1.2);
             }
             @media (min-width: 768px) {
+                .banners-section {
+                    max-width: 66.667%;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
                 .banner-card {
-                    flex: 0 0 calc(33.333% - 0.667rem);
+                    flex: 0 0 calc(25% - 0.75rem);
                 }
             }
         </style>
     `;
 
     const isMobile = window.innerWidth < 768;
-    const itemsPerPage = isMobile ? 1 : 3;
+    const itemsPerPage = isMobile ? 1 : 4;
     const numPages = Math.ceil(banners.length / itemsPerPage);
 
     let dotsHtml = '';
-    if (banners.length > 3 || (isMobile && banners.length > 1)) {
+    if (banners.length > 4 || (isMobile && banners.length > 1)) {
         dotsHtml = `
             <div class="banners-dots">
                 ${Array(numPages).fill(0).map((_, idx) => `

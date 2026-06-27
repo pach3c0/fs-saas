@@ -35,15 +35,13 @@ export async function renderSessoes(container) {
             border: 1px solid var(--border);
             border-radius: 9999px;
             background: var(--bg-elevated);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
-            width: 36px; /* Começa como círculo */
+            width: 260px;
             min-width: 36px;
         }
         .search-morph-wrapper:hover,
         .search-morph-wrapper:focus-within,
         .search-morph-wrapper.has-value {
-            width: 260px; /* Expande */
             border-color: var(--accent);
             background: var(--bg-hover);
         }
@@ -72,13 +70,6 @@ export async function renderSessoes(container) {
             font-size: 0.875rem;
             color: var(--text-primary);
             outline: none;
-            width: 0;
-            opacity: 0;
-            transition: opacity 0.25s ease;
-        }
-        .search-morph-wrapper:hover .search-morph-input,
-        .search-morph-wrapper:focus-within .search-morph-input,
-        .search-morph-wrapper.has-value .search-morph-input {
             width: 100%;
             opacity: 1;
         }
@@ -103,8 +94,7 @@ export async function renderSessoes(container) {
             white-space: nowrap;
             font-family: inherit;
             font-weight: 600;
-            font-size: 0 !important;
-            line-height: 0 !important;
+            font-size: 0.875rem !important;
             outline: none;
             position: relative;
             background: var(--bg-elevated);
@@ -140,20 +130,12 @@ export async function renderSessoes(container) {
         .filter-morph-btn .filter-morph-label {
             font-size: 0.8125rem !important;
             line-height: 1 !important;
-            max-width: 0;
-            opacity: 0;
             overflow: hidden;
             white-space: nowrap;
             display: inline-block;
             vertical-align: middle;
-            padding: 0 !important;
+            padding: 0 1rem 0 0 !important;
             margin: 0 !important;
-            transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .filter-morph-btn:hover .filter-morph-label {
-            max-width: 12rem;
-            opacity: 1;
-            padding-right: 1rem !important;
         }
 
         /* --- Select Transparente por Cima para Morph de Ordenação --- */
