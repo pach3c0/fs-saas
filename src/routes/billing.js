@@ -37,6 +37,9 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
       subscription: sub,
       planDetails: plans[sub.plan],
       stripeConfigured: paymentConfigured,
+      // Public Key do MP (segura no browser) — presença habilita o CardForm in-page.
+      // Ausente → front cai no checkout hospedado legado (redirect).
+      mpPublicKey: process.env.MERCADOPAGO_PUBLIC_KEY || null,
       // Limites EFETIVOS (derivam de plans.js sem override) — a UI usa estes, não o
       // sub.limits gravado, que pode estar defasado (ex.: Free velho 500MB/5/100).
       limits: effectiveLimits(sub),
@@ -60,11 +63,16 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
 });
 
 // Criar checkout session (upgrade de plano)
+// Dois modos: com `cardTokenId` (CardForm, cartão tokenizado no browser → assinatura
+// authorized sem conta MP) ou sem ele (fluxo hospedado legado → devolve checkoutUrl).
 router.post('/billing/checkout', authenticateToken, async (req, res) => {
   try {
-    const { plan } = req.body;
-    const url = await createCheckoutSession(req.user.organizationId, plan);
-    res.json({ checkoutUrl: url });
+    const { plan, cardTokenId, payerEmail, identificationType, identificationNumber } = req.body;
+    const paymentData = cardTokenId
+      ? { cardTokenId, payerEmail, identificationType, identificationNumber }
+      : null;
+    const result = await createCheckoutSession(req.user.organizationId, plan, paymentData);
+    res.json(result);
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
     res.status(500).json({ error: error.message });

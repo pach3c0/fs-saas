@@ -37,7 +37,7 @@ const client = process.env.MERCADOPAGO_ACCESS_TOKEN
     ? new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN })
     : null;
 
-async function createCheckoutSession(organizationId, planName) {
+async function createCheckoutSession(organizationId, planName, paymentData = null) {
     if (!client) {
         throw new Error('Mercado Pago não configurado. Adicione MERCADOPAGO_ACCESS_TOKEN no .env');
     }
@@ -45,6 +45,14 @@ async function createCheckoutSession(organizationId, planName) {
     const plan = plans[planName];
     if (!plan || plan.price === 0) {
         throw new Error('Plano inválido');
+    }
+
+    // Cartão tokenizado (CardForm) só existe no caminho PreApproval avulsa. No caminho legado
+    // (PreApprovalPlan, flag off) não há como autorizar com card_token → erro explícito em vez
+    // de cair silenciosamente no fluxo hospedado.
+    const cardTokenId = paymentData?.cardTokenId || null;
+    if (cardTokenId && process.env.MP_USE_PREAPPROVAL !== 'true') {
+        throw new Error('Checkout com cartão indisponível (MP_USE_PREAPPROVAL desligado).');
     }
 
     let sub = await Subscription.findOne({ organizationId });
@@ -74,7 +82,7 @@ async function createCheckoutSession(organizationId, planName) {
             }
         });
         await sub.save();
-        return response.init_point;
+        return { mode: 'redirect', checkoutUrl: response.init_point };
     }
 
     // Novo caminho (MP_USE_PREAPPROVAL=1): PreApproval avulsa por org.
@@ -85,7 +93,9 @@ async function createCheckoutSession(organizationId, planName) {
     // Override de teste (sandbox): MP_TEST_PAYER_EMAIL força o pagador p/ uma conta de
     // teste compradora do MP, sem alterar o e-mail (login) do dono. Em produção a env
     // não existe → usa owner.email normalmente.
-    const payerEmail = process.env.MP_TEST_PAYER_EMAIL || owner?.email;
+    // CardForm: o e-mail vem do formulário (identificador do pagador — NÃO exige conta MP).
+    // Fluxo hospedado legado: cai no override de teste (sandbox) ou no e-mail do dono.
+    const payerEmail = (paymentData && paymentData.payerEmail) || process.env.MP_TEST_PAYER_EMAIL || owner?.email;
     if (!payerEmail) throw new Error('E-mail do dono não encontrado para criar assinatura MP');
 
     // Dedupe: cancela PreApproval anterior desta org antes de criar nova.
@@ -102,26 +112,39 @@ async function createCheckoutSession(organizationId, planName) {
         sub.mpPreapprovalId = null;
     }
 
+    // CardForm (cartão tokenizado) → a assinatura nasce AUTHORIZED, sem redirect nem conta MP.
+    // Sem token → fluxo hospedado legado (status pending + init_point p/ o cliente logar no MP).
+    const body = {
+        reason: `Plano ${planName} - CliqueZoom`,
+        payer_email: payerEmail,
+        auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: priceAmount,
+            currency_id: 'BRL'
+        },
+        back_url: backUrl,
+        external_reference: organizationId.toString(),
+        status: cardTokenId ? 'authorized' : 'pending'
+    };
+    // card_token_id é uso único (expira em 7 dias) e já carrega os dados do cartão. O CPF
+    // coletado no form serve só p/ a tokenização no browser — NÃO é reenviado aqui.
+    if (cardTokenId) body.card_token_id = cardTokenId;
+
     const pa = new PreApproval(client);
-    const response = await pa.create({
-        body: {
-            reason: `Plano ${planName} - CliqueZoom`,
-            payer_email: payerEmail,
-            auto_recurring: {
-                frequency: 1,
-                frequency_type: 'months',
-                transaction_amount: priceAmount,
-                currency_id: 'BRL'
-            },
-            back_url: backUrl,
-            external_reference: organizationId.toString(),
-            status: 'pending'
-        }
-    });
+    const response = await pa.create({ body });
 
     // Grava o id já no checkout (não espera o webhook) para que cancel e update funcionem
     // imediatamente, sem depender de o usuário completar o pagamento primeiro.
     sub.mpPreapprovalId = response.id;
+    if (cardTokenId) {
+        // Assinatura já autorizada: reflete plano/status localmente sem esperar o webhook
+        // (que chega em seguida e reconfirma, idempotente). Cartão em análise → fica pending.
+        sub.plan = planName;
+        sub.status = normalizeMpStatus(response.status);
+        sub.pendingPlan = null;
+        if (!sub.overrideEnabled && plans[planName]?.limits) sub.limits = plans[planName].limits;
+    }
     try {
         await sub.save();
     } catch (err) {
@@ -130,7 +153,10 @@ async function createCheckoutSession(organizationId, planName) {
         throw err;
     }
 
-    return response.init_point;
+    if (cardTokenId) {
+        return { mode: 'authorized', status: normalizeMpStatus(response.status), preapprovalId: response.id };
+    }
+    return { mode: 'redirect', checkoutUrl: response.init_point };
 }
 
 // Verifica a assinatura HMAC-SHA256 do webhook do Mercado Pago.

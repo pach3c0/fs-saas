@@ -1,5 +1,138 @@
 import { apiGet, apiPost } from '../utils/api.js';
 
+// ── SDK do Mercado Pago (CardForm) ──────────────────────────────────────────
+// Loader idempotente (mesmo padrão de loadCropperJs no photoEditor): carrega o
+// MercadoPago.js v2 uma única vez, sob demanda, só quando o cliente vai pagar.
+let _mpSdkPromise = null;
+function loadMercadoPagoSdk() {
+  if (window.MercadoPago) return Promise.resolve();
+  if (_mpSdkPromise) return _mpSdkPromise;
+  _mpSdkPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://sdk.mercadopago.com/js/v2';
+    s.onload = () => resolve();
+    s.onerror = () => { _mpSdkPromise = null; reject(new Error('Falha ao carregar o Mercado Pago.')); };
+    document.head.appendChild(s);
+  });
+  return _mpSdkPromise;
+}
+
+// Abre o checkout de cartão in-page (CardForm). O cartão é tokenizado NO BROWSER pelo
+// MP (campos sensíveis são iframes do próprio MP — PCI fica com eles); só o token uso-único
+// chega ao nosso backend. Sem conta MP, sem redirect.
+// NOTA DE TEMA: o cartão do modal é forçado a paleta CLARA (hexcodes), de propósito —
+// os iframes seguros do MP renderizam texto escuro e ficariam invisíveis sobre o tema dark.
+async function openCardCheckout({ plan, planName, amountReais, publicKey, onDone }) {
+  await loadMercadoPagoSdk();
+
+  const _inp = 'width:100%; height:42px; box-sizing:border-box; padding:0 0.75rem; border:1px solid #d0d0d5; border-radius:0.5rem; background:#ffffff; color:#1a1a1a; font-size:0.95rem;';
+  const _box = 'height:42px; box-sizing:border-box; padding:0 0.75rem; border:1px solid #d0d0d5; border-radius:0.5rem; background:#ffffff; display:flex; align-items:center;';
+  const _lbl = 'display:block; font-size:0.78rem; font-weight:600; color:#444; margin:0 0 0.3rem;';
+  const _fld = (label, inner) => `<div style="margin-bottom:0.85rem;"><label style="${_lbl}">${label}</label>${inner}</div>`;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:10000; padding:1rem;';
+  overlay.innerHTML = `
+    <div style="background:#ffffff; color:#1a1a1a; border-radius:0.75rem; width:100%; max-width:440px; max-height:92vh; overflow:auto; padding:1.5rem; box-shadow:0 12px 40px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+        <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#1a1a1a;">Assinar ${planName}</h3>
+        <button type="button" id="czCardClose" style="background:transparent; border:none; color:#888; font-size:1.6rem; line-height:1; cursor:pointer;">&times;</button>
+      </div>
+      <p style="font-size:0.8rem; color:#666; margin:0 0 1.25rem;">Mensal recorrente · <strong>R$ ${amountReais.toFixed(2)}/mês</strong>. Dados do cartão protegidos pelo Mercado Pago.</p>
+      <form id="czCardForm">
+        ${_fld('Número do cartão', `<div id="form-checkout__cardNumber" style="${_box}"></div>`)}
+        <div style="display:flex; gap:0.75rem;">
+          <div style="flex:1;">${_fld('Validade', `<div id="form-checkout__expirationDate" style="${_box}"></div>`)}</div>
+          <div style="flex:1;">${_fld('CVV', `<div id="form-checkout__securityCode" style="${_box}"></div>`)}</div>
+        </div>
+        ${_fld('Nome impresso no cartão', `<input id="form-checkout__cardholderName" type="text" autocomplete="cc-name" style="${_inp}" />`)}
+        ${_fld('E-mail', `<input id="form-checkout__cardholderEmail" type="email" autocomplete="email" style="${_inp}" />`)}
+        <div style="display:flex; gap:0.75rem;">
+          <div style="width:130px;">${_fld('Documento', `<select id="form-checkout__identificationType" style="${_inp}"></select>`)}</div>
+          <div style="flex:1;">${_fld('Número do documento', `<input id="form-checkout__identificationNumber" type="text" inputmode="numeric" style="${_inp}" />`)}</div>
+        </div>
+        <select id="form-checkout__issuer" style="display:none;"></select>
+        <select id="form-checkout__installments" style="display:none;"></select>
+        <div id="czCardError" style="color:#c0392b; font-size:0.82rem; margin:0.25rem 0 0; display:none;"></div>
+        <button type="submit" id="czCardSubmit" disabled style="width:100%; margin-top:1.1rem; padding:0.8rem; border-radius:0.5rem; border:none; background:#1a1a1a; color:#ffffff; font-weight:700; font-size:0.95rem; cursor:pointer; opacity:0.6;">Carregando…</button>
+      </form>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const errBox = overlay.querySelector('#czCardError');
+  const submitBtn = overlay.querySelector('#czCardSubmit');
+  const showErr = (msg) => { errBox.textContent = msg; errBox.style.display = 'block'; };
+  let mp, cardForm, closed = false;
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    try { cardForm && cardForm.unmount && cardForm.unmount(); } catch (_) {}
+    overlay.remove();
+  };
+  const resetSubmit = () => { submitBtn.disabled = false; submitBtn.style.opacity = '1'; submitBtn.textContent = 'Assinar agora'; };
+
+  overlay.querySelector('#czCardClose').onclick = cleanup;
+  overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+
+  try {
+    mp = new window.MercadoPago(publicKey, { locale: 'pt-BR' });
+    cardForm = mp.cardForm({
+      amount: String(amountReais.toFixed(2)),
+      iframe: true,
+      form: {
+        id: 'czCardForm',
+        cardNumber:           { id: 'form-checkout__cardNumber', placeholder: '0000 0000 0000 0000' },
+        expirationDate:       { id: 'form-checkout__expirationDate', placeholder: 'MM/AA' },
+        securityCode:         { id: 'form-checkout__securityCode', placeholder: 'CVV' },
+        cardholderName:       { id: 'form-checkout__cardholderName', placeholder: 'Como está no cartão' },
+        cardholderEmail:      { id: 'form-checkout__cardholderEmail', placeholder: 'seu@email.com' },
+        issuer:               { id: 'form-checkout__issuer' },
+        installments:         { id: 'form-checkout__installments' },
+        identificationType:   { id: 'form-checkout__identificationType' },
+        identificationNumber: { id: 'form-checkout__identificationNumber', placeholder: 'CPF' },
+      },
+      callbacks: {
+        onFormMounted: (error) => {
+          if (error) { showErr('Não foi possível carregar o formulário de cartão. Tente novamente.'); return; }
+          resetSubmit();
+        },
+        onSubmit: async (event) => {
+          event.preventDefault();
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = '0.6';
+          submitBtn.textContent = 'Processando…';
+          errBox.style.display = 'none';
+          const d = cardForm.getCardFormData();
+          if (!d || !d.token) { showErr('Confira os dados do cartão.'); resetSubmit(); return; }
+          try {
+            const result = await apiPost('/api/billing/checkout', {
+              plan,
+              cardTokenId: d.token,
+              payerEmail: d.cardholderEmail,
+              identificationType: d.identificationType,
+              identificationNumber: d.identificationNumber,
+            });
+            cleanup();
+            const ok = result && (result.status === 'authorized' || result.status === 'active');
+            window.showToast(
+              ok ? 'Assinatura ativada! Pode levar alguns minutos para refletir.'
+                 : 'Pagamento recebido — estamos confirmando, pode levar alguns minutos.',
+              'success'
+            );
+            onDone && onDone();
+          } catch (e) {
+            showErr(e.message || 'Falha ao processar o pagamento. Confira os dados e tente de novo.');
+            resetSubmit();
+          }
+        },
+        onError: () => { showErr('Confira os dados do cartão e tente novamente.'); resetSubmit(); },
+      },
+    });
+  } catch (e) {
+    showErr('Não foi possível iniciar o pagamento. Tente novamente.');
+  }
+}
+
 export async function renderPlano(container) {
   container.innerHTML = `<div style="color:var(--ad-text); padding:2rem;">Carregando...</div>`;
 
@@ -9,16 +142,16 @@ export async function renderPlano(container) {
       apiGet('/api/billing/plans')
     ]);
 
-    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits } = subRes;
+    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits, mpPublicKey } = subRes;
     const { plans } = plansRes;
 
-    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits });
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits, mpPublicKey });
   } catch (error) {
     container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
-function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits }) {
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits, mpPublicKey }) {
   // Limites efetivos vêm do backend (derivam de plans.js); fallback ao gravado.
   const limites = effLimits || subscription.limits;
   const uso     = subscription.usage;
@@ -239,15 +372,34 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
     };
   });
 
-  // Selecionar plano (só quando Stripe ativo)
+  // Selecionar plano. Com a Public Key do MP disponível → CardForm in-page (cartão direto,
+  // sem conta MP). Sem ela → fluxo hospedado legado (redirect ao init_point).
   container.querySelectorAll('.selectPlanBtn').forEach(btn => {
     btn.onclick = async () => {
       const plan = btn.dataset.plan;
+
+      if (mpPublicKey) {
+        const planObj = plans[plan] || {};
+        // Preço a exibir: custom da org (se houver) tem prioridade; o backend recalcula o
+        // valor real cobrado de qualquer forma — aqui é só o rótulo do modal.
+        const cents = customCents || planObj.price || 0;
+        await openCardCheckout({
+          plan,
+          planName: planObj.name || 'plano',
+          amountReais: cents / 100,
+          publicKey: mpPublicKey,
+          onDone: () => renderPlano(container),
+        });
+        return;
+      }
+
+      // Fallback legado (sem CardForm): redirect ao checkout hospedado.
       btn.textContent = 'Aguarde...';
       btn.disabled = true;
       try {
         const { checkoutUrl } = await apiPost('/api/billing/checkout', { plan });
-        window.location.href = checkoutUrl;
+        if (checkoutUrl) window.location.href = checkoutUrl;
+        else { window.showToast('Não foi possível iniciar o checkout.', 'error'); btn.textContent = 'Selecionar'; btn.disabled = false; }
       } catch (error) {
         window.showToast('Erro: ' + error.message, 'error');
         btn.textContent = 'Selecionar';
