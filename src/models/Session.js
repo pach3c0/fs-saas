@@ -33,7 +33,10 @@ const sessionSchema = new mongoose.Schema({
                 participantId: { type: mongoose.Schema.Types.ObjectId, default: null },
                 participantName: { type: String, default: '' }
             }],
-            hidden: { type: Boolean, default: false }
+            hidden: { type: Boolean, default: false },
+            // Camada facial (Triagem): triagemId[] de quem aparece NESTA foto. Vazio = sem rosto.
+            // São ids opacos (não Mongo _id) — sobrevivem ao re-upload (id da foto é regenerado).
+            personTags: { type: [String], default: [] }
         }],
         // Teto defensivo: evita estourar o limite de 16MB por doc do MongoDB.
         // 10k fotos por sessão cobre qualquer evento real.
@@ -68,6 +71,22 @@ const sessionSchema = new mongoose.Schema({
     deliveredAt: Date,
     // Foto de capa da galeria
     coverPhoto: { type: String, default: '' },
+
+    // ── Camada de reconhecimento facial (origem: Triagem PWA). Guarda TAGS, não biometria. ──
+    // O vetor (embedding 512-d) NUNCA sobe; só id estável + miniatura de rosto + nome opcional.
+    faceEnabled: { type: Boolean, default: false },
+    // Durante o push da Triagem a sessão fica não-publicada (rascunho) e o cliente é barrado até o
+    // push terminar. Default true por RETROCOMPAT: sessões antigas (sem o campo, leem undefined) NÃO
+    // são barradas — só `published === false` (push em andamento/incompleto) recusa o cliente.
+    published: { type: Boolean, default: true },
+    persons: [{
+        triagemId:     { type: String, required: true }, // id estável da Triagem = join-key dos personTags
+        name:          { type: String, default: '' },     // '' = anônimo (ex.: "Pessoa 3")
+        thumbUrl:      { type: String, default: '' },     // miniatura representativa (servida por /uploads)
+        photoCount:    { type: Number, default: 0 },      // snapshot do push; /client/photos recomputa
+        participantId: { type: mongoose.Schema.Types.ObjectId, default: null } // Slice 2 (multi_*)
+    }],
+
     // Config
     photoResolution: { type: Number, enum: [960, 1200, 1400, 1600], default: 1200 }, // Resolucao das thumbs de selecao
     watermark: { type: Boolean, default: true },

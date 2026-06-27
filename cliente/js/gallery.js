@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         participantId: null,
         isSelectionMode: false,
         pollingInterval: null,
+        // Camada facial (Triagem): filtro "achar por pessoa". faceEnabled=false → tudo invisível.
+        faceEnabled: false,
+        persons: [],
+        activePersonFilter: null,
     };
 
     // Comentários visíveis a ESTE espectador. Em Seleção em Grupo, cada participante só vê
@@ -588,6 +592,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         return (state.session && state.session.selectionIcon === 'cart') ? 'carrinho' : 'coração';
     }
 
+    // ── Camada facial: filtro "achar por pessoa" (Triagem) ──────────────────────
+    // A barra vive no TOPO DO GRID (auto-contida): não toca no header nem no fluxo de seleção.
+    // Quando a sessão não usa rosto (faceEnabled=false ou sem pessoas), nada disto aparece.
+    function facePersons() {
+        return (state.faceEnabled && Array.isArray(state.persons)) ? state.persons : [];
+    }
+
+    function applyPersonFilter(list) {
+        const f = state.activePersonFilter;
+        if (!f) return list;
+        return list.filter(p => Array.isArray(p.personTags) && p.personTags.includes(f));
+    }
+
+    function buildPersonChipsBar() {
+        const persons = facePersons();
+        if (!persons.length) return '';
+        const active = state.activePersonFilter;
+
+        const chip = (pe) => {
+            const on = active === pe.triagemId;
+            const label = pe.name && pe.name.trim() ? escapeHtml(pe.name) : 'Pessoa';
+            const thumb = pe.thumbUrl
+                ? `<img src="${pe.thumbUrl}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;">`
+                : `<span style="width:34px;height:34px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;flex:none;">👤</span>`;
+            return `<button class="cz-person-chip" data-person="${pe.triagemId}" type="button"
+                style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.25rem 0.65rem 0.25rem 0.25rem;border-radius:9999px;border:1px solid ${on ? '#16a34a' : '#d1d5db'};background:${on ? '#dcfce7' : '#fff'};color:#111;font-size:0.8125rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+                ${thumb}<span>${label}</span><span style="color:#6b7280;font-weight:500;">${pe.photoCount || 0}</span></button>`;
+        };
+
+        const allBtn = `<button class="cz-person-chip" data-person="" type="button"
+            style="display:inline-flex;align-items:center;padding:0.4rem 0.85rem;border-radius:9999px;border:1px solid ${!active ? '#16a34a' : '#d1d5db'};background:${!active ? '#dcfce7' : '#fff'};color:#111;font-size:0.8125rem;font-weight:600;cursor:pointer;white-space:nowrap;">Todas</button>`;
+
+        let dlBtn = '';
+        if (active) {
+            const pe = persons.find(p => p.triagemId === active);
+            const nm = pe && pe.name && pe.name.trim() ? escapeHtml(pe.name) : 'esta pessoa';
+            const _pp = state.isParticipant && state.participantId ? `&participantId=${state.participantId}` : '';
+            dlBtn = `<a href="/api/client/download-all/${state.sessionId}?code=${encodeURIComponent(state.accessCode)}&person=${encodeURIComponent(active)}${_pp}"
+                download class="cz-person-dl"
+                style="display:inline-flex;align-items:center;gap:0.35rem;margin-left:auto;background:#16a34a;color:#fff;padding:0.35rem 0.75rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;text-decoration:none;white-space:nowrap;">⬇ Baixar todas de ${nm}</a>`;
+        }
+
+        return `<div class="cz-person-bar" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;padding:0.25rem 0 1rem;">
+            <span style="font-size:0.8125rem;color:#6b7280;font-weight:600;margin-right:0.15rem;">Achar por pessoa:</span>
+            ${allBtn}${persons.map(chip).join('')}${dlBtn}
+        </div>`;
+    }
+
+    function wirePersonChips(rerender) {
+        photoGrid.querySelectorAll('.cz-person-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-person') || null;
+                // toca o chip ativo de novo → limpa o filtro; "Todas" (id vazio) → limpa.
+                state.activePersonFilter = (id && state.activePersonFilter !== id) ? id : null;
+                if (typeof rerender === 'function') rerender();
+            });
+        });
+    }
+
     function renderPhotos() {
         if (!state.photos) return;
 
@@ -604,7 +667,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
 
-        photoGrid.innerHTML = state.photos.map(photo => {
+        const list = applyPersonFilter(state.photos);
+        photoGrid.innerHTML = buildPersonChipsBar() + list.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const hasComments = commentsFor(photo).length > 0;
 
@@ -627,6 +691,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }).join('');
 
+        wirePersonChips(renderPhotos);
         updateSelectionBar();
     }
 
@@ -1193,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isMultiMode = state.session.mode === 'multi_selection' || state.session.mode === 'multi_instant';
         let selectedPhotos, unselectedPhotos;
         if (isGalleryMode) {
-            selectedPhotos = state.photos;
+            selectedPhotos = applyPersonFilter(state.photos);
             unselectedPhotos = [];
         } else if (isMultiMode) {
             // Multi: o pool é compartilhado entre vários participantes, então "fora da seleção" é o
@@ -1337,7 +1402,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
 
-        photoGrid.innerHTML = infoBanner + extraStatusBanner + selectedPhotos.map(buildPhotoItem).join('') + extrasSection;
+        photoGrid.innerHTML = buildPersonChipsBar() + infoBanner + extraStatusBanner + selectedPhotos.map(buildPhotoItem).join('') + extrasSection;
+        wirePersonChips(renderDeliveredScreen);
 
         // Hover + tracking para downloads individuais
         photoGrid.querySelectorAll('.photo-download-overlay').forEach(overlay => {
@@ -1479,6 +1545,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.photos = result.photos;
             state.selectedPhotos = result.selectedPhotos || [];
             state.courtesyPhotos = result.courtesyPhotos || [];
+            // Camada facial: lista de pessoas + flag (preserva o filtro ativo entre polls).
+            state.faceEnabled = result.faceEnabled === true;
+            state.persons = result.persons || [];
             state.isSelectionMode = (result.mode === 'selection' || result.mode === 'multi_selection' || result.mode === 'multi_instant')
                 && result.selectionStatus !== 'delivered'
                 && result.selectionStatus !== 'submitted';

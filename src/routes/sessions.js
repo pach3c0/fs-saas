@@ -98,6 +98,12 @@ router.post('/client/verify-code', async (req, res) => {
       return res.status(403).json({ error: 'Galeria temporariamente indisponível. Entre em contato com o fotógrafo.' });
     }
 
+    // Push facial em andamento: galeria ainda não publicada (rascunho). Barra o cliente (preview
+    // admin passa). Sessão antiga sem o campo lê undefined e passa; só `false` explícito recusa.
+    if (session.published === false && !adminPreview) {
+      return res.status(409).json({ error: 'Galeria sendo preparada. Volte em instantes.' });
+    }
+
     // Bloquear acesso a galeria entregue com prazo vencido
     if (
       session.mode === 'gallery' &&
@@ -157,6 +163,8 @@ router.post('/client/verify-code', async (req, res) => {
       galleryDate: session.date ? new Date(session.date).toLocaleDateString('pt-BR') : '',
       totalPhotos: (session.photos || []).filter(p => !p.hidden).length,
       mode: session.mode || 'gallery',
+      // Camada facial: o cliente liga os chips "achar por pessoa" quando true.
+      faceEnabled: session.faceEnabled === true,
       selectionStatus: participant ? participant.selectionStatus : (session.selectionStatus || 'pending'),
       galleryDeliveryMode: session.galleryDeliveryMode || null,
       packageLimit: participant ? participant.packageLimit : (session.packageLimit ?? 30),
@@ -268,6 +276,12 @@ router.get('/client/photos/:sessionId', async (req, res) => {
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
 
+    // Push facial em andamento: galeria ainda não publicada (rascunho). Barra o cliente.
+    // Sessão antiga sem o campo lê undefined e passa; só `false` explícito recusa.
+    if (session.published === false) {
+      return res.status(409).json({ error: 'Galeria sendo preparada. Volte em instantes.' });
+    }
+
     if (session.clientAccessBlocked) {
       let adminPreview = false;
       const apToken = req.query?._ap;
@@ -323,6 +337,20 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       return o;
     });
 
+    // Camada facial: recomputa photoCount por tag (não confia no snapshot do push) e devolve a
+    // lista de pessoas saneada (sem participantId/dados internos). personTags já vêm em safePhotos.
+    let personsOut = [];
+    if (session.faceEnabled && Array.isArray(session.persons) && session.persons.length) {
+      const tagCount = {};
+      for (const ph of safePhotos) for (const t of (ph.personTags || [])) tagCount[t] = (tagCount[t] || 0) + 1;
+      personsOut = session.persons.map(pe => ({
+        triagemId: pe.triagemId,
+        name: pe.name || '',
+        thumbUrl: pe.thumbUrl || '',
+        photoCount: tagCount[pe.triagemId] || 0
+      }));
+    }
+
     // Selo "powered by CliqueZoom" — só no Free (também no refresh da galeria).
     const { selo, seloUrl } = await computeSelo(session.organizationId?._id || session.organizationId);
 
@@ -331,6 +359,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       name: session.name,
       type: session.type,
       photos: safePhotos,
+      // Camada facial: liga os chips "achar por pessoa" no cliente (false = comportamento normal).
+      faceEnabled: session.faceEnabled === true,
+      persons: personsOut,
       selectedPhotos: selectedPhotos,
       // Cortesias explícitas deste participante (multi). Vazia em seleção individual.
       courtesyPhotos: courtesyPhotos,
@@ -1304,6 +1335,12 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
       if (session.coverPhoto && session.coverPhoto.startsWith('/uploads/')) {
         deletions.push(storage.deleteFile(session.coverPhoto));
       }
+      // Camada facial: apagar as miniaturas de rosto das pessoas
+      (session.persons || []).forEach(pe => {
+        if (pe.thumbUrl && pe.thumbUrl.startsWith('/uploads/')) {
+          deletions.push(storage.deleteFile(pe.thumbUrl));
+        }
+      });
       await Promise.all(deletions);
       await Session.findByIdAndDelete(req.params.id);
 
@@ -1337,7 +1374,17 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     const orgId = req.user.organizationId;
     const newPhotos = [];
 
-    for (const file of req.files) {
+    // Camada facial: tags de pessoa por foto. Casadas pela CHAVE ESTÁVEL (relPath), NUNCA pelo
+    // basename — dois arquivos em subpastas diferentes podem ter o mesmo nome. keysByIndex alinha
+    // 1:1 com req.files (mesma ordem do FormData); tagsByKey mapeia relPath -> [triagemId].
+    let _tagsByKey = {}, _keysByIndex = [];
+    if (session.faceEnabled) {
+      try { _tagsByKey = JSON.parse(req.body.tagsByKey || '{}'); } catch (_) {}
+      try { _keysByIndex = JSON.parse(req.body.keysByIndex || '[]'); } catch (_) {}
+    }
+
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
       const originalPath = file.path;
       const thumbFilename = 'thumb-' + file.filename;
       const thumbPath = path.join(path.dirname(originalPath), thumbFilename);
@@ -1372,7 +1419,9 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         height,
         widthOriginal: origMeta.width,
         heightOriginal: origMeta.height,
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
+        // Camada facial: quem aparece nesta foto (vazio quando a sessão não usa rosto).
+        personTags: session.faceEnabled ? (_tagsByKey[_keysByIndex[i]] || []) : []
       });
     }
 
@@ -1420,6 +1469,85 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
     if (generatedThumbs && generatedThumbs.length > 0) {
       await Promise.all(generatedThumbs.map(t => storage.deleteFile(t).catch(() => { })));
     }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── Camada facial (Triagem) ─────────────────────────────────────────────────
+// Registra/atualiza as PESSOAS da sessão + sobe a miniatura representativa de cada uma.
+// Idempotente: upsert por triagemId (re-push não duplica). Só TAGS e recorte — sem biometria.
+router.post('/sessions/:id/persons', authenticateToken, checkStorageGate, uploadSession.array('thumbs'), async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      organizationId: req.user.organizationId
+    });
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+    const orgId = req.user.organizationId;
+    let persons = [], thumbKeys = [];
+    try { persons = JSON.parse(req.body.persons || '[]'); } catch (_) {}
+    try { thumbKeys = JSON.parse(req.body.thumbKeys || '[]'); } catch (_) {}
+
+    // Salva cada miniatura como person-<triagemId>.jpg (thumbKeys alinha 1:1 com req.files).
+    const thumbUrlByTid = {};
+    for (let i = 0; i < (req.files || []).length; i++) {
+      const file = req.files[i];
+      const tid = String(thumbKeys[i] ?? '');
+      if (!tid) { await storage.deleteFile(file.path).catch(() => {}); continue; }
+      const safeTid = tid.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const destName = `person-${safeTid}.jpg`;
+      const destPath = path.join(path.dirname(file.path), destName);
+      try {
+        await sharp(file.path).resize(240, 240, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 80 }).toFile(destPath);
+        thumbUrlByTid[tid] = `/uploads/${orgId}/sessions/${destName}`;
+      } catch (e) {
+        req.logger?.error('Face persons thumb error', { error: e.message, tid });
+      }
+      await storage.deleteFile(file.path).catch(() => {});
+    }
+
+    // Upsert por triagemId
+    for (const p of persons) {
+      const tid = String(p.triagemId || '');
+      if (!tid) continue;
+      const existing = session.persons.find(x => x.triagemId === tid);
+      const data = {
+        triagemId: tid,
+        name: p.name || '',
+        photoCount: Number(p.photoCount) || 0
+      };
+      if (thumbUrlByTid[tid]) data.thumbUrl = thumbUrlByTid[tid];
+      if (existing) Object.assign(existing, data);
+      else session.persons.push(data);
+    }
+    if (!session.faceEnabled) session.faceEnabled = true;
+    await session.save();
+
+    storage.getDirSize(`/${orgId}/sessions`)
+      .then(bytes => Subscription.updateOne({ organizationId: orgId }, { $set: { 'usage.storageQuotaBytes': bytes } }))
+      .catch(() => {});
+
+    res.json({ success: true, persons: session.persons });
+  } catch (error) {
+    if (req.files) await Promise.all(req.files.map(f => storage.deleteFile(f.path).catch(() => {})));
+    req.logger?.error('Face persons error', { error: error.message, stack: error.stack, sessionId: req.params.id });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Publica a sessão ao fim do push facial (libera o cliente). Idempotente.
+router.post('/sessions/:id/publish', authenticateToken, async (req, res) => {
+  try {
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { published: true },
+      { returnDocument: 'after' }
+    );
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
+    res.json({ success: true });
+  } catch (error) {
+    req.logger?.error('Session publish error', { error: error.message, sessionId: req.params.id });
     res.status(500).json({ error: error.message });
   }
 });
@@ -2346,6 +2474,12 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
       photosToZip = session.photos.filter(p => p.urlOriginal && entitled.has(String(p.id)));
     } else {
       photosToZip = session.photos;
+    }
+
+    // Camada facial: "baixar todas da pessoa X" (galeria) — intersecciona o ZIP com as fotos taggeadas.
+    const personFilter = req.query.person;
+    if (personFilter && session.faceEnabled) {
+      photosToZip = photosToZip.filter(p => (p.personTags || []).includes(String(personFilter)));
     }
 
     if (photosToZip.length === 0) return res.status(404).json({ error: 'Nenhuma foto para download' });
