@@ -1399,6 +1399,13 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
       try { _keysByIndex = JSON.parse(req.body.keysByIndex || '[]'); } catch (_) {}
     }
 
+    // "Já editadas" (fotos prontas): mesmo em modo seleção, PRESERVAR a alta e setar urlOriginal —
+    // a foto vira o entregável final (mesma forma de dado do caminho /photos/upload-edited do admin:
+    // urlOriginal = entrega na hora ao selecionar+pagar). Sem a flag, modo seleção segue o caminho
+    // "brutas" (descarta a alta; o fotógrafo sobe a editada depois). Só o push da Triagem (Seleção em
+    // grupo) manda esta flag — o admin nunca usa /photos para editadas, então o fluxo do admin é intocado.
+    const alreadyEdited = req.body.alreadyEdited === 'true' || req.body.alreadyEdited === true;
+
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
       const originalPath = file.path;
@@ -1421,8 +1428,10 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 
       // No modo galeria (entrega direta), o fotografo ja sobe as fotos em alta resolucao prontas, entao preservamos a original.
       // Vale para galeria individual, Galeria em Grupo (multi_gallery) e multi_instant (real-time).
+      // "Já editadas" (alreadyEdited) também preserva a alta — mesmo em modo seleção — pois a foto já é o entregável.
       const isGalleryMode = session.mode === 'gallery' || session.mode === 'multi_gallery' || session.mode === 'multi_instant';
-      if (!isGalleryMode) {
+      const preserveOriginal = isGalleryMode || alreadyEdited;
+      if (!preserveOriginal) {
         await storage.deleteFile(originalPath);
       }
 
@@ -1430,7 +1439,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
         id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         filename: file.originalname, // Nome original preservado para exportação e Lightroom
         url: `/uploads/${orgId}/sessions/${thumbFilename}`,
-        urlOriginal: isGalleryMode ? `/uploads/${orgId}/sessions/${file.filename}` : '',
+        urlOriginal: preserveOriginal ? `/uploads/${orgId}/sessions/${file.filename}` : '',
         width,
         height,
         widthOriginal: origMeta.width,
