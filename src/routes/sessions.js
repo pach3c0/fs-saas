@@ -306,6 +306,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     // Cortesia EXPLÍCITA: na seleção individual vem de session.courtesyPhotos (o fotógrafo escolhe).
     // No multi é sobrescrita abaixo pela lista do participante.
     let courtesyPhotos = session.courtesyPhotos || [];
+    // Slice 2 (face-scoping): null = sem escopo (vê tudo). Não-vazio → escopa a galeria às fotos
+    // cujas personTags cruzam com os rostos que ESTE participante escolheu como "sou eu".
+    let scopeTriagemIds = null;
 
     if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const p = session.participants.id(participantId);
@@ -316,6 +319,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         if (p.extraPhotoPrice != null) extraPhotoPrice = p.extraPhotoPrice;
         extraRequest = p.extraRequest;
         courtesyPhotos = p.courtesyPhotos || [];
+        if (Array.isArray(p.personTriagemIds) && p.personTriagemIds.length) {
+          scopeTriagemIds = new Set(p.personTriagemIds.map(String));
+        }
       }
     }
 
@@ -327,7 +333,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     // 2) Comentários: devolver só o thread DESTE participante (multi) ou os de sessão (individual),
     //    espelhando commentsFor() do cliente — evita vazar comentário privado de outro participante.
     const reqParticipantId = ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) ? String(participantId) : '';
-    const safePhotos = (session.photos || []).filter(p => !p.hidden).map(p => {
+    let safePhotos = (session.photos || []).filter(p => !p.hidden).map(p => {
       const o = p.toObject ? p.toObject() : { ...p };
       o.urlOriginal = o.urlOriginal ? true : '';   // booleano "pronta", sem expor o caminho real
       delete o.urlRaw; delete o.widthRaw; delete o.heightRaw;
@@ -336,6 +342,13 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       }
       return o;
     });
+
+    // Slice 2 (face-scoping): este participante só enxerga as fotos em que ele aparece (interseção
+    // personTags ∩ personTriagemIds). Aplicado ANTES das pessoas pra contagem refletir o escopo.
+    // Fotos sem rosto (personTags vazio) ficam de fora do escopo — pertencem a quem foi taggeado.
+    if (scopeTriagemIds && session.faceEnabled) {
+      safePhotos = safePhotos.filter(ph => (ph.personTags || []).some(t => scopeTriagemIds.has(String(t))));
+    }
 
     // Camada facial: recomputa photoCount por tag (não confia no snapshot do push) e devolve a
     // lista de pessoas saneada (sem participantId/dados internos). personTags já vêm em safePhotos.
@@ -349,6 +362,9 @@ router.get('/client/photos/:sessionId', async (req, res) => {
         thumbUrl: pe.thumbUrl || '',
         photoCount: tagCount[pe.triagemId] || 0
       }));
+      // Em modo escopado, esconde chips de pessoas que não aparecem nas fotos visíveis a este
+      // participante (photoCount 0 sobre o conjunto já escopado) — sem chip morto nem ruído.
+      if (scopeTriagemIds) personsOut = personsOut.filter(pe => pe.photoCount > 0);
     }
 
     // Selo "powered by CliqueZoom" — só no Free (também no refresh da galeria).
@@ -2852,7 +2868,7 @@ router.get('/sessions/register/:code', async (req, res) => {
       organizationId: req.organizationId,
       isActive: true,
       mode: 'multi_selection'
-    }).select('name coverPhoto selectionDeadline selfRegEnabled selfRegDeadline').lean();
+    }).select('name coverPhoto selectionDeadline selfRegEnabled selfRegDeadline faceEnabled persons').lean();
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
     if (!session.selfRegEnabled) return res.status(403).json({ error: 'Inscrições encerradas para esta sessão' });
@@ -2867,6 +2883,15 @@ router.get('/sessions/register/:code', async (req, res) => {
     const org = await Organization.findById(req.organizationId)
       .select('name preferences.membershipRoles').lean();
 
+    // Face-picker (Slice 2): rostos pra pessoa tocar "sou eu". Saneado (sem participantId/dados
+    // internos) e ordenado do mais fotografado pro menos — reduz a fricção de achar-se numa grade grande.
+    const faceEnabled = session.faceEnabled === true;
+    const persons = (faceEnabled && Array.isArray(session.persons))
+      ? session.persons
+          .map(pe => ({ triagemId: pe.triagemId, name: pe.name || '', thumbUrl: pe.thumbUrl || '', photoCount: pe.photoCount || 0 }))
+          .sort((a, b) => b.photoCount - a.photoCount)
+      : [];
+
     res.json({
       success: true,
       session: {
@@ -2874,6 +2899,8 @@ router.get('/sessions/register/:code', async (req, res) => {
         coverPhoto: session.coverPhoto || '',
         deadline: regDeadline || null
       },
+      faceEnabled,
+      persons,
       membershipRoles: org?.preferences?.membershipRoles || ['Pai/Mãe', 'Parente', 'Professor', 'Convidado'],
       orgName: org?.name || ''
     });
@@ -2885,7 +2912,7 @@ router.get('/sessions/register/:code', async (req, res) => {
 // PÚBLICA: Auto-inscrição — cria participante a partir do formulário público
 router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (req, res) => {
   try {
-    const { name, phone, relationship } = req.body;
+    const { name, phone, relationship, chosenPersonTriagemIds } = req.body;
 
     if (!name || !name.trim()) return res.status(400).json({ error: 'Nome é obrigatório' });
     if (!phone || !phone.trim()) return res.status(400).json({ error: 'WhatsApp é obrigatório' });
@@ -2922,6 +2949,14 @@ router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (re
       });
     }
 
+    // Face-scoping (Slice 2): só aceita rostos que EXISTEM nesta sessão (sanitiza lixo/tampering).
+    // Não-vazio → este participante verá só as fotos em que aparece (escopo no /client/photos).
+    let scopeIds = [];
+    if (session.faceEnabled && Array.isArray(chosenPersonTriagemIds)) {
+      const known = new Set((session.persons || []).map(pe => String(pe.triagemId)));
+      scopeIds = [...new Set(chosenPersonTriagemIds.map(String))].filter(t => known.has(t));
+    }
+
     const accessCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     session.participants.push({
       name: name.trim(),
@@ -2930,7 +2965,8 @@ router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (re
       accessCode,
       packageLimit: session.packageLimit ?? 30,
       selectionStatus: 'pending',
-      selectedPhotos: []
+      selectedPhotos: [],
+      personTriagemIds: scopeIds
     });
 
     await session.save();

@@ -152,6 +152,10 @@ const sessionSchema = new mongoose.Schema({
         extraPhotoPrice: { type: Number, default: null },
         // Grau de parentesco informado na auto-inscrição (ex: 'Pai/Mãe', 'Professor', etc.)
         relationship: { type: String, default: '' },
+        // Slice 2 (face-scoping): rostos da Triagem que ESTE participante escolheu como "sou eu" na
+        // auto-inscrição (triagemId[]). Não-vazio → o /client/photos escopa a galeria às fotos cujas
+        // personTags cruzam com este conjunto (cada um vê só as suas). Vazio = sem escopo (vê tudo).
+        personTriagemIds: { type: [String], default: [] },
         // Seleção em Grupo — CORTESIA EXPLÍCITA: fotos que o fotógrafo decidiu presentear a ESTE
         // participante, fora da seleção dele. Diferente do modo seleção individual (onde a cortesia é
         // DEDUZIDA de "foto em alta fora da seleção"), no multi o pool é compartilhado entre N pessoas —

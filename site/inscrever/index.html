@@ -177,6 +177,15 @@
       letter-spacing: .04em;
     }
     .required { color: #ef4444; margin-left: .125rem; }
+    /* Face-picker (Slice 2) */
+    .face-hint { font-size: .8rem; color: var(--text-muted); margin: 0 0 .5rem; }
+    .face-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; max-height: 300px; overflow-y: auto; padding: 2px; }
+    .face-item { position: relative; cursor: pointer; border-radius: var(--radius-sm); overflow: hidden; border: 2px solid transparent; aspect-ratio: 1; background: var(--bg); transition: border-color .15s; }
+    .face-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .face-item.selected { border-color: var(--accent); }
+    .face-check { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 999px; background: var(--accent); color: #fff; display: none; align-items: center; justify-content: center; font-size: 13px; line-height: 1; }
+    .face-item.selected .face-check { display: flex; }
+    .face-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.55); color: #fff; font-size: .62rem; text-align: center; padding: 2px 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     input, select {
       width: 100%;
       background: var(--bg);
@@ -415,6 +424,13 @@
             <option value="">Selecione</option>
           </select>
         </div>
+        <!-- Face-picker (Slice 2): só aparece se a sessão tiver rostos. A pessoa toca onde aparece
+             e passa a receber SÓ as fotos dela. Oculto por padrão (sessão sem rosto não muda nada). -->
+        <div class="field" id="facePickerField" style="display:none;">
+          <label>Toque na(s) foto(s) onde você aparece <span class="required">*</span></label>
+          <p class="face-hint">Assim você recebe só as fotos em que você está.</p>
+          <div id="faceGrid" class="face-grid"></div>
+        </div>
         <!-- Honey pot anti-bot: invisível para humanos; se vier preenchido, o servidor rejeita. -->
         <div aria-hidden="true" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;">
           <label for="_hp_trap">Não preencha este campo</label>
@@ -559,11 +575,56 @@
         sel.appendChild(opt);
       });
 
+      // Face-picker: se a sessão tem rostos, a pessoa toca onde aparece → recebe só as suas fotos.
+      if (data.faceEnabled && Array.isArray(data.persons) && data.persons.length) {
+        renderFacePicker(data.persons);
+      }
+
       show('formState');
     } catch (e) {
       document.getElementById('errorMsg').textContent = 'Erro ao carregar a sessão. Tente novamente.';
       show('errorState');
     }
+  }
+
+  // ======= Face-picker (Slice 2) =======
+  // Rostos que a pessoa marcou como "sou eu". Vão no POST como chosenPersonTriagemIds e viram
+  // o escopo da galeria dela (o backend sanitiza contra a lista real de pessoas da sessão).
+  const selectedFaces = new Set();
+  function renderFacePicker(persons) {
+    const grid = document.getElementById('faceGrid');
+    grid.innerHTML = '';
+    persons.forEach(p => {
+      const tid = String(p.triagemId);
+      const item = document.createElement('div');
+      item.className = 'face-item';
+
+      const img = document.createElement('img');
+      img.src = p.thumbUrl || '';
+      img.alt = p.name || 'Pessoa';
+      img.loading = 'lazy';
+      item.appendChild(img);
+
+      const check = document.createElement('div');
+      check.className = 'face-check';
+      check.textContent = '✓';
+      item.appendChild(check);
+
+      if (p.name) {
+        const nm = document.createElement('div');
+        nm.className = 'face-name';
+        nm.textContent = p.name;
+        item.appendChild(nm);
+      }
+
+      item.addEventListener('click', () => {
+        if (selectedFaces.has(tid)) { selectedFaces.delete(tid); item.classList.remove('selected'); }
+        else { selectedFaces.add(tid); item.classList.add('selected'); }
+      });
+
+      grid.appendChild(item);
+    });
+    document.getElementById('facePickerField').style.display = '';
   }
 
   // ======= Submeter formulário =======
@@ -577,6 +638,13 @@
     if (!phone) { alert('Por favor, informe seu WhatsApp.'); return; }
     if (!relationship) { alert('Por favor, selecione seu grau de parentesco.'); return; }
 
+    // Face-picker visível → exige ao menos 1 rosto (é o que escopa a galeria da pessoa).
+    const facePickerOn = document.getElementById('facePickerField').style.display !== 'none';
+    if (facePickerOn && selectedFaces.size === 0) {
+      alert('Toque na(s) foto(s) onde você aparece para receber as suas fotos.');
+      return;
+    }
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> Enviando...';
@@ -585,7 +653,7 @@
       const res = await fetch(`/api/sessions/register/${code}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, relationship, _hp_trap: document.getElementById('_hp_trap').value })
+        body: JSON.stringify({ name, phone, relationship, chosenPersonTriagemIds: [...selectedFaces], _hp_trap: document.getElementById('_hp_trap').value })
       });
       const data = await res.json();
       if (!res.ok) {
