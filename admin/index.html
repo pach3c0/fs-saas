@@ -1164,6 +1164,14 @@
                         <span class="header-expand-label">Sessões</span>
                     </button>
 
+                    <!-- Triagem (camada facial → cria sessão na nuvem): vizinho de Sessões -->
+                    <button class="header-expand-btn nav-item" onclick="window.open('/triagem/', '_blank')" title="Triagem de fotos">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </span>
+                        <span class="header-expand-label">Triagem</span>
+                    </button>
+
                     <!-- Dropdown Site -->
                     <div class="header-dropdown-container" style="position:relative;">
                         <button class="header-expand-btn nav-item header-dropdown-btn" data-dropdown="site" title="Meu Site">
@@ -1200,13 +1208,6 @@
                         </span>
                         <span class="header-expand-label">CRM</span>
                     </button>
-
-                    <button class="header-expand-btn nav-item" onclick="openGestao('/goals')" title="Metas">
-                        <span class="header-expand-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                        </span>
-                        <span class="header-expand-label">Metas</span>
-                    </button>
                 </nav>
 
                 <!-- Busca Central -->
@@ -1229,11 +1230,11 @@
                         </span>
                         <span class="header-expand-label">Tarefas</span>
                     </button>
-                    <button class="header-expand-btn nav-item" onclick="window.open('/triagem/', '_blank')" title="Triagem de fotos">
+                    <button class="header-expand-btn nav-item" onclick="openGestao('/goals')" title="Metas">
                         <span class="header-expand-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                         </span>
-                        <span class="header-expand-label">Triagem</span>
+                        <span class="header-expand-label">Metas</span>
                     </button>
                     <button class="header-expand-btn nav-item" data-tab="ajuda" title="Ajuda">
                         <span class="header-expand-icon">
