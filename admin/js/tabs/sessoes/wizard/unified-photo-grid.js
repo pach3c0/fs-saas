@@ -195,6 +195,11 @@ function ensureStyles() {
       border-color:color-mix(in srgb, var(--accent) 35%, transparent);
       color:var(--text-primary);
     }
+    /* Chip de filtro por pessoa (face): thumb redonda + nome + contagem */
+    .cz-ug-face-chip {
+      display:inline-flex; align-items:center; gap:.35rem;
+      padding:.2rem .55rem .2rem .25rem;
+    }
 
     /* Bulk */
     .cz-ug-bulk {
@@ -404,8 +409,10 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
       chip.onclick = () => {
         currentFilter = key;
         currentParticipantFilter = null;
+        currentPersonFilter = null;
         Object.values(chips).forEach(c => c.classList.remove('active'));
         Object.values(pChips).forEach(c => c.classList.remove('active'));
+        Object.values(personChips).forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         rebuildGrid();
       };
@@ -437,6 +444,8 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
           pChip.title = `Ver seleção de ${p.name}`;
           pChip.className = 'cz-ug-chip';
           pChip.onclick = () => {
+            currentPersonFilter = null;
+            Object.values(personChips).forEach(c => c.classList.remove('active'));
             if (currentParticipantFilter === p._id) {
               // Toggle off: volta para Todas
               currentParticipantFilter = null;
@@ -458,6 +467,57 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
         });
         toolbar.appendChild(pGroup);
       }
+    }
+
+    // ── Chips de filtro por PESSOA (camada facial da Triagem) ───────────────
+    // Mesmas "bolinhas" de rosto que o cliente vê na galeria: aparecem só quando a
+    // sessão veio da Triagem (faceEnabled + persons[]). Filtra por personTags da foto.
+    const personChips = {};
+    let currentPersonFilter = null; // triagemId ou null
+    const facePersons = (session.faceEnabled && Array.isArray(session.persons)) ? session.persons : [];
+    if (facePersons.length > 0) {
+      toolbar.appendChild(mkDivider());
+      const faceGroup = document.createElement('div');
+      faceGroup.style.cssText = 'display:flex; gap:.3rem; flex-shrink:0; flex-wrap:wrap; align-items:center;';
+      const faceLabel = document.createElement('span');
+      faceLabel.style.cssText = 'font-size:.6875rem; color:var(--text-muted); align-self:center; white-space:nowrap;';
+      faceLabel.textContent = '👤 Pessoa:';
+      faceGroup.appendChild(faceLabel);
+
+      facePersons.forEach(pe => {
+        const nm = (pe.name && pe.name.trim()) ? pe.name : 'Pessoa';
+        const count = pe.photoCount || 0;
+        const pChip = document.createElement('button');
+        pChip.type = 'button';
+        pChip.className = 'cz-ug-chip cz-ug-face-chip';
+        const thumb = pe.thumbUrl
+          ? `<img src="${resolveImagePath(pe.thumbUrl)}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none;">`
+          : `<span style="width:22px;height:22px;border-radius:50%;background:var(--bg-base);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;flex:none;">👤</span>`;
+        pChip.innerHTML = `${thumb}<span>${escapeHtml(nm)}</span><span style="opacity:.6;">${count}</span>`;
+        pChip.title = `Ver fotos de ${nm}`;
+        pChip.onclick = () => {
+          // Toca o chip ativo de novo → limpa; senão ativa este e zera os outros grupos.
+          if (currentPersonFilter === pe.triagemId) {
+            currentPersonFilter = null;
+            currentFilter = 'all';
+            Object.values(chips).forEach(c => c.classList.remove('active'));
+            chips['all']?.classList.add('active');
+            Object.values(personChips).forEach(c => c.classList.remove('active'));
+          } else {
+            currentPersonFilter = pe.triagemId;
+            currentFilter = 'person';
+            currentParticipantFilter = null;
+            Object.values(chips).forEach(c => c.classList.remove('active'));
+            Object.values(pChips).forEach(c => c.classList.remove('active'));
+            Object.values(personChips).forEach(c => c.classList.remove('active'));
+            pChip.classList.add('active');
+          }
+          rebuildGrid();
+        };
+        personChips[pe.triagemId] = pChip;
+        faceGroup.appendChild(pChip);
+      });
+      toolbar.appendChild(faceGroup);
     }
 
     toolbar.appendChild(mkDivider());
@@ -502,6 +562,10 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
         const pObj = (session.participants || []).find(p => p._id === currentParticipantFilter);
         const pSet = new Set(pObj?.selectedPhotos || []);
         return allPhotos.filter(p => pSet.has(p.id));
+      }
+      // Filtro por PESSOA (camada facial): fotos cujas personTags contêm o triagemId.
+      if (currentFilter === 'person' && currentPersonFilter) {
+        return allPhotos.filter(p => Array.isArray(p.personTags) && p.personTags.includes(currentPersonFilter));
       }
       switch (currentFilter) {
         case 'selected': return allPhotos.filter(p => selectedSet.has(p.id));
@@ -558,7 +622,8 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
           all: 'Nenhuma foto ainda.',
           selected: 'Nenhuma foto selecionada pelo cliente.',
           edited: 'Nenhuma foto editada enviada ainda.',
-          hidden: 'Nenhuma foto oculta.'
+          hidden: 'Nenhuma foto oculta.',
+          person: 'Nenhuma foto desta pessoa.'
         };
         emptyState.textContent = msgs[currentFilter] || 'Nenhuma foto.';
         updateBulkUI();
