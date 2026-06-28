@@ -97,6 +97,47 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
         return { mode: 'redirect', checkoutUrl: response.init_point };
     }
 
+    // ── TROCA DE PLANO numa assinatura VIVA E ATIVA → update(), NÃO cancel+create ──
+    // Decisão 2026-06-28 (SEM pró-rata): quem já paga e troca de plano tem o valor da
+    // recorrência AJUSTADO na PreApproval existente — o MP mantém o next_payment_date e
+    // honra o novo valor a partir do PRÓXIMO ciclo (provado no sandbox 2026-06-27). As
+    // features do plano novo são liberadas na hora; NÃO há cobrança avulsa agora.
+    // Conserta a ARMADILHA do cancel+create (linhas abaixo): em sub paga ele cobrava o
+    // plano novo CHEIO por cima do antigo já pago (double-charge) ou, se o cliente
+    // abandonasse o checkout, deixava a org sem assinatura nenhuma. Aqui não usamos
+    // card_token: o cartão já está atrelado à assinatura viva.
+    // Limitação conhecida (Fase 2): no DOWNGRADE os limites caem na hora em vez de só no
+    // fim do ciclo já pago — falta o scheduler de fim de ciclo (billing.js:145). NÃO é
+    // regressão: o caminho atual com card_token (linha ~155) também rebaixa na hora.
+    if (sub.mpPreapprovalId && sub.status === 'active') {
+        // Cortesia NUNCA é cobrada (invariante por construção, espelha syncPreapprovalAmount:759).
+        // Inalcançável pela UI hoje — conta cortesia é roteada ao suporte (cortesiaUpgradeBtn),
+        // não ao checkout — mas é defesa-em-profundidade contra chamada programática: sem isto,
+        // uma cortesia com PreApproval viva teria o valor ajustado e passaria a ser cobrada.
+        // Encerrar a cortesia (isCourtesy=false) é pré-requisito explícito para cobrar.
+        if (sub.isCourtesy) {
+            throw new Error('Conta cortesia não passa por checkout automático. Encerre a cortesia antes de cobrar.');
+        }
+        const oldCents = effectiveMonthlyCents(sub.toObject()); // sub.plan ainda é o ANTIGO aqui
+        // 1) Ajusta o valor no MP ANTES de mexer no local: se o MP recusar, aborta sem drift.
+        await updatePreapprovalAmount(sub.mpPreapprovalId, cents);
+        // 2) Reflete o plano novo localmente (features liberadas já; respeita override de limites).
+        sub.plan = planName;
+        sub.pendingPlan = null;
+        if (!sub.overrideEnabled && plans[planName]?.limits) sub.limits = plans[planName].limits;
+        try {
+            await sub.save();
+        } catch (err) {
+            // Save local falhou após o update() no MP → tenta voltar o valor no MP p/ não
+            // cobrar o novo valor sem o plano refletido (evita drift). Best-effort.
+            try { await updatePreapprovalAmount(sub.mpPreapprovalId, oldCents); } catch (_) {}
+            throw err;
+        }
+        // Espelha no Organization.plan (campo de display que a lista do SaaS Admin lê).
+        await Organization.updateOne({ _id: organizationId }, { $set: { plan: planName } });
+        return { mode: 'updated', status: 'active', plan: planName, preapprovalId: sub.mpPreapprovalId };
+    }
+
     // Novo caminho (MP_USE_PREAPPROVAL=1): PreApproval avulsa por org.
     // Sem preapproval_plan_id → valor mutável via update(); destrava storage-addon e preço custom.
     // payer_email vem do User dono da org (não Organization.email, que pode estar vazio).
@@ -111,11 +152,11 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
     if (!payerEmail) throw new Error('E-mail do dono não encontrado para criar assinatura MP');
 
     // Dedupe: cancela PreApproval anterior desta org antes de criar nova.
-    // ⚠️ ARMADILHA CONHECIDA (segura HOJE, 0 assinaturas vivas em prod): se a antiga
-    // estivesse AUTHORIZED (paga/ativa) e o usuário abandonasse o novo checkout, ele
-    // ficaria sem assinatura nenhuma. O caminho correto p/ TROCA DE PLANO numa sub viva
-    // é updatePreapprovalAmount (não cancel+create) — mas isso depende da incógnita
-    // "MP honra update?" ainda não provada no sandbox. Reavaliar antes de existir sub paga.
+    // NOTA: a troca de plano numa assinatura VIVA E ATIVA já foi tratada acima via
+    // updatePreapprovalAmount (update, não cancel+create) — então aqui só chegam subs
+    // NÃO-ativas (ex.: pending que nunca autorizou, ou id órfão de um checkout abandonado).
+    // Nesses casos não há cobrança viva a duplicar, então cancelar a antiga e criar nova
+    // é seguro e desejável (limpa o resíduo no MP).
     if (sub.mpPreapprovalId) {
         try {
             const paOld = new PreApproval(client);

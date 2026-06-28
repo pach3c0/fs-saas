@@ -380,15 +380,54 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   container.querySelectorAll('.selectPlanBtn').forEach(btn => {
     btn.onclick = async () => {
       const plan = btn.dataset.plan;
+      const planObj = plans[plan] || {};
+      const nomePlano = planObj.name || 'plano';
 
+      // ── TROCA de plano de quem JÁ é assinante ativo → caminho update() (SEM pró-rata) ──
+      // NÃO abre o CardForm: o cartão já está atrelado à assinatura viva. Só confirma e faz
+      // POST sem token; o backend (createCheckoutSession) ajusta o valor da recorrência e
+      // retorna { mode:'updated' }. O novo valor passa a valer no PRÓXIMO ciclo — nada é
+      // cobrado agora. Espelha o gate do backend (status active + mpPreapprovalId vivo).
+      const jaAssinante = subscription.status === 'active' && !!subscription.mpPreapprovalId;
+      if (jaAssinante) {
+        // Valor efetivo = base (preço custom OU do plano) + adicional de storage recorrente,
+        // espelhando effectiveMonthlyCents do backend — senão a copy subnotifica quem tem add-on.
+        const centsNovo = (customCents || planObj.price || 0) + addonPriceCents;
+        // showConfirm (toast.js) usa o 1º arg como MENSAGEM e `title` como cabeçalho —
+        // por isso a explicação vai no 1º arg (não em `{ message }`, que seria ignorado).
+        const ok = await window.showConfirm(
+          `Seu plano muda para o ${nomePlano} agora. O novo valor de R$ ${(centsNovo / 100).toFixed(2)}/mês passa a valer na sua próxima cobrança — nada é cobrado neste momento.`,
+          { title: `Mudar para o ${nomePlano}?`, confirmText: 'Confirmar troca', cancelText: 'Voltar' }
+        );
+        if (!ok) return;
+        btn.textContent = 'Alterando...';
+        btn.disabled = true;
+        try {
+          const result = await apiPost('/api/billing/checkout', { plan });
+          if (result && result.mode === 'updated') {
+            window.showToast('Plano alterado — o novo valor passa a valer na próxima cobrança.', 'success');
+            renderPlano(container);
+          } else {
+            // Backend não entrou no caminho de troca (estado inesperado) → recarrega pra
+            // refletir o real, sem forçar nada na tela.
+            window.showToast('Não foi possível alterar o plano agora. Tente novamente.', 'error');
+            btn.textContent = 'Selecionar'; btn.disabled = false;
+          }
+        } catch (error) {
+          window.showToast('Erro: ' + error.message, 'error');
+          btn.textContent = 'Selecionar'; btn.disabled = false;
+        }
+        return;
+      }
+
+      // ── ASSINATURA NOVA (free→pago ou re-assinatura): CardForm in-page (cartão direto) ──
       if (mpPublicKey) {
-        const planObj = plans[plan] || {};
         // Preço a exibir: custom da org (se houver) tem prioridade; o backend recalcula o
         // valor real cobrado de qualquer forma — aqui é só o rótulo do modal.
         const cents = customCents || planObj.price || 0;
         await openCardCheckout({
           plan,
-          planName: planObj.name || 'plano',
+          planName: nomePlano,
           amountReais: cents / 100,
           publicKey: mpPublicKey,
           ownerEmail,
