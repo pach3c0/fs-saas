@@ -215,7 +215,15 @@ app.get('/', async (req, res) => {
     }
   }
 
-  res.sendFile(path.join(__dirname, '../home/index.html'));
+  // TEMPORÁRIO (2026-06-28): a landing real (home/index.html) está "de canto" até a reforma.
+  // Enquanto isso, a home pública mostra a página "Em construção" com só o botão de login,
+  // pois o link do admin é divulgado direto e a landing ainda não vende o SaaS.
+  // Atalho do dono p/ ver a landing real em construção: /?preview  (ou a rota /preview).
+  // Reverter = voltar a servir '../home/index.html' aqui (a landing nunca foi removida).
+  if (req.query.preview !== undefined) {
+    return res.sendFile(path.join(__dirname, '../home/index.html'));
+  }
+  res.sendFile(path.join(__dirname, '../home/construcao.html'));
 });
 
 // SPA route for client gallery

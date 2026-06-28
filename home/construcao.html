@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CliqueZoom | Em breve</title>
+    <meta name="description" content="CliqueZoom — plataforma para fotógrafos. Em breve.">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* fundo sutil em gradiente de pontos */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(#e5e5e5 1px, transparent 1px);
+            background-size: 28px 28px;
+            -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 72%);
+            mask-image: radial-gradient(ellipse at center, #000 0%, transparent 72%);
+            opacity: 0.6;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .wrap {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-bottom: 2.5rem;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #fff;
+            border: 1px solid #eee;
+            color: #555;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            margin-bottom: 1.75rem;
+            letter-spacing: 0.03em;
+        }
+        .badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #16a34a;
+            box-shadow: 0 0 0 0 rgba(22,163,74,0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(22,163,74,0.45); }
+            70% { box-shadow: 0 0 0 8px rgba(22,163,74,0); }
+            100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 6vw, 3.25rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+            max-width: 18ch;
+        }
+        h1 em { font-style: italic; color: #555; }
+        p.lead {
+            font-size: 1.0625rem;
+            color: #666;
+            line-height: 1.7;
+            max-width: 44ch;
+            margin: 0 auto 2.5rem;
+        }
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 0.9rem 2.25rem;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .btn-login:hover { background: #333; transform: translateY(-1px); }
+        .btn-login svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.8125rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="logo">CliqueZoom</div>
+        <div class="badge"><span class="dot"></span>Em construção</div>
+        <h1>Estamos preparando <em>algo novo</em></h1>
+        <p class="lead">Nossa plataforma para fotógrafos está em construção. Em breve, tudo no ar. Se você já tem uma conta, é só entrar.</p>
+        <a href="/admin/" class="btn-login">
+            <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Entrar
+        </a>
+    </div>
+    <div class="footer">© CliqueZoom — Plataforma para fotógrafos</div>
+</body>
+</html>
