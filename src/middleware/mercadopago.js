@@ -167,6 +167,13 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
         throw err;
     }
 
+    // Espelha o plano no Organization.plan (campo denormalizado que a lista do SaaS Admin e o
+    // contador "orgs por plano" leem). O Subscription é a fonte da verdade do enforcement; sem
+    // esta sincronização a org pagante apareceria "free" no painel admin (drift de display).
+    if (cardTokenId && sub.status === 'active') {
+        await Organization.updateOne({ _id: organizationId }, { $set: { plan: planName } });
+    }
+
     if (cardTokenId) {
         return { mode: 'authorized', status: normalizeMpStatus(response.status), preapprovalId: response.id };
     }
@@ -293,6 +300,10 @@ async function handleWebhook(eventBody, eventQuery) {
                     sub.limits = plans[planName].limits;
                 }
                 await sub.save();
+                // Espelha o plano no Organization.plan (denormalizado p/ a lista do SaaS Admin).
+                if (internalStatus === 'active') {
+                    await Organization.updateOne({ _id: orgId }, { $set: { plan: planName } });
+                }
             }
             return; // Webhook tratado
         }
@@ -642,6 +653,12 @@ async function revertSubscriptionToFree(sub, { reason = 'refund', suspend = fals
         update
     );
     const reverted = result.matchedCount === 1;
+
+    // Espelha o downgrade no Organization.plan (denormalizado p/ a lista do SaaS Admin),
+    // só quando o revert REALMENTE aconteceu (idempotente via matchedCount).
+    if (reverted) {
+        await Organization.updateOne({ _id: sub.organizationId }, { $set: { plan: 'free' } });
+    }
 
     // Suspensão (chargeback) é independente do gate de revertedAt: um chargeback pode chegar DEPOIS
     // de um estorno já ter revertido (eventos diferentes). Mas cortesia nunca é suspensa → relê do banco.
