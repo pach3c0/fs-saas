@@ -92,8 +92,10 @@ export function renderStepUpload({ session, refresh, switchStep, inSinglePage = 
 
   // Contagem + filtros + bulk — só quando há fotos
   let currentFilter = 'all';
+  let currentPersonFilter = null; // triagemId da camada facial (Triagem) ou null
   const selectedIds = new Set();
   const filterBtns = {};
+  const personChips = {};
 
   let countLabel, selectAllCheck, hideSelectedBtn, showSelectedBtn, deleteBtn;
 
@@ -140,18 +142,36 @@ export function renderStepUpload({ session, refresh, switchStep, inSinglePage = 
       `;
       btn.onclick = () => {
         currentFilter = key;
-        Object.values(filterBtns).forEach(b => {
-          const active = b.dataset.filterKey === key;
-          b.style.background = active ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
-          b.style.color      = active ? 'var(--text-primary)' : 'var(--text-secondary)';
-          b.style.borderColor = active ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'var(--border)';
-        });
+        currentPersonFilter = null;   // visibilidade e pessoa são mutuamente exclusivos
+        clearPersonChips();
+        paintFilterBtnsActive(key);
         rebuildGrid();
       };
       filterBtns[key] = btn;
       filterGroup.appendChild(btn);
     });
     toolbar.appendChild(filterGroup);
+
+    // ── Chips de filtro por PESSOA (camada facial da Triagem) ────────────────
+    // As mesmas "bolinhas" de rosto que o cliente vê na galeria, agora pro fotógrafo.
+    // Só aparecem quando a sessão veio da Triagem (faceEnabled + persons[]); filtram
+    // por personTags da foto. Aditivo e gated — sessões sem rosto não mudam em nada.
+    const facePersons = (session.faceEnabled && Array.isArray(session.persons)) ? session.persons : [];
+    if (facePersons.length > 0) {
+      toolbar.appendChild(mkDivider());
+      const faceGroup = document.createElement('div');
+      faceGroup.style.cssText = 'display:flex; gap:0.3rem; flex-shrink:0; flex-wrap:wrap; align-items:center;';
+      const faceLabel = document.createElement('span');
+      faceLabel.style.cssText = 'font-size:0.6875rem; color:var(--text-muted); white-space:nowrap; align-self:center;';
+      faceLabel.textContent = '👤 Pessoa:';
+      faceGroup.appendChild(faceLabel);
+      facePersons.forEach(pe => {
+        const chip = makePersonChip(pe);
+        personChips[pe.triagemId] = chip;
+        faceGroup.appendChild(chip);
+      });
+      toolbar.appendChild(faceGroup);
+    }
 
     toolbar.appendChild(mkDivider());
 
@@ -203,9 +223,88 @@ export function renderStepUpload({ session, refresh, switchStep, inSinglePage = 
   let currentCheckboxes = [];
 
   function getFilteredPhotos() {
+    // Filtro por PESSOA (camada facial) tem prioridade e ignora visível/oculta:
+    // o fotógrafo quer ver TODAS as fotos daquela pessoa, inclusive as ocultas.
+    if (currentPersonFilter) {
+      return allPhotos.filter(p => Array.isArray(p.personTags) && p.personTags.includes(currentPersonFilter));
+    }
     if (currentFilter === 'visible') return allPhotos.filter(p => !p.hidden);
     if (currentFilter === 'hidden')  return allPhotos.filter(p =>  p.hidden);
     return allPhotos;
+  }
+
+  // Repinta o grupo Todas/Visíveis/Ocultas marcando `key` como ativo (null = nenhum).
+  function paintFilterBtnsActive(key) {
+    Object.values(filterBtns).forEach(b => {
+      const active = b.dataset.filterKey === key;
+      b.style.background  = active ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent';
+      b.style.color       = active ? 'var(--text-primary)' : 'var(--text-secondary)';
+      b.style.borderColor = active ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'var(--border)';
+    });
+  }
+
+  // Estilo do chip de pessoa (mesmos tokens dos chips de filtro). Repinta inteiro no toggle.
+  function paintPersonChip(btn, on) {
+    btn.style.cssText = `
+      display:inline-flex; align-items:center; gap:0.35rem;
+      padding:0.2rem 0.55rem 0.2rem 0.25rem; border-radius:9999px;
+      font-size:0.75rem; font-weight:500; cursor:pointer;
+      transition:background 0.15s, border-color 0.15s, color 0.15s;
+      background:${on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent'};
+      color:${on ? 'var(--text-primary)' : 'var(--text-secondary)'};
+      border:1px solid ${on ? 'color-mix(in srgb, var(--accent) 35%, transparent)' : 'var(--border)'};
+    `;
+  }
+
+  function clearPersonChips() {
+    Object.values(personChips).forEach(b => paintPersonChip(b, false));
+  }
+
+  function makePersonChip(pe) {
+    const nm = (pe.name && pe.name.trim()) ? pe.name : 'Pessoa';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.personId = pe.triagemId;
+    btn.title = `Ver fotos de ${nm}`;
+    paintPersonChip(btn, false);
+
+    if (pe.thumbUrl) {
+      const im = document.createElement('img');
+      im.src = resolveImagePath(pe.thumbUrl);
+      im.alt = '';
+      im.style.cssText = 'width:22px; height:22px; border-radius:50%; object-fit:cover; flex:none;';
+      btn.appendChild(im);
+    } else {
+      const ph = document.createElement('span');
+      ph.textContent = '👤';
+      ph.style.cssText = 'width:22px; height:22px; border-radius:50%; background:var(--bg-base); display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; flex:none;';
+      btn.appendChild(ph);
+    }
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = nm;           // textContent → seguro contra nome com HTML
+    btn.appendChild(nameSpan);
+    const countSpan = document.createElement('span');
+    countSpan.textContent = String(pe.photoCount || 0);
+    countSpan.style.opacity = '0.6';
+    btn.appendChild(countSpan);
+
+    btn.onclick = () => {
+      if (currentPersonFilter === pe.triagemId) {
+        // tocar o chip ativo de novo → limpa, volta pra Todas
+        currentPersonFilter = null;
+        currentFilter = 'all';
+        clearPersonChips();
+        paintFilterBtnsActive('all');
+      } else {
+        currentPersonFilter = pe.triagemId;
+        currentFilter = 'all';              // base de fallback ao limpar
+        clearPersonChips();
+        paintFilterBtnsActive(null);        // nenhum de Todas/Visíveis/Ocultas ativo
+        paintPersonChip(btn, true);
+      }
+      rebuildGrid();
+    };
+    return btn;
   }
 
   function updateBulkUI() {
