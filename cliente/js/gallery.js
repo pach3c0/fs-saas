@@ -624,8 +624,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const allBtn = `<button class="cz-person-chip" data-person="" type="button"
             style="display:inline-flex;align-items:center;padding:0.4rem 0.85rem;border-radius:9999px;border:1px solid ${!active ? '#16a34a' : '#d1d5db'};background:${!active ? '#dcfce7' : '#fff'};color:#111;font-size:0.8125rem;font-weight:600;cursor:pointer;white-space:nowrap;">Todas</button>`;
 
+        // "Baixar todas desta pessoa" só vale onde DOWNLOAD é o modelo: galeria (entrega direta) ou
+        // seleção já ENTREGUE. No multi_selection/seleção antes da entrega o cliente ESCOLHE (e compra)
+        // — não baixa. Sem este gate, a Triagem (que sobe full-res) deixaria baixar sem selecionar.
+        // Os chips seguem funcionando como FILTRO; só o botão de download fica condicionado.
+        const canDownload = state.session.mode === 'gallery'
+            || state.session.mode === 'multi_gallery'
+            || state.session.selectionStatus === 'delivered';
         let dlBtn = '';
-        if (active) {
+        if (active && canDownload) {
             const pe = persons.find(p => p.triagemId === active);
             const nm = pe && pe.name && pe.name.trim() ? escapeHtml(pe.name) : 'esta pessoa';
             const _pp = state.isParticipant && state.participantId ? `&participantId=${state.participantId}` : '';
