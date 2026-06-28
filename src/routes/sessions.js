@@ -21,6 +21,7 @@ const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 const { trackEvent } = require('../utils/activityTracker');
 const { can } = require('../services/subscriptionPricing');
+const { applyOrgSessionDefaults } = require('../utils/sessionDefaults');
 
 // Selo "powered by CliqueZoom" na galeria pública — diferenciador do plano Free
 // (planos pagos não exibem). Deriva da fonte única via can(sub, 'selo'); org sem
@@ -323,6 +324,14 @@ router.get('/client/photos/:sessionId', async (req, res) => {
           scopeTriagemIds = new Set(p.personTriagemIds.map(String));
         }
       }
+    } else if (session.mode === 'multi_gallery' && participantId) {
+      // Galeria em Grupo escopada: NÃO tem etapa de seleção — só o ESCOPO facial por participante.
+      // Cada pessoa vê (e baixa) apenas as fotos em que aparece. Sem escopo (participante sem rosto
+      // escolhido) → vê tudo, igual ao multi_gallery clássico (retrocompatível com sessões antigas).
+      const p = session.participants.id(participantId);
+      if (p && Array.isArray(p.personTriagemIds) && p.personTriagemIds.length) {
+        scopeTriagemIds = new Set(p.personTriagemIds.map(String));
+      }
     }
 
     // SANITIZAÇÃO DE SAÍDA — isolamento entre participantes no pool COMPARTILHADO do multi.
@@ -332,7 +341,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
     //    /uploads estático (sem marca, sem auth) — vazamento cross-participante de alta resolução.
     // 2) Comentários: devolver só o thread DESTE participante (multi) ou os de sessão (individual),
     //    espelhando commentsFor() do cliente — evita vazar comentário privado de outro participante.
-    const reqParticipantId = ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) ? String(participantId) : '';
+    const reqParticipantId = ((session.mode === 'multi_selection' || session.mode === 'multi_instant' || session.mode === 'multi_gallery') && participantId) ? String(participantId) : '';
     let safePhotos = (session.photos || []).filter(p => !p.hidden).map(p => {
       const o = p.toObject ? p.toObject() : { ...p };
       o.urlOriginal = o.urlOriginal ? true : '';   // booleano "pronta", sem expor o caminho real
@@ -1041,9 +1050,15 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
     if (!sessionData.date) delete sessionData.date;
     if (!sessionData.selectionDeadline) delete sessionData.selectionDeadline;
 
+    // Padrões do fotógrafo (Configurações › Sessões): o backend é a FONTE ÚNICA, então
+    // qualquer origem (menu Sessões, Triagem) gera uma sessão idêntica. Leitura única da org.
+    const orgPref = await Organization.findById(req.user.organizationId)
+      .select('preferences.sessionDefaults preferences.galleryDeliveryDefault')
+      .lean();
+    applyOrgSessionDefaults(sessionData, orgPref, mode);
+
     // Modo Galeria: aplica o padrão de entrega configurado (Configurações › Entrega)
     if (mode === 'gallery' && sessionData.galleryDeliveryMode == null) {
-      const orgPref = await Organization.findById(req.user.organizationId).select('preferences.galleryDeliveryDefault').lean();
       const def = orgPref?.preferences?.galleryDeliveryDefault;
       if (def === 'preview' || def === 'direct') sessionData.galleryDeliveryMode = def;
     }
@@ -2392,6 +2407,15 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
       if (session.selectionDeadline && new Date() > new Date(session.selectionDeadline)) {
         return res.status(403).json({ error: 'O prazo de acesso à galeria expirou' });
       }
+      // ACL facial (Galeria em Grupo escopada): só libera a foto se o rosto deste participante
+      // aparece nela (personTags ∩ personTriagemIds). Sem escopo → baixa tudo (retrocompatível).
+      if (session.faceEnabled && Array.isArray(participant.personTriagemIds) && participant.personTriagemIds.length) {
+        const scope = new Set(participant.personTriagemIds.map(String));
+        const ph = session.photos.find(p => p.id === req.params.photoId);
+        if (!ph || !(ph.personTags || []).some(t => scope.has(String(t)))) {
+          return res.status(403).json({ error: 'Esta foto não faz parte da sua galeria' });
+        }
+      }
     } else if ((session.mode === 'multi_selection' || session.mode === 'multi_instant') && participantId) {
       const participant = session.participants.id(participantId);
       if (!participant || participant.accessCode !== code) {
@@ -2485,6 +2509,12 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     let photosToZip;
     if (isGroupGalleryParticipant) {
       photosToZip = session.photos.filter(p => !p.hidden);
+      // ACL facial (Galeria em Grupo escopada): o participante só baixa as fotos em que aparece.
+      // Sem escopo (participante sem rosto escolhido) → baixa tudo, igual ao multi_gallery clássico.
+      if (session.faceEnabled && Array.isArray(participant.personTriagemIds) && participant.personTriagemIds.length) {
+        const scope = new Set(participant.personTriagemIds.map(String));
+        photosToZip = photosToZip.filter(p => (p.personTags || []).some(t => scope.has(String(t))));
+      }
     } else if (participant) {
       const entitled = new Set([
         ...(participant.selectedPhotos || []).map(String),
@@ -2876,7 +2906,7 @@ router.get('/sessions/register/:code', async (req, res) => {
       accessCode: req.params.code,
       organizationId: req.organizationId,
       isActive: true,
-      mode: 'multi_selection'
+      mode: { $in: ['multi_selection', 'multi_gallery'] }
     }).select('name coverPhoto selectionDeadline selfRegEnabled selfRegDeadline faceEnabled persons').lean();
 
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2931,7 +2961,7 @@ router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (re
       accessCode: req.params.code,
       organizationId: req.organizationId,
       isActive: true,
-      mode: 'multi_selection',
+      mode: { $in: ['multi_selection', 'multi_gallery'] },
       selfRegEnabled: true
     });
 
@@ -2996,7 +3026,7 @@ router.get('/sessions/:id/register-link', authenticateToken, async (req, res) =>
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
       .select('accessCode selfRegEnabled selfRegDeadline selectionDeadline mode name').lean();
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
-    if (session.mode !== 'multi_selection') return res.status(400).json({ error: 'Auto-inscrição disponível apenas no modo Seleção em Grupo' });
+    if (!['multi_selection', 'multi_gallery'].includes(session.mode)) return res.status(400).json({ error: 'Auto-inscrição disponível apenas em Seleção em Grupo e Galeria em Grupo' });
 
     const org = await Organization.findById(req.user.organizationId).select('slug customDomain').lean();
     // Espelha o padrão canônico de link do cliente (subdomínio do fotógrafo), não path-based:
