@@ -190,7 +190,7 @@ async function loadDashboardData(container) {
         // Renderizar banners se houver cadastrados
         const bannersContainer = container.querySelector('#dashboard-banners');
         if (bannersContainer) {
-            bannersContainer.innerHTML = renderBanners(banners);
+            bannersContainer.innerHTML = renderBanners(banners, bannersData.accentColor);
             setupBannersCarousel(bannersContainer, banners.length, bannersData.interval || 0);
         }
 
@@ -470,15 +470,18 @@ function esc(str) {
         .replace(/'/g, '&#039;');
 }
 
-function renderBanners(banners) {
+function renderBanners(banners, accentColor) {
     if (!banners || banners.length === 0) {
         return ''; // Oculta se não houver banners ativos
     }
 
+    // Cor configurável no super admin (BannerConfig.accentColor). Só aceita hex #RRGGBB; senão verde padrão.
+    const accent = /^#[0-9a-fA-F]{6}$/.test(String(accentColor || '').trim()) ? accentColor.trim() : '#3fb950';
+
     const styles = `
         <style>
             /* ── Banners de parceiros: cards horizontais com painel escuro + CTA (estilo "promo") ── */
-            .banners-section { width: 100%; position: relative; margin-bottom: 0.25rem; }
+            .banners-section { width: 100%; position: relative; margin-bottom: 0.25rem; --banner-accent: #3fb950; }
             .banners-wrapper { position: relative; width: 100%; }
             .banners-scroll-container {
                 display: flex;
@@ -505,8 +508,8 @@ function renderBanners(banners) {
                 color: #fff;
                 /* base escura + brilho verde à esquerda (independe do tema, igual referência) */
                 background:
-                    radial-gradient(135% 140% at 0% 50%, rgba(63,185,80,0.30) 0%, rgba(63,185,80,0.07) 34%, transparent 62%),
-                    linear-gradient(120deg, #16211b 0%, #11161c 46%, #0b0e13 100%);
+                    radial-gradient(135% 140% at 0% 50%, color-mix(in srgb, var(--banner-accent) 30%, transparent) 0%, color-mix(in srgb, var(--banner-accent) 7%, transparent) 34%, transparent 62%),
+                    linear-gradient(120deg, color-mix(in srgb, var(--banner-accent) 14%, #0b0e13) 0%, color-mix(in srgb, var(--banner-accent) 6%, #0b0e13) 46%, #0b0e13 100%);
                 border: 1px solid rgba(255,255,255,0.07);
                 box-shadow: 0 6px 18px rgba(0,0,0,0.18);
                 transition: transform 0.2s, box-shadow 0.2s;
@@ -557,7 +560,7 @@ function renderBanners(banners) {
                 display: inline-flex;
                 align-items: center;
                 gap: 0.3rem;
-                background: #3fb950;
+                background: var(--banner-accent);
                 color: #06120a;
                 font-weight: 700;
                 font-size: 0.78rem;
@@ -565,7 +568,7 @@ function renderBanners(banners) {
                 border-radius: 9999px;
                 transition: background 0.15s;
             }
-            .banner-card.is-clickable:hover .banner-cta { background: #4ad15c; }
+            .banner-card.is-clickable:hover .banner-cta { background: color-mix(in srgb, var(--banner-accent) 82%, #ffffff); }
 
             .banner-media { position: relative; flex: 0 0 42%; min-width: 0; align-self: stretch; }
             .banner-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -672,7 +675,7 @@ function renderBanners(banners) {
 
     return `
         ${styles}
-        <div class="banners-section">
+        <div class="banners-section" style="--banner-accent:${accent};">
             <div class="banners-wrapper">
                 <div class="banners-scroll-container">
                     ${cardsHtml}
