@@ -183,7 +183,7 @@ export function showUploadProgress(containerId, percent, message = null) {
       <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.5rem;">
         <span id="progress-text" style="font-size:0.75rem; color:#9ca3af;">${text}</span>
         <div style="flex:1; height:0.5rem; background:var(--border, #374151); border-radius:9999px; overflow:hidden; position:relative;">
-          <div id="progress-bar" style="height:100%; background:var(--accent, #3b82f6); transition:width 0.3s; width:${isIndeterminate ? '100%' : '0%'}"></div>
+          <div id="progress-bar" style="height:100%; background:var(--cz-secondary, #3fb950); transition:width 0.3s; width:${isIndeterminate ? '100%' : '0%'}"></div>
           ${isIndeterminate ? '<div style="position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation:shimmer 1.5s infinite;"></div>' : ''}
         </div>
       </div>

@@ -189,7 +189,7 @@ function renderLista(container) {
       ? `<span style="color:var(--text-muted); font-size:0.8rem;">🎂 ${formatBirthShort(c.birthDate)}</span>`
       : '';
     const eventBlock = c.lastEventType
-      ? `<span class="badge badge-neutral">${escapeHtml(c.lastEventType)}</span>`
+      ? `<span class="cz-chip">${escapeHtml(c.lastEventType)}</span>`
       : '';
 
     const nextContact = c.nextContactDate

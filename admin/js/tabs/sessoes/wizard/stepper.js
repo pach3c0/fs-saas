@@ -145,8 +145,8 @@ export function renderHeaderStepper(steps, onStepClick) {
       circleBorder = 'none';
     }
     if (isCurrent) {
-      bg = 'color-mix(in srgb, var(--accent) 12%, transparent)';
-      border = '1px solid color-mix(in srgb, var(--accent) 30%, transparent)';
+      bg = 'color-mix(in srgb, var(--cz-secondary) 12%, transparent)';
+      border = '1px solid color-mix(in srgb, var(--cz-secondary) 30%, transparent)';
       if (!isDone) {
         circleBg = 'var(--accent)';
         circleColor = 'white';
