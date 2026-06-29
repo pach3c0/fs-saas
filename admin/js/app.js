@@ -662,7 +662,8 @@ async function postLoginSetup() {
   // loadOrgSlug precisa terminar antes de switchTab (que usa orgSlug para o preview)
   await Promise.all([
     loadOrgSlug(),
-    loadSidebarStorage()
+    loadSidebarStorage(),
+    loadSecondaryColor()
   ]);
 
   // Delay no polling para não competir com o carregamento inicial do dashboard
@@ -673,6 +674,19 @@ async function postLoginSetup() {
   startPresenceHeartbeat();
   setTimeout(startClientsOnlineHeaderPoll, 3000);
   showOnboardingNudges();
+}
+
+// Cor secundária da marca (definida no Super Admin). Injeta o token --cz-secondary no <html>
+// para o painel inteiro herdar (cards, etiquetas, banner). Fire-and-forget: erro mantém o default do CSS.
+async function loadSecondaryColor() {
+  try {
+    const res = await fetch('/api/theme', { headers: { Authorization: `Bearer ${appState.authToken}` } });
+    const data = await res.json();
+    const c = String(data.secondaryColor || '').trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(c)) {
+      document.documentElement.style.setProperty('--cz-secondary', c);
+    }
+  } catch { /* mantém o default do CSS (--cz-secondary em :root) */ }
 }
 
 // ── Presença online (item 10) ──────────────────────────────────────────────

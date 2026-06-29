@@ -44,8 +44,8 @@ function renderBannersList(container) {
             </div>
             <span style="width:1px; height:20px; background:#334155;"></span>
             <div style="display:flex; align-items:center; gap:0.4rem;">
-              <label for="bAccentColor" style="font-size:0.75rem; color:#94a3b8; margin:0; cursor:pointer;" title="Cor do brilho e do botão do banner (a base escura é fixa)">Cor do banner:</label>
-              <input type="color" id="bAccentColor" value="${esc(_bannerConfig.accentColor || '#3fb950')}" style="width:30px; height:24px; padding:0; border:1px solid #334155; border-radius:4px; background:transparent; cursor:pointer;" title="Cor do brilho e do botão (verde→preto por padrão)">
+              <label for="bAccentColor" style="font-size:0.75rem; color:#94a3b8; margin:0; cursor:pointer;" title="Cor secundária da marca: tinge o banner, os cards e as etiquetas do painel do fotógrafo (a base escura é fixa)">Cor secundária:</label>
+              <input type="color" id="bAccentColor" value="${esc(_bannerConfig.accentColor || '#3fb950')}" style="width:30px; height:24px; padding:0; border:1px solid #334155; border-radius:4px; background:transparent; cursor:pointer;" title="Cor secundária — vale pro banner e pro painel do fotógrafo (cards, etiquetas)">
             </div>
             <button onclick="window.saveBannerConfig()" style="background:#0f172a; color:#f1f5f9; border:1px solid #334155; border-radius:3px; padding:0.25rem 0.6rem; font-size:0.75rem; cursor:pointer;">Salvar</button>
           </div>

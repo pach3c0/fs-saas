@@ -23,6 +23,18 @@ router.get('/banners', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/theme - Cor secundária da marca (token --cz-secondary) p/ o painel do fotógrafo.
+// Fonte única: BannerConfig.accentColor (mesmo valor que pinta o banner). Lido no boot do admin.
+router.get('/theme', authenticateToken, async (req, res) => {
+  try {
+    const config = await BannerConfig.findOne().lean();
+    res.json({ success: true, secondaryColor: (config && config.accentColor) || '#3fb950' });
+  } catch (error) {
+    if (req.logger) req.logger.error('Erro ao buscar tema', { error: error.message });
+    res.status(500).json({ success: false, secondaryColor: '#3fb950' });
+  }
+});
+
 // ============================================================================
 // ROTAS ADMINISTRATIVAS (SaaS Admin - Apenas Superadmin)
 // ============================================================================

@@ -68,6 +68,22 @@
 .cz-metric__label { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500; }
 .cz-metric__value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 
+/* --- variante PADRÃO (sem foto): degradê da cor secundária da marca → preto, espelhando o banner.
+   --cz-secondary vem do Super Admin (injetado no <html> no boot). Card fica sempre escuro nos 2 temas. --- */
+.cz-metric:not(.cz-metric--photo) {
+  background:
+    radial-gradient(130% 150% at 0% 50%, color-mix(in srgb, var(--cz-secondary) 30%, transparent) 0%, color-mix(in srgb, var(--cz-secondary) 8%, transparent) 36%, transparent 64%),
+    linear-gradient(120deg, color-mix(in srgb, var(--cz-secondary) 16%, #0c1410) 0%, color-mix(in srgb, var(--cz-secondary) 7%, #0b0e13) 50%, #0b0e13 100%);
+  border-color: color-mix(in srgb, var(--cz-secondary) 22%, transparent);
+}
+.cz-metric:not(.cz-metric--photo) .cz-metric__tile {
+  background: color-mix(in srgb, var(--cz-secondary) 24%, #0b0e13);
+  border-color: color-mix(in srgb, var(--cz-secondary) 42%, transparent);
+  color: #eafff0;
+}
+.cz-metric:not(.cz-metric--photo) .cz-metric__label { color: rgba(255,255,255,0.80); }
+.cz-metric:not(.cz-metric--photo) .cz-metric__value { color: #fff; }
+
 /* --- variante com foto de fundo (Super Admin) --- */
 .cz-metric--photo {
   background-size: cover;
