@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval,
-  refundPayment, revertSubscriptionToFree, markRefundHandled, findRefundablePreapprovalPayment } = require('../middleware/mercadopago');
+  refundPayment, revertSubscriptionToFree, markRefundHandled, findRefundablePreapprovalPayment,
+  friendlyCheckoutError } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
@@ -138,8 +139,15 @@ router.post('/billing/checkout', authenticateToken, async (req, res) => {
     }
     res.json(result);
   } catch (error) {
-    req.logger.error('Erro interno', { error: error.message });
-    res.status(500).json({ error: error.message });
+    // Recusa de cartão pelo MP → 402 com mensagem CLARA pro cliente (nunca "Erro interno do
+    // servidor" pra um CVV errado). O raw fica só no log p/ ops. Demais erros → 500 genérico.
+    const friendly = friendlyCheckoutError(error);
+    if (friendly) {
+      req.logger.warn('[billing-checkout] cartão recusado pelo MP', { mpError: error?.message, orgId: String(req.user.organizationId) });
+      return res.status(402).json({ error: friendly, code: 'card_rejected' });
+    }
+    req.logger.error('[billing-checkout] erro interno', { error: error?.message });
+    res.status(500).json({ error: 'Não foi possível processar o pagamento agora. Tente novamente em alguns instantes.' });
   }
 });
 

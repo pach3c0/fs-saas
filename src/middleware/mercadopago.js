@@ -40,6 +40,46 @@ const client = process.env.MERCADOPAGO_ACCESS_TOKEN
     ? new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN })
     : null;
 
+// Mensagens claras (PT-BR) por motivo de recusa de cartão do Mercado Pago. Chave = status_detail
+// do pagamento (ou trecho equivalente que o MP devolve no erro da PreApproval). Cliente final
+// NUNCA deve ver "Erro interno do servidor" quando o problema é o cartão dele.
+const MP_CARD_REJECTION_MSG = {
+    cc_rejected_bad_filled_security_code: 'Código de segurança (CVV) inválido. Confira os 3 dígitos no verso do cartão e tente de novo.',
+    cc_rejected_bad_filled_card_number:   'Número do cartão inválido. Confira os dígitos e tente de novo.',
+    cc_rejected_bad_filled_date:          'Data de validade inválida. Confira o mês/ano do cartão.',
+    cc_rejected_bad_filled_other:         'Algum dado do cartão está incorreto. Confira número, validade e CVV.',
+    cc_rejected_insufficient_amount:      'Cartão sem limite/saldo suficiente para esta cobrança.',
+    cc_rejected_high_risk:                'Pagamento recusado pelo Mercado Pago por segurança. Tente outro cartão.',
+    cc_rejected_call_for_authorize:       'Seu banco precisa autorizar esta cobrança. Ligue para o emissor do cartão e tente de novo.',
+    cc_rejected_card_disabled:            'Cartão desabilitado para compras online. Ligue para o banco ou use outro cartão.',
+    cc_rejected_blacklist:                'Pagamento recusado. Tente outro cartão.',
+    cc_rejected_max_attempts:             'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo, ou use outro cartão.',
+    cc_rejected_duplicated_payment:       'Pagamento duplicado. Aguarde alguns minutos antes de tentar de novo.',
+    cc_rejected_card_type_not_allowed:    'Esse tipo de cartão não é aceito aqui. Use outro cartão.',
+    cc_rejected_invalid_installments:     'Número de parcelas inválido para este cartão.',
+    cc_rejected_other_reason:             'O banco emissor recusou o pagamento. Tente de novo ou use outro cartão.',
+};
+
+// Traduz um erro do checkout do MP em mensagem amigável pro cliente, OU null se não for recusa de
+// cartão (→ erro genérico/500). O SDK lança o JSON CRU do MP (restClient: throw response.json()),
+// então o motivo pode estar em .message, .error, .cause[].code/.description, ou status_detail —
+// varremos o objeto inteiro stringificado por tokens conhecidos. Específico quando o MP expõe;
+// genérico-acionável (mencionando número/validade/CVV) quando só dá o código guarda-chuva (CC_VAL_*).
+function friendlyCheckoutError(err) {
+    let blob = (err && (err.message || err.error || '')) + ' ';
+    try { blob += JSON.stringify(err); } catch (_) {}
+    // 1) Motivo ESPECÍFICO (status_detail / cc_rejected_* em qualquer campo do erro).
+    for (const code of Object.keys(MP_CARD_REJECTION_MSG)) {
+        if (blob.includes(code)) return MP_CARD_REJECTION_MSG[code];
+    }
+    if (/security.?code|c[oó]digo de seguran|\bcvv\b/i.test(blob)) return MP_CARD_REJECTION_MSG.cc_rejected_bad_filled_security_code;
+    // 2) Recusa GENÉRICA de cartão (CC_VAL_*, cc_rejected, card token inválido, etc.).
+    if (/cc_val|cc_rejected|card_token|invalid.?card|credit.?card|card.?number|cart[aã]o/i.test(blob)) {
+        return 'Não conseguimos validar seu cartão. Confira o número, a validade e o código de segurança (CVV) e tente de novo. Se continuar, use outro cartão.';
+    }
+    return null;
+}
+
 async function createCheckoutSession(organizationId, planName, paymentData = null) {
     if (!client) {
         throw new Error('Mercado Pago não configurado. Adicione MERCADOPAGO_ACCESS_TOKEN no .env');
@@ -929,4 +969,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled, refundPayment, findRefundablePreapprovalPayment };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled, refundPayment, findRefundablePreapprovalPayment, friendlyCheckoutError };

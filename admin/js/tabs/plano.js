@@ -148,6 +148,9 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
           }
         },
         onError: () => { showErr('Confira os dados do cartão e tente novamente.'); resetSubmit(); },
+        // Cliente começou a corrigir o cartão → tira o erro anterior da tela (não fica "grudado"
+        // enquanto ele digita o novo cartão/CVV). Dispara a cada mudança de validade dos campos.
+        onValidityChange: () => { errBox.style.display = 'none'; },
       },
     });
   } catch (e) {
