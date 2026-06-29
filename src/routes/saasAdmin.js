@@ -258,13 +258,73 @@ router.get('/admin/saas/cost-margin', authenticateToken, requireSuperadmin, asyn
 // Jornada do cliente: timeline de eventos de uma org (ActivityEvent)
 router.get('/admin/organizations/:id/activity', authenticateToken, requireSuperadmin, async (req, res) => {
     try {
-        const events = await ActivityEvent.find({ organizationId: req.params.id })
+        const q = { organizationId: req.params.id };
+        // Paginação por data (carregar mais antigos): ?before=<ISO>
+        if (req.query.before && !isNaN(Date.parse(req.query.before))) {
+            q.at = { $lt: new Date(req.query.before) };
+        }
+        // Filtro por sessão (drill): ?sessionId=
+        if (req.query.sessionId) q['meta.sessionId'] = String(req.query.sessionId);
+        // Filtro por nome do cliente (case-insensitive, parcial): ?clientName=
+        if (req.query.clientName) {
+            const safe = String(req.query.clientName).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            q['meta.clientName'] = new RegExp(safe, 'i');
+        }
+        const limit = Math.min(parseInt(req.query.limit, 10) || 100, 200);
+        const events = await ActivityEvent.find(q)
             .sort({ at: -1 })
-            .limit(60)
+            .limit(limit)
             .lean();
-        res.json({ success: true, events });
+        res.json({ success: true, events, hasMore: events.length === limit });
     } catch (error) {
         req.logger.error('Org Activity Error', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Passo-a-passo de UMA sessão — recupera o histórico PASSADO a partir dos dados permanentes
+// do Session (events[] + campos de timestamp), sem depender da instrumentação nova.
+router.get('/admin/organizations/:id/sessions/:sid/timeline', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const s = await Session.findOne({ _id: req.params.sid, organizationId: req.params.id })
+            .select('name clientName mode createdAt uploadsCompletedAt codeSentAt firstAccessAt selectionSubmittedAt deliveredAt events extraRequest deliveryHistory participants.name participants.submittedAt participants.deliveredAt participants.extraRequest')
+            .lean();
+        if (!s) return res.status(404).json({ error: 'Sessão não encontrada' });
+
+        const items = [];
+        const push = (at, type, meta = {}) => { if (at) items.push({ at, type, meta }); };
+
+        // Marcos do fotógrafo / sessão (campos permanentes).
+        push(s.createdAt, 'session_created');
+        push(s.uploadsCompletedAt, 'photos_uploaded');
+        push(s.codeSentAt, 'code_sent');
+        push(s.firstAccessAt, 'client_entered', { clientName: s.clientName || '' });
+        push(s.selectionSubmittedAt, 'selection_submitted', { clientName: s.clientName || '' });
+        push(s.deliveredAt, 'session_delivered', { clientName: s.clientName || '' });
+        if (s.extraRequest?.requestedAt) push(s.extraRequest.requestedAt, 'extra_requested', { count: (s.extraRequest.photos || []).length });
+        if (s.extraRequest?.respondedAt) push(s.extraRequest.respondedAt, 'extra_responded', { decision: s.extraRequest.status });
+
+        // Marcos por participante (multi).
+        (s.participants || []).forEach(p => {
+            push(p.submittedAt, 'selection_submitted', { clientName: p.name || '' });
+            push(p.deliveredAt, 'session_delivered', { clientName: p.name || '' });
+            if (p.extraRequest?.requestedAt) push(p.extraRequest.requestedAt, 'extra_requested', { clientName: p.name || '', count: (p.extraRequest.photos || []).length });
+            if (p.extraRequest?.respondedAt) push(p.extraRequest.respondedAt, 'extra_responded', { clientName: p.name || '', decision: p.extraRequest.status });
+        });
+
+        // Ciclos de entrega (re-entregas).
+        (s.deliveryHistory || []).forEach(d => {
+            push(d.deliveredAt, 'session_delivered', { selectedCount: d.selectedCount });
+            if (d.reopenedAt) push(d.reopenedAt, 'delivery_reopened');
+        });
+
+        // Eventos granulares já gravados em events[] (downloads, reaberturas, etc.).
+        (s.events || []).forEach(e => push(e.ts, e.type, e.meta || {}));
+
+        items.sort((a, b) => new Date(a.at) - new Date(b.at));
+        res.json({ success: true, session: { id: s._id, name: s.name, clientName: s.clientName || '', mode: s.mode }, items });
+    } catch (error) {
+        req.logger.error('Org Session Timeline Error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

@@ -10,7 +10,8 @@ const presenceSchema = new mongoose.Schema({
   organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   role: { type: String, enum: ['photographer', 'client'], required: true },
-  name: { type: String, default: '' },     // nome do fotógrafo OU nome da sessão (cliente — sem dado pessoal)
+  name: { type: String, default: '' },     // fotógrafo: nome do fotógrafo · cliente: nome do cliente/participante (exposto só ao super admin; doc efêmero ~150s)
+  sessionName: { type: String, default: '' }, // cliente: nome da galeria/sessão (contexto de onde a pessoa está)
   module: { type: String, default: '' },   // aba do admin (currentTab) ou 'galeria'/'selecao'
   sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Session', default: null },
   lastSeen: { type: Date, default: Date.now }

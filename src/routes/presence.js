@@ -46,15 +46,29 @@ router.post('/presence/heartbeat/client', heartbeatLimiter, async (req, res) => 
     const sessionId = cleanStr(req.body && req.body.sessionId, 40);
     if (!sessionId || !mongoose.Types.ObjectId.isValid(sessionId)) return res.status(204).end();
 
-    const session = await Session.findById(sessionId).select('organizationId name').lean();
+    const session = await Session.findById(sessionId)
+      .select('organizationId name clientName participants._id participants.name')
+      .lean();
     if (!session) return res.status(204).end();
 
     const participantId = cleanStr(req.body && req.body.participantId, 40) || 'anon';
+
+    // Rótulo do cliente: em multi, o nome do participante (casado pelo _id do subdoc);
+    // em individual, o snapshot clientName da sessão. A galeria vira contexto (sessionName).
+    let clientLabel = '';
+    if (participantId && participantId !== 'anon') {
+      const p = (session.participants || []).find(x => String(x._id) === participantId);
+      if (p) clientLabel = p.name || '';
+    } else {
+      clientLabel = session.clientName || '';
+    }
+
     presence.touch({
       key: `client:${sessionId}:${participantId}`,
       organizationId: session.organizationId || null,
       role: 'client',
-      name: session.name || 'Galeria',
+      name: clientLabel,
+      sessionName: session.name || 'Galeria',
       module: cleanStr(req.body && req.body.module, 40) || 'galeria',
       sessionId
     });

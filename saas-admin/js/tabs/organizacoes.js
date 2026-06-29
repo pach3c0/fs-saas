@@ -505,8 +505,13 @@ const EVENT_META = {
   photos_uploaded:         { icon: '🖼️', label: 'Subiu fotos' },
   code_sent:               { icon: '📤', label: 'Compartilhou galeria' },
   code_viewed_by_client:   { icon: '👀', label: 'Cliente acessou a galeria' },
+  client_entered:          { icon: '🚪', label: 'Cliente entrou na galeria' },
   selection_submitted:     { icon: '✅', label: 'Cliente enviou a seleção' },
+  extra_requested:         { icon: '➕', label: 'Cliente pediu fotos extras' },
+  extra_responded:         { icon: '📝', label: 'Respondeu pedido de extras' },
+  photos_downloaded:       { icon: '⬇️', label: 'Cliente baixou fotos' },
   session_delivered:       { icon: '🎉', label: 'Entregou a sessão' },
+  delivery_reopened:       { icon: '🔄', label: 'Reabriu a entrega' },
   feature_configured:      { icon: '⚙️', label: 'Configurou recurso' },
   plan_upgraded:           { icon: '⭐', label: 'Mudou de plano' },
   domain_verified:         { icon: '🌐', label: 'Verificou domínio' },
@@ -517,25 +522,59 @@ const EVENT_META = {
 function _eventDetail(ev) {
   const m = ev.meta || {};
   const parts = [];
+  if (m.clientName) parts.push(m.clientName);            // QUEM (cliente/participante)
   if (m.mode) parts.push(m.mode);
   if (m.eventType) parts.push(m.eventType);
+  if (m.kind) parts.push(m.kind === 'zip' ? 'ZIP' : 'avulsa');  // tipo de download
+  if (m.count) parts.push(`${m.count} foto${m.count === 1 ? '' : 's'}`);
   if (m.photoCount) parts.push(`${m.photoCount} fotos`);
+  if (m.selectedPhotos) parts.push(`${m.selectedPhotos} selecionadas`);
+  if (m.decision) parts.push(m.decision === 'accepted' ? 'aceito' : (m.decision === 'rejected' ? 'recusado' : m.decision));
+  if (m.reason) parts.push(`motivo: ${m.reason}`);
   if (m.channel && m.channel !== 'unknown') parts.push(`via ${m.channel}`);
   if (m.feature) parts.push(m.feature);
   if (m.category) parts.push(m.category);
-  if (m.selectedPhotos) parts.push(`${m.selectedPhotos} selecionadas`);
   return parts.length ? ` <span style="color:#64748b;">(${esc(parts.join(', '))})</span>` : '';
 }
 
+// Filtro por nome de cliente da jornada (estado do painel).
+let _jornadaFilter = '';
+
+window.applyJornadaFilter = async () => {
+  const inp = document.getElementById('jornadaClientFilter');
+  _jornadaFilter = inp ? inp.value.trim() : '';
+  await renderPanelJornada(document.getElementById('panelContent'));
+};
+window.clearJornadaFilter = async () => {
+  _jornadaFilter = '';
+  await renderPanelJornada(document.getElementById('panelContent'));
+};
+window.backToJornada = async () => {
+  await renderPanelJornada(document.getElementById('panelContent'));
+};
+
+function _jornadaFilterBar() {
+  return `
+    <div style="display:flex; gap:0.4rem; margin-bottom:0.85rem; align-items:center;">
+      <input id="jornadaClientFilter" type="text" placeholder="Filtrar por cliente..." value="${esc(_jornadaFilter)}"
+        onkeydown="if(event.key==='Enter')window.applyJornadaFilter()"
+        style="flex:1; min-width:0; padding:0.35rem 0.6rem; font-size:0.8rem; border:1px solid #334155; border-radius:0.4rem; background:#1e293b; color:#e2e8f0;">
+      <button onclick="window.applyJornadaFilter()" style="padding:0.35rem 0.7rem; font-size:0.78rem; border:1px solid #334155; border-radius:0.4rem; background:#334155; color:#e2e8f0; cursor:pointer;">Filtrar</button>
+      ${_jornadaFilter ? `<button onclick="window.clearJornadaFilter()" style="padding:0.35rem 0.7rem; font-size:0.78rem; border:1px solid #334155; border-radius:0.4rem; background:transparent; color:#94a3b8; cursor:pointer;">Limpar</button>` : ''}
+    </div>`;
+}
+
 async function renderPanelJornada(content) {
-  const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/activity`);
+  const qs = _jornadaFilter ? `?clientName=${encodeURIComponent(_jornadaFilter)}` : '';
+  const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/activity${qs}`);
   const events = data.events || [];
+  const filterBar = _jornadaFilterBar();
 
   if (!events.length) {
-    content.innerHTML = `
+    content.innerHTML = filterBar + `
       <div class="coming-soon"><span class="cs-icon">👣</span>
-        <p>Nenhuma atividade registrada ainda.<br>
-        <span style="font-size:0.75rem; color:#64748b;">Os eventos começaram a ser coletados em 12/06/2026 — ações anteriores não aparecem aqui.</span></p>
+        <p>${_jornadaFilter ? 'Nenhuma atividade para esse cliente.' : 'Nenhuma atividade registrada ainda.'}<br>
+        <span style="font-size:0.75rem; color:#64748b;">Os eventos começaram a ser coletados em 12/06/2026 — ações anteriores aparecem no passo-a-passo de cada sessão.</span></p>
       </div>`;
     return;
   }
@@ -547,7 +586,7 @@ async function renderPanelJornada(content) {
     (byDay[day] = byDay[day] || []).push(ev);
   });
 
-  content.innerHTML = `
+  content.innerHTML = filterBar + `
     <div style="display:flex; flex-direction:column; gap:1rem;">
       ${Object.entries(byDay).map(([day, evs]) => `
         <div>
@@ -556,10 +595,15 @@ async function renderPanelJornada(content) {
             ${evs.map(ev => {
               const meta = EVENT_META[ev.type] || { icon: '·', label: ev.type };
               const time = new Date(ev.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              const sid = ev.meta && ev.meta.sessionId;
+              const drill = sid
+                ? `<button onclick="window.openSessionTimeline('${esc(String(sid))}')" title="Ver passo-a-passo desta sessão" style="margin-left:auto; background:none; border:none; cursor:pointer; color:#64748b; font-size:0.8rem; flex-shrink:0;">🔎</button>`
+                : '';
               return `
                 <li style="padding:0.3rem 0 0.3rem 0.85rem; font-size:0.85rem; display:flex; gap:0.5rem; align-items:baseline;">
                   <span style="color:#64748b; font-size:0.7rem; flex-shrink:0; width:2.6rem;">${time}</span>
-                  <span>${meta.icon} ${meta.label}${_eventDetail(ev)}</span>
+                  <span style="min-width:0;">${meta.icon} ${meta.label}${_eventDetail(ev)}</span>
+                  ${drill}
                 </li>`;
             }).join('')}
           </ul>
@@ -567,6 +611,32 @@ async function renderPanelJornada(content) {
       `).join('')}
     </div>`;
 }
+
+// Drill: passo-a-passo de UMA sessão (recupera o histórico passado via Session.events[] + timestamps).
+window.openSessionTimeline = async (sid) => {
+  const content = document.getElementById('panelContent');
+  content.innerHTML = '<div class="loading">Carregando...</div>';
+  try {
+    const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/sessions/${sid}/timeline`);
+    const items = data.items || [];
+    const s = data.session || {};
+    const rows = items.map(it => {
+      const meta = EVENT_META[it.type] || { icon: '·', label: it.type };
+      const when = new Date(it.at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      return `
+        <li style="padding:0.3rem 0 0.3rem 0.85rem; font-size:0.85rem; display:flex; gap:0.5rem; align-items:baseline;">
+          <span style="color:#64748b; font-size:0.7rem; flex-shrink:0; width:5.5rem;">${when}</span>
+          <span style="min-width:0;">${meta.icon} ${meta.label}${_eventDetail({ meta: it.meta })}</span>
+        </li>`;
+    }).join('') || '<li style="color:#64748b; padding:0.3rem 0 0.3rem 0.85rem;">Sem eventos registrados.</li>';
+    content.innerHTML = `
+      <button onclick="window.backToJornada()" style="margin-bottom:0.85rem; padding:0.3rem 0.7rem; font-size:0.78rem; border:1px solid #334155; border-radius:0.4rem; background:transparent; color:#94a3b8; cursor:pointer;">← Voltar à jornada</button>
+      <h3 style="font-size:0.9rem; font-weight:700; margin:0 0 0.75rem;">${esc(s.name || 'Sessão')}${s.clientName ? ` · <span style="color:#94a3b8;">${esc(s.clientName)}</span>` : ''}</h3>
+      <ul style="list-style:none; margin:0; padding:0; border-left:2px solid #334155;">${rows}</ul>`;
+  } catch (err) {
+    content.innerHTML = `<div class="loading" style="color:#f87171;">Erro: ${err.message}</div>`;
+  }
+};
 
 async function renderPanelOverview(content) {
   const data = await apiRequest('GET', `/api/admin/organizations/${currentPanelOrgId}/details`);

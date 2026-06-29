@@ -15,14 +15,14 @@ function today() {
 
 // Registra 1 heartbeat. Fire-and-forget (estilo activityTracker): NUNCA propaga erro pro fluxo
 // do admin/galeria. Faz 2 writes: Presence (efêmero, sempre) + UsageDaily (só fotógrafo).
-function touch({ key, organizationId = null, userId = null, role, name = '', module = '', sessionId = null }) {
+function touch({ key, organizationId = null, userId = null, role, name = '', sessionName = '', module = '', sessionId = null }) {
   if (!key || !role) return;
   const now = new Date();
 
   // Camada A — presença em tempo real (upsert pela chave de uso).
   Presence.updateOne(
     { key },
-    { $set: { organizationId, userId, role, name, module, sessionId, lastSeen: now } },
+    { $set: { organizationId, userId, role, name, sessionName, module, sessionId, lastSeen: now } },
     { upsert: true }
   ).catch(err => logger.error('[presence] erro no upsert Presence', { error: err.message }));
 
@@ -45,6 +45,7 @@ async function getOnline() {
 
   const map = d => ({
     name: d.name || '',
+    sessionName: d.sessionName || '',
     module: d.module || '',
     organizationId: d.organizationId || null,
     sessionId: d.sessionId || null,
@@ -82,7 +83,7 @@ async function getClientsOnline(organizationId) {
     if (!bySession[sid]) {
       bySession[sid] = {
         sessionId: d.sessionId || null,
-        name: d.name || '',
+        name: d.sessionName || d.name || '', // grupo por sessão → rótulo é a galeria
         module: d.module || 'galeria',
         count: 0,
         lastSeen: d.lastSeen

@@ -150,9 +150,16 @@ function _modPill(m) {
   return `<span style="font-size:0.65rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:999px; background:var(--bg-base); color:var(--text-muted); border:1px solid var(--border); flex-shrink:0;">${esc(label)}</span>`;
 }
 
-function _presenceRow(name, module) {
+function _presenceRow(name, module, sub) {
+  // sub = contexto opcional (ex.: galeria onde o cliente está). Vai como linha menor abaixo do nome.
+  const subLine = sub
+    ? `<span style="display:block; font-size:0.68rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(sub)}</span>`
+    : '';
   return `<li style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.8rem;">
-    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(name || '—')}</span>
+    <span style="min-width:0; overflow:hidden;">
+      <span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(name || '—')}</span>
+      ${subLine}
+    </span>
     ${_modPill(module)}
   </li>`;
 }
@@ -163,7 +170,7 @@ function _presenceCard(p = {}) {
   const on = total > 0;
   const photogs = (p.photographers || []).map(d => _presenceRow(d.name, d.module)).join('')
     || '<li style="color:#64748b; font-size:0.78rem; padding:0.3rem 0;">Nenhum fotógrafo online</li>';
-  const clients = (p.clients || []).map(d => _presenceRow(d.name, d.module)).join('')
+  const clients = (p.clients || []).map(d => _presenceRow(d.name || 'Cliente', d.module, d.sessionName)).join('')
     || '<li style="color:#64748b; font-size:0.78rem; padding:0.3rem 0;">Nenhum cliente em galeria</li>';
   return `
     <div id="presenceCard" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1rem 1.25rem; margin-bottom:1.25rem;">

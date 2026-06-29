@@ -20,6 +20,7 @@ const { sendGalleryAvailableEmail, sendPhotosDeliveredEmail, sendSelectionSubmit
 const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 const { trackEvent } = require('../utils/activityTracker');
+const ActivityEvent = require('../models/ActivityEvent');
 const { can } = require('../services/subscriptionPricing');
 const { applyOrgSessionDefaults } = require('../utils/sessionDefaults');
 
@@ -48,6 +49,72 @@ async function _logEvent(sessionId, type, meta = {}) {
       { $push: { events: { type, ts: new Date(), meta } } }
     );
   } catch (_) {}
+}
+
+// Resolve o id da org a partir da sessão (pode vir populada ou só o ObjectId).
+function _orgIdOf(session) {
+  return (session && (session.organizationId?._id || session.organizationId)) || null;
+}
+
+// Entrada do cliente na galeria (histórico do super admin). Debounce: no máx. 1 evento por
+// sessão+participante a cada 30 min, pra contar visitas reais sem inflar a timeline a cada
+// refresh. Consulta o índice { organizationId, at } e filtra o participante em memória.
+const CLIENT_ENTRY_DEBOUNCE_MS = 30 * 60 * 1000;
+async function _trackClientEntry(session, participant) {
+  try {
+    const organizationId = _orgIdOf(session);
+    if (!organizationId) return;
+    const pid = participant ? String(participant._id) : null;
+    const cutoff = new Date(Date.now() - CLIENT_ENTRY_DEBOUNCE_MS);
+    const recent = await ActivityEvent.find({
+      organizationId, type: 'client_entered', at: { $gte: cutoff }
+    }).select('meta.sessionId meta.participantId').lean();
+    const dup = recent.some(e =>
+      String(e.meta?.sessionId || '') === String(session._id) &&
+      String(e.meta?.participantId || '') === String(pid || ''));
+    if (dup) return;
+    trackEvent(organizationId, null, 'client_entered', {
+      sessionId: String(session._id),
+      sessionName: session.name || '',
+      participantId: pid,
+      clientName: participant ? (participant.name || '') : (session.clientName || ''),
+      mode: session.mode || 'gallery'
+    });
+  } catch (_) { /* fire-and-forget: nunca quebra a galeria */ }
+}
+
+// Download do cliente (histórico do super admin). 'zip' = 1 evento por download.
+// 'individual' = coalesce: soma no evento recente (10 min) em vez de criar 1 por clique.
+async function _trackDownload(session, participant, kind, count = 1) {
+  try {
+    const organizationId = _orgIdOf(session);
+    if (!organizationId) return;
+    const pid = participant ? String(participant._id) : null;
+    const clientName = participant ? (participant.name || '') : (session.clientName || '');
+    if (kind === 'individual') {
+      const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+      const recent = await ActivityEvent.findOne({
+        organizationId, type: 'photos_downloaded', at: { $gte: cutoff },
+        'meta.kind': 'individual', 'meta.sessionId': String(session._id),
+        'meta.participantId': pid
+      }).sort({ at: -1 });
+      if (recent) {
+        recent.meta = { ...recent.meta, count: (recent.meta.count || 0) + count };
+        recent.at = new Date();
+        recent.markModified('meta');
+        await recent.save();
+        return;
+      }
+    }
+    trackEvent(organizationId, null, 'photos_downloaded', {
+      kind, count,
+      sessionId: String(session._id),
+      sessionName: session.name || '',
+      participantId: pid,
+      clientName,
+      actorRole: 'client'
+    });
+  } catch (_) { /* fire-and-forget: nunca quebra o download */ }
 }
 
 // ============================================================================
@@ -131,6 +198,9 @@ router.post('/client/verify-code', async (req, res) => {
         session.firstAccessAt = new Date();
         await session.save();
       }
+
+      // Histórico do super admin: registra a entrada do cliente (debounce de 30 min por participante).
+      _trackClientEntry(session, participant);
 
       // Notificar admin
       try {
@@ -595,6 +665,9 @@ router.post('/client/submit-selection/:sessionId', async (req, res) => {
     // Track selection submitted — ação do cliente (rota pública, sem usuário autenticado).
     trackEvent(session.organizationId, null, 'selection_submitted', {
       sessionId: session._id,
+      sessionName: session.name || '',
+      participantId: participant ? String(participant._id) : null,
+      clientName: participant ? (participant.name || '') : (session.clientName || ''),
       selectedPhotos: selectedCount
     });
 
@@ -976,6 +1049,15 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
     }
     await session.save();
 
+    // Histórico do super admin: cliente pediu N fotos extras.
+    trackEvent(_orgIdOf(session), null, 'extra_requested', {
+      sessionId: String(session._id),
+      sessionName: session.name || '',
+      participantId: participant ? String(participant._id) : null,
+      clientName: participant ? (participant.name || '') : (session.clientName || ''),
+      count: photos.length
+    });
+
     const who = participant ? `${participant.name} (${session.name})` : session.name;
     try {
       await Notification.create({
@@ -1283,6 +1365,21 @@ router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, 
       session.extraRequest.respondedAt = new Date();
     }
     await session.save();
+
+    // Histórico do super admin: fotógrafo aceitou o pedido de extras.
+    {
+      const p = (isMulti && participantId) ? session.participants.id(participantId) : null;
+      const er = p ? p.extraRequest : session.extraRequest;
+      trackEvent(_orgIdOf(session), req.user.userId, 'extra_responded', {
+        sessionId: String(session._id),
+        sessionName: session.name || '',
+        participantId: p ? String(p._id) : null,
+        clientName: p ? (p.name || '') : (session.clientName || ''),
+        decision: 'accepted',
+        count: (er && er.photos ? er.photos.length : 0)
+      });
+    }
+
     res.json({ success: true, session });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
@@ -1321,6 +1418,21 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
       clientEmail = session.clientEmail || (session.clientId ? (await Client.findById(session.clientId).select('email').lean())?.email : '');
     }
     await session.save();
+
+    // Histórico do super admin: fotógrafo recusou o pedido de extras.
+    {
+      const p = (isMulti && participantId) ? session.participants.id(participantId) : null;
+      const er = p ? p.extraRequest : session.extraRequest;
+      trackEvent(_orgIdOf(session), req.user.userId, 'extra_responded', {
+        sessionId: String(session._id),
+        sessionName: session.name || '',
+        participantId: p ? String(p._id) : null,
+        clientName: p ? (p.name || '') : (session.clientName || ''),
+        decision: 'rejected',
+        count: (er && er.photos ? er.photos.length : 0),
+        reason: reason || ''
+      });
+    }
 
     // Enviar e-mail de notificação para o cliente
     try {
@@ -2069,6 +2181,8 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
     // Track session delivered
     trackEvent(session.organizationId, req.user.userId, 'session_delivered', {
       sessionId: session._id,
+      sessionName: session.name || '',
+      clientName: session.clientName || '',
       mode: session.mode,
       selectedCount: session.selectedPhotos.length
     });
@@ -2454,6 +2568,10 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
     const filename = photo.filename || path.basename(filePath);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'image/jpeg');
+
+    // Histórico do super admin: download individual (coalescido numa janela de 10 min).
+    _trackDownload(session, participantId ? session.participants.id(participantId) : null, 'individual', 1);
+
     res.sendFile(filePath);
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
@@ -2538,6 +2656,9 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
     }
 
     if (photosToZip.length === 0) return res.status(404).json({ error: 'Nenhuma foto para download' });
+
+    // Histórico do super admin: download em ZIP (1 evento, com a contagem de fotos).
+    _trackDownload(session, participant, 'zip', photosToZip.length);
 
     const sessionName = session.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
     res.setHeader('Content-Type', 'application/zip');
