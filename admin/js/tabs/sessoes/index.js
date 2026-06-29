@@ -462,33 +462,38 @@ export async function renderSessoes(container) {
       <div id="newSessionCardsPanel" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
         <!-- Card Seleção -->
         <div class="session-type-card" data-mode="selection" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
-           <div style="color:var(--accent);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+           <div class="stc-ring" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--cz-secondary) 14%, transparent); border:1px solid color-mix(in srgb, var(--cz-secondary) 32%, transparent); transition:all 0.2s;"><div style="color:var(--accent); display:flex;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div></div>
            <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Seleção</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Cliente escolhe suas fotos favoritas para edição.</p>
         </div>
         <!-- Card Galeria -->
         <div class="session-type-card" data-mode="gallery" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
-           <div style="color:var(--purple);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+           <div class="stc-ring" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--cz-secondary) 14%, transparent); border:1px solid color-mix(in srgb, var(--cz-secondary) 32%, transparent); transition:all 0.2s;"><div style="color:var(--purple); display:flex;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div></div>
            <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Galeria</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Fotos finalizadas prontas para visualização e download.</p>
         </div>
         <!-- Card Seleção em grupo -->
         <div class="session-type-card" data-mode="multi_selection" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
-           <div style="color:var(--orange);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+           <div class="stc-ring" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--cz-secondary) 14%, transparent); border:1px solid color-mix(in srgb, var(--cz-secondary) 32%, transparent); transition:all 0.2s;"><div style="color:var(--orange); display:flex;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div></div>
            <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Seleção em grupo</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Formaturas e eventos com múltiplos participantes.</p>
         </div>
         <!-- Card Galeria em Grupo -->
         <div class="session-type-card" data-mode="multi_gallery" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); padding:1.25rem; cursor:pointer; display:flex; flex-direction:column; gap:0.75rem; transition:all 0.2s;">
-           <div style="color:var(--purple);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+           <div class="stc-ring" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--cz-secondary) 14%, transparent); border:1px solid color-mix(in srgb, var(--cz-secondary) 32%, transparent); transition:all 0.2s;"><div style="color:var(--purple); display:flex;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div></div>
            <h4 style="margin:0; font-size:1rem; font-weight:600; color:var(--text-primary);">Galeria em Grupo</h4>
            <p style="margin:0; font-size:0.875rem; color:var(--text-secondary); line-height:1.4;">Entrega direta para vários convidados: cada um vê e baixa tudo, com seu próprio link.</p>
         </div>
         <style>
            .session-type-card:not([data-mode=""]):hover {
-              border-color: var(--accent) !important;
+              border-color: color-mix(in srgb, var(--cz-secondary) 55%, var(--border)) !important;
               transform: translateY(-2px);
-              box-shadow: var(--cz-lift);
+              box-shadow: 0 6px 18px color-mix(in srgb, var(--cz-secondary) 22%, transparent), var(--cz-lift);
+           }
+           /* Anel da marca (cor secundária) atrás do ícone — intensifica no hover */
+           .session-type-card:not([data-mode=""]):hover .stc-ring {
+              background: color-mix(in srgb, var(--cz-secondary) 22%, transparent);
+              border-color: color-mix(in srgb, var(--cz-secondary) 48%, transparent);
            }
         </style>
       </div>
