@@ -1,13 +1,51 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval } = require('../middleware/mercadopago');
+const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval,
+  refundPayment, revertSubscriptionToFree, markRefundHandled } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
+const Organization = require('../models/Organization');
 const User = require('../models/User');
 const plans = require('../models/plans');
 const storage = require('../services/storage');
 const { effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
+const { isProtectedSlug } = require('../utils/protectedOrgs');
+const { audit } = require('../utils/auditLogger');
 const paymentConfigured = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
+
+// ── Fase 2 — Janela de arrependimento (CDC Art. 49) ──
+const REFUND_WINDOW_DAYS = 7;
+// O Brasil NÃO tem horário de verão desde 2019 → America/Sao_Paulo é fixo em UTC-3.
+const BR_OFFSET_MS = 3 * 60 * 60 * 1000;
+// Fim da janela = 23:59:59.999 do 7º dia (fuso BR), contado a partir de subscribedAt. O dia
+// inteiro conta (pró-consumidor) — não é o instante cru subscribedAt+7×24h. Back e front usam
+// ESTA conta (exposta no GET) pra nunca divergirem por fuso/segundos.
+function refundWindowEndsAt(subscribedAt) {
+  if (!subscribedAt) return null;
+  const t = new Date(subscribedAt).getTime();
+  if (isNaN(t)) return null;
+  const br = new Date(t - BR_OFFSET_MS);     // mesmo instante com os campos UTC = relógio BR
+  br.setUTCHours(0, 0, 0, 0);                 // início do dia BR
+  const endBr = br.getTime() + (REFUND_WINDOW_DAYS - 1) * 86400000 + (86400000 - 1);
+  return new Date(endBr + BR_OFFSET_MS);      // de volta ao instante UTC real
+}
+
+// Elegibilidade de reembolso de uma assinatura. SÓ a 1ª compra (Free→pago) tem reembolso
+// integral; "desistir de upgrade" não gera reembolso (modelo sem pró-rata) — é trocar pro plano
+// de baixo no fluxo normal. protegida/override são filtradas aqui pela UI (override cobre as reais
+// curadas); o POST /billing/refund reconfere com isProtectedSlug + cortesia (defesa em profundidade).
+function refundEligibility(sub) {
+  const isFirstPurchase = !sub.previousPlan || sub.previousPlan === 'free';
+  const paid = !!sub.plan && sub.plan !== 'free';
+  const endsAt = refundWindowEndsAt(sub.subscribedAt);
+  const withinWindow = !!endsAt && Date.now() <= endsAt.getTime();
+  const notBlocked = !sub.isCourtesy && !sub.overrideEnabled;
+  return {
+    kind: isFirstPurchase ? 'first_purchase' : 'upgrade',
+    refundWindowEndsAt: endsAt,
+    canRefund: paid && isFirstPurchase && withinWindow && notBlocked && sub.status === 'active'
+  };
+}
 
 // Listar planos disponíveis
 router.get('/billing/plans', async (req, res) => {
@@ -40,6 +78,9 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
     res.json({
       subscription: sub,
       planDetails: plans[sub.plan],
+      // Elegibilidade de reembolso de arrependimento (CDC) — a aba Plano usa pra mostrar
+      // "Cancelar e reembolsar" só dentro da janela de 7 dias e só na 1ª compra.
+      refund: refundEligibility(sub),
       stripeConfigured: paymentConfigured,
       // Public Key do MP (segura no browser) — presença habilita o CardForm in-page.
       // Ausente → front cai no checkout hospedado legado (redirect).
@@ -73,11 +114,28 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
 // authorized sem conta MP) ou sem ele (fluxo hospedado legado → devolve checkoutUrl).
 router.post('/billing/checkout', authenticateToken, async (req, res) => {
   try {
-    const { plan, cardTokenId, payerEmail, identificationType, identificationNumber } = req.body;
+    const { plan, cardTokenId, payerEmail, identificationType, identificationNumber,
+      recurringConsent, consentAmountCents } = req.body;
+    // CDC Art. 39 III: cobrança recorrente no cartão exige aceite explícito do titular.
+    // Só o checkout de cartão novo (cardTokenId presente) passa por aqui; a troca de plano de
+    // assinante ativo reaproveita o cartão+aceite originais (sem cardTokenId) e o fluxo hospedado
+    // tem o aceite na própria tela do Mercado Pago.
+    if (cardTokenId && recurringConsent !== true) {
+      return res.status(400).json({ error: 'É necessário autorizar a cobrança automática mensal para assinar.' });
+    }
     const paymentData = cardTokenId
       ? { cardTokenId, payerEmail, identificationType, identificationNumber }
       : null;
     const result = await createCheckoutSession(req.user.organizationId, plan, paymentData);
+    // Registro permanente do aceite de recorrência (CDC) — só na assinatura nova com cartão.
+    if (cardTokenId) {
+      const cents = Number(consentAmountCents);
+      audit(req, 'recurring_consent', req.user.organizationId, {
+        plan,
+        amountCents: Number.isFinite(cents) && cents > 0 ? Math.round(cents) : (plans[plan]?.price ?? null),
+        source: 'cardform'
+      });
+    }
     res.json(result);
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
@@ -122,6 +180,15 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
     // revertSubscriptionToFree). O cancelamento no MP dispara o webhook subscription_preapproval
     // (cancelled), que confirma status=canceled + cancelAtPeriodEnd de forma idempotente.
     if (sub.mpPreapprovalId) {
+      // Fim do ciclo já pago = próxima data de cobrança da PreApproval. Lê ANTES de cancelar
+      // (best-effort: se falhar, currentPeriodEnd não muda → acesso segue até downgrade manual).
+      try {
+        const pa = await getPreapproval(sub.mpPreapprovalId);
+        const nextPay = pa?.next_payment_date ? new Date(pa.next_payment_date) : null;
+        if (nextPay && !isNaN(nextPay.getTime())) sub.currentPeriodEnd = nextPay;
+      } catch (e) {
+        req.logger.warn('[billing] não foi possível ler next_payment_date no cancelamento', { error: e.message });
+      }
       try {
         await cancelPreapproval(sub.mpPreapprovalId);
         sub.status = 'canceled';
@@ -142,8 +209,9 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
     }
     sub.cancelAtPeriodEnd = true;
     await sub.save();
-    // TODO Fase 2: gravar currentPeriodEnd (next_payment_date do MP) + scheduler que rebaixa pro
-    // Free ao vencer o ciclo. Hoje o acesso permanece até downgrade manual (erra a favor do cliente).
+    // currentPeriodEnd (next_payment_date do MP) gravado acima quando disponível; o
+    // subscriptionPeriodChecker rebaixa pro Free ao vencer o ciclo. Sem a data (GET falhou) o
+    // acesso segue até downgrade manual — erra a favor do cliente.
 
     res.json({ success: true, message: 'Assinatura cancelada — não haverá novas cobranças. Seu acesso ao plano atual continua ativo.' });
   } catch (error) {
@@ -152,4 +220,71 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
   }
 });
 
+// Cancelar E REEMBOLSAR (arrependimento ≤ 7 dias, CDC Art. 49) — único fluxo que dispara um
+// refund REAL no MP. Vale só pra 1ª compra (Free→pago): desistir de UPGRADE não gera reembolso
+// (modelo sem pró-rata — é trocar pro plano de baixo no fluxo normal). Reusa a MESMA máquina do
+// estorno (revertSubscriptionToFree) + acopla o congelamento comercial (freeze).
+router.post('/billing/refund', authenticateToken, async (req, res) => {
+  try {
+    const sub = await Subscription.findOne({ organizationId: req.user.organizationId });
+    if (!sub || sub.plan === 'free') {
+      return res.status(400).json({ error: 'Nenhuma assinatura paga para reembolsar' });
+    }
+
+    // Guards de blindagem ANTES de tocar o MP (defesa em profundidade: o refund roda ANTES do
+    // revert re-blindar). Espelham revertSubscriptionToFree — Flávia/Davi/dono nunca passam.
+    if (sub.isCourtesy)     return res.status(403).json({ error: 'Conta cortesia não tem cobrança a reembolsar.' });
+    if (sub.overrideEnabled) return res.status(403).json({ error: 'Conta com plano personalizado — reembolso pelo suporte.' });
+    const org = await Organization.findById(sub.organizationId).select('slug').lean();
+    if (org && isProtectedSlug(org.slug)) return res.status(403).json({ error: 'Conta protegida não passa por reembolso automático.' });
+
+    const elig = refundEligibility(sub);
+    if (elig.kind !== 'first_purchase') {
+      return res.status(422).json({ error: 'Reembolso integral vale só para a primeira assinatura. Para desfazer um upgrade, troque para o plano anterior.' });
+    }
+    if (!elig.canRefund) {
+      return res.status(422).json({ error: 'Fora da janela de arrependimento de 7 dias.', refundWindowEndsAt: elig.refundWindowEndsAt });
+    }
+
+    // Idempotência: um refund já em curso não dispara um 2º (o revert zera refundInFlight no fim).
+    if (sub.refundInFlight) return res.status(409).json({ error: 'Reembolso já em processamento.' });
+
+    // Gate de AMBIENTE: nunca dispara refund real com token de teste / cobrança desligada / sandbox.
+    const prodToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || '').startsWith('APP_USR-');
+    const live = process.env.MP_USE_PREAPPROVAL === 'true' && prodToken && !process.env.MP_TEST_PAYER_EMAIL;
+
+    const payId = sub.firstPaymentId; // captura ANTES do revert (que zera o campo)
+
+    // Degradação graciosa: sem o payment.id da 1ª fatura (ex.: checkout hospedado) ou fora do
+    // ambiente live → cancela a recorrência (sem cobranças futuras) + congela, e marca o refund
+    // pra processamento MANUAL no painel MP (como foi o teste do estorno). Não trava o cliente.
+    if (!payId || !live) {
+      if (sub.mpPreapprovalId) {
+        try { await cancelPreapproval(sub.mpPreapprovalId); }
+        catch (e) { req.logger.warn('[billing-refund] cancel da recorrência falhou', { error: e.message }); }
+      }
+      await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund_manual', freeze: true });
+      audit(req, 'refund_manual_pending', sub.organizationId, { reason: !payId ? 'no_first_payment_id' : 'test_env', firstPaymentId: payId || null });
+      return res.json({ success: true, manual: true, message: 'Assinatura cancelada. O reembolso será processado em até alguns dias úteis.' });
+    }
+
+    // Caminho real: marca in-flight ANTES (auto-cura se cair no meio), dispara refund TOTAL
+    // idempotente, reverte pro Free + congela, e fecha o eco do webhook 'refunded' (markRefundHandled).
+    await Subscription.updateOne({ _id: sub._id }, { $set: { refundInFlight: true } });
+    const idemKey = `refund-${sub._id}-${payId}-full`;
+    await refundPayment(payId, idemKey);
+    await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund', freeze: true });
+    await markRefundHandled(sub._id, payId);
+    audit(req, 'refund_issued', sub.organizationId, { paymentId: payId, fromPlan: sub.plan });
+    req.logger.warn('[billing-refund] refund integral emitido', { orgId: String(sub.organizationId), payId });
+    return res.json({ success: true, message: 'Reembolso solicitado. O valor volta para o seu cartão pelo Mercado Pago e sua conta voltou ao plano gratuito.' });
+  } catch (error) {
+    req.logger.error('[billing-refund] erro', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
+// Exportados p/ teste (harness E2E) — não alteram o comportamento do router.
+module.exports.refundEligibility = refundEligibility;
+module.exports.refundWindowEndsAt = refundWindowEndsAt;

@@ -365,6 +365,7 @@ const connectWithRetry = async () => {
 const { checkDeadlines } = require('./utils/deadlineChecker');
 const { checkOffboarding } = require('./utils/offboardingChecker');
 const { checkGracePeriods } = require('./utils/graceChecker');
+const { checkSubscriptionPeriods } = require('./utils/subscriptionPeriodChecker');
 const postDeliveryAutomator = require('./utils/postDeliveryAutomator');
 const anniversaryAutomator = require('./utils/anniversaryAutomator');
 const storageRetentionChecker = require('./utils/storageRetentionChecker');
@@ -393,6 +394,11 @@ function startDeadlineScheduler() {
   // F3 — Carência de regularização: avisa e suspende (NÃO exclui) orgs cujo prazo venceu
   safeInterval('graceChecker', () => checkGracePeriods(), ONE_DAY);
   logger.info('[scheduler] Grace checker (carência de cobrança) iniciado (a cada 24h)');
+
+  // Fase 2 — Fim de ciclo do cancelamento voluntário: rebaixa pro Free quando o ciclo já
+  // pago vence (currentPeriodEnd). Reusa revertSubscriptionToFree (blinda protegida/cortesia).
+  safeInterval('subscriptionPeriodChecker', () => checkSubscriptionPeriods(), ONE_DAY);
+  logger.info('[scheduler] Subscription period checker (fim de ciclo) iniciado (a cada 24h)');
 
   // Escassês de vendas: upsell pós-entrega na janela entre a entrega e a exclusão do storage
   safeInterval('postDeliveryUpsell', () => postDeliveryAutomator.run(), SIX_HOURS);

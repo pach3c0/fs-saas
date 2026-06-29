@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Session = require('../models/Session');
+const Subscription = require('../models/Subscription');
 const mercadopago = require('../middleware/mercadopago');
 
 // CLIENTE: Criar preferência de pagamento para fotos extras
@@ -19,6 +20,13 @@ router.post('/extra-photos', async (req, res) => {
         if (!session) return res.status(401).json({ error: 'Acesso negado' });
         if (session.selectionStatus !== 'submitted') {
             return res.status(400).json({ error: 'A seleção precisa ser enviada antes de pagar extras' });
+        }
+
+        // Congelamento comercial pós-reembolso (Fase 2): venda automática de extras suspensa
+        // enquanto a conta do fotógrafo estiver congelada (não pune a leitura das galerias).
+        const ownerSub = await Subscription.findOne({ organizationId: session.organizationId }).select('storageFrozen').lean();
+        if (ownerSub?.storageFrozen) {
+            return res.status(403).json({ error: 'Vendas temporariamente indisponíveis nesta conta.' });
         }
 
         // 2. Validar fotos selecionadas como extras

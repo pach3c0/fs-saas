@@ -12,6 +12,7 @@ const auditLogSchema = new mongoose.Schema({
     index: true
     // 'org_approve' | 'org_deactivate' | 'org_trash' | 'org_restore' | 'org_delete'
     // 'plan_change' | 'limits_change' | 'site_reset' | 'plan_limits_change' | 'impersonate'
+    // 'recurring_consent' (aceite de cobrança recorrente pelo próprio fotógrafo, CDC Art. 39 III)
   },
   targetOrgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
   meta: { type: mongoose.Schema.Types.Mixed, default: {} },

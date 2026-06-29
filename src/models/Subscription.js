@@ -76,6 +76,23 @@ const SubscriptionSchema = new mongoose.Schema({
   // cancelar (senão a recorrência seguiria viva cobrando após o estorno — devolução em dobro).
   mpCancelPending: { type: Boolean, default: false },
 
+  // ── Fase 2 — Reembolso de ARREPENDIMENTO (CDC Art. 49, janela de 7 dias) ──
+  // payment.id da PRIMEIRA fatura desta assinatura (capturado no webhook de fatura). É o
+  // pagamento estornado no "reembolso integral" da 1ª compra — NUNCA o lastPaymentId, que é
+  // sobrescrito a cada renovação (estornaria a fatura errada). Limpo no revert e numa nova
+  // assinatura (cada assinatura captura a sua própria 1ª fatura).
+  firstPaymentId: { type: String, default: null },
+  // Trava de idempotência do refund VOLUNTÁRIO: ligada ANTES de chamar a API de refund do MP.
+  // Se o processo cair entre o refund e o revert local, o webhook 'refunded' conclui o revert
+  // (auto-cura); isto impede disparar um 2º refund enquanto um está em curso. O revert a zera.
+  refundInFlight: { type: Boolean, default: false },
+  // Congelamento COMERCIAL pós-reembolso (gate "moderado"): bloqueia NOVOS uploads e a VENDA
+  // automática de fotos extras, mas mantém legíveis as galerias já entregues (não pune o cliente
+  // final do fotógrafo). Evita que o arrependimento (dinheiro devolvido) vire um mês grátis de
+  // uso pleno do storage/venda. Ligado no revert por refund; desligado numa nova assinatura
+  // (ou na mão pelo super-admin). Contas protegidas/override/cortesia nunca são congeladas.
+  storageFrozen: { type: Boolean, default: false },
+
   // Preço personalizado por org (em centavos). Quando `> 0`, sobrescreve o preço
   // do catálogo (plans.js) no checkout DESTA org. `null` = usa o preço do plano.
   // Vale só na próxima assinatura — não altera assinatura já ativa no MP.

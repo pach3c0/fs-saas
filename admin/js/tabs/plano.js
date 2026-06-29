@@ -57,6 +57,11 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
         <select id="form-checkout__issuer" style="display:none;"></select>
         <select id="form-checkout__installments" style="display:none;"></select>
         <div id="czCardError" style="color:#c0392b; font-size:0.82rem; margin:0.25rem 0 0; display:none;"></div>
+        <!-- Aceite explícito de cobrança recorrente (CDC Art. 39 III): submit travado até marcar. -->
+        <label for="czConsent" style="display:flex; align-items:flex-start; gap:0.55rem; margin-top:1rem; font-size:0.8rem; color:#444; line-height:1.4; cursor:pointer;">
+          <input type="checkbox" id="czConsent" style="margin-top:0.15rem; flex:0 0 auto; width:16px; height:16px; cursor:pointer;" />
+          <span>Autorizo a cobrança automática mensal de <strong>R$ ${amountReais.toFixed(2)}</strong> neste cartão, renovada a cada mês, até que eu cancele a assinatura.</span>
+        </label>
         <button type="submit" id="czCardSubmit" disabled style="width:100%; margin-top:1.1rem; padding:0.8rem; border-radius:0.5rem; border:none; background:#1a1a1a; color:#ffffff; font-weight:700; font-size:0.95rem; cursor:pointer; opacity:0.6;">Carregando…</button>
       </form>
     </div>`;
@@ -64,15 +69,25 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
 
   const errBox = overlay.querySelector('#czCardError');
   const submitBtn = overlay.querySelector('#czCardSubmit');
+  const consentEl = overlay.querySelector('#czConsent');
   const showErr = (msg) => { errBox.textContent = msg; errBox.style.display = 'block'; };
-  let mp, cardForm, closed = false;
+  let mp, cardForm, closed = false, formMounted = false;
   const cleanup = () => {
     if (closed) return;
     closed = true;
     try { cardForm && cardForm.unmount && cardForm.unmount(); } catch (_) {}
     overlay.remove();
   };
-  const resetSubmit = () => { submitBtn.disabled = false; submitBtn.style.opacity = '1'; submitBtn.textContent = 'Assinar agora'; };
+  // O submit só libera quando o form do cartão montou E o titular marcou o aceite de
+  // cobrança recorrente (CDC Art. 39 III). Sem o aceite, não dá pra assinar.
+  const syncSubmit = () => {
+    const ready = formMounted && consentEl.checked;
+    submitBtn.disabled = !ready;
+    submitBtn.style.opacity = ready ? '1' : '0.6';
+    submitBtn.textContent = formMounted ? 'Assinar agora' : 'Carregando…';
+  };
+  const resetSubmit = () => { formMounted = true; syncSubmit(); };
+  consentEl.addEventListener('change', syncSubmit);
 
   overlay.querySelector('#czCardClose').onclick = cleanup;
   overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
@@ -101,6 +116,8 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
         },
         onSubmit: async (event) => {
           event.preventDefault();
+          // Defesa em profundidade: o botão já fica travado sem o aceite, mas reconferimos aqui.
+          if (!consentEl.checked) { showErr('Marque a autorização de cobrança mensal para continuar.'); return; }
           submitBtn.disabled = true;
           submitBtn.style.opacity = '0.6';
           submitBtn.textContent = 'Processando…';
@@ -114,6 +131,8 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
               payerEmail: d.cardholderEmail,
               identificationType: d.identificationType,
               identificationNumber: d.identificationNumber,
+              recurringConsent: true,
+              consentAmountCents: Math.round(amountReais * 100),
             });
             cleanup();
             const ok = result && (result.status === 'authorized' || result.status === 'active');
@@ -145,16 +164,16 @@ export async function renderPlano(container) {
       apiGet('/api/billing/plans')
     ]);
 
-    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits, mpPublicKey, ownerEmail } = subRes;
+    const { subscription, planDetails, usage, stripeConfigured, maxStorageMB, storageAddon, limits, mpPublicKey, ownerEmail, refund } = subRes;
     const { plans } = plansRes;
 
-    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits, mpPublicKey, ownerEmail });
+    _render(container, { subscription, planDetails, usage, plans, stripeAtivo: !!stripeConfigured, maxStorageMB, storageAddon, effLimits: limits, mpPublicKey, ownerEmail, refund });
   } catch (error) {
     container.innerHTML = `<div style="color:var(--ad-red); padding:2rem;">Erro ao carregar: ${error.message}</div>`;
   }
 }
 
-function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits, mpPublicKey, ownerEmail }) {
+function _render(container, { subscription, planDetails, usage, plans, stripeAtivo, maxStorageMB, storageAddon, effLimits, mpPublicKey, ownerEmail, refund }) {
   // Limites efetivos vêm do backend (derivam de plans.js); fallback ao gravado.
   const limites = effLimits || subscription.limits;
   const uso     = subscription.usage;
@@ -349,6 +368,16 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         </div>
         <button id="cancelBtn" style="background:transparent; border:1px solid var(--ad-red); color:var(--ad-red); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Cancelar Plano</button>
       </div>` : ''}
+
+      ${refund?.canRefund ? `
+      <!-- Arrependimento (CDC Art. 49 — 7 dias): reembolso integral + volta pro Free -->
+      <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-red) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-red) 30%, transparent); border-radius:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">Cancelar e pedir reembolso</p>
+          <p style="font-size:0.8rem; color:var(--ad-text); opacity:0.6; margin:0;">Você está no prazo de arrependimento${refund.refundWindowEndsAt ? ` (até ${new Date(refund.refundWindowEndsAt).toLocaleDateString('pt-BR')})` : ''}. Reembolso integral no cartão e sua conta volta ao plano gratuito.</p>
+        </div>
+        <button id="refundBtn" style="background:var(--ad-red); border:1px solid var(--ad-red); color:#fff; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Cancelar e reembolsar</button>
+      </div>` : ''}
     </div>
   `;
 
@@ -367,11 +396,12 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   container.querySelectorAll('.cortesiaUpgradeBtn').forEach(btn => {
     btn.onclick = async () => {
       const nome = btn.dataset.planname || 'este plano';
-      await window.showConfirm(`Mudar para o ${nome}?`, {
-        message: `Sua conta é uma cortesia da plataforma. Trocar para o ${nome} encerra a cortesia e inicia a cobrança do plano. Fale com o suporte para confirmar a troca — assim ajustamos tudo certinho pra você.`,
-        confirmText: 'Entendi',
-        cancelText: 'Voltar'
-      });
+      // showConfirm (toast.js) usa o 1º arg como MENSAGEM e `title` como cabeçalho —
+      // a explicação vai no 1º arg (não em `{ message }`, que seria ignorado).
+      await window.showConfirm(
+        `Sua conta é uma cortesia da plataforma. Trocar para o ${nome} encerra a cortesia e inicia a cobrança do plano. Fale com o suporte para confirmar a troca — assim ajustamos tudo certinho pra você.`,
+        { title: `Mudar para o ${nome}?`, confirmText: 'Entendi', cancelText: 'Voltar' }
+      );
     };
   });
 
@@ -455,11 +485,11 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const cancelBtn = container.querySelector('#cancelBtn');
   if (cancelBtn) {
     cancelBtn.onclick = async () => {
-      const ok = await window.showConfirm('Cancelar assinatura?', {
-        message: 'Seu plano permanece ativo até o final do período atual. Após isso você voltará para o plano gratuito.',
-        confirmText: 'Cancelar Plano',
-        cancelText: 'Manter Plano'
-      });
+      // showConfirm (toast.js) usa o 1º arg como MENSAGEM e `title` como cabeçalho.
+      const ok = await window.showConfirm(
+        'Seu plano permanece ativo até o final do período atual. Após isso você voltará para o plano gratuito.',
+        { title: 'Cancelar assinatura?', confirmText: 'Cancelar Plano', cancelText: 'Manter Plano' }
+      );
       if (!ok) return;
       cancelBtn.textContent = 'Cancelando...';
       cancelBtn.disabled = true;
@@ -471,6 +501,29 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         window.showToast('Erro: ' + error.message, 'error');
         cancelBtn.textContent = 'Cancelar Plano';
         cancelBtn.disabled = false;
+      }
+    };
+  }
+
+  // Arrependimento (CDC 7 dias): cancela E reembolsa integral, conta volta pro Free na hora.
+  const refundBtn = container.querySelector('#refundBtn');
+  if (refundBtn) {
+    refundBtn.onclick = async () => {
+      const ok = await window.showConfirm(
+        'Você receberá o reembolso integral no seu cartão (pelo Mercado Pago) e sua conta voltará ao plano gratuito imediatamente. Os envios de novas fotos e a venda automática ficam congelados até você assinar de novo. Deseja continuar?',
+        { title: 'Cancelar e reembolsar?', confirmText: 'Sim, reembolsar', cancelText: 'Voltar' }
+      );
+      if (!ok) return;
+      refundBtn.textContent = 'Processando...';
+      refundBtn.disabled = true;
+      try {
+        const r = await apiPost('/api/billing/refund', {});
+        window.showToast(r?.message || 'Reembolso solicitado.', 'success');
+        renderPlano(container);
+      } catch (error) {
+        window.showToast('Erro: ' + error.message, 'error');
+        refundBtn.textContent = 'Cancelar e reembolsar';
+        refundBtn.disabled = false;
       }
     };
   }

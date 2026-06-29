@@ -66,6 +66,12 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
     // Novo checkout = re-assinatura EXPLÍCITA → libera a ativação (zera a marca anti-ressurreição
     // de um estorno anterior). Sem isto, o webHook 'authorized' da nova assinatura seria ignorado.
     sub.revertedAt = null;
+    // Re-assinatura também ZERA o estado de reembolso/congelamento da assinatura anterior: a nova
+    // assinatura captura a sua própria 1ª fatura (firstPaymentId) e o congelamento comercial
+    // (storageFrozen) é levantado porque o cliente voltou a pagar.
+    sub.firstPaymentId = null;
+    sub.refundInFlight = false;
+    sub.storageFrozen = false;
     // Invariante: uma sub que inicia novo checkout NUNCA carrega cancel pendente de uma assinatura
     // anterior. Sem isto, se um estorno deixou mpCancelPending=true (cancel transiente) e o cliente
     // re-assina antes da varredura, o graceChecker cancelaria a assinatura NOVA e paga (id vivo).
@@ -408,7 +414,13 @@ async function handleWebhook(eventBody, eventQuery) {
                 lastPaymentStatus: aprovado ? 'approved' : (falhou ? 'rejected' : (apStatus || 'unknown'))
             };
             if (eventId) obs.lastPaymentEventId = eventId;
-            if (aprovado) obs.pendingPlan = null; // limpa pendingPlan órfão de checkout antigo
+            if (aprovado) {
+                obs.pendingPlan = null; // limpa pendingPlan órfão de checkout antigo
+                // 1ª fatura desta assinatura → guarda o payment.id p/ o reembolso INTEGRAL de
+                // arrependimento (CDC Art. 49). Só na 1ª (não sobrescreve a cada renovação, senão
+                // estornaria a fatura errada) e só se o MP nos deu o id físico do pagamento.
+                if (!sub.firstPaymentId && ap?.payment?.id) obs.firstPaymentId = String(ap.payment.id);
+            }
             await Subscription.updateOne({ _id: sub._id }, { $set: obs });
 
             // Transição de status SÓ p/ não-cortesia e ATÔMICA no banco (filtro isCourtesy):
@@ -574,6 +586,30 @@ async function getChargeback(chargebackId) {
     return resp.json();
 }
 
+// Estorna (refund) um pagamento no MP — API crua (sem classe no SDK v2, igual getChargeback).
+// Body vazio = refund TOTAL (devolve o valor inteiro da fatura). `X-Idempotency-Key`
+// DETERMINÍSTICA (inclui o payment.id e o tipo de valor) → um retry NUNCA devolve em dobro
+// (CDC Art. 42 — cobrar/operar em dobro é vedado). Lança em erro do MP; o caller trata sem
+// marcar o estorno como concluído, então o fluxo é re-tentável. Retorna o JSON do refund.
+async function refundPayment(paymentId, idempotencyKey) {
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!token) throw new Error('Mercado Pago não configurado.');
+    const resp = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'X-Idempotency-Key': String(idempotencyKey),
+        },
+        body: '{}', // sem `amount` = refund total
+    });
+    if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new Error(`MP refund ${paymentId}: HTTP ${resp.status} ${txt}`);
+    }
+    return resp.json();
+}
+
 // Estorno já tratado? Dedup pelo PAGAMENTO FÍSICO (payment.id), não pelo id da notificação:
 // o mesmo estorno chega por vários tópicos com ids de notificação diferentes, mas SEMPRE com o
 // mesmo payment.id. Persiste através de re-assinatura. Sem payId (não resolvido) → processa e
@@ -609,7 +645,9 @@ async function handleRefundRevert(sub, payId, opts) {
 // fail-soft e RESPEITA contas protegidas/cortesia (nunca rebaixa Flávia/Davi/dono).
 //   reason  → rótulo p/ auditoria (invoice_refunded | payment_refunded | chargeback | ...)
 //   suspend → true (chargeback) também desativa a org (em disputa), espelhando o F3 (sem excluir).
-async function revertSubscriptionToFree(sub, { reason = 'refund', suspend = false } = {}) {
+//   freeze  → true (refund VOLUNTÁRIO de arrependimento) liga storageFrozen: congela uso comercial
+//             (upload novo + venda automática) pra arrependimento não virar mês grátis de uso pleno.
+async function revertSubscriptionToFree(sub, { reason = 'refund', suspend = false, freeze = false } = {}) {
     if (!sub || !sub._id) return { reverted: false, skipped: 'no_sub' };
 
     const org = await Organization.findById(sub.organizationId)
@@ -681,7 +719,17 @@ async function revertSubscriptionToFree(sub, { reason = 'refund', suspend = fals
         cancelAtPeriodEnd: false,
         revertedAt: new Date(),
         mpCancelPending: cancelPending,
+        // Fase 2: a 1ª fatura foi consumida (estornada ou não há mais o que estornar) e o refund,
+        // se havia, terminou → limpa a trava in-flight. firstPaymentId zerado evita reembolsar de
+        // novo a mesma fatura numa eventual re-entrega de evento.
+        firstPaymentId: null,
+        refundInFlight: false,
     };
+    // Congelamento comercial só no refund VOLUNTÁRIO (freeze). Nos outros reverts (estorno via
+    // webhook, chargeback c/ suspend, cancel de fim de ciclo) não congela: chargeback já suspende
+    // a org e cancel-de-ciclo usou o que pagou. Nunca rebaixa por engano: protegida/override/
+    // cortesia já saíram acima, então só cliente comum chega aqui.
+    if (freeze) set.storageFrozen = true;
     // Sem override → volta aos limites do Free (override já saiu antes, mas mantém a checagem por clareza).
     if (!sub.overrideEnabled) set.limits = plans.free.limits;
     const update = { $set: set };
@@ -732,6 +780,16 @@ async function cancelPreapproval(preapprovalId) {
     }
     const preApproval = new PreApproval(client);
     return preApproval.update({ id: preapprovalId, body: { status: 'cancelled' } });
+}
+
+// Lê a PreApproval no MP (objeto completo, inclui `next_payment_date` = data da próxima
+// cobrança = fim do ciclo já pago). Usado no cancelamento p/ gravar `currentPeriodEnd`.
+async function getPreapproval(preapprovalId) {
+    if (!client) {
+        throw new Error('Mercado Pago não configurado.');
+    }
+    const preApproval = new PreApproval(client);
+    return preApproval.get({ id: preapprovalId });
 }
 
 // Atualiza o valor cobrado de uma assinatura (PreApproval) JÁ ATIVA no Mercado Pago.
@@ -808,4 +866,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled, refundPayment };

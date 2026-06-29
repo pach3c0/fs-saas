@@ -88,6 +88,19 @@ async function checkStorageGate(req, res, next) {
     }
     if (!sub) return next(); // sem assinatura → não barra (seguro)
 
+    // Congelamento comercial pós-reembolso (Fase 2): trava deliberada de NOVOS uploads,
+    // independente da quota — diferente do gate de storage e SEM depender de STORAGE_GATE_ENFORCE.
+    // Só cliente comum chega congelado (protegida/override/cortesia nunca são congeladas no revert).
+    if (sub.storageFrozen) {
+      req.logger?.info?.(`[storageGate] upload bloqueado (conta congelada pós-reembolso) org ${sub.organizationId}`);
+      return res.status(403).json({
+        code: 'STORAGE_FROZEN',
+        error: 'Conta congelada após reembolso',
+        message: 'Sua conta está temporariamente congelada após o reembolso. Assine um plano para voltar a enviar fotos.',
+        upgrade: true
+      });
+    }
+
     const usedBytes = sub.usage?.storageQuotaBytes || 0;
     const limitBytes = effectiveStorageMB(sub) * 1024 * 1024;
     if (!(limitBytes > 0)) return next(); // ilimitado / sem limite configurado
