@@ -98,11 +98,17 @@ test('API: /subscription retorna assinatura, planDetails, stripeConfigured e sto
   }
 });
 
-test('API: cancel sem assinatura Stripe → 400 "Nenhuma assinatura ativa"', async ({ page }) => {
+test('API: cancel sem plano pago (Free) → 400 "Nenhuma assinatura ativa"', async ({ page }) => {
   await H.loginAdmin(page);
-  const r = await api(page, 'POST', '/api/billing/cancel', {});
-  expect(r.status).toBe(400);
-  expect(r.json.error).toContain('Nenhuma assinatura ativa');
+  // Pós-migração MP: o cancel só devolve 400 quando o plano é Free (não há recorrência a matar).
+  const original = await patchSubscription({ plan: 'free' });
+  try {
+    const r = await api(page, 'POST', '/api/billing/cancel', {});
+    expect(r.status).toBe(400);
+    expect(r.json.error).toContain('Nenhuma assinatura ativa');
+  } finally {
+    await restaurarSubscription(original);
+  }
 });
 
 test('API: checkout sem Stripe configurado → erro limpo (sem checkoutUrl)', async ({ page }) => {
@@ -121,18 +127,19 @@ test('UI: card do plano atual com 3 barras de uso, ∞ para ilimitado e breakdow
   const d = (await api(page, 'GET', '/api/billing/subscription')).json;
   await irParaPlano(page);
 
-  await expect(page.getByText(d.planDetails.name).first()).toBeVisible();
+  // escopo no #tabContent: "Pro" casa como substring de "Produtos / Serviços" na sidebar
+  await expect(page.locator('#tabContent').getByText(d.planDetails.name).first()).toBeVisible();
   // escopo no conteúdo — "Sessões" também existe no menu lateral
-  for (const barra of ['Sessões', 'Fotos', 'Armazenamento (MB)']) {
+  for (const barra of ['Sessões', 'Fotos', 'Armazenamento — fotos (MB)']) {
     await expect(page.locator('#tabContent').getByText(barra, { exact: true })).toBeVisible();
   }
-  // limites -1 viram ∞ (org teste tem maxSessions/maxPhotos ilimitados p/ a suíte)
-  if (d.subscription.limits.maxSessions === -1) {
+  // limites -1 viram ∞ — a UI usa os limites EFETIVOS (d.limits, derivados de plans.js)
+  if (d.limits.maxSessions === -1) {
     await expect(page.getByText(/\/ ∞/).first()).toBeVisible();
   }
-  // breakdown do disco
-  await expect(page.getByText(`Sessões: ${d.usage.breakdown.sessionsMB} MB`)).toBeVisible();
-  await expect(page.getByText(`Site: ${d.usage.breakdown.siteMB} MB`)).toBeVisible();
+  // breakdown do disco (labels atuais do medidor)
+  await expect(page.getByText(`Fotos das sessões: ${d.usage.breakdown.sessionsMB} MB`)).toBeVisible();
+  await expect(page.getByText(`Site/logo: ${d.usage.breakdown.siteMB} MB`)).toBeVisible();
   await expect(page.getByText(`Vídeos: ${d.usage.breakdown.videosMB} MB`)).toBeVisible();
 });
 
@@ -160,19 +167,20 @@ test('UI: seção de planos — card ATUAL desabilitado e pagos com "Em Breve" s
   }
 });
 
-test('UI: barras mudam de cor por faixa de uso (70% amarelo, 90% vermelho + aviso)', async ({ page }) => {
+test('UI: barras mudam de cor por faixa de uso (≥70% amarelo, ≥90% vermelho + aviso)', async ({ page }) => {
   await H.loginAdmin(page);
-  // storage real da org (~MBs); semeia limites que forcem as faixas
-  const d = (await api(page, 'GET', '/api/billing/subscription')).json;
-  const mb = Math.max(1, Math.ceil(d.usage.storageMB));
+  // Os limites EFETIVOS derivam de plans.js (fonte única) e IGNORAM sub.limits — exceto
+  // com overrideEnabled, que faz valer o sub.limits gravado. Forçamos as faixas via override
+  // + contadores de uso semeados (usage.sessions/photos ficam no doc da assinatura).
   const original = await patchSubscription({
-    'limits.maxStorage': mb,                            // uso ≈ 100% → vermelho
-    'limits.maxPhotos': Math.ceil(d.subscription.usage.photos / 0.75) || 100, // ≈75% → amarelo
+    overrideEnabled: true,
+    'limits.maxSessions': 100, 'usage.sessions': 95,   // 95% → vermelho + aviso
+    'limits.maxPhotos': 100,   'usage.photos': 75,     // 75% → amarelo
   });
   try {
     await irParaPlano(page);
     await expect(page.getByText('⚠ Limite quase atingido').first()).toBeVisible();
-    // cor inline: a barra de storage (vermelha) e a de fotos (amarela)
+    // cor inline: a barra de sessões (vermelha ≥90%) e a de fotos (amarela ≥70%)
     const barras = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('#tabContent div[style*="height:100%"]'))
         .map(el => el.getAttribute('style'));
@@ -200,21 +208,31 @@ test('UI: plano free não mostra cancelamento e tem "Ver planos ↓" com scroll'
   }
 });
 
-test('UI: cancelar assinatura — Manter aborta; confirmar sem Stripe → toast de erro', async ({ page }) => {
+test('UI: cancelar assinatura — "Manter" não dispara POST; confirmar dispara e mostra toast', async ({ page }) => {
   await H.loginAdmin(page);
+  // Intercepta o cancel pra teste determinístico — não toca o MP real nem altera a fixture
+  // (org teste pro pode ter mpPreapprovalId; um cancel real mutaria o estado compartilhado).
+  let cancelCalls = 0;
+  await page.route('**/api/billing/cancel', async (route) => {
+    cancelCalls++;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+  });
+
   await irParaPlano(page); // org teste é pro → card de cancelamento visível
   const cancelBtn = page.locator('#cancelBtn');
   await cancelBtn.scrollIntoViewIfNeeded();
 
-  // Manter Plano → nada acontece
+  // "Manter Plano" (#confirmCancel) → aborta, NENHUM POST
   await cancelBtn.click();
   await page.locator('#confirmCancel').click();
   await expect(cancelBtn).toBeEnabled();
+  expect(cancelCalls).toBe(0);
 
-  // Confirmar → POST /billing/cancel → 400 (sem stripeSubscriptionId) → toast de erro
+  // "Cancelar Plano" (#confirmOk) → dispara POST → toast de sucesso
   await cancelBtn.click();
   await page.locator('#confirmOk').click();
-  await expect(page.locator('#toast-container')).toContainText('Nenhuma assinatura ativa', { timeout: 10000 });
+  await expect(page.locator('#toast-container')).toContainText('Cancelamento agendado', { timeout: 10000 });
+  expect(cancelCalls).toBe(1);
 });
 
 test('UI: falha no carregamento → mensagem de erro (sem quebrar a aba)', async ({ page }) => {
