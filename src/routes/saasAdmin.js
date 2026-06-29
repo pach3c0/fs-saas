@@ -370,6 +370,8 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
                 suspendedReason: org.suspendedReason || null,
                 isActive: org.isActive === true,
                 subStatus: sub?.status || 'active',
+                // Assinatura paga VIVA no MP (não cortesia) — controla o bloco "Iniciar cobrança".
+                mpActive: !!sub?.mpPreapprovalId && sub?.status === 'active' && !sub?.isCourtesy,
                 lastPaymentAt: sub?.lastPaymentAt || null,
                 lastPaymentStatus: sub?.lastPaymentStatus || null,
                 overrideEnabled: !!sub?.overrideEnabled,
@@ -595,6 +597,46 @@ router.put('/admin/organizations/:id/courtesy', authenticateToken, requireSupera
         await sub.save();
         audit(req, 'courtesy_change', req.params.id, { isCourtesy: sub.isCourtesy });
         res.json({ success: true, message: sub.isCourtesy ? 'Marcada como cortesia' : 'Cortesia removida', isCourtesy: sub.isCourtesy });
+    } catch (error) {
+        req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Iniciar cobrança de uma conta existente (sair da cortesia / converter um plano "de graça").
+// ENCERRA a cortesia (pré-requisito p/ cobrar, espelha a invariante do mercadopago.js) e marca
+// status='pending' = "aguardando o cliente pagar". NÃO cobra aqui: só destrava o CTA "Pagar agora"
+// no painel do cliente — o pagamento em si é o checkout normal (CardForm) que ele dispara.
+// Status 'pending' não corta acesso (gating é por org.isActive) e fica FORA do MRR (ainda não paga).
+router.put('/admin/organizations/:id/start-billing', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const org = await Organization.findById(req.params.id).select('plan slug').lean();
+        if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
+        // Contas protegidas (dono/curadas) NUNCA entram em cobrança automática — barreira
+        // deliberada: p/ cobrar uma dessas, remova-a de PROTECTED_ORG_SLUGS/OWNER_SLUG antes.
+        if (isProtectedSlug(org.slug)) {
+            return res.status(403).json({ error: 'Conta protegida não entra em cobrança automática. Remova a proteção antes de iniciar a cobrança.' });
+        }
+
+        let sub = await Subscription.findOne({ organizationId: req.params.id });
+        if (!sub) sub = new Subscription({ organizationId: req.params.id, plan: org.plan || 'free' });
+        const effPlan = sub.plan || org.plan || 'free';
+        if (effPlan === 'free') {
+            return res.status(400).json({ error: 'Defina um plano pago antes de iniciar a cobrança.' });
+        }
+        // Já paga DE VERDADE (assinatura viva no MP, sem cortesia) → nada a iniciar.
+        if (sub.mpPreapprovalId && sub.status === 'active' && !sub.isCourtesy) {
+            return res.status(409).json({ error: 'Esta conta já tem assinatura ativa no Mercado Pago.' });
+        }
+
+        sub.isCourtesy = false;        // encerra a cortesia (pré-requisito explícito p/ cobrar)
+        sub.courtesyNote = '';
+        sub.status = 'pending';        // aguardando o cliente pagar (não corta acesso, fora do MRR)
+        sub.cancelAtPeriodEnd = false; // limpa cancelamento agendado de um ciclo anterior, se houver
+        await sub.save();
+
+        audit(req, 'billing_start', req.params.id, { plan: effPlan });
+        res.json({ success: true, message: 'Cobrança iniciada — o cliente verá "Pagar agora" no painel dele.', subStatus: 'pending', isCourtesy: false });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
         res.status(500).json({ error: error.message });

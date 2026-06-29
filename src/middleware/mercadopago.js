@@ -61,8 +61,13 @@ async function createCheckoutSession(organizationId, planName, paymentData = nul
     let sub = await Subscription.findOne({ organizationId });
     if (!sub) sub = new Subscription({ organizationId, plan: 'free' });
     sub.pendingPlan = planName;
-    // Registra o plano ANTES da troca (reservado p/ Fase 2 — reverter pro plano anterior).
-    sub.previousPlan = sub.plan;
+    // previousPlan = plano pago para o qual reverter ao DESISTIR de um upgrade. Só faz sentido
+    // quando havia uma assinatura paga VIVA antes deste checkout; um free/cortesia/pending vira
+    // 'free' = 1ª compra (elegível ao reembolso integral do CDC Art. 49). Sem isto, uma conta
+    // ex-cortesia sentada num plano pago (label, sem pagar) teria previousPlan=<plano> no 1º
+    // pagamento real e perderia indevidamente o arrependimento da 1ª compra.
+    const eraPaganteVivo = !!sub.mpPreapprovalId && sub.status === 'active' && !sub.isCourtesy;
+    sub.previousPlan = eraPaganteVivo ? sub.plan : 'free';
     // Novo checkout = re-assinatura EXPLÍCITA → libera a ativação (zera a marca anti-ressurreição
     // de um estorno anterior). Sem isto, o webHook 'authorized' da nova assinatura seria ignorado.
     sub.revertedAt = null;

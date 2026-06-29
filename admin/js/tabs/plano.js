@@ -179,6 +179,9 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const uso     = subscription.usage;
   const planoKey = subscription.plan;
   const isCortesia = !!subscription.isCourtesy;
+  // Cobrança iniciada pelo super-admin (saiu da cortesia / conversão): plano pago, sem
+  // assinatura viva ainda → mostra o CTA "Pagar agora" pra ativar o pagamento do plano atual.
+  const aguardandoPagamento = subscription.status === 'pending' && planoKey !== 'free' && !isCortesia;
   // Preço personalizado da org (centavos) — sobrescreve o preço do catálogo na exibição.
   const customCents = subscription.customPriceCents > 0 ? subscription.customPriceCents : null;
   // Limite efetivo de storage = base do plano + adicional recorrente (vem pronto do backend).
@@ -301,6 +304,16 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
     <div style="display:flex; flex-direction:column; gap:2rem; max-width:900px;">
       <h2 style="font-size:1.5rem; font-weight:700; color:var(--ad-text); margin:0;">Seu Plano</h2>
 
+      ${aguardandoPagamento ? `
+      <!-- Cobrança pendente (super-admin iniciou a cobrança): CTA pra ativar o pagamento -->
+      <div style="padding:1.25rem 1.5rem; background:color-mix(in srgb, var(--ad-yellow) 12%, var(--ad-bg-surface)); border:1px solid color-mix(in srgb, var(--ad-yellow) 45%, transparent); border-radius:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <p style="font-weight:700; color:var(--ad-text); margin:0 0 0.25rem;">Ative o pagamento do seu plano ${planDetails.name}</p>
+          <p style="font-size:0.85rem; color:var(--ad-text); opacity:0.75; margin:0;">Sua conta está com a cobrança pendente. Cadastre seu cartão para manter o acesso completo${customCents ? ` por R$ ${(customCents / 100).toFixed(2)}/mês` : (planDetails.price ? ` por R$ ${(planDetails.price / 100).toFixed(2)}/mês` : '')}.</p>
+        </div>
+        <button id="payNowBtn" style="background:var(--ad-accent); color:var(--ad-bg-base); border:none; padding:0.6rem 1.25rem; border-radius:0.375rem; cursor:pointer; font-size:0.9rem; font-weight:700; white-space:nowrap;">Pagar agora</button>
+      </div>` : ''}
+
       <!-- Plano atual + uso -->
       <div style="background:var(--ad-bg-surface); padding:1.75rem; border-radius:0.5rem; border:2px solid var(--ad-accent);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
@@ -389,6 +402,39 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
   const verBtn2 = container.querySelector('#verPlansBtn2');
   if (verBtn2) {
     verBtn2.onclick = () => container.querySelector('#planosSection')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // "Pagar agora" (cobrança pendente): assina o PLANO ATUAL. Como não há assinatura viva
+  // (status pending, sem mpPreapprovalId), é o caminho de assinatura nova → CardForm in-page;
+  // sem Public Key, cai no checkout hospedado legado. Espelha o ramo "ASSINATURA NOVA" abaixo.
+  const payNowBtn = container.querySelector('#payNowBtn');
+  if (payNowBtn) {
+    payNowBtn.onclick = async () => {
+      const planObj = plans[planoKey] || {};
+      const cents = customCents || planObj.price || 0;
+      if (mpPublicKey) {
+        await openCardCheckout({
+          plan: planoKey,
+          planName: planObj.name || planDetails.name || 'plano',
+          amountReais: cents / 100,
+          publicKey: mpPublicKey,
+          ownerEmail,
+          onDone: () => renderPlano(container),
+        });
+        return;
+      }
+      payNowBtn.textContent = 'Aguarde...';
+      payNowBtn.disabled = true;
+      try {
+        const { checkoutUrl } = await apiPost('/api/billing/checkout', { plan: planoKey });
+        if (checkoutUrl) window.location.href = checkoutUrl;
+        else { window.showToast('Não foi possível iniciar o checkout.', 'error'); payNowBtn.textContent = 'Pagar agora'; payNowBtn.disabled = false; }
+      } catch (error) {
+        window.showToast('Erro: ' + error.message, 'error');
+        payNowBtn.textContent = 'Pagar agora';
+        payNowBtn.disabled = false;
+      }
+    };
   }
 
   // Cortesia querendo trocar de plano: explica a fronteira (encerra a cortesia)

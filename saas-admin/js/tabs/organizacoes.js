@@ -405,7 +405,7 @@ const AUDIT_LABEL = {
   limits_change: 'Alterou limites custom', courtesy_change: 'Alterou cortesia', site_reset: 'Resetou seção do site',
   custom_price_change: 'Alterou preço personalizado',
   storage_addon_change: 'Alterou storage adicional',
-  grace_change: 'Alterou prazo de regularização',
+  grace_change: 'Alterou prazo de regularização', billing_start: 'Iniciou cobrança',
   plan_limits_change: 'Alterou limites globais', impersonate: 'Entrou como a org'
 };
 
@@ -627,6 +627,18 @@ async function renderPanelOverview(content) {
       <button id="panelSaveCourtesy" style="margin-top:0.6rem; background:#10b981; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Salvar cortesia</button>
       `}
 
+      <!-- Início de cobrança: sai da cortesia / converte conta existente → status pending → CTA "Pagar agora" no painel do cliente -->
+      ${org.plan === 'free' ? '' : (stats.mpActive
+        ? `<div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;"><p style="margin:0; font-size:0.78rem; color:#6ee7b7;">✅ Assinatura ativa no Mercado Pago — cobrança em dia.</p></div>`
+        : `<div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
+        <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Início de cobrança</label>
+        ${stats.isProtected
+          ? `<p style="margin:0; font-size:0.75rem; color:#93c5fd;">🛡️ Conta protegida — não entra em cobrança automática. Remova a proteção antes de cobrar.</p>`
+          : `${stats.subStatus === 'pending' ? `<p style="margin:0 0 0.45rem; font-size:0.78rem; color:#fde68a;">⏳ Aguardando pagamento — o cliente vê <strong>"Pagar agora"</strong> no painel dele.</p>` : ''}
+        <button id="panelStartBilling" style="background:#0369a1; color:#fff; border:none; border-radius:0.25rem; padding:0.375rem 1rem; font-size:0.8rem; font-weight:600; cursor:pointer;">${stats.subStatus === 'pending' ? 'Reenviar cobrança' : 'Iniciar cobrança'}</button>
+        <p style="font-size:0.7rem; color:#64748b; margin:0.4rem 0 0;">Encerra a cortesia (se houver) e marca a conta como <strong>aguardando pagamento</strong>. Nada é cobrado agora — o cliente paga pelo painel dele. Não corta o acesso.</p>`}
+      </div>`)}
+
       <div style="margin-top:1rem; padding-top:0.85rem; border-top:1px solid #334155;">
         <label style="display:block; font-size:0.72rem; color:#94a3b8; margin-bottom:0.3rem;">Preço personalizado (R$/mês)</label>
         <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -739,6 +751,28 @@ async function renderPanelOverview(content) {
     } finally {
       btn.textContent = 'Salvar cortesia';
       btn.disabled = false;
+    }
+  };
+
+  // Iniciar/reenviar cobrança: encerra a cortesia e marca pending → CTA "Pagar agora" no cliente.
+  const startBillingBtn = content.querySelector('#panelStartBilling');
+  if (startBillingBtn) startBillingBtn.onclick = async () => {
+    const ok = await saasConfirm(
+      `Iniciar a cobrança de "${org.name}"? Encerra a cortesia (se houver) e marca a conta como aguardando pagamento — o cliente verá "Pagar agora" no painel dele. Nada é cobrado agora.`,
+      { title: 'Iniciar cobrança', confirmText: 'Iniciar cobrança' }
+    );
+    if (!ok) return;
+    const txt = startBillingBtn.textContent;
+    startBillingBtn.disabled = true;
+    startBillingBtn.textContent = '...';
+    try {
+      await apiRequest('PUT', `/api/admin/organizations/${currentPanelOrgId}/start-billing`, {});
+      saasToast('Cobrança iniciada — o cliente verá "Pagar agora".', 'success');
+      loadPanelTab('overview');
+    } catch (err) {
+      saasToast('Erro: ' + err.message, 'error');
+      startBillingBtn.disabled = false;
+      startBillingBtn.textContent = txt;
     }
   };
 
