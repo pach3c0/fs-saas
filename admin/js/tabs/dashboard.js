@@ -290,6 +290,10 @@ async function loadDashboardData(container) {
 }
 
 function renderOnboardingChecklist(container, steps) {
+    // Guia "Comece por aqui" desligado a pedido do dono (2026-06-29): ele vai elaborar
+    // outro onboarding depois. Pra reativar, basta remover este return.
+    return;
+
     const target = container.querySelector('#onboarding-container');
     if (!target) return;
 
