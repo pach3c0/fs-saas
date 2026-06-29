@@ -477,14 +477,9 @@ function renderBanners(banners) {
 
     const styles = `
         <style>
-            .banners-section {
-                width: 100%;
-                position: relative;
-            }
-            .banners-wrapper {
-                position: relative;
-                width: 100%;
-            }
+            /* ── Banners de parceiros: cards horizontais com painel escuro + CTA (estilo "promo") ── */
+            .banners-section { width: 100%; position: relative; margin-bottom: 0.25rem; }
+            .banners-wrapper { position: relative; width: 100%; }
             .banners-scroll-container {
                 display: flex;
                 gap: 1rem;
@@ -493,61 +488,101 @@ function renderBanners(banners) {
                 scroll-behavior: smooth;
                 -ms-overflow-style: none;
                 scrollbar-width: none;
+                padding-bottom: 2px;
             }
-            .banners-scroll-container::-webkit-scrollbar {
-                display: none;
-            }
+            .banners-scroll-container::-webkit-scrollbar { display: none; }
+
             .banner-card {
                 flex: 0 0 100%;
                 scroll-snap-align: start;
-                border-radius: 10px;
-                overflow: hidden;
-                display: block;
-                border: 1px solid var(--border);
-                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-                background: var(--bg-surface);
-                text-decoration: none;
-                color: inherit;
-            }
-            .banner-card:hover {
-                transform: translateY(-2px);
-                border-color: var(--accent);
-                box-shadow: 0 6px 12px rgba(0,0,0,0.08);
-            }
-            .banner-image {
-                width: 100%;
-                aspect-ratio: 16 / 9;
-                overflow: hidden;
-            }
-            .banner-image img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: block;
-            }
-            .banner-desc {
-                padding: 0.75rem 1rem;
-                font-size: 0.8125rem;
-                color: var(--text-secondary);
-                line-height: 1.4;
-                font-family: 'Inter', sans-serif;
-            }
-            .banner-desc h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-primary); }
-            .banner-desc h4 { margin: 0 0 0.4rem 0; font-size: 0.95rem; color: var(--text-primary); }
-            .banner-desc p { margin: 0 0 0.5rem 0; }
-            .banner-desc p:last-child { margin: 0; }
-            .banner-desc ul { margin: 0 0 0.5rem 1.2rem; padding: 0; }
-            .banner-desc b, .banner-desc strong { font-weight: 600; color: var(--text-primary); }
-            .banners-dots {
+                position: relative;
                 display: flex;
+                align-items: stretch;
+                min-height: 150px;
+                border-radius: 16px;
+                overflow: hidden;
+                text-decoration: none;
+                color: #fff;
+                /* base escura + brilho verde à esquerda (independe do tema, igual referência) */
+                background:
+                    radial-gradient(135% 140% at 0% 50%, rgba(63,185,80,0.30) 0%, rgba(63,185,80,0.07) 34%, transparent 62%),
+                    linear-gradient(120deg, #16211b 0%, #11161c 46%, #0b0e13 100%);
+                border: 1px solid rgba(255,255,255,0.07);
+                box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .banner-card.is-clickable { cursor: pointer; }
+            .banner-card.is-clickable:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 16px 32px rgba(0,0,0,0.28);
+            }
+
+            .banner-text {
+                position: relative;
+                z-index: 2;
+                flex: 1 1 58%;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
                 justify-content: center;
                 gap: 0.4rem;
-                margin-top: 0.625rem;
+                padding: 1.1rem 1.25rem;
+                font-family: 'Inter', sans-serif;
             }
+            .banner-text h3 {
+                margin: 0;
+                font-size: 1.05rem;
+                font-weight: 800;
+                line-height: 1.2;
+                letter-spacing: -0.01em;
+                color: #fff;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .banner-text p {
+                margin: 0;
+                font-size: 0.8rem;
+                line-height: 1.45;
+                color: rgba(255,255,255,0.72);
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .banner-cta {
+                margin-top: 0.35rem;
+                align-self: flex-start;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                background: #3fb950;
+                color: #06120a;
+                font-weight: 700;
+                font-size: 0.78rem;
+                padding: 0.42rem 0.85rem;
+                border-radius: 9999px;
+                transition: background 0.15s;
+            }
+            .banner-card.is-clickable:hover .banner-cta { background: #4ad15c; }
+
+            .banner-media { position: relative; flex: 0 0 42%; min-width: 0; align-self: stretch; }
+            .banner-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            /* funde a imagem no painel escuro pela borda esquerda */
+            .banner-media::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                pointer-events: none;
+                background: linear-gradient(90deg, #0b0e13 0%, rgba(11,14,19,0.55) 24%, transparent 64%);
+            }
+
+            .banners-dots { display: flex; justify-content: center; gap: 0.4rem; margin-top: 0.625rem; }
             .banner-dot {
-                width: 6px;
-                height: 6px;
+                width: 7px;
+                height: 7px;
                 border-radius: 50%;
                 background: var(--border);
                 border: none;
@@ -555,29 +590,25 @@ function renderBanners(banners) {
                 padding: 0;
                 transition: background 0.2s, transform 0.2s;
             }
-            .banner-dot.active {
-                background: var(--accent);
-                transform: scale(1.2);
-            }
+            .banner-dot.active { background: var(--accent); transform: scale(1.25); }
+
             @media (min-width: 768px) {
-                .banners-section {
-                    max-width: 66.667%;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-                .banner-card {
-                    flex: 0 0 calc(25% - 0.75rem);
-                }
+                .banner-card { flex: 0 0 calc(33.333% - 0.667rem); }
+            }
+            @media (max-width: 767px) {
+                .banner-card { min-height: 132px; }
+                .banner-text h3 { font-size: 0.98rem; }
+                .banner-text { padding: 0.9rem 1rem; }
             }
         </style>
     `;
 
     const isMobile = window.innerWidth < 768;
-    const itemsPerPage = isMobile ? 1 : 4;
+    const itemsPerPage = isMobile ? 1 : 3;
     const numPages = Math.ceil(banners.length / itemsPerPage);
 
     let dotsHtml = '';
-    if (banners.length > 4 || (isMobile && banners.length > 1)) {
+    if (banners.length > itemsPerPage || (isMobile && banners.length > 1)) {
         dotsHtml = `
             <div class="banners-dots">
                 ${Array(numPages).fill(0).map((_, idx) => `
@@ -590,25 +621,51 @@ function renderBanners(banners) {
     const cardsHtml = banners.map(banner => {
         const isClickable = !!banner.linkUrl;
         let tag = 'div';
-        let linkAttr = 'style="cursor:default;"';
-        
+        let linkAttr = '';
+
         if (isClickable) {
             const isInternal = banner.linkUrl.startsWith('#');
             if (isInternal) {
                 const tabTarget = banner.linkUrl.substring(1);
-                linkAttr = `onclick="switchTab('${esc(tabTarget)}')" style="cursor:pointer;"`;
+                linkAttr = `onclick="switchTab('${esc(tabTarget)}')"`;
             } else {
                 tag = 'a';
-                linkAttr = `href="${esc(banner.linkUrl)}" target="_blank" style="cursor:pointer;"`;
+                linkAttr = `href="${esc(banner.linkUrl)}" target="_blank" rel="noopener"`;
             }
         }
-        
+
+        // Título da headline: usa o title; se vazio, cai no 1º heading da descrição.
+        let headlineRaw = String(banner.title || '').trim();
+        if (!headlineRaw) {
+            const m = String(banner.description || '').match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i);
+            if (m) headlineRaw = m[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+        const headline = esc(headlineRaw);
+
+        // Excerpt limpo: remove headings (evita duplicar o título) e qualquer HTML/inline-style
+        // colado pelo superadmin (era a causa dos "retângulos pretos" atrás do texto).
+        const excerptRaw = String(banner.description || '')
+            .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, ' ')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const excerpt = excerptRaw ? `<p>${esc(excerptRaw)}</p>` : '';
+
+        const cta = isClickable
+            ? `<span class="banner-cta">Saiba mais<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>`
+            : '';
+
         return `
-            <${tag} ${linkAttr} class="banner-card" title="${esc(banner.title)}">
-                <div class="banner-image">
-                    <img src="${esc(banner.imageUrl)}" alt="${esc(banner.title)}" loading="lazy">
+            <${tag} ${linkAttr} class="banner-card${isClickable ? ' is-clickable' : ''}" title="${headline}">
+                <div class="banner-text">
+                    ${headline ? `<h3>${headline}</h3>` : ''}
+                    ${excerpt}
+                    ${cta}
                 </div>
-                ${banner.description ? `<div class="banner-desc">${banner.description}</div>` : ''}
+                <div class="banner-media">
+                    <img src="${esc(banner.imageUrl)}" alt="${headline}" loading="lazy">
+                </div>
             </${tag}>
         `;
     }).join('');
