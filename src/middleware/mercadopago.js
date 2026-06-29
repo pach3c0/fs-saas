@@ -615,6 +615,64 @@ async function refundPayment(paymentId, idempotencyKey) {
     return resp.json();
 }
 
+// Helper de centavos p/ comparar valores de dinheiro sem erro de ponto-flutuante.
+const _cents = (v) => Math.round(Number(v) * 100);
+
+// Procura no MP a fatura de assinatura DESTA org elegível a estorno de arrependimento — rede de
+// segurança quando o refund (CDC Art. 49) dispara ANTES do webhook gravar o firstPaymentId (a 1ª
+// fatura caiu no intervalo cobrar→cancelar). NÃO confia só no external_reference (faturas
+// recorrentes podem não carregá-lo, e ele não garante que o pagamento é DESTA assinatura):
+//   • casa external_reference == orgId puro (faturas de assinatura; extra-fotos usa 'orgId:sessionId');
+//   • exige status 'approved' e valor IGUAL a expectedAmount (= transaction_amount da PreApproval
+//     desta assinatura) → blinda contra estornar outro produto ou valor diferente do cobrado (CDC Art. 42);
+//   • exige ainda não estornado (nem por nós);
+//   • se houver MAIS DE UM candidato → NÃO adivinha (retorna null → manual): estornar a fatura
+//     errada em produção é irreversível em confiança;
+//   • confirma o candidato único via Payment.get AUTORITATIVO (o resumo da busca pode atrasar/omitir
+//     status/transaction_amount_refunded) antes de devolver.
+// Retorna o payment.id (string) único e confirmado, ou null. Lança só em erro de HTTP da busca.
+async function findRefundablePreapprovalPayment(organizationId, expectedAmount, alreadyRefunded = []) {
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!token) throw new Error('Mercado Pago não configurado.');
+    if (!(Number(expectedAmount) > 0)) return null; // sem valor esperado não há como validar identidade
+    const orgId = String(organizationId);
+    const want = _cents(expectedAmount);
+    const url = `https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=asc`
+        + `&external_reference=${encodeURIComponent(orgId)}&limit=50`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) throw new Error(`MP payments/search org=${orgId}: HTTP ${resp.status}`);
+    const data = await resp.json();
+    const seen = new Set((alreadyRefunded || []).map(String));
+    const results = Array.isArray(data?.results) ? data.results : [];
+    const candidatos = results.filter((p) => {
+        const ref = p?.external_reference != null ? String(p.external_reference) : '';
+        if (ref !== orgId) return false;                              // só fatura de assinatura (sem ':')
+        if (p?.status !== 'approved') return false;                   // aprovado e ainda não estornado
+        if (_cents(p?.transaction_amount) !== want) return false;     // VALOR exato = o da PreApproval
+        if (Number(p?.transaction_amount_refunded || 0) > 0) return false; // já estornado (resumo)
+        if (seen.has(String(p.id))) return false;                     // já tratado por nós
+        return true;
+    });
+    if (candidatos.length === 0) return null;
+    if (candidatos.length > 1) {
+        logger.warn(`[billing] busca de fatura achou ${candidatos.length} candidatos p/ org=${orgId} — não adivinha, conciliação manual`, { orgId });
+        return null;
+    }
+    // Confirmação autoritativa do único candidato (o resumo da busca pode estar defasado).
+    const id = String(candidatos[0].id);
+    try {
+        const p = await new Payment(client).get({ id });
+        if (p?.status !== 'approved') return null;
+        if (_cents(p?.transaction_amount) !== want) return null;
+        if (Number(p?.transaction_amount_refunded || 0) > 0) return null;
+        if (String(p?.external_reference) !== orgId) return null;
+        return id;
+    } catch (e) {
+        logger.warn(`[billing] confirmação do pagamento ${id} falhou — não estorna automático: ${e.message}`, { orgId });
+        return null;
+    }
+}
+
 // Estorno já tratado? Dedup pelo PAGAMENTO FÍSICO (payment.id), não pelo id da notificação:
 // o mesmo estorno chega por vários tópicos com ids de notificação diferentes, mas SEMPRE com o
 // mesmo payment.id. Persiste através de re-assinatura. Sem payId (não resolvido) → processa e
@@ -871,4 +929,4 @@ async function createExtraPhotosPreference(organizationId, sessionId, photosCoun
     return response.init_point;
 }
 
-module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled, refundPayment };
+module.exports = { createCheckoutSession, createExtraPhotosPreference, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval, updatePreapprovalAmount, syncPreapprovalAmount, revertSubscriptionToFree, handleRefundRevert, refundAlreadyHandled, markRefundHandled, refundPayment, findRefundablePreapprovalPayment };

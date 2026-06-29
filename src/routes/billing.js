@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval,
-  refundPayment, revertSubscriptionToFree, markRefundHandled } = require('../middleware/mercadopago');
+  refundPayment, revertSubscriptionToFree, markRefundHandled, findRefundablePreapprovalPayment } = require('../middleware/mercadopago');
 const Subscription = require('../models/Subscription');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
@@ -246,38 +246,85 @@ router.post('/billing/refund', authenticateToken, async (req, res) => {
       return res.status(422).json({ error: 'Fora da janela de arrependimento de 7 dias.', refundWindowEndsAt: elig.refundWindowEndsAt });
     }
 
-    // Idempotência: um refund já em curso não dispara um 2º (o revert zera refundInFlight no fim).
-    if (sub.refundInFlight) return res.status(409).json({ error: 'Reembolso já em processamento.' });
-
     // Gate de AMBIENTE: nunca dispara refund real com token de teste / cobrança desligada / sandbox.
     const prodToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || '').startsWith('APP_USR-');
     const live = process.env.MP_USE_PREAPPROVAL === 'true' && prodToken && !process.env.MP_TEST_PAYER_EMAIL;
 
-    const payId = sub.firstPaymentId; // captura ANTES do revert (que zera o campo)
-
-    // Degradação graciosa: sem o payment.id da 1ª fatura (ex.: checkout hospedado) ou fora do
-    // ambiente live → cancela a recorrência (sem cobranças futuras) + congela, e marca o refund
-    // pra processamento MANUAL no painel MP (como foi o teste do estorno). Não trava o cliente.
-    if (!payId || !live) {
-      if (sub.mpPreapprovalId) {
-        try { await cancelPreapproval(sub.mpPreapprovalId); }
-        catch (e) { req.logger.warn('[billing-refund] cancel da recorrência falhou', { error: e.message }); }
-      }
-      await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund_manual', freeze: true });
-      audit(req, 'refund_manual_pending', sub.organizationId, { reason: !payId ? 'no_first_payment_id' : 'test_env', firstPaymentId: payId || null });
-      return res.json({ success: true, manual: true, message: 'Assinatura cancelada. O reembolso será processado em até alguns dias úteis.' });
+    // Lock ATÔMICO de reembolso (não TOCTOU): aquisição condicional no banco. Dois POST concorrentes
+    // (duplo-clique/retry) — só um seta refundInFlight; o outro recebe 409. A trava é LIBERADA no
+    // finally se o refund NÃO concluir, pra uma falha transiente não prender o cliente fora do
+    // reembolso (CDC Art. 49). No sucesso o revert já zera refundInFlight (reescrever false é inócuo).
+    const acq = await Subscription.updateOne(
+      { _id: sub._id, refundInFlight: { $ne: true } },
+      { $set: { refundInFlight: true } }
+    );
+    if ((acq.modifiedCount ?? acq.nModified ?? 0) !== 1) {
+      return res.status(409).json({ error: 'Reembolso já em processamento.' });
     }
 
-    // Caminho real: marca in-flight ANTES (auto-cura se cair no meio), dispara refund TOTAL
-    // idempotente, reverte pro Free + congela, e fecha o eco do webhook 'refunded' (markRefundHandled).
-    await Subscription.updateOne({ _id: sub._id }, { $set: { refundInFlight: true } });
-    const idemKey = `refund-${sub._id}-${payId}-full`;
-    await refundPayment(payId, idemKey);
-    await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund', freeze: true });
-    await markRefundHandled(sub._id, payId);
-    audit(req, 'refund_issued', sub.organizationId, { paymentId: payId, fromPlan: sub.plan });
-    req.logger.warn('[billing-refund] refund integral emitido', { orgId: String(sub.organizationId), payId });
-    return res.json({ success: true, message: 'Reembolso solicitado. O valor volta para o seu cartão pelo Mercado Pago e sua conta voltou ao plano gratuito.' });
+    let refundConcluido = false;
+    try {
+      let payId = sub.firstPaymentId; // captura ANTES do revert (que zera o campo)
+
+      // Fecha o intervalo cobrar→cancelar: a 1ª fatura pode ter sido cobrada SEM o webhook
+      // authorized_payment ter gravado o firstPaymentId ainda (corrida de poucos segundos). Em
+      // ambiente live, busca no MP a fatura REAL desta org — validando VALOR (= o da PreApproval)
+      // e identidade via GET autoritativo — e usa esse id pra estornar AUTOMÁTICO em vez de deixar
+      // dinheiro de verdade preso. Falha aqui (rede / não-confirmado) degrada pro manual.
+      let buscaFalhou = false;
+      if (live && !payId && sub.mpPreapprovalId) {
+        try {
+          const pa = await getPreapproval(sub.mpPreapprovalId);
+          const expected = pa?.auto_recurring?.transaction_amount;
+          const found = await findRefundablePreapprovalPayment(sub.organizationId, expected, sub.refundedPaymentIds);
+          if (found) {
+            payId = found;
+            req.logger.warn('[billing-refund] fatura localizada no MP via busca (firstPaymentId ausente)', { orgId: String(sub.organizationId), payId });
+          }
+        } catch (e) {
+          buscaFalhou = true;
+          req.logger.warn('[billing-refund] busca de fatura no MP falhou — caindo no manual', { error: e.message });
+        }
+      }
+
+      // Degradação graciosa: sem o payment.id da 1ª fatura (checkout hospedado, nada cobrado de fato,
+      // ou busca não confirmou) ou fora do ambiente live → cancela a recorrência (sem cobranças
+      // futuras) + congela, e marca o refund pra processamento MANUAL no painel MP. Não trava o cliente.
+      if (!payId || !live) {
+        if (sub.mpPreapprovalId) {
+          try { await cancelPreapproval(sub.mpPreapprovalId); }
+          catch (e) { req.logger.warn('[billing-refund] cancel da recorrência falhou', { error: e.message }); }
+        }
+        await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund_manual', freeze: true });
+        // Conciliação: distingue dinheiro PROVAVELMENTE preso (live + tinha recorrência, mas a busca
+        // não confirmou a fatura) de "nada cobrado" — o operador precisa estornar à mão no painel MP
+        // dentro do prazo CDC. Loga alto só no caso que exige ação humana.
+        const reason = !live ? 'test_env' : (buscaFalhou ? 'search_failed' : 'no_first_payment_id');
+        if (live && sub.mpPreapprovalId) {
+          req.logger.warn('[billing-refund] MANUAL — possível R$ preso: estornar no painel MP dentro do prazo CDC', { orgId: String(sub.organizationId), reason });
+        }
+        audit(req, 'refund_manual_pending', sub.organizationId, { reason, firstPaymentId: payId || null });
+        return res.json({ success: true, manual: true, message: 'Assinatura cancelada. O reembolso será processado em até alguns dias úteis.' });
+      }
+
+      // Caminho real: dispara refund TOTAL idempotente; grava o payment.id IMEDIATAMENTE (antes do
+      // revert) pra que o eco do webhook 'refunded' ache no-op mesmo se o revert falhar; reverte pro
+      // Free + congela. idemKey determinística → retry nunca devolve em dobro (CDC Art. 42).
+      const idemKey = `refund-${sub._id}-${payId}-full`;
+      await refundPayment(payId, idemKey);
+      await markRefundHandled(sub._id, payId);
+      await revertSubscriptionToFree(sub, { reason: 'first_purchase_refund', freeze: true });
+      refundConcluido = true;
+      audit(req, 'refund_issued', sub.organizationId, { paymentId: payId, fromPlan: sub.plan });
+      req.logger.warn('[billing-refund] refund integral emitido', { orgId: String(sub.organizationId), payId });
+      return res.json({ success: true, message: 'Reembolso solicitado. O valor volta para o seu cartão pelo Mercado Pago e sua conta voltou ao plano gratuito.' });
+    } finally {
+      // Libera a trava se o refund NÃO concluiu (falha transiente) → permite nova tentativa.
+      // A idempotência segue protegida pela idemKey determinística + refundedPaymentIds.
+      if (!refundConcluido) {
+        await Subscription.updateOne({ _id: sub._id }, { $set: { refundInFlight: false } }).catch(() => {});
+      }
+    }
   } catch (error) {
     req.logger.error('[billing-refund] erro', { error: error.message });
     res.status(500).json({ error: error.message });
