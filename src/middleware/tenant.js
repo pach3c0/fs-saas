@@ -1,4 +1,5 @@
 const Organization = require('../models/Organization');
+const { isCustomDomainServable } = require('../utils/domainAccess');
 
 // Cache simples: Map com TTL de 5 minutos
 const cache = new Map();
@@ -60,7 +61,16 @@ async function resolveTenant(req, res, next) {
 
     // Buscar organização no banco (preview ignora isActive para permitir edição)
     const dbQuery = isPreview ? query : { ...query, isActive: true };
-    const org = await Organization.findOne(dbQuery).lean();
+    let org = await Organization.findOne(dbQuery).lean();
+    // Cerca de plano: domínio próprio resolvido mas plano não permite (Free) → 404.
+    // Não cai no fallback-owner (que serviria dados de outra org). Reversível no re-upgrade.
+    if (org && query.customDomain && !(await isCustomDomainServable(org))) {
+      return res.status(404).json({
+        error: 'Organização não encontrada',
+        query,
+        hint: 'Verifique se o domínio/subdomínio está correto ou se a organização está ativa'
+      });
+    }
     if (!org && query.customDomain) {
       // Fallback para ownerSlug se for domínio customizado não encontrado
       // (evita quebrar o servidor se o DNS apontar mas o domínio não estiver no banco)

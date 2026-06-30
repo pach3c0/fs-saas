@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const { ipKeyGenerator } = rateLimit; // helper que normaliza IPv6 (evita bypass por sub-rede)
 const Organization = require('./models/Organization');
+const { isCustomDomainServable } = require('./utils/domainAccess');
 const logger = require('./utils/logger');
 const { v4: uuidv4 } = require('uuid');
 
@@ -208,6 +209,11 @@ app.get('/', async (req, res) => {
     try {
       const orgExists = await Organization.findOne({ customDomain: host, isActive: true }).select('_id').lean();
       if (orgExists) {
+        // Cerca de plano: domínio próprio só serve se o plano permite (Pro/Studio).
+        // Org rebaixada pro Free → 404 (reversível; subdomínio grátis segue no ar).
+        if (!(await isCustomDomainServable(orgExists))) {
+          return res.status(404).send('Site não encontrado.');
+        }
         return res.redirect(301, '/site');
       }
     } catch (err) {
@@ -269,7 +275,13 @@ app.get('/site', async (req, res) => {
       // 1. Domínio customizado exato
       // 2. Slug candidatos (tenant > subdomain > owner)
       let org = orgs.find(o => o.customDomain === hostname);
-      
+
+      // Cerca de plano: se a org foi resolvida pelo domínio PRÓPRIO e o plano não
+      // permite (Free), não serve o site nesse domínio → 404 (subdomínio segue OK).
+      if (org && !(await isCustomDomainServable(org))) {
+        return res.status(404).send('Site não encontrado.');
+      }
+
       if (!org) {
         const bySlug = Object.fromEntries(orgs.map(o => [o.slug, o]));
         org = slugCandidates.map(s => bySlug[s]).find(Boolean);
