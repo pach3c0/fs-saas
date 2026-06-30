@@ -50,6 +50,17 @@ export function itemLiberado(item, caps) {
   return !!caps[item.cap];
 }
 
+// Plano mínimo que libera cada capability — usado no selo da VITRINE (item bloqueado
+// no menu mostra "🔒 Pro/Studio/Basic" em vez de sumir). Espelha plans.js / GATE_RULES.
+const CAP_PLAN = {
+  crm: 'Basic', aniversario: 'Basic', importacaoMassa: 'Basic',
+  financasEmpresa: 'Pro', tarefasMetas: 'Pro', iaGestao: 'Pro', integracaoAgenda: 'Pro', dominioProprio: 'Pro',
+  financasPessoal: 'Studio', gestaoMista: 'Studio',
+};
+export function planForCap(cap) {
+  return CAP_PLAN[cap] || 'Pro';
+}
+
 export async function renderGestao(container) {
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; height:calc(100vh - 110px);">

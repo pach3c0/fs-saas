@@ -8,7 +8,7 @@ import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
 import { apiGet, apiPut } from './utils/api.js';
-import { GRUPOS, itemLiberado } from './tabs/gestao.js';
+import { GRUPOS, itemLiberado, planForCap } from './tabs/gestao.js';
 
 const tabModules = {};
 let previewOpen = false;
@@ -427,20 +427,31 @@ function renderGestaoMenu() {
   const gestaoMenu = document.getElementById('dropdown-gestao');
   if (!gestaoMenu) return;
   const caps = appState.orgData?.capabilities;
-  // Antes de caps carregar, mostra só itens SEM cerca (base). Evita o flash de itens
-  // pagos no 1º render síncrono do boot (orgData ainda não chegou); os gated entram no
-  // re-render pós-loadOrgSlug. A cerca real continua server-side, independente disto.
-  const grupos = GRUPOS
-    .map(g => ({ grupo: g.grupo, itens: g.itens.filter(item => !item.cap || (caps && itemLiberado(item, caps))) }))
-    .filter(g => g.itens.length > 0);
-  gestaoMenu.innerHTML = grupos.map(g => `
+  const ic = (item) => `<svg class="pop-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${item.icon || ''}</svg>`;
+  // VITRINE "bloqueado-mas-visível": item fora do plano NÃO some — ganha cadeado + selo
+  // do plano que o libera e, ao clicar, leva pra aba Plano (converte no ponto de intenção,
+  // em vez de esperar o usuário ir caçar planos). A cerca real continua server-side: se
+  // chegar na rota mesmo assim, toma 403 → "Ver planos". Enquanto caps não carregou,
+  // renderiza normal (o 403 cobre o Free na janelinha de boot).
+  gestaoMenu.innerHTML = GRUPOS.map(g => `
     <div class="pop-head">${g.grupo}</div>
-    ${g.itens.map(item => `
-      <button class="nav-item dropdown-item" onclick="openGestao('${item.path}')">
-        <svg class="pop-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${item.icon || ''}</svg>
+    ${g.itens.map(item => {
+      const locked = !!(item.cap && caps && !itemLiberado(item, caps));
+      if (locked) {
+        const plano = planForCap(item.cap);
+        return `
+      <button class="nav-item dropdown-item" onclick="openGestaoLocked('${item.path}','${plano}')" title="Disponível no plano ${plano}" style="opacity:.72;">
+        ${ic(item)}
         <span class="dropdown-label">${item.label}</span>
-      </button>
-    `).join('')}
+        <span style="margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--accent); white-space:nowrap;">🔒 ${plano}</span>
+      </button>`;
+      }
+      return `
+      <button class="nav-item dropdown-item" onclick="openGestao('${item.path}')">
+        ${ic(item)}
+        <span class="dropdown-label">${item.label}</span>
+      </button>`;
+    }).join('')}
   `).join('<div class="pop-sep"></div>');
 }
 window.renderGestaoMenu = renderGestaoMenu;
@@ -519,18 +530,19 @@ function setupSearch() {
         }
       }
       
-      // Procura em Gestão (só nos módulos liberados pelo plano). Enquanto caps não
-      // carregou (janela de boot), só busca itens sem cerca — evita abrir um módulo
-      // pago e cair no 403 antes de sabermos o plano.
+      // Procura em Gestão. Item fora do plano NÃO é escondido (vitrine): a busca o leva
+      // ao upgrade em vez de abrir e tomar 403.
       const caps = appState.orgData?.capabilities;
       for (const g of GRUPOS) {
         for (const item of g.itens) {
-          if (item.cap && !(caps && itemLiberado(item, caps))) continue;
-          if (item.label.toLowerCase().includes(val)) {
+          if (!item.label.toLowerCase().includes(val)) continue;
+          if (item.cap && caps && !itemLiberado(item, caps)) {
+            openGestaoLocked(item.path, planForCap(item.cap));
+          } else {
             openGestao(item.path);
-            searchInput.value = '';
-            return;
           }
+          searchInput.value = '';
+          return;
         }
       }
       
@@ -548,6 +560,13 @@ window.openGestao = async function(path) {
       window.__gestaoGoTo(path);
     }
   }
+};
+
+// Item de Gestão fora do plano (vitrine): em vez de abrir (e tomar 403), conduz ao
+// upgrade — leva pra aba Plano com um toast nomeando o plano que libera o recurso.
+window.openGestaoLocked = function(path, plano) {
+  if (window.showToast) window.showToast(`Esse recurso faz parte do plano ${plano}. Veja os planos para liberar.`, 'info');
+  window.switchTab?.('plano');
 };
 
 // Atalhos de teclado globais
