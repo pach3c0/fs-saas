@@ -385,15 +385,6 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         <button id="cancelBtn" style="background:transparent; border:1px solid var(--ad-red); color:var(--ad-red); padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Cancelar Plano</button>
       </div>` : ''}
 
-      ${refund?.canRefund ? `
-      <!-- Arrependimento (CDC Art. 49 — 7 dias): reembolso integral + volta pro Free -->
-      <div style="padding:1rem 1.25rem; background:color-mix(in srgb, var(--ad-red) 8%, transparent); border:1px solid color-mix(in srgb, var(--ad-red) 30%, transparent); border-radius:0.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-        <div>
-          <p style="font-weight:600; color:var(--ad-text); margin:0 0 0.25rem;">Cancelar e pedir reembolso</p>
-          <p style="font-size:0.8rem; color:var(--ad-text); opacity:0.6; margin:0;">Você está no prazo de arrependimento${refund.refundWindowEndsAt ? ` (até ${new Date(refund.refundWindowEndsAt).toLocaleDateString('pt-BR')})` : ''}. Reembolso integral no cartão e sua conta volta ao plano gratuito.</p>
-        </div>
-        <button id="refundBtn" style="background:var(--ad-red); border:1px solid var(--ad-red); color:#fff; padding:0.5rem 1rem; border-radius:0.375rem; cursor:pointer; font-size:0.875rem; font-weight:600;">Cancelar e reembolsar</button>
-      </div>` : ''}
     </div>
   `;
 
@@ -530,16 +521,54 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
     };
   });
 
-  // Cancelar plano
+  // Cancelar assinatura — fluxo de REVELAÇÃO PROGRESSIVA (decisão de produto):
+  // a tela mostra APENAS um botão "Cancelar Plano". O direito de arrependimento (CDC Art. 49,
+  // 7 dias) NÃO fica em vitrine — só é revelado na ETAPA FINAL do cancelamento, e só pra quem
+  // é elegível (1ª compra, dentro da janela). Dentro do prazo o estorno é AUTOMÁTICO; fora do
+  // prazo cai no cancelamento simples (acesso até o fim do período já pago).
+  // NOTA (pendente — back): ramo do UPGRADE ("cancelar tudo × reverter só o upgrade" + reembolso
+  // do delta) ainda não existe — hoje o upgrade é sem pró-rata (não cobra delta), então não há
+  // delta a estornar. Definir o modelo antes de codar esse ramo. Ver memória.
   const cancelBtn = container.querySelector('#cancelBtn');
   if (cancelBtn) {
     cancelBtn.onclick = async () => {
-      // showConfirm (toast.js) usa o 1º arg como MENSAGEM e `title` como cabeçalho.
-      const ok = await window.showConfirm(
-        'Seu plano permanece ativo até o final do período atual. Após isso você voltará para o plano gratuito.',
-        { title: 'Cancelar assinatura?', confirmText: 'Cancelar Plano', cancelText: 'Manter Plano' }
+      // Etapa 1 — intenção, SEM mencionar reembolso (não induz o cliente a "aproveitar").
+      const ok1 = await window.showConfirm(
+        'Tem certeza que deseja cancelar sua assinatura? Você perderá o acesso aos recursos do seu plano.',
+        { title: 'Cancelar assinatura?', confirmText: 'Quero cancelar', cancelText: 'Manter plano' }
       );
-      if (!ok) return;
+      if (!ok1) return;
+
+      // Etapa 2 — só AQUI o arrependimento aparece, e apenas pra quem está no prazo (auto-refund).
+      if (refund?.canRefund) {
+        const ate = refund.refundWindowEndsAt
+          ? ` (até ${new Date(refund.refundWindowEndsAt).toLocaleDateString('pt-BR')})`
+          : '';
+        const ok2 = await window.showConfirm(
+          `Você está dentro do prazo de arrependimento${ate}. O valor pago será reembolsado integralmente no seu cartão, de forma automática, e sua conta volta ao plano gratuito. Os envios de novas fotos e a venda automática ficam congelados até você assinar de novo.`,
+          { title: 'Reembolso disponível', confirmText: 'Cancelar e reembolsar', cancelText: 'Voltar' }
+        );
+        if (!ok2) return;
+        cancelBtn.textContent = 'Processando...';
+        cancelBtn.disabled = true;
+        try {
+          const r = await apiPost('/api/billing/refund', {});
+          window.showToast(r?.message || 'Reembolso processado. Sua conta voltou ao plano gratuito.', 'success');
+          renderPlano(container);
+        } catch (error) {
+          window.showToast('Erro: ' + error.message, 'error');
+          cancelBtn.textContent = 'Cancelar Plano';
+          cancelBtn.disabled = false;
+        }
+        return;
+      }
+
+      // Fora do prazo / não elegível → cancelamento simples (mantém acesso até o fim do período).
+      const ok2 = await window.showConfirm(
+        'Seu plano permanece ativo até o final do período já pago. Depois disso sua conta volta ao plano gratuito.',
+        { title: 'Confirmar cancelamento', confirmText: 'Cancelar plano', cancelText: 'Voltar' }
+      );
+      if (!ok2) return;
       cancelBtn.textContent = 'Cancelando...';
       cancelBtn.disabled = true;
       try {
@@ -550,29 +579,6 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
         window.showToast('Erro: ' + error.message, 'error');
         cancelBtn.textContent = 'Cancelar Plano';
         cancelBtn.disabled = false;
-      }
-    };
-  }
-
-  // Arrependimento (CDC 7 dias): cancela E reembolsa integral, conta volta pro Free na hora.
-  const refundBtn = container.querySelector('#refundBtn');
-  if (refundBtn) {
-    refundBtn.onclick = async () => {
-      const ok = await window.showConfirm(
-        'Você receberá o reembolso integral no seu cartão (pelo Mercado Pago) e sua conta voltará ao plano gratuito imediatamente. Os envios de novas fotos e a venda automática ficam congelados até você assinar de novo. Deseja continuar?',
-        { title: 'Cancelar e reembolsar?', confirmText: 'Sim, reembolsar', cancelText: 'Voltar' }
-      );
-      if (!ok) return;
-      refundBtn.textContent = 'Processando...';
-      refundBtn.disabled = true;
-      try {
-        const r = await apiPost('/api/billing/refund', {});
-        window.showToast(r?.message || 'Reembolso solicitado.', 'success');
-        renderPlano(container);
-      } catch (error) {
-        window.showToast('Erro: ' + error.message, 'error');
-        refundBtn.textContent = 'Cancelar e reembolsar';
-        refundBtn.disabled = false;
       }
     };
   }
