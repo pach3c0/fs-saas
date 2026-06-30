@@ -14,6 +14,7 @@ import { loadSistema } from './tabs/sistema.js';
 import { loadAgente } from './tabs/agente.js';
 import { loadTutorials } from './tabs/tutoriais.js';
 import { loadManual } from './tabs/manual.js';
+import { loadManualOperador } from './tabs/manualOperador.js';
 import { loadBanners } from './tabs/banners.js';
 import { loadAnnouncements } from './tabs/comunicados.js';
 import { loadPlatformUpdates } from './tabs/novidades.js';
@@ -109,6 +110,9 @@ window.switchTab = (tab) => {
   } else if (tab === 'manual') {
     document.getElementById('tabManual').classList.add('active');
     loadManual();
+  } else if (tab === 'manualOperador') {
+    document.getElementById('tabManualOperador').classList.add('active');
+    loadManualOperador();
   } else if (tab === 'banners') {
     document.getElementById('tabBanners').classList.add('active');
     loadBanners();

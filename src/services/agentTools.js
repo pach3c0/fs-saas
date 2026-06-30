@@ -23,6 +23,7 @@ const Ticket = require('../models/Ticket');
 const SchedulerRun = require('../models/SchedulerRun');
 const ManualModule = require('../models/ManualModule');
 const PLANS = require('../models/plans');
+const manualOperador = require('./manualOperador');
 
 const DAY = 24 * 60 * 60 * 1000;
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -525,6 +526,33 @@ const tools = {
       const hits = mods.filter((m) => rx.test(m.label) || rx.test(flatten(m)));
       if (!hits.length) return { modulosDisponiveis, conteudo: [], aviso: `Nada encontrado para "${q}". Veja os módulos disponíveis e tente outro termo.` };
       return { modulosDisponiveis, conteudo: hits.slice(0, 6).map((m) => ({ modulo: m.label, texto: trunc(flatten(m), 2500) })) };
+    }
+  }),
+
+  // ── Manual do Operador (runbook interno do dono — cobrança/Mercado Pago) ──────
+  getManualOperador: tool({
+    description: 'Manual do OPERADOR (runbook interno do dono): como a COBRANÇA da plataforma com o Mercado Pago funciona — assinatura/PreApproval, CardForm, webhooks, flags/variáveis de ambiente, troca de plano, cancelamento, reembolso (CDC 7 dias), estorno/chargeback, cortesia, carência, conciliação de MRR. Consulte SEMPRE antes de explicar qualquer fluxo de billing/cobrança; não invente. É DIFERENTE de searchManual (aquele é o manual do fotógrafo). Sem "section" = lista as seções disponíveis.',
+    inputSchema: z.object({ section: z.string().optional().describe('slug ou termo da seção (ex.: "mercado-pago"); vazio = lista as seções') }),
+    execute: async ({ section }) => {
+      const sections = manualOperador.listSections();
+      if (!sections.length) return { aviso: 'Nenhuma seção do Manual do Operador cadastrada.', secoes: [] };
+      const secoesDisponiveis = sections.map((s) => ({ slug: s.slug, titulo: s.title }));
+      const q = (section || '').trim();
+      if (!q) return { secoesDisponiveis, aviso: 'Informe "section" (slug) para ler o conteúdo de uma seção.' };
+      // casa por slug exato; senão por termo no título
+      const rx = new RegExp(escapeRegex(q), 'i');
+      const match = sections.find((s) => s.slug === q) || sections.find((s) => rx.test(s.title) || rx.test(s.slug));
+      if (!match) return { secoesDisponiveis, conteudo: null, aviso: `Seção "${q}" não encontrada. Veja as seções disponíveis.` };
+      const data = await manualOperador.getSection(match.slug);
+      const full = data?.markdown || '';
+      const LIMIT = 6000;
+      return {
+        secoesDisponiveis,
+        secao: match.title,
+        slug: match.slug,
+        conteudo: trunc(full, LIMIT),
+        truncado: full.length > LIMIT ? `Conteúdo cortado em ${LIMIT} caracteres; peça uma subseção específica se precisar de mais.` : undefined,
+      };
     }
   })
 };

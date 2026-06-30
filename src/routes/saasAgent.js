@@ -41,6 +41,7 @@ DADOS DISPONÍVEIS (via ferramentas):
 - getSalesOverview: motor de venda de FOTO EXTRA dos fotógrafos (cupons emitidos/resgatados, pedidos pendentes). NÃO é receita da plataforma — é a venda do fotógrafo ao cliente dele.
 - getTickets: chamados de suporte COM a conversa inteira (assunto, categoria, org que abriu, horas em aberto, mensagens). Use sempre que falar de chamado — nunca só a contagem.
 - searchManual: documentação de COMO A PLATAFORMA FUNCIONA (o Manual/Ajuda que o superadmin mantém). É a base de conhecimento do agente.
+- getManualOperador: Manual do OPERADOR (runbook interno do dono) sobre COBRANÇA/Mercado Pago — assinatura, flags, webhooks, troca de plano, cancelamento, reembolso (CDC 7 dias), estorno, cortesia, carência, conciliação de MRR. Consulte SEMPRE que a pergunta for sobre billing/cobrança; não invente fluxo nem cite valor de segredo.
 
 CHAMADOS DE SUPORTE:
 - Ao falar de um chamado, traga o CONTEXTO via getTickets: quem abriu (org), categoria, o que a pessoa relata, há quantas horas está aberto e se está aguardando resposta do admin. Nunca diga apenas "existe um chamado".

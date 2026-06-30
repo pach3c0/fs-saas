@@ -20,6 +20,7 @@ const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
 const { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
 const { syncPreapprovalAmount } = require('../middleware/mercadopago');
+const manualOperador = require('../services/manualOperador');
 const { reconcilePaidSubs } = require('../services/mpReconciliation');
 const { isProtectedSlug } = require('../utils/protectedOrgs');
 const plans = require('../models/plans');
@@ -959,6 +960,29 @@ router.get('/admin/manual', authenticateToken, requireSuperadmin, async (req, re
         res.json({ success: true, modules });
     } catch (error) {
         req.logger.error('Erro no SaaS Admin', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ── Manual do Operador (runbook interno, Markdown versionado) ──────────────────
+// Conteúdo SOMENTE do superadmin (flags, estorno, segredos por nome). Distinto do
+// "Manual" acima (ManualModule), que é o manual do fotógrafo. Ver src/docs/manual-operador.
+router.get('/admin/manual-operador', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        res.json({ success: true, sections: manualOperador.listSections() });
+    } catch (error) {
+        req.logger.error('Erro no Manual do Operador', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/admin/manual-operador/:slug', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const section = await manualOperador.getSection(req.params.slug);
+        if (!section) return res.status(404).json({ error: 'Seção não encontrada' });
+        res.json({ success: true, section });
+    } catch (error) {
+        req.logger.error('Erro no Manual do Operador', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

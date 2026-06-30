@@ -11,6 +11,7 @@ const TOOL_LABELS = {
   getBusinessMetrics: 'métricas de negócio', getDomains: 'domínios',
   getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
   getSalesOverview: 'motor de vendas', getTickets: 'chamados', searchManual: 'manual da plataforma',
+  getManualOperador: 'manual do operador',
   proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano',
   proposeReplyTicket: 'preparando resposta do chamado', proposeCreateManualModule: 'preparando módulo de manual'
 };
