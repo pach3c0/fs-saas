@@ -30,6 +30,7 @@ async function apiRequest(method, url, body = null) {
       const error = new Error(body.error || 'Limite do plano atingido');
       error.status = 403;
       error.upgrade = true;
+      error.code = body.code;
       throw error;
     }
     // 403 sem upgrade = acesso negado (token inválido)

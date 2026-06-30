@@ -13,10 +13,14 @@ const path = require('path');
 router.get('/domains/status', authenticateToken, async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId).lean();
+    const baseDomain = (process.env.BASE_DOMAIN || 'cliquezoom.com.br').trim();
     res.json({
       success: true,
       customDomain: org.customDomain || null,
       domainStatus: org.domainStatus,
+      // Endereço gratuito (subdomínio do slug) — sempre ativo, mostrado ao cliente
+      // quando o plano não permite domínio próprio.
+      subdomain: org.slug ? `${org.slug}.${baseDomain}` : null,
       serverIP: process.env.SERVER_IP || '5.189.174.18'
     });
   } catch (error) {
@@ -42,9 +46,12 @@ router.post('/domains', authenticateToken, async (req, res) => {
     try {
       const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
       if (!can(sub, 'dominioProprio')) {
+        // upgrade:true → o wrapper de API do front NÃO desloga (403 sem `upgrade`
+        // é tratado como token inválido); a aba Domínio mostra um modal educado.
         return res.status(403).json({
           error: 'Domínio próprio está disponível a partir do plano Pro.',
           code: 'PLAN_REQUIRED',
+          upgrade: true,
           message: 'Conecte um domínio próprio no plano Pro ou superior. Seu plano atual usa o endereço gratuito (subdomínio CliqueZoom).'
         });
       }

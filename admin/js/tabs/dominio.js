@@ -1,5 +1,10 @@
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 
+// Venda de domínio (concierge "a gente registra pra você") — OCULTA por ora.
+// Feature do futuro; código preservado abaixo (renderRegisterDomainSection etc.).
+// Reativar = trocar para true. Não mencionar a venda em nenhum outro lugar enquanto false.
+const SHOW_DOMAIN_REGISTER = false;
+
 export async function renderDominio(container) {
   container.innerHTML = '<div style="color:var(--text-secondary);">Carregando...</div>';
 
@@ -17,7 +22,7 @@ function renderContent(container, data) {
   container.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:2.5rem;">
 
-      ${renderRegisterDomainSection()}
+      ${SHOW_DOMAIN_REGISTER ? renderRegisterDomainSection() : ''}
 
       <div style="display:flex; flex-direction:column; gap:1.5rem;">
         <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.25rem;">
@@ -38,7 +43,7 @@ function renderContent(container, data) {
     </div>
   `;
 
-  wireRegisterDomain(container);
+  if (SHOW_DOMAIN_REGISTER) wireRegisterDomain(container);
 
   // Event Listeners
   if (customDomain) {
@@ -92,6 +97,21 @@ function renderContent(container, data) {
           await apiPost('/api/domains', { domain });
           renderDominio(container);
         } catch (e) {
+          // Cerca de plano: Free/Basic não cadastram domínio próprio. Em vez de
+          // erro seco (ou logout), um modal educado mostra o endereço atual + upgrade.
+          if (e.upgrade || e.code === 'PLAN_REQUIRED') {
+            const atual = data.subdomain
+              ? `https://${data.subdomain}`
+              : 'seu endereço gratuito CliqueZoom';
+            const irParaPlano = await window.showConfirm?.(
+              `Conectar um domínio próprio é um recurso dos planos <strong>Pro</strong> e <strong>Studio</strong>.<br><br>` +
+              `Seu endereço atual continua ativo e funcionando:<br>` +
+              `<strong style="display:inline-block; margin-top:0.35rem;">${atual}</strong>`,
+              { title: 'Domínio personalizado', confirmText: 'Fazer upgrade', cancelText: 'Agora não' }
+            );
+            if (irParaPlano) window.switchTab?.('plano');
+            return;
+          }
           window.showToast?.('Erro: ' + e.message, 'error');
         }
       };
