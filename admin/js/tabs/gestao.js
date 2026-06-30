@@ -74,9 +74,11 @@ export async function renderGestao(container) {
              padding:32px; background:var(--bg-surface);"></div>
 
         <!-- PRÉVIA (teaser): quando o plano não inclui o módulo, o iframe carrega o módulo
-             REAL (com os dados do fotógrafo) mas o overlay intercepta TODO clique e a faixa
-             convida ao upgrade — "vê mas não mexe". Trava de clique client-side; a defesa
-             dura (sem-escrita) vive na camada (b) do Rhyno. -->
+             REAL (com os dados do fotógrafo) e a faixa convida ao upgrade. A prévia é
+             INTERATIVA: o fotógrafo rola a página e experimenta o módulo (taste), com a
+             faixa fixa como lembrete. O overlay abaixo é o bloqueio "vê mas não mexe" legado
+             (desligado) — num iframe cross-origin ele engole a rolagem, então para travar a
+             ESCRITA de verdade sem matar o scroll a defesa dura vive na camada (b) do Rhyno. -->
         <div id="gestaoPreviewOverlay" style="display:none; position:absolute; inset:0;
              z-index:4; cursor:pointer; background:transparent;"></div>
         <div id="gestaoPreviewBar" style="display:none; position:absolute; bottom:0; left:0; right:0;
@@ -105,15 +107,15 @@ export async function renderGestao(container) {
   const previewCta = container.querySelector('#gestaoPreviewCta');
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
-  // Liga/desliga o modo PRÉVIA: o módulo real fica carregado, mas o overlay captura
-  // todo clique (iframe também recebe pointer-events:none, redundância) e a faixa de
-  // upgrade aparece. Desligar restaura a interação normal.
+  // Liga/desliga o modo PRÉVIA: o módulo real fica carregado e INTERATIVO (o fotógrafo
+  // rola e experimenta), com a faixa de upgrade fixa no rodapé. O overlay de bloqueio
+  // fica desligado — senão o iframe cross-origin não rola. Desligar só esconde a faixa.
   function setPreview(on, requiredPlan) {
     if (on) {
       if (previewPlanEl) previewPlanEl.textContent = requiredPlan || 'Basic';
       previewBar.style.display = 'flex';
-      previewOverlay.style.display = 'block';
-      frame.style.pointerEvents = 'none';
+      previewOverlay.style.display = 'none';
+      frame.style.pointerEvents = '';
     } else {
       previewBar.style.display = 'none';
       previewOverlay.style.display = 'none';
