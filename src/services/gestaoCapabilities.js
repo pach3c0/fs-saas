@@ -13,8 +13,12 @@
 
 const { can } = require('./subscriptionPricing');
 
-// Cada regra: { seg, cap, plan, need? }. `need` (ex.: 'full') força igualdade —
+// Cada regra: { seg, cap, plan, need?, preview? }. `need` (ex.: 'full') força igualdade —
 // usado no `crm`, que vale 'taste' (todos) ou 'full' (Basic+); sem `need` basta truthy.
+// `preview:true` → o módulo fora do plano NÃO toma 403: o gestao.js cunha o SSO e
+// devolve preview:true. O front carrega o módulo REAL (com os dados do fotógrafo) porém
+// NÃO-INTERATIVO + faixa de upgrade — teaser que gera desejo no ponto de intenção.
+// A trava de clique é client-side; a defesa dura (sem-escrita) é a camada (b) no Rhyno.
 //
 // As rotas abaixo foram CONFERIDAS contra as <Route> reais do Rhyno
 // (ERP1/frontend/src/App.tsx) — não confiar só no mapa, que tinha caminhos defasados.
@@ -40,7 +44,7 @@ const GATE_RULES = [
   // ── CRM Central (crm:'full', Basic+) ──
   // '/customers' fica de FORA (crm:'taste' = todos). leads/lead-sources/crm-event-types
   // NÃO são rotas próprias: são seções DENTRO de /crm (CRMCentral) → já cobertas por '/crm'.
-  { seg: '/crm',                    cap: 'crm', need: 'full', plan: 'Basic' }, // cobre /crm e /crm/:id
+  { seg: '/crm',                    cap: 'crm', need: 'full', plan: 'Basic', preview: true }, // /crm e /crm/:id — PRÉVIA (teaser) em vez de 403
   // ── Sem <Route> navegável no Rhyno hoje (IA, Google Agenda, finanças pessoais) ──
   // A feature é widget/escopo, não rota → a camada (a) (cerca por redirect) NÃO alcança;
   // o enforcement real é a camada (b) no Rhyno. Mantidas como placeholder fail-closed:

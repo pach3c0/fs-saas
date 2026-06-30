@@ -456,6 +456,39 @@ function renderGestaoMenu() {
 }
 window.renderGestaoMenu = renderGestaoMenu;
 
+// VITRINE no topbar: os atalhos da Gestão que moram no header (hoje o CRM Central)
+// NÃO somem quando o plano não inclui — ganham um cadeado discreto e ficam NA POSIÇÃO
+// da prod (não migram p/ dentro da Gestão). O clique segue chamando openGestao: o backend
+// devolve uma PRÉVIA (módulo real, não-interativo + faixa de upgrade) em vez de 403.
+// Tarefas/Metas entram aqui depois, no mesmo molde (cap 'tarefasMetas', Pro+).
+function renderTopbarGestaoLocks() {
+  const caps = appState.orgData?.capabilities;
+  if (!caps) return; // ainda carregando — sem cadeado (o backend cobre via prévia/403)
+  const ATALHOS = [
+    { id: 'topbarCrmBtn', cap: 'crm', need: 'full', label: 'CRM Central' },
+  ];
+  for (const a of ATALHOS) {
+    const btn = document.getElementById(a.id);
+    if (!btn) continue;
+    const locked = a.need ? caps[a.cap] !== a.need : !caps[a.cap];
+    let lock = btn.querySelector('.topbar-cap-lock');
+    if (locked) {
+      if (!lock) {
+        lock = document.createElement('span');
+        lock.className = 'topbar-cap-lock';
+        lock.textContent = '🔒';
+        lock.style.cssText = 'margin-left:4px; font-size:10px; line-height:1; opacity:.85;';
+        btn.appendChild(lock);
+      }
+      btn.title = `${a.label} — disponível no plano ${planForCap(a.cap)}`;
+    } else if (lock) {
+      lock.remove();
+      btn.title = a.label;
+    }
+  }
+}
+window.renderTopbarGestaoLocks = renderTopbarGestaoLocks;
+
 // ── Navigation setup ──────────────────────────────────────────────────────
 function setupNavigation() {
   document.querySelectorAll('[data-tab]').forEach(tab => {
@@ -811,8 +844,9 @@ async function loadOrgSlug() {
       const slug = orgData.slug;
       appState.orgData = orgData;
       // Agora que conhecemos as capabilities do plano, re-renderiza o menu de Gestão
-      // escondendo os módulos que o plano não inclui (o menu inicial mostra tudo).
+      // (vitrine: item fora do plano vira cadeado) e o cadeado do atalho CRM no topbar.
       renderGestaoMenu();
+      renderTopbarGestaoLocks();
       if (slug) {
         appState.orgSlug = slug;
         localStorage.setItem('orgSlug', slug);

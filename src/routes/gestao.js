@@ -74,6 +74,34 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
     if (!canAccessRoute(sub, redirect)) {
       const rule = gateForRoute(redirect);
+
+      // PRÉVIA (teaser): módulos marcados `preview` NÃO são barrados — cunha-se o SSO e
+      // devolve-se preview:true. O front carrega o módulo REAL (dados do fotógrafo) porém
+      // NÃO-INTERATIVO + faixa de upgrade (gera desejo no ponto de intenção). A trava de
+      // clique é client-side; a defesa dura (sem-escrita) é a camada (b) no Rhyno.
+      // Ver skills/mapa-cercas-gestao-rhyno-2026-06-30.md.
+      if (rule.preview) {
+        req.logger?.info?.('Gestão: prévia (teaser) de módulo fora do plano', {
+          organizationId: req.user.organizationId,
+          plan: sub?.plan || 'free',
+          redirect,
+          capability: rule.cap,
+          requiredPlan: rule.plan,
+        });
+        const assertion = mintAssertion(email);
+        const url =
+          `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
+          `&embed=1&redirect=${encodeURIComponent(redirect)}`;
+        return res.json({
+          success: true,
+          url,
+          preview: true,
+          capability: rule.cap,
+          requiredPlan: rule.plan,
+        });
+      }
+
+      // Bloqueio duro (demais módulos): 403 → upgrade.
       // Telemetria de cerca: flagra org real batendo no gate (útil pós-deploy p/ detectar
       // fotógrafo vivo em tier inferior que usava o módulo). Não muda o comportamento.
       req.logger?.warn?.('Gestão: cerca de plano bloqueou SSO', {

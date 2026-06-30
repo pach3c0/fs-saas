@@ -72,17 +72,65 @@ export async function renderGestao(container) {
         <div id="gestaoEstado" style="display:none; position:absolute; inset:0;
              align-items:center; justify-content:center; text-align:center;
              padding:32px; background:var(--bg-surface);"></div>
+
+        <!-- PRÉVIA (teaser): quando o plano não inclui o módulo, o iframe carrega o módulo
+             REAL (com os dados do fotógrafo) mas o overlay intercepta TODO clique e a faixa
+             convida ao upgrade — "vê mas não mexe". Trava de clique client-side; a defesa
+             dura (sem-escrita) vive na camada (b) do Rhyno. -->
+        <div id="gestaoPreviewOverlay" style="display:none; position:absolute; inset:0;
+             z-index:4; cursor:pointer; background:transparent;"></div>
+        <div id="gestaoPreviewBar" style="display:none; position:absolute; bottom:0; left:0; right:0;
+             z-index:5; padding:12px 16px; align-items:center; gap:14px;
+             background:color-mix(in srgb, var(--cz-secondary) 16%, var(--bg-surface));
+             border-top:1px solid var(--border);
+             box-shadow:0 -6px 22px color-mix(in srgb, var(--text) 14%, transparent);">
+          <span style="font-size:18px; line-height:1;">🔒</span>
+          <div style="flex:1; min-width:0; font-size:13px; color:var(--text); line-height:1.45;">
+            <strong>Você está vendo uma prévia do CRM Central.</strong>
+            <span style="opacity:.78;"> Dá pra organizar funil, leads e relacionamento aqui — ative o plano <span id="gestaoPreviewPlan">Basic</span> para usar de verdade.</span>
+          </div>
+          <button id="gestaoPreviewCta" style="flex:none; border:0; border-radius:9999px;
+            padding:9px 18px; background:var(--accent); color:var(--bg-base);
+            font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">Liberar agora</button>
+        </div>
       </div>
     </div>
   `;
 
   const frame = container.querySelector('#gestaoFrame');
   const estado = container.querySelector('#gestaoEstado');
+  const previewBar = container.querySelector('#gestaoPreviewBar');
+  const previewOverlay = container.querySelector('#gestaoPreviewOverlay');
+  const previewPlanEl = container.querySelector('#gestaoPreviewPlan');
+  const previewCta = container.querySelector('#gestaoPreviewCta');
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
+
+  // Liga/desliga o modo PRÉVIA: o módulo real fica carregado, mas o overlay captura
+  // todo clique (iframe também recebe pointer-events:none, redundância) e a faixa de
+  // upgrade aparece. Desligar restaura a interação normal.
+  function setPreview(on, requiredPlan) {
+    if (on) {
+      if (previewPlanEl) previewPlanEl.textContent = requiredPlan || 'Basic';
+      previewBar.style.display = 'flex';
+      previewOverlay.style.display = 'block';
+      frame.style.pointerEvents = 'none';
+    } else {
+      previewBar.style.display = 'none';
+      previewOverlay.style.display = 'none';
+      frame.style.pointerEvents = '';
+    }
+  }
+  const irParaPlano = () => { window.switchTab?.('plano'); };
+  previewCta.onclick = irParaPlano;
+  previewOverlay.onclick = () => {
+    if (window.showToast) window.showToast('Esta é uma prévia. Ative o plano para usar o CRM Central.', 'info');
+    irParaPlano();
+  };
 
   // Mostra um painel neutro do CliqueZoom DENTRO da aba — NUNCA a landing/login do ERP.
   // `carregando` mostra um spinner discreto; senão mostra título + mensagem + botão.
   function mostrarEstado({ titulo, msg, carregando = false, acaoLabel = 'Tentar novamente', acaoOnClick = null } = {}) {
+    setPreview(false);
     frame.style.display = 'none';
     estado.style.display = 'flex';
     estado.innerHTML = carregando
@@ -112,6 +160,9 @@ export async function renderGestao(container) {
       const url = resp.url.includes('?') ? `${resp.url}&theme=${theme}` : `${resp.url}?theme=${theme}`;
       estado.style.display = 'none';
       frame.style.display = 'block';
+      // Módulo fora do plano marcado como previewable → backend devolve preview:true:
+      // carrega o módulo real porém não-interativo + faixa de upgrade (teaser).
+      setPreview(!!resp.preview, resp.requiredPlan);
       frame.src = url;
     } catch (err) {
       if (err.status === 403 && err.upgrade) {
