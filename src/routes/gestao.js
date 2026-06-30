@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { canAccessRoute, gateForRoute } = require('../services/gestaoCapabilities');
+const { capabilitiesOf } = require('../services/subscriptionPricing');
 
 // Base do ERP Rhyno (frontend, p/ o iframe). POC: local; prod: https://erp.cliquezoom.com.br
 const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
@@ -24,10 +25,15 @@ async function resolveRhynoEmail(req) {
 }
 
 // Cunha uma asserção curta assinada com o segredo compartilhado (SSO).
-function mintAssertion(email) {
+// `caps` (capabilities efetivas do plano) viaja na asserção para a CAMADA (b): o Rhyno
+// lê e barra a ESCRITA de módulo fora do plano (parede no Salvar). Opcional e INERTE até
+// o Rhyno consumir — uma asserção sem caps mantém o comportamento atual (fail-open).
+function mintAssertion(email, caps) {
   const secret = process.env.SSO_SHARED_SECRET;
   if (!secret) throw new Error('SSO_SHARED_SECRET não configurado');
-  return jwt.sign({ email, iss: 'cliquezoom' }, secret, {
+  const payload = { email, iss: 'cliquezoom' };
+  if (caps) payload.caps = caps;
+  return jwt.sign(payload, secret, {
     algorithm: 'HS256',
     expiresIn: '120s',
   });
@@ -72,6 +78,8 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
     // CERCA (camada a): não cunha SSO para um módulo que o plano não inclui.
     // `can()` trata sub nulo como Free; rota base ('/dashboard' etc.) sempre passa.
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
+    // Caps efetivos do plano — viajam na asserção p/ a camada (b) do Rhyno (parede no Salvar).
+    const caps = capabilitiesOf(sub);
     if (!canAccessRoute(sub, redirect)) {
       const rule = gateForRoute(redirect);
 
@@ -88,7 +96,7 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
           capability: rule.cap,
           requiredPlan: rule.plan,
         });
-        const assertion = mintAssertion(email);
+        const assertion = mintAssertion(email, caps);
         const url =
           `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
           `&embed=1&redirect=${encodeURIComponent(redirect)}`;
@@ -120,7 +128,7 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
       });
     }
 
-    const assertion = mintAssertion(email);
+    const assertion = mintAssertion(email, caps);
     const url =
       `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
       `&embed=1&redirect=${encodeURIComponent(redirect)}`;

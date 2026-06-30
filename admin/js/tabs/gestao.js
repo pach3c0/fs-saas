@@ -107,6 +107,15 @@ export async function renderGestao(container) {
   const previewCta = container.querySelector('#gestaoPreviewCta');
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
 
+  // Ponte de upgrade: a parede da camada (b) no iframe do Rhyno (toast "Ver planos")
+  // pede ao app pai pra abrir a aba Plano. Listener único (dedupe entre re-renders).
+  if (!window.__czPlanoBridge) {
+    window.__czPlanoBridge = true;
+    window.addEventListener('message', (e) => {
+      if (e && e.data && e.data.type === 'cz-open-plano') window.switchTab?.('plano');
+    });
+  }
+
   // Liga/desliga o modo PRÉVIA: o módulo real fica carregado e INTERATIVO (o fotógrafo
   // rola e experimenta), com a faixa de upgrade fixa no rodapé. O overlay de bloqueio
   // fica desligado — senão o iframe cross-origin não rola. Desligar só esconde a faixa.
