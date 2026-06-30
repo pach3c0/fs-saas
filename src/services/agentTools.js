@@ -19,6 +19,8 @@ const PlatformLog = require('../models/PlatformLog');
 const EmailLog = require('../models/EmailLog');
 const AuditLog = require('../models/AuditLog');
 const ActivityEvent = require('../models/ActivityEvent');
+const Client = require('../models/Client');
+const Presence = require('../models/Presence');
 const Ticket = require('../models/Ticket');
 const SchedulerRun = require('../models/SchedulerRun');
 const ManualModule = require('../models/ManualModule');
@@ -237,6 +239,191 @@ const tools = {
       return {
         org: { name: found.name, slug: found.slug },
         events: events.map((e) => ({ at: e.at, type: e.type, meta: e.meta || {} }))
+      };
+    }
+  }),
+
+  // ════════════════════════════════════════════════════════════════════════
+  // CONSULTA AO VIVO (Fase 2) — "qual / quando / quem AGORA" com dado real.
+  // Tira o agente do conceitual (manual) e responde fato atual da org.
+  // Regras: read-only + .lean(); SEMPRE filtra por organizationId (isolamento
+  // multi-tenant); whitelist de campos (NUNCA accessCode, URL/conteúdo de foto
+  // ou comentário privado); cada retorno traz `_fonte` (coleção/id) p/ a IA citar.
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ── Sessões recentes de uma org ───────────────────────────────────────────
+  listSessions: tool({
+    description: 'Sessões recentes de UMA org (mais novas primeiro): título, modo, status da seleção, nº de fotos/participantes e marcos de tempo (criada, código enviado, 1º acesso do cliente, entregue). Use para "qual a última sessão da org X", "sessões em aberto/entregues da org Y". Filtre por modo se precisar. NÃO traz as fotos nem o código de acesso.',
+    inputSchema: z.object({
+      orgSlug: z.string().describe('slug, id ou nome da org'),
+      mode: z.enum(['selection', 'gallery', 'multi_selection', 'multi_instant', 'multi_gallery']).optional().describe('filtrar por modo da sessão'),
+      limit: z.number().int().min(1).max(50).optional()
+    }),
+    execute: async ({ orgSlug, mode, limit = 10 }) => {
+      const found = await resolveOrg(orgSlug);
+      if (!found) return { error: `Org não encontrada: "${orgSlug}"` };
+      const filtro = { organizationId: found._id }; // isolamento multi-tenant
+      if (mode) filtro.mode = mode;
+      const sessions = await Session.find(filtro)
+        .sort({ createdAt: -1 }).limit(limit)
+        .select('name mode selectionStatus createdAt codeSentAt firstAccessAt deliveredAt clientName photos participants')
+        .lean();
+      return {
+        org: { name: found.name, slug: found.slug },
+        _fonte: { colecao: 'Session' },
+        total: sessions.length,
+        sessions: sessions.map((s) => ({
+          id: String(s._id),
+          name: s.name || '(sem título)',
+          mode: s.mode,
+          status: s.selectionStatus,
+          fotos: Array.isArray(s.photos) ? s.photos.length : 0,
+          participantes: Array.isArray(s.participants) ? s.participants.length : 0,
+          clientName: s.clientName || '',
+          createdAt: s.createdAt,
+          codeSentAt: s.codeSentAt || null,
+          firstAccessAt: s.firstAccessAt || null,
+          deliveredAt: s.deliveredAt || null
+        }))
+      };
+    }
+  }),
+
+  // ── Detalhe de UMA sessão (pelo id) ───────────────────────────────────────
+  getSession: tool({
+    description: 'Detalhe de UMA sessão pelo _id (obtido em listSessions/searchActivity): org dona, modo, status, marcos de tempo, nº de fotos/selecionadas, participantes (nome + status, SEM código de acesso). Use para aprofundar numa sessão específica.',
+    inputSchema: z.object({
+      sessionId: z.string().describe('_id da sessão')
+    }),
+    execute: async ({ sessionId }) => {
+      const id = String(sessionId || '').trim();
+      if (!mongoose.Types.ObjectId.isValid(id)) return { error: `sessionId inválido: "${sessionId}"` };
+      const s = await Session.findById(id).populate('organizationId', 'name slug').lean();
+      if (!s) return { error: `Sessão não encontrada: "${sessionId}"` };
+      return {
+        _fonte: { colecao: 'Session', id: String(s._id), at: s.createdAt },
+        org: s.organizationId ? { name: s.organizationId.name, slug: s.organizationId.slug } : null,
+        session: {
+          id: String(s._id),
+          name: s.name || '(sem título)',
+          mode: s.mode,
+          status: s.selectionStatus,
+          fotos: Array.isArray(s.photos) ? s.photos.length : 0,
+          selecionadas: Array.isArray(s.selectedPhotos) ? s.selectedPhotos.length : 0,
+          clientName: s.clientName || '',
+          createdAt: s.createdAt,
+          codeSentAt: s.codeSentAt || null,
+          firstAccessAt: s.firstAccessAt || null,
+          deliveredAt: s.deliveredAt || null,
+          participantes: Array.isArray(s.participants) ? s.participants.map((p) => ({
+            name: p.name || '(anônimo)',
+            status: p.selectionStatus || null,
+            selecionadas: Array.isArray(p.selectedPhotos) ? p.selectedPhotos.length : 0
+          })) : []
+        }
+      };
+    }
+  }),
+
+  // ── Eventos da jornada filtráveis (ActivityEvent) ─────────────────────────
+  searchActivity: tool({
+    description: 'Eventos da JORNADA de uma org (ActivityEvent), filtráveis por tipo e janela de tempo. Use para "o que aconteceu na org X nas últimas 24h", "último cliente que ACESSOU a galeria" (type=client_entered), "downloads recentes" (type=photos_downloaded), "seleções finalizadas" (type=selection_submitted). O nome do cliente que acessou/baixou/selecionou vem em meta.clientName; a sessão em meta.sessionName.',
+    inputSchema: z.object({
+      orgSlug: z.string().describe('slug, id ou nome da org'),
+      type: z.enum([
+        'login', 'session_created', 'photos_uploaded', 'code_sent', 'code_viewed_by_client',
+        'client_entered', 'selection_submitted', 'extra_requested', 'extra_responded',
+        'photos_downloaded', 'session_delivered', 'feature_configured', 'plan_upgraded',
+        'domain_verified', 'support_ticket_created', 'support_ticket_resolved'
+      ]).optional().describe('filtrar por tipo de evento'),
+      hours: z.number().int().min(1).max(2160).optional().describe('janela em horas (sem isto, traz os mais recentes sem corte de tempo)'),
+      limit: z.number().int().min(1).max(50).optional()
+    }),
+    execute: async ({ orgSlug, type, hours, limit = 20 }) => {
+      const found = await resolveOrg(orgSlug);
+      if (!found) return { error: `Org não encontrada: "${orgSlug}"` };
+      const filtro = { organizationId: found._id }; // isolamento multi-tenant
+      if (type) filtro.type = type;
+      if (hours) filtro.at = { $gte: since(hours) };
+      const events = await ActivityEvent.find(filtro).sort({ at: -1 }).limit(limit).lean();
+      return {
+        org: { name: found.name, slug: found.slug },
+        _fonte: { colecao: 'ActivityEvent' },
+        total: events.length,
+        eventos: events.map((e) => ({ id: String(e._id), at: e.at, type: e.type, meta: e.meta || {} }))
+      };
+    }
+  }),
+
+  // ── Clientes do CRM de uma org ────────────────────────────────────────────
+  findClients: tool({
+    description: 'Clientes cadastrados no CRM de uma org (nome, telefone, e-mail e dados de CRM: última interação registrada pelo fotógrafo, lifetimeValue). Busca opcional por nome/telefone/e-mail. ATENÇÃO: "última interação" aqui é o CRM do fotógrafo — para saber quem ACESSOU a galeria, use searchActivity com type=client_entered.',
+    inputSchema: z.object({
+      orgSlug: z.string().describe('slug, id ou nome da org'),
+      q: z.string().optional().describe('parte do nome, telefone ou e-mail do cliente'),
+      limit: z.number().int().min(1).max(50).optional()
+    }),
+    execute: async ({ orgSlug, q, limit = 10 }) => {
+      const found = await resolveOrg(orgSlug);
+      if (!found) return { error: `Org não encontrada: "${orgSlug}"` };
+      const filtro = { organizationId: found._id }; // isolamento multi-tenant
+      if (q) {
+        const rx = { $regex: escapeRegex(q), $options: 'i' };
+        filtro.$or = [{ name: rx }, { phone: rx }, { email: rx }];
+      }
+      const clients = await Client.find(filtro)
+        .sort({ lastEventDate: -1, updatedAt: -1 }).limit(limit)
+        .select('name phone email lastEventType lastEventDate lifetimeValue createdAt')
+        .lean();
+      return {
+        org: { name: found.name, slug: found.slug },
+        _fonte: { colecao: 'Client' },
+        total: clients.length,
+        clientes: clients.map((c) => ({
+          id: String(c._id),
+          name: c.name,
+          phone: c.phone || '',
+          email: c.email || '',
+          ultimaInteracaoCRM: c.lastEventDate || null,
+          ultimoTipoCRM: c.lastEventType || '',
+          lifetimeValue: c.lifetimeValue || 0,
+          createdAt: c.createdAt
+        }))
+      };
+    }
+  }),
+
+  // ── Presença ao vivo (quem está online AGORA) ─────────────────────────────
+  getOnlineNow: tool({
+    description: 'Quem está ONLINE agora (presença efêmera, TTL ~150s — reflete só o momento atual). Sem org = todos; com orgSlug = só aquela org. Mostra papel (fotógrafo/cliente), nome, em que sessão/galeria e aba/módulo. Use para "quem está online agora", "a org X está usando o app neste momento".',
+    inputSchema: z.object({
+      orgSlug: z.string().optional().describe('limitar a uma org (slug, id ou nome)')
+    }),
+    execute: async ({ orgSlug }) => {
+      const filtro = {};
+      let org = null;
+      if (orgSlug) {
+        org = await resolveOrg(orgSlug);
+        if (!org) return { error: `Org não encontrada: "${orgSlug}"` };
+        filtro.organizationId = org._id; // isolamento multi-tenant
+      }
+      const presentes = await Presence.find(filtro)
+        .sort({ lastSeen: -1 }).limit(100)
+        .select('role name sessionName module lastSeen organizationId')
+        .populate('organizationId', 'name slug')
+        .lean();
+      return {
+        _fonte: { colecao: 'Presence', nota: 'efêmero, TTL ~150s — reflete só AGORA' },
+        org: org ? { name: org.name, slug: org.slug } : null,
+        total: presentes.length,
+        online: presentes.map((p) => ({
+          papel: p.role === 'photographer' ? 'fotógrafo' : 'cliente',
+          name: p.name || '',
+          sessao: p.sessionName || '',
+          modulo: p.module || '',
+          lastSeen: p.lastSeen,
+          org: p.organizationId ? { name: p.organizationId.name, slug: p.organizationId.slug } : null
+        }))
       };
     }
   }),

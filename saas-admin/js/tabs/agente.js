@@ -12,6 +12,8 @@ const TOOL_LABELS = {
   getIntegrationsAdoption: 'integrações (GA/Pixel)', getPendingTestimonials: 'depoimentos pendentes',
   getSalesOverview: 'motor de vendas', getTickets: 'chamados', searchManual: 'manual da plataforma',
   getManualOperador: 'manual do operador',
+  listSessions: 'sessões da org', getSession: 'detalhe da sessão', searchActivity: 'eventos da jornada',
+  findClients: 'clientes da org', getOnlineNow: 'quem está online agora',
   proposeApproveOrg: 'preparando aprovação', proposeChangePlan: 'preparando troca de plano',
   proposeReplyTicket: 'preparando resposta do chamado', proposeCreateManualModule: 'preparando módulo de manual'
 };
