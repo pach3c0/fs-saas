@@ -20,6 +20,7 @@ const PlatformConfig = require('../models/PlatformConfig');
 const storage = require('../services/storage');
 const { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits } = require('../services/subscriptionPricing');
 const { syncPreapprovalAmount } = require('../middleware/mercadopago');
+const { reconcilePaidSubs } = require('../services/mpReconciliation');
 const { isProtectedSlug } = require('../utils/protectedOrgs');
 const plans = require('../models/plans');
 
@@ -106,6 +107,24 @@ router.get('/admin/saas/metrics', authenticateToken, requireSuperadmin, async (r
         });
     } catch (error) {
         req.logger.error('Saas Metrics Error', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================================
+// CONCILIAÇÃO MERCADO PAGO — projeção (nossos registros) × recorrente em ficha no MP
+// ============================================================================
+// O /metrics mostra o MRR PROJETADO (o que cada org DEVERIA pagar, do nosso banco) e
+// se mexe na hora num webhook. Aqui, ao vivo e READ-ONLY, lemos a PreApproval de cada
+// assinatura paga viva pra mostrar o valor/status que o Mercado Pago TEM EM FICHA — e
+// sinalizar divergências (MP cancelou, valor dessincronizado, etc.). Não altera /metrics
+// nem escreve nada (no MP ou no banco). "Caixa recebido de fato" = Fase 2 (livro-caixa).
+router.get('/admin/saas/metrics/reconcile', authenticateToken, requireSuperadmin, async (req, res) => {
+    try {
+        const data = await reconcilePaidSubs();
+        res.json(data);
+    } catch (error) {
+        req.logger.error('Saas Reconcile Error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });

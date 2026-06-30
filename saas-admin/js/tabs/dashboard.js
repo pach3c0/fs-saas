@@ -7,7 +7,9 @@ import { loadOrganizations } from './organizacoes.js';
 // ============================================================================
 
 async function loadDashboard() {
-  await Promise.all([loadMetrics(), loadHealth(), loadOrganizations(), loadPlanLimitsConfig(), loadCostMargin()]);
+  // loadReconcile() consulta o MP AO VIVO (mais lento) — roda em paralelo e preenche a
+  // própria seção quando chega. O MRR projetado (loadMetrics) renderiza sem esperar o MP.
+  await Promise.all([loadMetrics(), loadHealth(), loadOrganizations(), loadPlanLimitsConfig(), loadCostMargin(), loadReconcile()]);
 }
 
 // ============================================================================
@@ -284,6 +286,152 @@ async function loadCostMargin() {
       </div>`;
   } catch (err) {
     section.innerHTML = `<div style="color:#f87171; font-size:0.8rem;">Erro ao carregar custo &amp; margem: ${esc(err.message)}</div>`;
+  }
+}
+
+// ============================================================================
+// CONCILIAÇÃO MERCADO PAGO — projeção (nossos registros) × recorrente no MP (ao vivo)
+// ============================================================================
+//
+// O MRR do topo é PROJEÇÃO nossa (o que cada org deveria pagar, do banco). Aqui mostramos,
+// lado a lado, o valor recorrente que o Mercado Pago TEM EM FICHA por assinatura (ao vivo,
+// read-only) e sinalizamos divergências. "Caixa recebido de fato" é Fase 2 (livro-caixa).
+
+const _RECON_TH = 'text-align:left; padding:0.5rem 0.75rem; font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); background:var(--bg-elevated);';
+
+// Cria o container 1x logo após Custo & Margem, sem mexer no HTML do index.
+function _ensureReconcileSection() {
+  let section = document.getElementById('reconcileSection');
+  if (section) return section;
+  section = document.createElement('div');
+  section.id = 'reconcileSection';
+  section.style.margin = '1.5rem 0';
+  const anchor = document.getElementById('costMarginSection');
+  if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(section, anchor.nextSibling);
+  else document.getElementById('metricsGrid')?.parentNode?.appendChild(section);
+  return section;
+}
+
+const _RECON_FLAG = {
+  status_mismatch: { txt: 'MP não cobra',     color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+  amount_mismatch: { txt: 'valor divergente', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  outside_mp:      { txt: 'fora do MP',        color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+  mp_error:        { txt: 'erro ao consultar', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+};
+
+function _reconFlagBadges(flags) {
+  return (flags || []).map(f => {
+    const m = _RECON_FLAG[f]; if (!m) return '';
+    return `<span style="font-size:0.6rem; background:${m.bg}; color:${m.color}; border-radius:4px; padding:0.1rem 0.4rem; margin-left:0.3rem; font-weight:600; white-space:nowrap;">${m.txt}</span>`;
+  }).join('');
+}
+
+// Ordena: divergências primeiro (pra saltar aos olhos), depois fora do MP, depois OK.
+function _reconRank(r) {
+  const f = r.flags || [];
+  if (f.includes('mp_error')) return 0;
+  if (f.includes('status_mismatch')) return 1;
+  if (f.includes('amount_mismatch')) return 2;
+  if (f.includes('outside_mp')) return 3;
+  return 4;
+}
+
+async function loadReconcile() {
+  const section = _ensureReconcileSection();
+  section.innerHTML = `<div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; color:var(--text-muted); font-size:0.8rem;">Conciliando com o Mercado Pago ao vivo…</div>`;
+  try {
+    const d = await apiRequest('GET', '/api/admin/saas/metrics/reconcile');
+
+    // MP não configurado (ex.: dev sem token): aviso amigável, nunca erro.
+    if (!d.mpConfigured) {
+      section.innerHTML = `
+        <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem;">
+          <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary); margin:0 0 0.5rem;">Conciliação Mercado Pago</h3>
+          <p style="margin:0; font-size:0.78rem; color:var(--text-muted);">Mercado Pago não configurado neste ambiente — sem token para consultar. O MRR acima segue valendo como projeção dos nossos registros.</p>
+        </div>`;
+      return;
+    }
+
+    const hora = new Date(d.reconciledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const deltaColor = d.deltaCents >= 0 ? '#34d399' : '#f87171';
+    const deltaSign = d.deltaCents > 0 ? '+' : '';
+    const divergencias = (d.counts?.statusMismatch || 0) + (d.counts?.amountMismatch || 0);
+
+    const linhas = (d.rows || []).slice().sort((a, b) => _reconRank(a) - _reconRank(b)).map(r => {
+      const mpCol = r.outsideMp ? '<span style="color:var(--text-muted);">—</span>'
+        : (r.mpError ? '<span style="color:#f87171;">erro</span>'
+        : _brl(r.mpAmountCents));
+      const statusCol = r.outsideMp ? '<span style="color:var(--text-muted);">fora do MP</span>'
+        : (r.mpError ? '<span style="color:#f87171;">indisponível</span>'
+        : `<span style="color:${r.mpHealthy ? '#34d399' : '#fbbf24'};">${esc(r.mpStatusLabel || r.mpStatus || '')}</span>`);
+      return `
+        <tr>
+          <td style="padding:0.5rem 0.75rem; font-weight:600; color:var(--text-primary);">${esc(r.orgName)}${_reconFlagBadges(r.flags)}</td>
+          <td style="padding:0.5rem 0.75rem; color:var(--text-secondary); text-transform:uppercase; font-size:0.72rem;">${esc(r.plan || '')}</td>
+          <td style="padding:0.5rem 0.75rem; color:var(--text-secondary);">${_brl(r.projectedCents)}</td>
+          <td style="padding:0.5rem 0.75rem; color:var(--text-secondary);">${mpCol}</td>
+          <td style="padding:0.5rem 0.75rem;">${statusCol}</td>
+        </tr>`;
+    }).join('');
+
+    section.innerHTML = `
+      <div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem;">
+
+        <div style="margin-bottom:1rem;">
+          <div style="display:flex; align-items:baseline; gap:0.75rem; flex-wrap:wrap;">
+            <h3 style="font-size:0.9375rem; font-weight:600; color:var(--text-primary); margin:0;">Conciliação Mercado Pago</h3>
+            <span style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">ao vivo · conciliado às ${hora}</span>
+          </div>
+          <p style="margin:0.5rem 0 0; font-size:0.72rem; line-height:1.5; color:var(--text-muted); max-width:60rem;">
+            <strong style="color:var(--text-secondary);">Projeção</strong> = o que os nossos registros dizem que cada org deveria pagar (igual ao MRR do topo).
+            <strong style="color:var(--text-secondary);">Recorrente no MP</strong> = o valor que o Mercado Pago TEM EM FICHA por assinatura, agora.
+            Divergências aparecem destacadas. <strong style="color:var(--text-secondary);">Caixa recebido</strong> (dinheiro que de fato caiu) vem na Fase 2.
+          </p>
+        </div>
+
+        <!-- Totalizadores: projeção × MP recorrente × Δ × (caixa recebido reservado p/ Fase 2) -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Projeção (nossos registros)</div>
+            <div style="font-size:1.375rem; font-weight:700; color:#34d399;">${_brl(d.projectedMrrCents)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">${d.counts?.total || 0} assinatura(s) paga(s)</div>
+          </div>
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Recorrente no MP</div>
+            <div style="font-size:1.375rem; font-weight:700; color:#60a5fa;">${_brl(d.mpRecurringMrrCents)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">só assinaturas ativas no MP</div>
+          </div>
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Δ (MP − projeção)</div>
+            <div style="font-size:1.375rem; font-weight:700; color:${deltaColor};">${deltaSign}${_brl(d.deltaCents)}</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">${divergencias} divergência(s)</div>
+          </div>
+          <div style="background:var(--bg-elevated); border-radius:0.375rem; padding:0.875rem; opacity:0.6;">
+            <div style="font-size:0.6875rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Caixa recebido</div>
+            <div style="font-size:1.375rem; font-weight:700; color:var(--text-muted);">—</div>
+            <div style="font-size:0.625rem; color:var(--text-muted); margin-top:0.125rem;">Fase 2 (livro-caixa)</div>
+          </div>
+        </div>
+
+        <!-- Tabela por org -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.8125rem;">
+            <thead>
+              <tr>
+                <th style="${_RECON_TH}">Organização</th>
+                <th style="${_RECON_TH}">Plano</th>
+                <th style="${_RECON_TH}">Projeção</th>
+                <th style="${_RECON_TH}">MP (recorrente)</th>
+                <th style="${_RECON_TH}">Status no MP</th>
+              </tr>
+            </thead>
+            <tbody>${linhas || `<tr><td colspan="5" style="padding:0.75rem; color:var(--text-muted);">Nenhuma assinatura paga ativa.</td></tr>`}</tbody>
+          </table>
+        </div>
+
+      </div>`;
+  } catch (err) {
+    section.innerHTML = `<div style="background:var(--bg-surface); border:1px solid var(--border); border-radius:0.5rem; padding:1.25rem; color:#f87171; font-size:0.8rem;">Erro ao conciliar com o Mercado Pago: ${esc(err.message)}</div>`;
   }
 }
 
