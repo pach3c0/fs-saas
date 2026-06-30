@@ -22,7 +22,7 @@ function loadMercadoPagoSdk() {
 // chega ao nosso backend. Sem conta MP, sem redirect.
 // NOTA DE TEMA: o cartão do modal é forçado a paleta CLARA (hexcodes), de propósito —
 // os iframes seguros do MP renderizam texto escuro e ficariam invisíveis sobre o tema dark.
-async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerEmail, onDone }) {
+async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerEmail, onDone, firstPurchase = false }) {
   await loadMercadoPagoSdk();
 
   const _inp = 'width:100%; height:42px; box-sizing:border-box; padding:0 0.75rem; border:1px solid #d0d0d5; border-radius:0.5rem; background:#ffffff; color:#1a1a1a; font-size:0.95rem;';
@@ -39,6 +39,14 @@ async function openCardCheckout({ plan, planName, amountReais, publicKey, ownerE
         <button type="button" id="czCardClose" style="background:transparent; border:none; color:#888; font-size:1.6rem; line-height:1; cursor:pointer;">&times;</button>
       </div>
       <p style="font-size:0.8rem; color:#666; margin:0 0 1.25rem;">Mensal recorrente · <strong>R$ ${amountReais.toFixed(2)}/mês</strong>. Dados do cartão protegidos pelo Mercado Pago.</p>
+      <!-- Reassurance SUTIL e factual — só na 1ª assinatura (firstPurchase). É o ÚNICO ponto
+           de aquisição onde a garantia aparece: o cancelamento segue com revelação progressiva
+           (o arrependimento NÃO fica em vitrine pra quem pensa em sair). Hexcodes de propósito:
+           o modal é forçado à paleta CLARA (ver nota no topo). -->
+      ${firstPurchase ? `<div style="display:flex; gap:0.5rem; align-items:flex-start; background:#f3f8f4; border:1px solid #cfe6d4; border-radius:0.5rem; padding:0.6rem 0.75rem; margin:0 0 1.1rem;">
+        <span style="color:#2e7d32; flex:0 0 auto; font-size:0.95rem; line-height:1.25;">✓</span>
+        <span style="font-size:0.78rem; color:#3a3a3a; line-height:1.45;"><strong>7 dias de garantia.</strong> Mudou de ideia nos primeiros 7 dias? É só cancelar — devolvemos o valor integral no seu cartão, automaticamente.</span>
+      </div>` : ''}
       <form id="czCardForm">
         ${_fld('Número do cartão', `<div id="form-checkout__cardNumber" style="${_box}"></div>`)}
         <div style="display:flex; gap:0.75rem;">
@@ -502,6 +510,9 @@ function _render(container, { subscription, planDetails, usage, plans, stripeAti
           publicKey: mpPublicKey,
           ownerEmail,
           onDone: () => renderPlano(container),
+          // Garantia de 7 dias só na 1ª assinatura (Free→pago) — caso que o auto-refund
+          // integral cobre. Upgrade entre pagos cai no ramo jaAssinante acima (sem reassurance).
+          firstPurchase: planoKey === 'free',
         });
         return;
       }
