@@ -86,12 +86,12 @@ export async function renderGestao(container) {
              box-shadow:0 -6px 22px color-mix(in srgb, var(--text) 14%, transparent);">
           <span style="font-size:18px; line-height:1;">🔒</span>
           <div style="flex:1; min-width:0; font-size:13px; color:var(--text); line-height:1.45;">
-            <strong>Você está vendo uma prévia do CRM Central.</strong>
-            <span style="opacity:.78;"> Dá pra organizar funil, leads e relacionamento aqui — ative o plano <span id="gestaoPreviewPlan">Basic</span> para usar de verdade.</span>
+            <strong>Nenhum cliente esquecido.</strong>
+            <span style="opacity:.78;"> Esta é uma prévia da Central de CRM: organize seus leads, acompanhe cada oportunidade pelo funil e faça o follow-up na hora certa. Teste no <span id="gestaoPreviewPlan">Basic</span> por 7 dias — cancele e devolvemos tudo.</span>
           </div>
           <button id="gestaoPreviewCta" style="flex:none; border:0; border-radius:9999px;
             padding:9px 18px; background:var(--accent); color:var(--bg-base);
-            font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">Liberar agora</button>
+            font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">Experimentar 7 dias</button>
         </div>
       </div>
     </div>
@@ -123,7 +123,7 @@ export async function renderGestao(container) {
   const irParaPlano = () => { window.switchTab?.('plano'); };
   previewCta.onclick = irParaPlano;
   previewOverlay.onclick = () => {
-    if (window.showToast) window.showToast('Esta é uma prévia. Ative o plano para usar o CRM Central.', 'info');
+    if (window.showToast) window.showToast('Esta é só uma prévia da Central de CRM. Teste o Basic por 7 dias — se não for pra você, cancele e devolvemos tudo.', 'info');
     irParaPlano();
   };
 

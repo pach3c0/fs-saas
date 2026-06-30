@@ -465,7 +465,8 @@ function renderTopbarGestaoLocks() {
   const caps = appState.orgData?.capabilities;
   if (!caps) return; // ainda carregando — sem cadeado (o backend cobre via prévia/403)
   const ATALHOS = [
-    { id: 'topbarCrmBtn', cap: 'crm', need: 'full', label: 'CRM Central' },
+    { id: 'topbarCrmBtn', cap: 'crm', need: 'full', label: 'Central de CRM',
+      tip: 'Central de CRM: leads, funil e follow-up — teste 7 dias no Basic' },
   ];
   for (const a of ATALHOS) {
     const btn = document.getElementById(a.id);
@@ -480,7 +481,7 @@ function renderTopbarGestaoLocks() {
         lock.style.cssText = 'margin-left:4px; font-size:10px; line-height:1; opacity:.85;';
         btn.appendChild(lock);
       }
-      btn.title = `${a.label} — disponível no plano ${planForCap(a.cap)}`;
+      btn.title = a.tip || `${a.label} — disponível no plano ${planForCap(a.cap)}`;
     } else if (lock) {
       lock.remove();
       btn.title = a.label;
