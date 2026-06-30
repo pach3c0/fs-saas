@@ -52,4 +52,12 @@ function can(sub, capability) {
   return caps[capability];
 }
 
-module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits, can };
+// Mapa COMPLETO de capabilities efetivas de uma assinatura (todas as flags do tier).
+// Usado pela UI (ex.: esconder itens da Gestão por plano) — uma leitura só em vez de
+// N chamadas a `can()`. Org sem assinatura → Free. Cópia rasa (não vaza o objeto de plans.js).
+function capabilitiesOf(sub) {
+  const planId = (sub && plans[sub.plan]) ? sub.plan : 'free';
+  return { ...(plans[planId].capabilities || {}) };
+}
+
+module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits, can, capabilitiesOf };

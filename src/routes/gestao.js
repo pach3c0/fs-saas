@@ -3,6 +3,8 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
+const Subscription = require('../models/Subscription');
+const { canAccessRoute, gateForRoute } = require('../services/gestaoCapabilities');
 
 // Base do ERP Rhyno (frontend, p/ o iframe). POC: local; prod: https://erp.cliquezoom.com.br
 const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
@@ -64,9 +66,33 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
         error: 'Gestão ainda não provisionada',
       });
     }
-    const assertion = mintAssertion(email);
     const redirect =
       typeof req.query.redirect === 'string' ? req.query.redirect : '/dashboard';
+
+    // CERCA (camada a): não cunha SSO para um módulo que o plano não inclui.
+    // `can()` trata sub nulo como Free; rota base ('/dashboard' etc.) sempre passa.
+    const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
+    if (!canAccessRoute(sub, redirect)) {
+      const rule = gateForRoute(redirect);
+      // Telemetria de cerca: flagra org real batendo no gate (útil pós-deploy p/ detectar
+      // fotógrafo vivo em tier inferior que usava o módulo). Não muda o comportamento.
+      req.logger?.warn?.('Gestão: cerca de plano bloqueou SSO', {
+        organizationId: req.user.organizationId,
+        plan: sub?.plan || 'free',
+        redirect,
+        capability: rule.cap,
+        requiredPlan: rule.plan,
+      });
+      return res.status(403).json({
+        success: false,
+        upgrade: true,
+        capability: rule.cap,
+        requiredPlan: rule.plan,
+        error: `Este módulo da Gestão faz parte do plano ${rule.plan} ou superior.`,
+      });
+    }
+
+    const assertion = mintAssertion(email);
     const url =
       `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
       `&embed=1&redirect=${encodeURIComponent(redirect)}`;

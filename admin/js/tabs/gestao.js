@@ -30,14 +30,25 @@ export const GRUPOS = [
   {
     grupo: 'Financeiro',
     itens: [
-      { path: '/financial/receivables',     label: 'Contas a Receber',    icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>' },
-      { path: '/financial/payables',        label: 'Contas a Pagar',      icon: '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>' },
-      { path: '/financial/accounts',        label: 'Contas Financeiras',  icon: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>' },
-      { path: '/financial/categories',      label: 'Categorias DRE',      icon: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>' },
-      { path: '/financial/payment-methods', label: 'Formas de Pagamento', icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>' },
+      { path: '/financial/receivables',     label: 'Contas a Receber',    cap: 'financasEmpresa', icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>' },
+      { path: '/financial/payables',        label: 'Contas a Pagar',      cap: 'financasEmpresa', icon: '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>' },
+      { path: '/financial/accounts',        label: 'Contas Financeiras',  cap: 'financasEmpresa', icon: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>' },
+      { path: '/financial/categories',      label: 'Categorias DRE',      cap: 'financasEmpresa', icon: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>' },
+      { path: '/financial/payment-methods', label: 'Formas de Pagamento', cap: 'financasEmpresa', icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>' },
     ],
   },
 ];
+
+// O item está liberado para o conjunto de capabilities da org?
+// `crm` é especial ('taste'/'full') — hoje nenhum item do GRUPOS usa, mas deixamos
+// genérico para quando "CRM Central" entrar no menu. Sem `cap` = sempre visível.
+// caps ausente (ainda carregando) → não esconde: a cerca real é server-side no gestao.js.
+export function itemLiberado(item, caps) {
+  if (!item || !item.cap) return true;
+  if (!caps) return true;
+  if (item.cap === 'crm') return caps.crm === 'full';
+  return !!caps[item.cap];
+}
 
 export async function renderGestao(container) {
   container.innerHTML = `
@@ -60,7 +71,7 @@ export async function renderGestao(container) {
 
   // Mostra um painel neutro do CliqueZoom DENTRO da aba — NUNCA a landing/login do ERP.
   // `carregando` mostra um spinner discreto; senão mostra título + mensagem + botão.
-  function mostrarEstado({ titulo, msg, carregando = false } = {}) {
+  function mostrarEstado({ titulo, msg, carregando = false, acaoLabel = 'Tentar novamente', acaoOnClick = null } = {}) {
     frame.style.display = 'none';
     estado.style.display = 'flex';
     estado.innerHTML = carregando
@@ -70,10 +81,10 @@ export async function renderGestao(container) {
            <div style="font-size:14px; color:var(--text); opacity:.7; line-height:1.5; margin-bottom:20px;">${msg}</div>
            <button id="gestaoRetry" style="border:0; border-radius:10px; padding:10px 18px;
              background:var(--accent); color:var(--bg-base); font-size:14px;
-             font-weight:600; cursor:pointer;">Tentar novamente</button>
+             font-weight:600; cursor:pointer;">${acaoLabel}</button>
          </div>`;
     const retry = estado.querySelector('#gestaoRetry');
-    if (retry) retry.onclick = () => carregarGestao(ultimoPath);
+    if (retry) retry.onclick = acaoOnClick || (() => carregarGestao(ultimoPath));
   }
 
   let ultimoPath = appState.gestaoInitialPath || '/dashboard';
@@ -92,7 +103,16 @@ export async function renderGestao(container) {
       frame.style.display = 'block';
       frame.src = url;
     } catch (err) {
-      if (err.status === 409) {
+      if (err.status === 403 && err.upgrade) {
+        // Cerca de plano: o módulo pedido não está incluído no plano atual.
+        // Em vez de "tentar de novo" (que repetiria o 403), leva para a aba Plano.
+        mostrarEstado({
+          titulo: 'Recurso de um plano superior',
+          msg: err.message || 'Este módulo da Gestão faz parte de um plano superior. Faça upgrade para liberar o acesso.',
+          acaoLabel: 'Ver planos',
+          acaoOnClick: () => { window.switchTab?.('plano'); },
+        });
+      } else if (err.status === 409) {
         // Org ainda sem tenant Rhyno (provisionamento em andamento ou pendente).
         mostrarEstado({
           titulo: 'Preparando sua Gestão',

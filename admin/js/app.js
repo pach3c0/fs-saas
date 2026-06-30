@@ -8,7 +8,7 @@ import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
 import { apiGet, apiPut } from './utils/api.js';
-import { GRUPOS } from './tabs/gestao.js';
+import { GRUPOS, itemLiberado } from './tabs/gestao.js';
 
 const tabModules = {};
 let previewOpen = false;
@@ -420,6 +420,31 @@ window.builderSetDevice = function (device) {
   builderApplyDevice(device);
 };
 
+// Monta o dropdown de Gestão filtrando os itens pelas capabilities do plano
+// (esconde o que o plano não inclui; grupo sem itens visíveis some). Cosmético —
+// a cerca real é server-side no gestao.js. Re-chamada quando o orgData carrega.
+function renderGestaoMenu() {
+  const gestaoMenu = document.getElementById('dropdown-gestao');
+  if (!gestaoMenu) return;
+  const caps = appState.orgData?.capabilities;
+  // Antes de caps carregar, mostra só itens SEM cerca (base). Evita o flash de itens
+  // pagos no 1º render síncrono do boot (orgData ainda não chegou); os gated entram no
+  // re-render pós-loadOrgSlug. A cerca real continua server-side, independente disto.
+  const grupos = GRUPOS
+    .map(g => ({ grupo: g.grupo, itens: g.itens.filter(item => !item.cap || (caps && itemLiberado(item, caps))) }))
+    .filter(g => g.itens.length > 0);
+  gestaoMenu.innerHTML = grupos.map(g => `
+    <div class="pop-head">${g.grupo}</div>
+    ${g.itens.map(item => `
+      <button class="nav-item dropdown-item" onclick="openGestao('${item.path}')">
+        <svg class="pop-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${item.icon || ''}</svg>
+        <span class="dropdown-label">${item.label}</span>
+      </button>
+    `).join('')}
+  `).join('<div class="pop-sep"></div>');
+}
+window.renderGestaoMenu = renderGestaoMenu;
+
 // ── Navigation setup ──────────────────────────────────────────────────────
 function setupNavigation() {
   document.querySelectorAll('[data-tab]').forEach(tab => {
@@ -433,19 +458,8 @@ function setupNavigation() {
 function setupHeaderDropdowns() {
   const dropdownContainers = document.querySelectorAll('.header-dropdown-container');
   
-  // Popula o dropdown de Gestão dinamicamente
-  const gestaoMenu = document.getElementById('dropdown-gestao');
-  if (gestaoMenu) {
-    gestaoMenu.innerHTML = GRUPOS.map(g => `
-      <div class="pop-head">${g.grupo}</div>
-      ${g.itens.map(item => `
-        <button class="nav-item dropdown-item" onclick="openGestao('${item.path}')">
-          <svg class="pop-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${item.icon || ''}</svg>
-          <span class="dropdown-label">${item.label}</span>
-        </button>
-      `).join('')}
-    `).join('<div class="pop-sep"></div>');
-  }
+  // Popula o dropdown de Gestão (filtrado pelas capabilities do plano).
+  renderGestaoMenu();
 
   // Comportamento de abrir/fechar
   dropdownContainers.forEach(container => {
@@ -505,9 +519,13 @@ function setupSearch() {
         }
       }
       
-      // Procura em Gestão
+      // Procura em Gestão (só nos módulos liberados pelo plano). Enquanto caps não
+      // carregou (janela de boot), só busca itens sem cerca — evita abrir um módulo
+      // pago e cair no 403 antes de sabermos o plano.
+      const caps = appState.orgData?.capabilities;
       for (const g of GRUPOS) {
         for (const item of g.itens) {
+          if (item.cap && !(caps && itemLiberado(item, caps))) continue;
           if (item.label.toLowerCase().includes(val)) {
             openGestao(item.path);
             searchInput.value = '';
@@ -773,6 +791,9 @@ async function loadOrgSlug() {
       const orgData = data.data || data;
       const slug = orgData.slug;
       appState.orgData = orgData;
+      // Agora que conhecemos as capabilities do plano, re-renderiza o menu de Gestão
+      // escondendo os módulos que o plano não inclui (o menu inicial mostra tudo).
+      renderGestaoMenu();
       if (slug) {
         appState.orgSlug = slug;
         localStorage.setItem('orgSlug', slug);

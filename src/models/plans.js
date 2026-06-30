@@ -31,6 +31,9 @@ const plans = {
       financasEmpresa: false,
       financasPessoal: false,
       gestaoMista: false,
+      iaGestao: false,         // agente IA da Gestão (Rhyno) — custo de token (Pro+)
+      integracaoAgenda: false, // integração Google Agenda (Pro+)
+      importacaoMassa: false,  // importar base inteira de outro ERP (Basic+)
       dominioProprio: false,
       selo: true             // selo "powered by CliqueZoom" na galeria
     },
@@ -64,6 +67,9 @@ const plans = {
       financasEmpresa: false,
       financasPessoal: false,
       gestaoMista: false,
+      iaGestao: false,
+      integracaoAgenda: false,
+      importacaoMassa: true,   // Basic+ pode importar base inteira de outro ERP
       dominioProprio: false,
       selo: false
     },
@@ -93,6 +99,9 @@ const plans = {
       financasEmpresa: true,
       financasPessoal: false,
       gestaoMista: false,
+      iaGestao: true,
+      integracaoAgenda: true,
+      importacaoMassa: true,
       dominioProprio: true,
       selo: false
     },
@@ -124,6 +133,9 @@ const plans = {
       financasEmpresa: true,
       financasPessoal: true,
       gestaoMista: true,
+      iaGestao: true,
+      integracaoAgenda: true,
+      importacaoMassa: true,
       dominioProprio: true,
       selo: false
     },

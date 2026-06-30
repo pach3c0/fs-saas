@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
 const PlatformConfig = require('../models/PlatformConfig');
+const Subscription = require('../models/Subscription');
+const { capabilitiesOf } = require('../services/subscriptionPricing');
 const { trackEvent } = require('../utils/activityTracker');
 
 // Sanitiza um mapa de desconto por dia { '7': 10, '3': 15 } — chaves numéricas, valores 0–100.
@@ -25,6 +27,11 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
     if (!org) {
       return res.status(404).json({ success: false, error: 'Organizacao nao encontrada' });
     }
+
+    // Capabilities efetivas (derivadas da Subscription autoritativa, não de org.plan):
+    // o front usa para esconder itens da Gestão que o plano não inclui (cosmético — a
+    // cerca real é server-side no gestao.js).
+    const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
 
     res.json({
       success: true,
@@ -61,6 +68,7 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
         watermarkImageOpacity: org.watermarkImageOpacity,
         watermarkLayers: org.watermarkLayers || [],
         plan: org.plan,
+        capabilities: capabilitiesOf(sub),
         integrations: org.integrations || {}
       }
     });
