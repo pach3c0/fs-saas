@@ -26,4 +26,30 @@ async function getSection(slug) {
   return { slug: entry.slug, title: entry.title, markdown };
 }
 
-module.exports = { listSections, getSection };
+// Busca por CONTEÚDO: varre o markdown de todas as seções e devolve as que casam com
+// o termo (case-insensitive). Usada pela IA como fallback quando o termo não bate no
+// título/slug (ex.: "reembolso", "online agora", "cortesia"). São poucos arquivos
+// pequenos → ler todos a cada busca é barato. Só lê os arquivos do manifesto (mesma
+// guarda anti path-traversal). Retorna [{ slug, title, snippet }] ordenado pelo manifesto.
+async function search(term) {
+  const q = String(term || '').trim().toLowerCase();
+  if (!q) return [];
+  const ordered = [...manifest].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const hits = [];
+  for (const entry of ordered) {
+    let markdown;
+    try {
+      markdown = await fs.readFile(path.join(DOCS_DIR, entry.file), 'utf8');
+    } catch {
+      continue; // arquivo do manifesto ausente → ignora em vez de quebrar a busca
+    }
+    const idx = markdown.toLowerCase().indexOf(q);
+    if (idx === -1) continue;
+    const start = Math.max(0, idx - 80);
+    const snippet = markdown.slice(start, idx + 160).replace(/\s+/g, ' ').trim();
+    hits.push({ slug: entry.slug, title: entry.title, snippet });
+  }
+  return hits;
+}
+
+module.exports = { listSections, getSection, search };

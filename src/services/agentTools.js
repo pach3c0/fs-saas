@@ -529,30 +529,37 @@ const tools = {
     }
   }),
 
-  // ── Manual do Operador (runbook interno do dono — cobrança/Mercado Pago) ──────
+  // ── Manual do Operador (base de conhecimento do OPERADOR sobre TODO o app) ──────
   getManualOperador: tool({
-    description: 'Manual do OPERADOR (runbook interno do dono): como a COBRANÇA da plataforma com o Mercado Pago funciona — assinatura/PreApproval, CardForm, webhooks, flags/variáveis de ambiente, troca de plano, cancelamento, reembolso (CDC 7 dias), estorno/chargeback, cortesia, carência, conciliação de MRR. Consulte SEMPRE antes de explicar qualquer fluxo de billing/cobrança; não invente. É DIFERENTE de searchManual (aquele é o manual do fotógrafo). Sem "section" = lista as seções disponíveis.',
-    inputSchema: z.object({ section: z.string().optional().describe('slug ou termo da seção (ex.: "mercado-pago"); vazio = lista as seções') }),
+    description: 'Base de conhecimento do OPERADOR (manual interno do dono) sobre TODO o app: arquitetura e o MAPA DE PÚBLICOS (o que é da EMPRESA × FOTÓGRAFO × CLIENTE), sessões e os 4 modos de galeria, clientes/CRM (Rhyno), planos/preços/storage, cobrança/Mercado Pago (assinatura, webhooks, reembolso CDC, estorno, cortesia, carência), e jornada/presença/auditoria (a corregedoria). Consulte SEMPRE antes de explicar O QUE É / COMO FUNCIONA / DE QUEM É qualquer parte do app; cite a seção e não invente. É DIFERENTE de searchManual (aquele é o manual do FOTÓGRAFO). Sem "section" = lista as seções; com um termo que não casa no título, faz busca no conteúdo.',
+    inputSchema: z.object({ section: z.string().optional().describe('slug exato (ex.: "sessoes") OU termo a buscar (ex.: "reembolso", "online agora"); vazio = lista as seções') }),
     execute: async ({ section }) => {
       const sections = manualOperador.listSections();
       if (!sections.length) return { aviso: 'Nenhuma seção do Manual do Operador cadastrada.', secoes: [] };
       const secoesDisponiveis = sections.map((s) => ({ slug: s.slug, titulo: s.title }));
       const q = (section || '').trim();
-      if (!q) return { secoesDisponiveis, aviso: 'Informe "section" (slug) para ler o conteúdo de uma seção.' };
-      // casa por slug exato; senão por termo no título
+      if (!q) return { secoesDisponiveis, aviso: 'Escolha uma seção pelo slug, ou passe um termo para eu buscar no conteúdo.' };
+      // 1) casa por slug exato; senão por termo no título/slug
       const rx = new RegExp(escapeRegex(q), 'i');
       const match = sections.find((s) => s.slug === q) || sections.find((s) => rx.test(s.title) || rx.test(s.slug));
-      if (!match) return { secoesDisponiveis, conteudo: null, aviso: `Seção "${q}" não encontrada. Veja as seções disponíveis.` };
-      const data = await manualOperador.getSection(match.slug);
-      const full = data?.markdown || '';
       const LIMIT = 6000;
-      return {
-        secoesDisponiveis,
-        secao: match.title,
-        slug: match.slug,
-        conteudo: trunc(full, LIMIT),
-        truncado: full.length > LIMIT ? `Conteúdo cortado em ${LIMIT} caracteres; peça uma subseção específica se precisar de mais.` : undefined,
+      const lerSecao = async (slug, titulo) => {
+        const data = await manualOperador.getSection(slug);
+        const full = data?.markdown || '';
+        return {
+          secoesDisponiveis,
+          secao: titulo,
+          slug,
+          conteudo: trunc(full, LIMIT),
+          truncado: full.length > LIMIT ? `Conteúdo cortado em ${LIMIT} caracteres; peça uma subseção específica se precisar de mais.` : undefined,
+        };
       };
+      if (match) return lerSecao(match.slug, match.title);
+      // 2) fallback: busca no CONTEÚDO de todas as seções
+      const achados = await manualOperador.search(q);
+      if (!achados.length) return { secoesDisponiveis, conteudo: null, aviso: `Nada encontrado para "${q}" (nem no título nem no conteúdo). Veja as seções disponíveis.` };
+      if (achados.length === 1) return lerSecao(achados[0].slug, achados[0].title); // 1 só → já devolve o conteúdo
+      return { secoesDisponiveis, busca: q, encontradas: achados, aviso: `"${q}" aparece em ${achados.length} seções. Peça uma pelo slug para ler o conteúdo.` };
     }
   })
 };
