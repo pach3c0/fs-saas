@@ -634,6 +634,10 @@ export function renderConfigPanel({ session, onChange, onToggleCollapse, onBlock
     hint: "Protege visualmente as fotos da sessão"
   }));
 
+  panel.appendChild(checkRow('legalNoticeEnabled', session.legalNoticeEnabled !== false, 'Aviso de direitos autorais', {
+    hint: 'Mostra ao cliente, ao abrir a sessão, um aviso de que as imagens são protegidas por lei.'
+  }));
+
   // ===== SELEÇÃO / SELEÇÃO EM GRUPO =====
   // Os dois modos usam pacote + valores de fotos. A diferença: na Seleção individual o
   // packageLimit é o limite do cliente (com lock pós-entrega); no multi ele é o padrão

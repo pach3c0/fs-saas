@@ -1597,6 +1597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!isPolling) {
                 initializeGallery();
+                maybeShowLegalNotice();
             } else {
                 // Se o status ou o pedido de extras mudou, recarrega a galeria
                 const currentExtraStatus = (state.session && state.session.extraRequest) ? state.session.extraRequest.status : null;
@@ -1796,6 +1797,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectAllBtn = document.getElementById('selectAllBtn');
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', toggleSelectAll);
+    }
+
+    // --- Modal de Aviso Legal (direitos autorais) ---
+    // Abre ao carregar a sessão quando legalNoticeEnabled !== false (padrão ON; o fotógrafo
+    // desliga por sessão na sidebar do wizard). De propósito NÃO menciona remoção por
+    // ferramenta/IA — só informa a proteção legal, para não sugerir que a marca é removível.
+    // Backdrop não fecha: o cliente precisa clicar "Li e concordo".
+    function maybeShowLegalNotice() {
+        if (state._legalNoticeShown) return;
+        if (!state.session || state.session.legalNoticeEnabled === false) return;
+        state._legalNoticeShown = true;
+        showLegalNotice();
+    }
+
+    function showLegalNotice() {
+        const existing = document.getElementById('legalNoticeModal');
+        if (existing) { existing.style.display = 'flex'; return; }
+        const orgName = (state.session && state.session.organization && state.session.organization.name) || '';
+        const orgLine = orgName
+            ? `<div style="font-size:0.6875rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6b7280; margin-bottom:0.5rem;">${escapeHtml(orgName)}</div>`
+            : '';
+        const modalHtml = `
+            <div id="legalNoticeModal" style="display:flex; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center; padding:1rem;">
+                <div style="position:absolute; inset:0; background:rgba(0,0,0,0.8);"></div>
+                <div style="position:relative; background:#ffffff; border-radius:1rem; width:100%; max-width:30rem; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
+                    <div style="padding:2rem 1.75rem; text-align:center;">
+                        <div style="width:56px; height:56px; background:#f3f4f6; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; color:#111827; font-size:1.75rem; font-weight:700;">&copy;</div>
+                        ${orgLine}
+                        <h3 style="font-size:1.25rem; font-weight:700; color:#111827; margin-bottom:0.75rem;">Direitos autorais protegidos</h3>
+                        <p style="font-size:0.9375rem; color:#374151; line-height:1.6; margin-bottom:0.75rem;">
+                            As imagens desta galeria são <strong>prévias</strong> e estão protegidas por <strong>direito autoral</strong>. A marca d'água identifica a autoria e <strong>não pode ser removida, recortada, coberta ou alterada</strong>.
+                        </p>
+                        <div style="background:#f9fafb; border:1px solid #eef0f2; border-radius:0.5rem; padding:0.75rem 0.875rem; margin-bottom:1.25rem;">
+                            <p style="font-size:0.75rem; color:#6b7280; line-height:1.55;">
+                                A supressão da marca d'água é vedada pela <strong>Lei nº 9.610/1998</strong> (arts. 24 e 107). Estas prévias servem apenas para você escolher suas fotos e não devem ser publicadas — as imagens finais, sem marca e em alta resolução, são entregues após a contratação.
+                            </p>
+                        </div>
+                        <button id="legalNoticeOkBtn" style="width:100%; padding:0.875rem; background:#111827; color:#fff; border:none; border-radius:0.5rem; font-weight:600; font-size:0.9375rem; cursor:pointer;">Li e concordo</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById('legalNoticeModal');
+        document.getElementById('legalNoticeOkBtn').addEventListener('click', () => { modal.style.display = 'none'; });
     }
 
     // --- Modal de Reabertura ---

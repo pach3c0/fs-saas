@@ -288,6 +288,7 @@ router.post('/client/verify-code', async (req, res) => {
       clientData,
       allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
       allowReopen: session.allowReopen !== false,
+      legalNoticeEnabled: session.legalNoticeEnabled !== false,
       // Enviar dados da organização para o frontend
       organization: session.organizationId ? {
         id: session.organizationId._id,
@@ -507,6 +508,7 @@ router.get('/client/photos/:sessionId', async (req, res) => {
       pricingTable: session.pricingTable || [],
       allowExtraPurchasePostSubmit: session.allowExtraPurchasePostSubmit !== false,
       allowReopen: session.allowReopen !== false,
+      legalNoticeEnabled: session.legalNoticeEnabled !== false,
       deliveredAt: session.deliveredAt || null,
       // Garantir que organization venha também no refresh
       organization: session.organizationId ? {

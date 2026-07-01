@@ -91,6 +91,9 @@ const sessionSchema = new mongoose.Schema({
     photoResolution: { type: Number, enum: [960, 1200, 1400, 1600], default: 1200 }, // Resolucao das thumbs de selecao
     watermark: { type: Boolean, default: true },
     commentsEnabled: { type: Boolean, default: true }, // Exibir botao de comentario na galeria do cliente
+    // Aviso legal (Lei 9.610/98) exibido ao cliente ao abrir a sessão. ON por padrão;
+    // o fotógrafo desliga por sessão na sidebar do wizard. Não menciona remoção/IA de propósito.
+    legalNoticeEnabled: { type: Boolean, default: true },
     canShare: { type: Boolean, default: false },
     customShareEmailIntro: { type: String, default: '' },
     customShareWhatsAppText: { type: String, default: '' },
