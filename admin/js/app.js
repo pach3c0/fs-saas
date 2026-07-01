@@ -8,6 +8,7 @@ import { uploadImage, showUploadProgress } from './utils/upload.js';
 import { startNotificationPolling, stopNotificationPolling, toggleNotifications, markAllNotificationsRead, deleteAllNotifications } from './utils/notifications.js';
 import { showToast, showConfirm } from './utils/toast.js';
 import { apiGet, apiPut } from './utils/api.js';
+import { isStandalone } from './utils/push.js';
 import { GRUPOS, itemLiberado, planForCap } from './tabs/gestao.js';
 
 const tabModules = {};
@@ -764,6 +765,11 @@ async function initApp() {
   ]);
 }
 
+// Celular (não desktop). Combinado com isStandalone() decide se o PWA abre no Radar.
+function _isMobileDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
 async function postLoginSetup() {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'flex';
@@ -776,12 +782,33 @@ async function postLoginSetup() {
     loadSecondaryColor()
   ]);
 
-  // Delay no polling para não competir com o carregamento inicial do dashboard
-  setTimeout(startNotificationPolling, 5000);
-
   // Deep-link do push: se o fotógrafo clicou numa notificação no celular, a URL traz
   // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
   const deep = _consumeDeepLink();
+
+  // PWA instalado NO CELULAR: a "home" do app não é o painel inteiro — é o Radar (tela
+  // mobile dedicada, só de acompanhamento). Entra no radar apenas quando standalone + mobile
+  // E sem deep-link: se o fotógrafo tocou numa notificação específica, honramos o contexto no
+  // painel completo. Import dinâmico → o radar não pesa no desktop. Se algo falhar, cai no fluxo
+  // normal (aditivo, não bloqueia o login).
+  if (isStandalone() && _isMobileDevice() && !deep?.session) {
+    try {
+      document.documentElement.classList.add('radar-mode');
+      const { renderRadar } = await import('./tabs/radar.js');
+      renderRadar(document.getElementById('tabContent'));
+      startPresenceHeartbeat();
+      setTimeout(startNotificationPolling, 5000); // mantém badge/estado caso abra o painel completo
+      showOnboardingNudges();
+      return;
+    } catch (e) {
+      document.documentElement.classList.remove('radar-mode');
+      // segue para o fluxo normal abaixo
+    }
+  }
+
+  // Delay no polling para não competir com o carregamento inicial do dashboard
+  setTimeout(startNotificationPolling, 5000);
+
   const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
   await switchTab(savedTab);
   if (deep?.session) {

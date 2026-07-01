@@ -457,6 +457,16 @@
             padding-top: calc(var(--header-h) + var(--sp-5)) !important;
         }
 
+        /* ── Radar (PWA mobile do fotógrafo) ──────────────────────────────────
+           Aplicado por app.js (classe .radar-mode no <html>) só quando o app está
+           INSTALADO num CELULAR. Esconde a moldura de desktop (topbar) e deixa o
+           #tabContent — onde o radar.js renderiza — ocupar a tela inteira. No
+           desktop nada muda (a classe nunca é aplicada). Respeita o notch (safe-area). */
+        .radar-mode #topbar { display: none !important; }
+        html.radar-mode #main-area #content-panel {
+            padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important;
+        }
+
         /* ── Preview Modal (fullscreen overlay) ── */
         #preview-modal {
             display: none;

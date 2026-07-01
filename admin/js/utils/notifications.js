@@ -7,7 +7,7 @@
 
 import { appState } from '../state.js';
 
-const NOTIF_ICONS = {
+export const NOTIF_ICONS = {
   session_accessed:       '👁️',
   client_online:          '🟢',
   photos_downloaded:      '⬇️',
@@ -255,7 +255,7 @@ export async function deleteAllNotifications() {
   } catch { /* ignore */ }
 }
 
-function _navigate(n) {
+export function _navigate(n) {
   const { sessionId, type, photoId } = n;
   if (type === 'contact' || type === 'depoimento_pendente') {
     window.switchTab?.('mensagens');
@@ -311,7 +311,7 @@ function _errorHtml() {
   return '<p style="color:var(--red); font-size:0.75rem; text-align:center; padding:1rem;">Erro ao carregar</p>';
 }
 
-function _timeAgo(date) {
+export function _timeAgo(date) {
   const diff = Math.floor((Date.now() - date) / 1000);
   if (diff < 60) return 'agora';
   if (diff < 3600) return `${Math.floor(diff / 60)}min`;
@@ -320,7 +320,7 @@ function _timeAgo(date) {
   return date.toLocaleDateString('pt-BR');
 }
 
-function _esc(s) {
+export function _esc(s) {
   return String(s || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 }
 

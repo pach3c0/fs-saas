@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
@@ -1127,6 +1128,122 @@ router.get('/sessions', authenticateToken, async (req, res) => {
     res.json({ sessions });
   } catch (error) {
     req.logger.error('Erro interno', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// RADAR (PWA mobile do fotógrafo): painel de status SÓ-LEITURA das sessões ativas.
+// Agrega o ESTÁGIO de cada cliente/participante a partir do estado já existente (sem
+// escrita, sem efeitos colaterais). Usa aggregate + $size para NÃO trafegar o array de
+// fotos (pode ter milhares) — pensado para poll frequente no celular. Filtrado por
+// organizationId. IMPORTANTE: precede o `/sessions/:id` abaixo, senão `:id` captura "radar".
+router.get('/sessions/radar', authenticateToken, async (req, res) => {
+  try {
+    const orgId = new mongoose.Types.ObjectId(String(req.user.organizationId));
+    const rows = await Session.aggregate([
+      { $match: {
+          organizationId: orgId,
+          isActive: true,
+          // Só sessões acionáveis pelo cliente: têm fotos ou participantes (ignora rascunhos vazios)
+          $or: [ { 'photos.0': { $exists: true } }, { 'participants.0': { $exists: true } } ]
+      } },
+      { $sort: { updatedAt: -1 } },
+      { $limit: 50 },
+      { $project: {
+          name: 1, mode: 1, clientName: 1, packageLimit: 1,
+          selectionStatus: 1, firstAccessAt: 1, deliveredAt: 1,
+          reopenRequested: 1, selectionDeadline: 1, updatedAt: 1,
+          photosCount: { $size: { $ifNull: ['$photos', []] } },
+          selectedCount: { $size: { $ifNull: ['$selectedPhotos', []] } },
+          extraStatus: '$extraRequest.status',
+          participants: {
+            $map: {
+              input: { $ifNull: ['$participants', []] },
+              as: 'p',
+              in: {
+                id: '$$p._id',
+                name: '$$p.name',
+                selectionStatus: '$$p.selectionStatus',
+                selectedCount: { $size: { $ifNull: ['$$p.selectedPhotos', []] } },
+                packageLimit: '$$p.packageLimit',
+                reopenRequested: '$$p.reopenRequested',
+                extraStatus: '$$p.extraRequest.status',
+                deliveredAt: '$$p.deliveredAt'
+              }
+            }
+          }
+      } }
+    ]);
+
+    const isMulti   = m => m === 'multi_selection' || m === 'multi_instant';
+    const isGallery = m => m === 'gallery' || m === 'multi_gallery';
+    // Estágio do cliente na seleção individual (ou visualização na galeria).
+    const indivStage = (s) => {
+      if (isGallery(s.mode)) return s.firstAccessAt ? 'viewing' : 'waiting';
+      switch (s.selectionStatus) {
+        case 'delivered':   return 'delivered';
+        case 'submitted':   return 'submitted';
+        case 'in_progress': return 'choosing';
+        case 'expired':     return 'expired';
+        default:            return s.firstAccessAt ? 'accessed' : 'waiting';
+      }
+    };
+    const partStage = (p) => {
+      switch (p.selectionStatus) {
+        case 'delivered':   return 'delivered';
+        case 'submitted':   return 'submitted';
+        case 'in_progress': return 'choosing';
+        default:            return 'waiting';
+      }
+    };
+
+    const sessions = rows.map(s => {
+      const base = {
+        id: s._id,
+        name: s.name || 'Sessão',
+        mode: s.mode,
+        clientName: s.clientName || '',
+        photosCount: s.photosCount || 0,
+        packageLimit: s.packageLimit || 0,
+        updatedAt: s.updatedAt,
+        deadline: s.selectionDeadline || null
+      };
+      if (isMulti(s.mode) && (s.participants || []).length) {
+        const participants = s.participants.map(p => ({
+          id: p.id,
+          name: p.name || 'Participante',
+          stage: partStage(p),
+          selectedCount: p.selectedCount || 0,
+          packageLimit: p.packageLimit || s.packageLimit || 0,
+          flags: { reopen: !!p.reopenRequested, extraPending: p.extraStatus === 'pending' }
+        }));
+        return {
+          ...base,
+          stage: 'multi',
+          participants,
+          summary: {
+            total: participants.length,
+            choosing:  participants.filter(p => p.stage === 'choosing').length,
+            submitted: participants.filter(p => p.stage === 'submitted').length,
+            delivered: participants.filter(p => p.stage === 'delivered').length
+          },
+          flags: {
+            reopen: participants.some(p => p.flags.reopen),
+            extraPending: participants.some(p => p.flags.extraPending)
+          }
+        };
+      }
+      return {
+        ...base,
+        stage: indivStage(s),
+        selectedCount: s.selectedCount || 0,
+        flags: { reopen: !!s.reopenRequested, extraPending: s.extraStatus === 'pending' }
+      };
+    });
+
+    res.json({ sessions });
+  } catch (error) {
+    req.logger.error('Erro no radar', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
