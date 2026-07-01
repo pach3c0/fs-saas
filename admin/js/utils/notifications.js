@@ -9,6 +9,8 @@ import { appState } from '../state.js';
 
 const NOTIF_ICONS = {
   session_accessed:       '👁️',
+  client_online:          '🟢',
+  photos_downloaded:      '⬇️',
   selection_started:      '🎯',
   selection_submitted:    '✅',
   selection_delivered:    '🎉',

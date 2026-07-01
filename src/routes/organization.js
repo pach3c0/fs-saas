@@ -365,7 +365,7 @@ router.put('/organization/support-access', authenticateToken, async (req, res) =
 // PUT /api/organization/preferences - Atualizar preferências (whitelist + validação por campo)
 router.put('/organization/preferences', authenticateToken, async (req, res) => {
   try {
-    const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications, selectionIcon } = req.body;
+    const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications, selectionIcon, push } = req.body;
     const $set = {};
 
     // Mensagens — strings (limite de tamanho)
@@ -408,13 +408,18 @@ router.put('/organization/preferences', authenticateToken, async (req, res) => {
       $set['preferences.selectionIcon'] = selectionIcon;
     }
 
-    // Preferências de notificação
+    // Preferências de notificação (valem para sino in-app + push)
     if (notifications && typeof notifications === 'object') {
-      for (const key of ['selectionSubmitted', 'extraRequested', 'reopenRequested']) {
+      for (const key of ['selectionSubmitted', 'extraRequested', 'reopenRequested', 'clientOnline', 'photosDownloaded']) {
         if (typeof notifications[key] === 'boolean') {
           $set[`preferences.notifications.${key}`] = notifications[key];
         }
       }
+    }
+
+    // Master switch de Web Push (notificações no celular)
+    if (push && typeof push === 'object' && typeof push.enabled === 'boolean') {
+      $set['preferences.push.enabled'] = push.enabled;
     }
 
     if (Object.keys($set).length === 0) {

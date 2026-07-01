@@ -565,6 +565,7 @@ app.use('/api', require('./routes/saasSystem'));
 app.use('/api', require('./routes/saasAgent'));
 app.use('/api', require('./routes/presence'));
 app.use('/api', require('./routes/triagem'));
+app.use('/api', require('./routes/push'));
 
 
 
@@ -618,6 +619,8 @@ process.on('uncaughtException', (err) => {
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   logger.info(`Servidor rodando na porta ${PORT}`);
+  // Web Push (VAPID): configura o transporte 1x no boot. Sem VAPID → no-op silencioso.
+  try { require('./services/pushService').init(); } catch (_) { /* nunca derruba o boot */ }
 });
 
 // Sinaliza ao PM2 que o processo está pronto (usado no modo cluster para zero-downtime reload)

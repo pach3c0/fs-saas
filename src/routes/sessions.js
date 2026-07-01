@@ -21,6 +21,7 @@ const Client = require('../models/Client');
 const Organization = require('../models/Organization');
 const { trackEvent } = require('../utils/activityTracker');
 const ActivityEvent = require('../models/ActivityEvent');
+const { createNotificationDebounced } = require('../utils/notificationDebounce');
 const { can } = require('../services/subscriptionPricing');
 const { applyOrgSessionDefaults } = require('../utils/sessionDefaults');
 
@@ -113,6 +114,36 @@ async function _trackDownload(session, participant, kind, count = 1) {
       participantId: pid,
       clientName,
       actorRole: 'client'
+    });
+  } catch (_) { /* fire-and-forget: nunca quebra o download */ }
+}
+
+// Notifica o fotógrafo (sino + push) que o cliente baixou fotos. Espelha _trackDownload, mas
+// para o canal de notificação: 'individual' AGREGA numa janela de 10 min (rajada de N fotos vira
+// 1 aviso "baixou N fotos", o push atualiza com a mesma tag); 'zip' = 1 aviso, debounce curto de
+// 2 min contra duplo-clique. Respeita o toggle photosDownloaded. Fire-and-forget.
+function _notifyDownload(session, participant, kind, count = 1) {
+  try {
+    const organizationId = _orgIdOf(session);
+    if (!organizationId) return;
+    const pid = participant ? String(participant._id) : null;
+    const who = participant ? (participant.name || 'O cliente') : (session.clientName || 'O cliente');
+    const gallery = session.name || 'sua galeria';
+    const build = kind === 'zip'
+      ? (n) => `${who} baixou o pacote (${n} foto${n > 1 ? 's' : ''}) de ${gallery}`
+      : (n) => `${who} baixou ${n} foto${n > 1 ? 's' : ''} de ${gallery}`;
+    createNotificationDebounced({
+      organizationId,
+      type: 'photos_downloaded',
+      sessionId: String(session._id),
+      sessionName: session.name || '',
+      participantId: pid,
+      count,
+      kind,
+      prefKey: 'photosDownloaded',
+      aggregate: kind === 'individual',
+      windowMs: kind === 'individual' ? 10 * 60 * 1000 : 2 * 60 * 1000,
+      buildMessage: build
     });
   } catch (_) { /* fire-and-forget: nunca quebra o download */ }
 }
@@ -2571,6 +2602,8 @@ router.get('/client/download/:sessionId/:photoId', async (req, res) => {
 
     // Histórico do super admin: download individual (coalescido numa janela de 10 min).
     _trackDownload(session, participantId ? session.participants.id(participantId) : null, 'individual', 1);
+    // Notifica o fotógrafo (sino + push), agregado na mesma janela.
+    _notifyDownload(session, participantId ? session.participants.id(participantId) : null, 'individual', 1);
 
     res.sendFile(filePath);
   } catch (error) {
@@ -2659,6 +2692,8 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 
     // Histórico do super admin: download em ZIP (1 evento, com a contagem de fotos).
     _trackDownload(session, participant, 'zip', photosToZip.length);
+    // Notifica o fotógrafo (sino + push): 1 aviso por pacote.
+    _notifyDownload(session, participant, 'zip', photosToZip.length);
 
     const sessionName = session.name.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
     res.setHeader('Content-Type', 'application/zip');

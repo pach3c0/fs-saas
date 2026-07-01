@@ -704,9 +704,48 @@ function renderImpersonationBanner() {
   } catch (e) { /* token ilegível — sem banner */ }
 }
 
+// ── PWA / Web Push ─────────────────────────────────────────────────────────
+// Registra o SW do admin (só push; sem cache). Fire-and-forget: erro nunca trava o app.
+function registerAdminServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(() => {});
+}
+
+// Android/desktop: guarda o evento de instalação para oferecer o botão "Instalar app".
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window._deferredInstallPrompt = e;
+});
+window.addEventListener('appinstalled', () => { window._deferredInstallPrompt = null; });
+
+// Botão "App" da topbar → leva o fotógrafo ao card de instalar/ativar (Configurações → Notificações),
+// que trata iOS, Android e desktop (instalar PWA + ativar push + testar).
+window.openAppInstall = () => {
+  window._pendingConfigSection = 'notificacoes';
+  switchTab('configuracoes');
+};
+
+// Lê o deep-link da URL do push (#<aba>?session=<id>&photo=<id>), valida a aba e limpa o hash
+// (para o refresh não re-disparar). Retorna { tab, session, photo } ou null.
+const DEEP_LINK_TABS = ['sessoes', 'mensagens', 'ajuda', 'configuracoes'];
+function _consumeDeepLink() {
+  try {
+    const raw = (window.location.hash || '').replace(/^#/, '');
+    if (!raw) return null;
+    const [tab, queryStr] = raw.split('?');
+    if (!DEEP_LINK_TABS.includes(tab)) return null;
+    const q = new URLSearchParams(queryStr || '');
+    const deep = { tab, session: q.get('session') || null, photo: q.get('photo') || null };
+    // Limpa o hash sem recarregar (evita re-abrir o modal a cada refresh/troca de aba).
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return deep;
+  } catch (_) { return null; }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────
 async function initApp() {
   consumeImpersonationToken();
+  registerAdminServiceWorker();
   setupNavigation();
   setupKeyboardShortcuts();
 
@@ -740,8 +779,17 @@ async function postLoginSetup() {
   // Delay no polling para não competir com o carregamento inicial do dashboard
   setTimeout(startNotificationPolling, 5000);
 
-  const savedTab = sessionStorage.getItem('activeTab') || 'dashboard';
+  // Deep-link do push: se o fotógrafo clicou numa notificação no celular, a URL traz
+  // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
+  const deep = _consumeDeepLink();
+  const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
   await switchTab(savedTab);
+  if (deep?.session) {
+    setTimeout(() => {
+      if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
+      else window.openSessionWizard?.(deep.session);
+    }, 300);
+  }
   startPresenceHeartbeat();
   setTimeout(startClientsOnlineHeaderPoll, 3000);
   showOnboardingNudges();

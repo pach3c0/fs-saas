@@ -14,6 +14,15 @@
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <link rel="stylesheet" href="/assets/css/shared.css">
 
+    <!-- PWA: painel instalável + Web Push (notificações no celular) -->
+    <link rel="manifest" href="/admin/manifest.webmanifest">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CliqueZoom">
+    <link rel="apple-touch-icon" href="/admin/icons/icon-192.png">
+
     <script>
         (function applyTheme() {
             try {
@@ -1213,11 +1222,9 @@
                     </button>
                 </nav>
 
-                <!-- Busca Central -->
-                <div style="width:100%; min-width:0; max-width:520px; position:relative;">
-                    <svg style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="topbar-search" placeholder="Pesquisar..." style="width:100%; min-width:0; padding:0.4rem 1rem 0.4rem 2.25rem; border-radius:9999px; border:1px solid var(--border); background:var(--bg-base); color:var(--text-primary); outline:none; font-size:0.8125rem;">
-                </div>
+                <!-- Busca Central oculta por ora (será reposicionada). Mantém-se um espaçador flex
+                     para preservar o alinhamento dos botões à direita. -->
+                <div style="flex:1 1 auto; min-width:0;"></div>
 
                 <!-- Bolinhas da Direita (Ajuda, Configurações, Notificações) -->
                 <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1264,6 +1271,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- App no celular (instalar PWA + ativar notificações push) -->
+                    <button id="installAppBtn" onclick="openAppInstall()" class="header-expand-btn" title="Ver o app no celular (instalar + notificações)">
+                        <span class="header-expand-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                        </span>
+                        <span class="header-expand-label">App</span>
+                    </button>
 
                     <button class="header-expand-btn nav-item" data-tab="configuracoes" title="Configurações">
                         <span class="header-expand-icon">

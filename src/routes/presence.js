@@ -8,7 +8,9 @@ const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
 const { authenticateToken, requireSuperadmin } = require('../middleware/auth');
 const Session = require('../models/Session');
+const Presence = require('../models/Presence');
 const presence = require('../services/presence');
+const { createNotificationDebounced } = require('../utils/notificationDebounce');
 
 // Rate-limit dedicado pro heartbeat público das galerias. O front bate 1×/60s; 120/min/IP
 // cobre eventos de IP compartilhado (ex.: escola, muitos pais na mesma rede) sem virar abuso —
@@ -63,8 +65,14 @@ router.post('/presence/heartbeat/client', heartbeatLimiter, async (req, res) => 
       clientLabel = session.clientName || '';
     }
 
+    // Transição OFFLINE→ONLINE: se NÃO havia presença viva para esta chave, é uma entrada nova.
+    // Checar ANTES do touch (o upsert não distingue insert de update). O TTL de 150s já é o 1º
+    // nível de anti-spam (refresh dentro de 60-150s não redispara).
+    const key = `client:${sessionId}:${participantId}`;
+    const wasOnline = await Presence.exists({ key, lastSeen: { $gte: new Date(Date.now() - 150 * 1000) } });
+
     presence.touch({
-      key: `client:${sessionId}:${participantId}`,
+      key,
       organizationId: session.organizationId || null,
       role: 'client',
       name: clientLabel,
@@ -72,6 +80,24 @@ router.post('/presence/heartbeat/client', heartbeatLimiter, async (req, res) => 
       module: cleanStr(req.body && req.body.module, 40) || 'galeria',
       sessionId
     });
+
+    // Notificar o fotógrafo que o cliente está online (sino + push). Anti-spam: debounce de 30min
+    // por sessão+participante + dedupe com um session_accessed muito recente (evita 2 avisos no
+    // 1º acesso). Respeita o toggle clientOnline. Fire-and-forget (helper nunca lança).
+    if (!wasOnline) {
+      const galleryName = session.name || 'sua galeria';
+      createNotificationDebounced({
+        organizationId: session.organizationId,
+        type: 'client_online',
+        sessionId,
+        sessionName: session.name || 'Galeria',
+        participantId,
+        windowMs: 30 * 60 * 1000,
+        prefKey: 'clientOnline',
+        suppressIfRecent: { types: ['session_accessed', 'client_online'], windowMs: 2 * 60 * 1000 },
+        buildMessage: () => `${clientLabel || 'Alguém'} está online na ${galleryName}`
+      });
+    }
   } catch (_) { /* fire-and-forget: nunca quebra a galeria */ }
   res.status(204).end();
 });

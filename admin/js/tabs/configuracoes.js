@@ -5,6 +5,7 @@
 
 import { appState } from '../state.js';
 import { apiGet, apiPut } from '../utils/api.js';
+import { getPushState, enablePush, disablePush, sendTest, listDevices } from '../utils/push.js';
 
 let prefs = {};
 let supportAccess = { enabled: false }; // consentimento p/ suporte acessar o painel
@@ -336,11 +337,18 @@ function renderGaleria() {
 
 // ── Seção Notificações ───────────────────────────────────────────────────────
 function renderNotificacoes() {
-  const { card, status } = sectionCard('Preferências de notificação', 'Escolha quais e-mails você recebe quando o cliente age na galeria.');
-  const n = prefs.notifications || {};
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; flex-direction:column; gap:1.25rem;';
 
+  // Card 1 — quais eventos notificam (valem para o sino do navegador E o push do celular)
+  const { card, status } = sectionCard('Preferências de notificação', 'Escolha quando ser avisado. Cada opção vale para o sino do painel e para o push no celular.');
+  const n = prefs.notifications || {};
   const list = document.createElement('div');
   list.style.cssText = 'display:flex; flex-direction:column; gap:0.75rem;';
+  list.appendChild(toggleField('Cliente ficou online na galeria', n.clientOnline !== false,
+    v => scheduleSave({ notifications: { clientOnline: v } }, status, true)));
+  list.appendChild(toggleField('Cliente baixou fotos', n.photosDownloaded !== false,
+    v => scheduleSave({ notifications: { photosDownloaded: v } }, status, true)));
   list.appendChild(toggleField('Cliente finaliza a seleção de fotos', n.selectionSubmitted !== false,
     v => scheduleSave({ notifications: { selectionSubmitted: v } }, status, true)));
   list.appendChild(toggleField('Cliente pede fotos extras', n.extraRequested !== false,
@@ -348,7 +356,143 @@ function renderNotificacoes() {
   list.appendChild(toggleField('Cliente pede reabertura da seleção', n.reopenRequested !== false,
     v => scheduleSave({ notifications: { reopenRequested: v } }, status, true)));
   card.appendChild(list);
+  wrap.appendChild(card);
+
+  // Card 2 — notificações no celular (Web Push / PWA)
+  wrap.appendChild(renderPushCard());
+  return wrap;
+}
+
+// ── Card: Notificações no celular (Web Push) ─────────────────────────────────
+function renderPushCard() {
+  const { card } = sectionCard('Notificações no celular', 'Instale o app e ative para receber os avisos no celular mesmo com ele fechado.');
+  const body = document.createElement('div');
+  body.style.cssText = 'display:flex; flex-direction:column; gap:0.875rem; align-items:center; width:100%; max-width:420px; margin:0 auto;';
+  body.innerHTML = '<p style="font-size:0.8125rem; color:var(--text-muted);">Carregando…</p>';
+  card.appendChild(body);
+  _populatePushCard(body);
   return card;
+}
+
+function _pushMsg(text, color = 'var(--text-secondary)') {
+  const p = document.createElement('p');
+  p.textContent = text;
+  p.style.cssText = `font-size:0.8125rem; color:${color}; text-align:center; margin:0; line-height:1.5;`;
+  return p;
+}
+
+function _pushButton(label, onClick, variant = 'primary') {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = label;
+  const primary = variant === 'primary';
+  b.style.cssText = `
+    border:1px solid var(--border); border-radius:0.5rem; padding:0.6rem 1.1rem;
+    font-family:inherit; font-size:0.875rem; font-weight:600; cursor:pointer; transition:opacity 0.1s;
+    background:${primary ? 'var(--accent)' : 'transparent'};
+    color:${primary ? 'var(--bg-surface)' : 'var(--text-primary)'};`;
+  b.onmouseenter = () => { b.style.opacity = '0.85'; };
+  b.onmouseleave = () => { b.style.opacity = '1'; };
+  b.onclick = onClick;
+  return b;
+}
+
+async function _populatePushCard(body) {
+  let st;
+  try { st = await getPushState(); } catch (_) { body.innerHTML = ''; body.appendChild(_pushMsg('Não foi possível verificar o suporte a notificações.')); return; }
+  body.innerHTML = '';
+
+  if (!st.supported) {
+    body.appendChild(_pushMsg('Este navegador não suporta notificações push.'));
+    return;
+  }
+
+  // iOS só recebe push com o PWA instalado na Tela de Início (não funciona na aba do Safari).
+  if (st.isIos && !st.isStandalone) {
+    body.appendChild(_pushMsg('📲 No iPhone, primeiro adicione o app à Tela de Início para receber notificações.', 'var(--text-primary)'));
+    const steps = document.createElement('p');
+    steps.innerHTML = 'No Safari: toque em <b>Compartilhar</b> (□↑) → <b>Adicionar à Tela de Início</b>. Depois abra o app pelo ícone e volte aqui.';
+    steps.style.cssText = 'font-size:0.75rem; color:var(--text-muted); text-align:center; margin:0; line-height:1.5;';
+    body.appendChild(steps);
+    return;
+  }
+
+  if (st.permission === 'denied') {
+    body.appendChild(_pushMsg('🔕 As notificações estão bloqueadas para este site. Reative nas configurações do navegador/sistema e recarregue a página.'));
+    return;
+  }
+
+  // Android/desktop: instalação nativa do app (quando o navegador oferece e ainda não instalado).
+  if (window._deferredInstallPrompt && !st.isStandalone) {
+    body.appendChild(_pushButton('📲 Instalar o app', async () => {
+      const dp = window._deferredInstallPrompt;
+      if (!dp) return;
+      try { dp.prompt(); await dp.userChoice; } catch (_) { /* ignore */ }
+      window._deferredInstallPrompt = null;
+      _populatePushCard(body);
+    }));
+    body.appendChild(_pushMsg('Instale para abrir pelo ícone e receber notificações mesmo com o app fechado.', 'var(--text-muted)'));
+  }
+
+  if (st.isSubscribed) {
+    body.appendChild(_pushMsg('✅ Notificações ativadas neste aparelho.', 'var(--green)'));
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;';
+    row.appendChild(_pushButton('Enviar teste', async () => {
+      try {
+        const { sent } = await sendTest();
+        window.showToast?.(sent > 0 ? 'Teste enviado — confira a notificação.' : 'Nenhum aparelho recebeu (verifique a permissão).', sent > 0 ? 'success' : 'warning');
+      } catch (err) { window.showToast?.('Erro ao enviar teste: ' + err.message, 'error'); }
+    }, 'secondary'));
+    row.appendChild(_pushButton('Desativar', async () => {
+      try { await disablePush(); window.showToast?.('Notificações desativadas neste aparelho.', 'success'); }
+      catch (err) { window.showToast?.('Erro: ' + err.message, 'error'); }
+      _populatePushCard(body);
+    }, 'secondary'));
+    body.appendChild(row);
+    _appendDeviceList(body);
+    return;
+  }
+
+  // Suportado, sem assinatura → botão de ativar
+  body.appendChild(_pushButton('🔔 Ativar notificações no celular', async () => {
+    try {
+      await enablePush();
+      window.showToast?.('Notificações ativadas! Você receberá os avisos no celular.', 'success');
+    } catch (err) {
+      window.showToast?.(err.message || 'Não foi possível ativar.', 'error');
+    }
+    _populatePushCard(body);
+  }));
+  body.appendChild(_pushMsg('Ative em cada aparelho onde quiser receber (celular e/ou computador).', 'var(--text-muted)'));
+  _appendDeviceList(body);
+}
+
+async function _appendDeviceList(body) {
+  try {
+    const devices = await listDevices();
+    if (!devices.length) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'width:100%; border-top:1px solid var(--border); padding-top:0.625rem; margin-top:0.25rem; display:flex; flex-direction:column; gap:0.375rem;';
+    const label = document.createElement('p');
+    label.textContent = `${devices.length} aparelho(s) registrado(s):`;
+    label.style.cssText = 'font-size:0.6875rem; color:var(--text-muted); text-align:center; margin:0;';
+    wrap.appendChild(label);
+    devices.forEach(d => {
+      const line = document.createElement('p');
+      line.textContent = '• ' + _deviceLabel(d.userAgent);
+      line.style.cssText = 'font-size:0.6875rem; color:var(--text-secondary); text-align:center; margin:0;';
+      wrap.appendChild(line);
+    });
+    body.appendChild(wrap);
+  } catch (_) { /* lista é opcional */ }
+}
+
+function _deviceLabel(ua = '') {
+  const s = String(ua);
+  let os = /iPhone|iPad|iPod/.test(s) ? 'iPhone/iPad' : /Android/.test(s) ? 'Android' : /Windows/.test(s) ? 'Windows' : /Mac/.test(s) ? 'Mac' : 'Aparelho';
+  let br = /Edg/.test(s) ? 'Edge' : /Chrome/.test(s) ? 'Chrome' : /Firefox/.test(s) ? 'Firefox' : /Safari/.test(s) ? 'Safari' : '';
+  return br ? `${br} no ${os}` : os;
 }
 
 // ── Campos reutilizáveis ─────────────────────────────────────────────────────

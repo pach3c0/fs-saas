@@ -298,11 +298,19 @@ const OrganizationSchema = new mongoose.Schema({
     // Ícone que o cliente usa para selecionar foto na galeria
     // (heart = favoritar/escolher · cart = carrinho de compras)
     selectionIcon: { type: String, enum: ['heart', 'cart'], default: 'heart' },
-    // Quais e-mails internos o fotógrafo recebe
+    // Quais e-mails/notificações internas o fotógrafo recebe quando o cliente age na galeria.
+    // Cada toggle vale para os DOIS canais (sino in-app + push no celular): off = não notifica.
     notifications: {
       selectionSubmitted: { type: Boolean, default: true },
       extraRequested:     { type: Boolean, default: true },
-      reopenRequested:    { type: Boolean, default: true }
+      reopenRequested:    { type: Boolean, default: true },
+      clientOnline:       { type: Boolean, default: true },  // cliente ficou online na galeria
+      photosDownloaded:   { type: Boolean, default: true }   // cliente baixou fotos (individual/ZIP)
+    },
+    // Web Push (notificações no celular). Master switch — desliga o push sem mexer nos toggles
+    // por tipo acima (que continuam valendo pro sino in-app).
+    push: {
+      enabled: { type: Boolean, default: true }
     },
     // Graus de parentesco exibidos no formulário de auto-inscrição (Seleção em Grupo)
     // O fotógrafo pode personalizar conforme o tipo de evento
