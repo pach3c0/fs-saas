@@ -422,6 +422,11 @@ async function _populatePushCard(body) {
     return;
   }
 
+  // Desktop: QR "escaneie com o celular" — abre o app no telefone para instalar + ativar lá.
+  // No próprio celular seria inútil (já está no aparelho), então só no desktop.
+  const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  if (!isMobileDevice) _appendMobileQR(body);
+
   // Android/desktop: instalação nativa do app (quando o navegador oferece e ainda não instalado).
   if (window._deferredInstallPrompt && !st.isStandalone) {
     body.appendChild(_pushButton('📲 Instalar o app', async () => {
@@ -493,6 +498,81 @@ function _deviceLabel(ua = '') {
   let os = /iPhone|iPad|iPod/.test(s) ? 'iPhone/iPad' : /Android/.test(s) ? 'Android' : /Windows/.test(s) ? 'Windows' : /Mac/.test(s) ? 'Mac' : 'Aparelho';
   let br = /Edg/.test(s) ? 'Edge' : /Chrome/.test(s) ? 'Chrome' : /Firefox/.test(s) ? 'Firefox' : /Safari/.test(s) ? 'Safari' : '';
   return br ? `${br} no ${os}` : os;
+}
+
+// Injeta a lib de QR (mesma CDN da auto-inscrição). SEMPRE resolve — falha de CDN
+// não trava o card (há fallback de link copiável).
+function _injectQRLib() {
+  if (window.QRCode) return Promise.resolve();
+  const existing = document.getElementById('czQRLib');
+  if (existing) {
+    return new Promise((resolve) => {
+      let tries = 0;
+      const iv = setInterval(() => { if (window.QRCode || ++tries > 50) { clearInterval(iv); resolve(); } }, 100);
+    });
+  }
+  return new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.id = 'czQRLib';
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = () => { s.removeAttribute('id'); resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+// Bloco "Configurar no celular" (só desktop): QR que abre o app no telefone para o
+// fotógrafo logar, instalar e ativar as notificações lá. Link copiável como fallback.
+async function _appendMobileQR(body) {
+  // Aponta para onde o admin está servido AGORA (robusto a /admin/ ou raiz), sem hash/query.
+  const url = window.location.origin + window.location.pathname.replace(/index\.html?$/i, '');
+
+  const box = document.createElement('div');
+  box.style.cssText = 'width:100%; border-top:1px solid var(--border); padding-top:0.875rem; margin-top:0.25rem; display:flex; flex-direction:column; align-items:center; gap:0.625rem;';
+
+  const title = document.createElement('p');
+  title.textContent = '📱 Configurar no celular';
+  title.style.cssText = 'font-size:0.8125rem; font-weight:600; color:var(--text-primary); margin:0;';
+
+  const qrSlot = document.createElement('div');
+  qrSlot.style.cssText = 'background:#fff; padding:12px; border-radius:12px; display:inline-block; min-height:40px;';
+
+  const hint = document.createElement('p');
+  hint.innerHTML = 'Aponte a câmera do celular para o QR, abra o link, faça login e ative as notificações por lá. <b>No iPhone</b>, adicione à Tela de Início antes de ativar.';
+  hint.style.cssText = 'font-size:0.75rem; color:var(--text-muted); text-align:center; margin:0; line-height:1.5; max-width:320px;';
+
+  const linkRow = document.createElement('div');
+  linkRow.style.cssText = 'display:flex; gap:0.5rem; align-items:center; width:100%; max-width:320px;';
+  const linkInput = document.createElement('input');
+  linkInput.type = 'text'; linkInput.readOnly = true; linkInput.value = url;
+  linkInput.style.cssText = 'flex:1; min-width:0; background:var(--bg-base); border:1px solid var(--border); border-radius:0.4rem; padding:0.4rem 0.6rem; font-size:0.6875rem; color:var(--text-primary); font-family:monospace; outline:none;';
+  linkInput.onclick = () => linkInput.select();
+  const copyBtn = _pushButton('Copiar', () => {
+    try { navigator.clipboard?.writeText(url); window.showToast?.('Link copiado.', 'success'); } catch (_) { linkInput.select(); }
+  }, 'secondary');
+  copyBtn.style.padding = '0.4rem 0.7rem';
+  linkRow.appendChild(linkInput);
+  linkRow.appendChild(copyBtn);
+
+  box.appendChild(title);
+  box.appendChild(qrSlot);
+  box.appendChild(hint);
+  box.appendChild(linkRow);
+  body.appendChild(box);
+
+  await _injectQRLib();
+  if (window.QRCode) {
+    try {
+      new window.QRCode(qrSlot, {
+        text: url, width: 160, height: 160,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+    } catch (_) { qrSlot.style.display = 'none'; }
+  } else {
+    // CDN falhou — o link copiável acima já serve de alternativa.
+    qrSlot.style.display = 'none';
+  }
 }
 
 // ── Campos reutilizáveis ─────────────────────────────────────────────────────
