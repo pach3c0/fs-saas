@@ -67,6 +67,21 @@ export async function renderDashboard(container) {
                 vertical-align: middle;
                 padding-right: 1.15rem;
             }
+
+            /* ── Empilhamento mobile (≤768px) ──────────────────────────────────
+               Desktop fica intocado (sem 'order' fora do @media): Sessões | Ações
+               lado a lado e Novidades por último. No celular a coluna 1fr 300px
+               empilha e a ordem vira: Cards → Novidades → Ações Rápidas → Sessões
+               Recentes (fim das "Sessões x Ações" disputando espaço). */
+            @media (max-width: 768px) {
+                .dashboard-main-grid { grid-template-columns: 1fr !important; }
+                #quick-actions-panel   { order: 1; }
+                #recent-sessions-panel { order: 2; }
+                #onboarding-container  { order: 0; }
+                #metrics-grid          { order: 1; }
+                #dashboard-news        { order: 2; }
+                .dashboard-main-grid   { order: 3; }
+            }
         </style>
 
         <div id="dashboard-content" style="display:flex; flex-direction:column; gap:1.5rem; animation: fadeInUp 0.3s ease;">
@@ -99,7 +114,7 @@ export async function renderDashboard(container) {
                     ${renderMetricSkeleton()}
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 300px; gap:1.5rem; align-items: start;">
+                <div class="dashboard-main-grid" style="display:grid; grid-template-columns: 1fr 300px; gap:1.5rem; align-items: start;">
                     <div id="recent-sessions-panel" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); overflow:hidden;">
                         <div style="padding:1.25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:baseline; gap:0.75rem;">
@@ -113,7 +128,7 @@ export async function renderDashboard(container) {
                         </div>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <div id="quick-actions-panel" style="display:flex; flex-direction:column; gap:1rem;">
                         <h3 style="font-size:0.875rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Ações Rápidas</h3>
 
                         <button id="qa-new-session" onclick="switchTab('sessoes')" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">

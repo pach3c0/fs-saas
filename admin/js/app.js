@@ -794,6 +794,15 @@ window.openAppInstall = () => {
   switchTab('configuracoes');
 };
 
+// "Voltar ao Radar" (botão do topbar + item da gaveta mobile). Exposto cedo porque o
+// radar.js é lazy: mesmo fora do modo app (celular no navegador, sem ?app=1), o item da
+// gaveta funciona carregando o módulo sob demanda. Quando radar.js já está carregado, ele
+// reexpõe a versão direta. Falha (ex.: sem #tabContent) é silenciosa.
+window.openRadar = async () => {
+  try { (await import('./tabs/radar.js')).openRadar(); }
+  catch (_) { /* módulo indisponível → ignora */ }
+};
+
 // Lê o deep-link da URL do push (#<aba>?session=<id>&photo=<id>), valida a aba e limpa o hash
 // (para o refresh não re-disparar). Retorna { tab, session, photo } ou null.
 const DEEP_LINK_TABS = ['sessoes', 'mensagens', 'ajuda', 'configuracoes'];
@@ -861,32 +870,33 @@ async function postLoginSetup() {
   // Em ambos, só se NÃO houver deep-link de push (se tocou numa notificação específica, honramos o
   // contexto no painel completo). Import dinâmico → o radar não pesa no desktop. Falha → fluxo normal.
   const forceRadar = new URLSearchParams(window.location.search).has('app');
-  if ((forceRadar || (isStandalone() && _isMobileDevice())) && !deep?.session) {
+  let bootRadar = (forceRadar || (isStandalone() && _isMobileDevice())) && !deep?.session;
+  if (bootRadar) {
     try {
-      document.documentElement.classList.add('radar-mode');
-      const { renderRadar } = await import('./tabs/radar.js');
-      renderRadar(document.getElementById('tabContent'));
-      startPresenceHeartbeat();
-      setTimeout(startNotificationPolling, 5000); // mantém badge/estado caso abra o painel completo
-      showOnboardingNudges();
-      return;
+      // Boot no Radar (tela mobile do app), mas SEM travar: o header segue disponível
+      // (ver openRadar + CSS .radar-mode). openRadar liga a classe, desenha e (re)inicia os timers.
+      (await import('./tabs/radar.js')).openRadar();
     } catch (e) {
-      document.documentElement.classList.remove('radar-mode');
-      // segue para o fluxo normal abaixo
+      bootRadar = false; // falhou ao abrir radar → cai no fluxo de tab normal abaixo
     }
   }
 
   // Delay no polling para não competir com o carregamento inicial do dashboard
   setTimeout(startNotificationPolling, 5000);
 
-  const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
-  await switchTab(savedTab);
-  if (deep?.session) {
-    setTimeout(() => {
-      if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
-      else window.openSessionWizard?.(deep.session);
-    }, 300);
+  // Só renderiza uma aba normal quando NÃO bootou no radar (senão sobrescreveria o radar).
+  if (!bootRadar) {
+    const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
+    await switchTab(savedTab);
+    if (deep?.session) {
+      setTimeout(() => {
+        if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
+        else window.openSessionWizard?.(deep.session);
+      }, 300);
+    }
   }
+
+  // Serviços do header rodam em ambos os fluxos — o header agora está sempre vivo (inclusive no app).
   startPresenceHeartbeat();
   setTimeout(startClientsOnlineHeaderPoll, 3000);
   showOnboardingNudges();
@@ -1310,6 +1320,13 @@ function showLoginForm() {
 
 // ── Switch tab ────────────────────────────────────────────────────────────
 export async function switchTab(tabName) {
+  // Se estávamos no Radar (tela mobile do app), encerra polling + modo antes de trocar.
+  // A guarda pela classe garante que o import dinâmico só dispare ao SAIR do radar —
+  // no desktop e na navegação normal entre abas isto nunca roda (radar.js nem carrega).
+  if (document.documentElement.classList.contains('radar-mode')) {
+    try { (await import('./tabs/radar.js')).stopRadar(); }
+    catch { document.documentElement.classList.remove('radar-mode'); }
+  }
   appState.currentTab = tabName;
   sessionStorage.setItem('activeTab', tabName);
   if (appState.authToken) sendPresenceHeartbeat(); // atualiza o módulo na presença na hora

@@ -457,14 +457,15 @@
             padding-top: calc(var(--header-h) + var(--sp-5)) !important;
         }
 
-        /* ── Radar (PWA mobile do fotógrafo) ──────────────────────────────────
-           Aplicado por app.js (classe .radar-mode no <html>) só quando o app está
-           INSTALADO num CELULAR. Esconde a moldura de desktop (topbar) e deixa o
-           #tabContent — onde o radar.js renderiza — ocupar a tela inteira. No
-           desktop nada muda (a classe nunca é aplicada). Respeita o notch (safe-area). */
-        .radar-mode #topbar { display: none !important; }
+        /* ── Radar (tela mobile do "app" do fotógrafo) ────────────────────────
+           Aplicado por app.js (classe .radar-mode no <html>) quando o app abre via
+           ?app=1 ou instalado num CELULAR. O Radar agora CONVIVE com o header: a
+           moldura fica visível e navegável (hambúrguer/gaveta), o app deixou de ser
+           quiosque. Aqui só garantimos que o conteúdo do radar não fique sob o header
+           fixo e respeitamos o notch. No desktop a classe nunca é aplicada. */
         html.radar-mode #main-area #content-panel {
-            padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important;
+            padding-top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + var(--sp-3)) !important;
+            padding-bottom: env(safe-area-inset-bottom, 0px) !important;
         }
 
         /* ── Menu mobile (hamburger + drawer) ─────────────────────────────────
@@ -506,10 +507,8 @@
             border-radius: var(--radius-sm, 8px); cursor: pointer;
         }
         .mobile-drawer-item:active { background: var(--bg-hover); }
-        /* Radar cobre a tela → hamburger/drawer nunca aparecem no modo radar. */
-        .radar-mode #mobile-hamburger,
-        .radar-mode #mobile-drawer,
-        .radar-mode #mobile-drawer-overlay { display: none !important; }
+        /* No modo radar o header (incl. hambúrguer/gaveta) fica VISÍVEL — a navegação
+           mobile é o caminho do fotógrafo para o resto do app + voltar ao Radar. */
 
         /* ── Breakpoint mobile (≤768px): liga o menu mobile e enxuga a moldura.
            Desktop (>768px) fica 100% intocado (nada dentro deste @media aplica lá). ── */
@@ -1362,6 +1361,11 @@
                  O SINO ficou aqui (fora de .topbar-center) de propósito: assim continua acessível no
                  mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível. -->
             <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
+                <!-- Voltar ao Radar: fora de .topbar-center (fica visível no mobile) e com
+                     class nav-item + onclick → o buildMobileDrawer o injeta na gaveta automaticamente. -->
+                <button id="topbarRadarBtn" class="nav-item" onclick="openRadar()" title="Voltar ao Radar" style="padding:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:var(--text-primary); cursor:pointer;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                </button>
                 <div style="position:relative; display:inline-block;">
                     <button id="notificationBell" onclick="toggleNotifications(event)" class="header-expand-btn" title="Notificações" style="overflow: visible !important;">
                         <span class="header-expand-icon" style="position:relative;">

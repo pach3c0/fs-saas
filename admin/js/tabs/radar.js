@@ -65,16 +65,8 @@ export function renderRadar(container) {
         ${_sectionTitle('Atividade', 'o que aconteceu por último')}
         <div id="radarFeed"></div>
       </section>
-
-      <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
-        <button id="radarThemeBtn" type="button" style="${_btnStyle('ghost')}">🌓 Tema</button>
-        <button id="radarExitBtn" type="button" style="${_btnStyle('ghost')}; flex:1;">Abrir painel completo →</button>
-      </div>
     </div>
   `;
-
-  container.querySelector('#radarThemeBtn')?.addEventListener('click', () => window.toggleAdminTheme?.());
-  container.querySelector('#radarExitBtn')?.addEventListener('click', () => exitRadar());
 
   _renderPushChip();
   _loadLive();
@@ -100,23 +92,25 @@ function _stopPolling() {
   document.removeEventListener('visibilitychange', _onVisibility);
 }
 
-// Sai do modo radar e volta para o painel normal (escape "desktop no celular").
-export function exitRadar() {
-  _leaveRadar();
-  window.switchTab?.('sessoes');
+// Entrada re-entrável: (re)desenha o radar e liga o modo radar. É o único ponto de
+// entrada — usado tanto no boot do "app" (?app=1) quanto pelo botão "Voltar ao Radar"
+// no header. Idempotente: renderRadar já chama _stopPolling() no topo, então reentrar
+// não vaza timers.
+export function openRadar() {
+  const c = document.getElementById('tabContent');
+  if (!c) return;
+  document.documentElement.classList.add('radar-mode');
+  renderRadar(c);
 }
+window.openRadar = openRadar;
 
-function _leaveRadar() {
+// Teardown público: para os timers do radar e sai do modo radar. Chamado pelo
+// switchTab ao navegar para qualquer outra tela e pelos handlers de linha ao abrir
+// um contexto no painel. NÃO remove a flag ?app=1 (um refresh volta ao Radar, que é
+// o start_url do PWA). Idempotente.
+export function stopRadar() {
   _stopPolling();
   document.documentElement.classList.remove('radar-mode');
-  // Tira a flag ?app=1 da URL para que um refresh no painel completo NÃO volte pro radar.
-  try {
-    const u = new URL(window.location.href);
-    if (u.searchParams.has('app')) {
-      u.searchParams.delete('app');
-      window.history.replaceState({}, '', u.pathname + u.search + u.hash);
-    }
-  } catch (_) { /* history indisponível → segue sem strip */ }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,7 +176,7 @@ async function _loadLive() {
     }).join('');
     box.querySelectorAll('.radar-live-row').forEach(row => {
       const sid = row.getAttribute('data-sid');
-      if (sid) row.addEventListener('click', () => { _leaveRadar(); _navigate({ sessionId: sid }); });
+      if (sid) row.addEventListener('click', () => { stopRadar(); _navigate({ sessionId: sid }); });
     });
   } catch {
     box.innerHTML = _emptyLine('Não foi possível carregar agora.');
@@ -208,7 +202,7 @@ async function _loadSessions() {
     box.innerHTML = sessions.map(_sessionCard).join('');
     box.querySelectorAll('.radar-sess-row').forEach(row => {
       const sid = row.getAttribute('data-sid');
-      if (sid) row.addEventListener('click', () => { _leaveRadar(); _navigate({ sessionId: sid }); });
+      if (sid) row.addEventListener('click', () => { stopRadar(); _navigate({ sessionId: sid }); });
     });
   } catch {
     box.innerHTML = _emptyLine('Não foi possível carregar as sessões.');
@@ -288,7 +282,7 @@ async function _loadFeed() {
     box.querySelectorAll('.radar-feed-row').forEach(row => {
       const nid = row.getAttribute('data-nid');
       const n = items.find(x => String(x._id) === nid);
-      if (n) row.addEventListener('click', () => { _leaveRadar(); _navigate(n); });
+      if (n) row.addEventListener('click', () => { stopRadar(); _navigate(n); });
     });
   } catch {
     box.innerHTML = _emptyLine('Não foi possível carregar a atividade.');
