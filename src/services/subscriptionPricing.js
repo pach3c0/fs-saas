@@ -60,4 +60,13 @@ function capabilitiesOf(sub) {
   return { ...(plans[planId].capabilities || {}) };
 }
 
-module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits, can, capabilitiesOf };
+// Assentos (usuários inclusos) do plano — fonte única em models/plans.js. Viaja no SSO
+// da Gestão como `cz_seats` p/ o Rhyno cercar a criação de membros de equipe além do
+// plano (furo #3). Org sem assinatura → Free (1). -1 = ilimitado (nenhum tier hoje).
+function seatsOf(sub) {
+  const planId = (sub && plans[sub.plan]) ? sub.plan : 'free';
+  const s = plans[planId].seats;
+  return (typeof s === 'number') ? s : 1;
+}
+
+module.exports = { effectiveMonthlyCents, effectiveStorageMB, effectiveLimits, can, capabilitiesOf, seatsOf };

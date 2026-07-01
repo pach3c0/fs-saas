@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { canAccessRoute, gateForRoute } = require('../services/gestaoCapabilities');
-const { capabilitiesOf } = require('../services/subscriptionPricing');
+const { capabilitiesOf, seatsOf } = require('../services/subscriptionPricing');
 
 // Base do ERP Rhyno (frontend, p/ o iframe). POC: local; prod: https://erp.cliquezoom.com.br
 const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
@@ -26,13 +26,15 @@ async function resolveRhynoEmail(req) {
 
 // Cunha uma asserção curta assinada com o segredo compartilhado (SSO).
 // `caps` (capabilities efetivas do plano) viaja na asserção para a CAMADA (b): o Rhyno
-// lê e barra a ESCRITA de módulo fora do plano (parede no Salvar). Opcional e INERTE até
-// o Rhyno consumir — uma asserção sem caps mantém o comportamento atual (fail-open).
-function mintAssertion(email, caps) {
+// lê e barra a ESCRITA de módulo fora do plano (parede no Salvar). `seats` (assentos do
+// plano) viaja como `cz_seats` p/ o Rhyno cercar a criação de membros de equipe (furo #3).
+// Ambos opcionais e INERTES até o Rhyno consumir — asserção sem eles mantém fail-open.
+function mintAssertion(email, caps, seats) {
   const secret = process.env.SSO_SHARED_SECRET;
   if (!secret) throw new Error('SSO_SHARED_SECRET não configurado');
   const payload = { email, iss: 'cliquezoom' };
   if (caps) payload.caps = caps;
+  if (typeof seats === 'number') payload.seats = seats;
   return jwt.sign(payload, secret, {
     algorithm: 'HS256',
     expiresIn: '120s',
@@ -80,6 +82,8 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId }).lean();
     // Caps efetivos do plano — viajam na asserção p/ a camada (b) do Rhyno (parede no Salvar).
     const caps = capabilitiesOf(sub);
+    // Assentos do plano — viajam como cz_seats p/ o Rhyno cercar a criação de equipe (furo #3).
+    const seats = seatsOf(sub);
     if (!canAccessRoute(sub, redirect)) {
       const rule = gateForRoute(redirect);
 
@@ -96,7 +100,7 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
           capability: rule.cap,
           requiredPlan: rule.plan,
         });
-        const assertion = mintAssertion(email, caps);
+        const assertion = mintAssertion(email, caps, seats);
         const url =
           `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
           `&embed=1&redirect=${encodeURIComponent(redirect)}`;
@@ -128,7 +132,7 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
       });
     }
 
-    const assertion = mintAssertion(email, caps);
+    const assertion = mintAssertion(email, caps, seats);
     const url =
       `${RHYNO_BASE}/sso?assertion=${encodeURIComponent(assertion)}` +
       `&embed=1&redirect=${encodeURIComponent(redirect)}`;
