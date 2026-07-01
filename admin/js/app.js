@@ -499,6 +499,74 @@ function setupNavigation() {
   
   setupHeaderDropdowns();
   setupSearch();
+  setupMobileDrawer();
+}
+
+// ── Menu mobile (drawer) ────────────────────────────────────────────────────
+// No celular o topbar de pílulas não cabe; um hamburger abre um drawer com todas as abas.
+// NÃO duplica a navegação: cada linha REUSA o botão real do topbar (data-tab → switchTab;
+// onclick inline → dispara o clique do botão original). Reconstruído a cada abertura, então
+// reflete o que o plano libera (inclui o dropdown de Gestão populado via JS). Só aparece via
+// @media (max-width:768px); no desktop os elementos ficam display:none.
+function setupMobileDrawer() {
+  const burger   = document.getElementById('mobile-hamburger');
+  const overlay  = document.getElementById('mobile-drawer-overlay');
+  const closeBtn = document.getElementById('mobile-drawer-close');
+  if (!burger) return;
+  burger.addEventListener('click', openMobileDrawer);
+  overlay?.addEventListener('click', closeMobileDrawer);
+  closeBtn?.addEventListener('click', closeMobileDrawer);
+}
+
+function openMobileDrawer() {
+  buildMobileDrawer();
+  const drawer = document.getElementById('mobile-drawer');
+  drawer?.classList.add('open');
+  drawer?.setAttribute('aria-hidden', 'false');
+  document.getElementById('mobile-drawer-overlay')?.classList.add('open');
+}
+
+function closeMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  drawer?.classList.remove('open');
+  drawer?.setAttribute('aria-hidden', 'true');
+  document.getElementById('mobile-drawer-overlay')?.classList.remove('open');
+}
+
+// Monta as linhas do drawer a partir dos botões de navegação REAIS do topbar (dedup por destino).
+function buildMobileDrawer() {
+  const nav = document.getElementById('mobile-drawer-nav');
+  if (!nav) return;
+  const seen = new Set();
+  const rows = [];
+  // Alvos de navegação: [data-tab] (pílulas, folhas dos dropdowns, brand, perfil/plano) +
+  // itens .nav-item com onclick inline (CRM, Triagem, Tarefas, Metas). Ordem = ordem do DOM.
+  document.querySelectorAll('#topbar [data-tab], #topbar .nav-item[onclick]').forEach(btn => {
+    const tab = btn.dataset?.tab || null;
+    const label = (tab && TAB_TITLES[tab])
+      || btn.querySelector('.header-expand-label, .dropdown-label')?.textContent?.trim()
+      || (btn.getAttribute('title') || '').trim()
+      || (tab || '').trim();
+    if (!label) return;
+    const key = tab || `onclick:${btn.getAttribute('onclick')}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push({ label, tab, orig: btn });
+  });
+
+  nav.innerHTML = '';
+  rows.forEach(({ label, tab, orig }) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'mobile-drawer-item';
+    row.textContent = label;
+    row.addEventListener('click', () => {
+      closeMobileDrawer();
+      if (tab) switchTab(tab);
+      else orig.click();
+    });
+    nav.appendChild(row);
+  });
 }
 
 function setupHeaderDropdowns() {
@@ -786,12 +854,14 @@ async function postLoginSetup() {
   // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
   const deep = _consumeDeepLink();
 
-  // PWA instalado NO CELULAR: a "home" do app não é o painel inteiro — é o Radar (tela
-  // mobile dedicada, só de acompanhamento). Entra no radar apenas quando standalone + mobile
-  // E sem deep-link: se o fotógrafo tocou numa notificação específica, honramos o contexto no
-  // painel completo. Import dinâmico → o radar não pesa no desktop. Se algo falhar, cai no fluxo
-  // normal (aditivo, não bloqueia o login).
-  if (isStandalone() && _isMobileDevice() && !deep?.session) {
+  // Entra no Radar (tela mobile dedicada, só de acompanhamento) quando:
+  //  (a) a URL tem a flag ?app=1 — endereço dedicado do "app do fotógrafo", usado pelo QR e pelo
+  //      start_url do PWA (abre o radar direto, inclusive no navegador antes de instalar); ou
+  //  (b) o app está instalado num CELULAR (standalone + mobile) — fallback p/ quando abre sem a flag.
+  // Em ambos, só se NÃO houver deep-link de push (se tocou numa notificação específica, honramos o
+  // contexto no painel completo). Import dinâmico → o radar não pesa no desktop. Falha → fluxo normal.
+  const forceRadar = new URLSearchParams(window.location.search).has('app');
+  if ((forceRadar || (isStandalone() && _isMobileDevice())) && !deep?.session) {
     try {
       document.documentElement.classList.add('radar-mode');
       const { renderRadar } = await import('./tabs/radar.js');

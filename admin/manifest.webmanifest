@@ -2,7 +2,7 @@
   "name": "CliqueZoom — Painel",
   "short_name": "CliqueZoom",
   "description": "Painel do fotógrafo: sessões, clientes e notificações em tempo real.",
-  "start_url": "/admin/",
+  "start_url": "/admin/?app=1",
   "scope": "/admin/",
   "display": "standalone",
   "orientation": "portrait",

@@ -291,7 +291,7 @@ function renderSessoes() {
   const d = prefs.sessionDefaults || {};
 
   const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;';
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:1rem;';
 
   grid.appendChild(numberField('Pacote padrão (fotos)', d.packageLimit ?? 0, 0, 1000,
     v => scheduleSave({ sessionDefaults: { packageLimit: v } }, status)));
@@ -322,7 +322,7 @@ function renderSessoes() {
 function renderGaleria() {
   const { card, status } = sectionCard('Galeria do cliente', 'Aparência da galeria que seus clientes acessam. Vale para todas as galerias, inclusive as já criadas.');
   const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;';
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:1rem;';
   grid.appendChild(selectField('Ícone de seleção da foto', prefs.selectionIcon || 'heart',
     [['heart', '❤️ Coração (favoritar)'], ['cart', '🛒 Carrinho (comprar)']],
     v => { prefs.selectionIcon = v; scheduleSave({ selectionIcon: v }, status, true); }));
@@ -524,8 +524,11 @@ function _injectQRLib() {
 // Bloco "Configurar no celular" (só desktop): QR que abre o app no telefone para o
 // fotógrafo logar, instalar e ativar as notificações lá. Link copiável como fallback.
 async function _appendMobileQR(body) {
-  // Aponta para onde o admin está servido AGORA (robusto a /admin/ ou raiz), sem hash/query.
-  const url = window.location.origin + window.location.pathname.replace(/index\.html?$/i, '');
+  // Aponta para onde o admin está servido AGORA (robusto a /admin/ ou raiz) + flag ?app=1:
+  // essa é a "porta" dedicada do app do fotógrafo — abre direto no Radar no celular (inclusive
+  // no navegador, antes de instalar), em vez de cair no painel completo desktop.
+  const base = window.location.origin + window.location.pathname.replace(/index\.html?$/i, '');
+  const url = base + '?app=1';
 
   const box = document.createElement('div');
   box.style.cssText = 'width:100%; border-top:1px solid var(--border); padding-top:0.875rem; margin-top:0.25rem; display:flex; flex-direction:column; align-items:center; gap:0.625rem;';
@@ -756,7 +759,7 @@ function vendasSubBlock(title, desc) {
 
 function buildDeadlinesPanel() {
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;';
+  wrap.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap:0.75rem;';
   const items = [
     ['1', 'Prazo de seleção', 'O cliente entra e escolhe as fotos do pacote que já comprou. O lembrete (sem desconto) corre até aqui.'],
     ['2', 'Janela de compra', 'Após a entrega, o cliente pode voltar e comprar as fotos que sobraram. Vai até a data de exclusão.'],

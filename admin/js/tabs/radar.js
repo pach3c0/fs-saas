@@ -109,6 +109,14 @@ export function exitRadar() {
 function _leaveRadar() {
   _stopPolling();
   document.documentElement.classList.remove('radar-mode');
+  // Tira a flag ?app=1 da URL para que um refresh no painel completo NÃO volte pro radar.
+  try {
+    const u = new URL(window.location.href);
+    if (u.searchParams.has('app')) {
+      u.searchParams.delete('app');
+      window.history.replaceState({}, '', u.pathname + u.search + u.hash);
+    }
+  } catch (_) { /* history indisponível → segue sem strip */ }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

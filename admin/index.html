@@ -467,6 +467,63 @@
             padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) !important;
         }
 
+        /* ── Menu mobile (hamburger + drawer) ─────────────────────────────────
+           Base: escondidos em QUALQUER tela — o desktop nunca vê. Só o @media (≤768px)
+           abaixo liga. Reusa tokens (sem hexcodes hardcoded). */
+        #mobile-hamburger {
+            display: none; align-items: center; justify-content: center;
+            width: 38px; height: 38px; flex-shrink: 0; padding: 0;
+            background: transparent; border: none; border-radius: var(--radius-sm, 8px);
+            color: var(--text-primary); cursor: pointer;
+        }
+        #mobile-hamburger:active { background: var(--bg-hover); }
+        #mobile-drawer-overlay {
+            display: none; position: fixed; inset: 0; z-index: 1400; background: rgba(0,0,0,0.45);
+        }
+        #mobile-drawer {
+            display: none; position: fixed; top: 0; left: 0; bottom: 0; z-index: 1401;
+            width: min(82vw, 320px); flex-direction: column; overflow-y: auto;
+            background: var(--bg-surface); border-right: 1px solid var(--border);
+            transform: translateX(-100%); transition: transform 0.22s ease;
+            box-shadow: 0 0 40px rgba(0,0,0,0.25);
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+        #mobile-drawer.open { transform: translateX(0); }
+        #mobile-drawer-overlay.open { display: block; }
+        .mobile-drawer-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem; border-bottom: 1px solid var(--border);
+        }
+        #mobile-drawer-close {
+            background: transparent; border: none; color: var(--text-secondary);
+            cursor: pointer; padding: 4px; display: flex;
+        }
+        #mobile-drawer-nav { display: flex; flex-direction: column; padding: 0.5rem; gap: 0.125rem; }
+        .mobile-drawer-item {
+            display: block; width: 100%; text-align: left; font-family: inherit;
+            padding: 0.75rem; border: none; background: transparent;
+            color: var(--text-primary); font-size: 0.9375rem;
+            border-radius: var(--radius-sm, 8px); cursor: pointer;
+        }
+        .mobile-drawer-item:active { background: var(--bg-hover); }
+        /* Radar cobre a tela → hamburger/drawer nunca aparecem no modo radar. */
+        .radar-mode #mobile-hamburger,
+        .radar-mode #mobile-drawer,
+        .radar-mode #mobile-drawer-overlay { display: none !important; }
+
+        /* ── Breakpoint mobile (≤768px): liga o menu mobile e enxuga a moldura.
+           Desktop (>768px) fica 100% intocado (nada dentro deste @media aplica lá). ── */
+        @media (max-width: 768px) {
+            #mobile-hamburger { display: flex; }
+            #mobile-drawer { display: flex; }
+            .admin-shell #topbar .topbar-center { display: none !important; }
+            #topbar { padding: 0 var(--sp-3); gap: 0.5rem; }
+            .admin-shell:not(.builder-mode) #content-panel {
+                padding: var(--sp-3) !important;
+                padding-top: calc(var(--header-h) + var(--sp-3)) !important;
+            }
+        }
+
         /* ── Preview Modal (fullscreen overlay) ── */
         #preview-modal {
             display: none;
@@ -1167,15 +1224,18 @@
     <div id="main-area">
         <!-- Top Bar -->
         <header id="topbar" class="glass-bar">
-            <!-- Esquerda: Logo -->
-            <div style="display:flex; align-items:center;">
+            <!-- Esquerda: Logo (+ hamburger só no mobile) -->
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button id="mobile-hamburger" type="button" aria-label="Menu" title="Menu">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
                 <div class="brand" style="cursor:pointer;" data-tab="dashboard">
                     <div class="brand-logo" style="margin:0;">CliqueZoom</div>
                 </div>
             </div>
 
             <!-- Centro: Navegação + Busca + Utilidades (Tudo encostado na busca) -->
-            <div style="display:flex; align-items:center; gap:0.625rem; flex:1; min-width:0; justify-content:center;">
+            <div class="topbar-center" style="display:flex; align-items:center; gap:0.625rem; flex:1; min-width:0; justify-content:center;">
                 <!-- Bolinhas da Esquerda (Sessões, Gestão, Site) -->
                 <nav style="display:flex; align-items:center; gap:0.5rem;">
                     <!-- Botão Sessões Morph -->
@@ -1295,39 +1355,40 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         </span>
                     </button>
+                </div>
+            </div>
 
-                    <div style="position:relative; display:inline-block;">
-                        <button id="notificationBell" onclick="toggleNotifications(event)" class="header-expand-btn" title="Notificações" style="overflow: visible !important;">
-                            <span class="header-expand-icon" style="position:relative;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                                </svg>
-                                <span id="notifBadge" style="display:none; position:absolute; top:-2px; right:-2px; background:var(--red); color:white; font-size:9px; font-weight:700; min-width:14px; height:14px; border-radius:50%; align-items:center; justify-content:center; padding:0 3px; line-height:14px; z-index: 10;"></span>
-                            </span>
-                        </button>
-                        <!-- Notification Dropdown -->
-                        <div id="notifDropdown" class="header-dropdown-menu pop-right" style="position:absolute; top:100%; right:0; margin-top:0.5rem; width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100;">
-                            <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-elevated); z-index:10; border-top-left-radius:12px; border-top-right-radius:12px;">
-                                <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <button onclick="markAllNotificationsRead()" class="btn btn-ghost btn-sm" style="color:var(--accent); font-size:0.75rem;">Marcar lidas</button>
-                                    <button onclick="deleteAllNotifications()" class="btn btn-ghost btn-sm" style="color:var(--red); font-size:0.75rem;">Excluir todas</button>
-                                </div>
+            <!-- Direita: sino de notificações + tema + perfil.
+                 O SINO ficou aqui (fora de .topbar-center) de propósito: assim continua acessível no
+                 mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível. -->
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
+                <div style="position:relative; display:inline-block;">
+                    <button id="notificationBell" onclick="toggleNotifications(event)" class="header-expand-btn" title="Notificações" style="overflow: visible !important;">
+                        <span class="header-expand-icon" style="position:relative;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            <span id="notifBadge" style="display:none; position:absolute; top:-2px; right:-2px; background:var(--red); color:white; font-size:9px; font-weight:700; min-width:14px; height:14px; border-radius:50%; align-items:center; justify-content:center; padding:0 3px; line-height:14px; z-index: 10;"></span>
+                        </span>
+                    </button>
+                    <!-- Notification Dropdown -->
+                    <div id="notifDropdown" class="header-dropdown-menu pop-right" style="position:absolute; top:100%; right:0; margin-top:0.5rem; width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100;">
+                        <div style="padding:0.625rem 0.875rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg-elevated); z-index:10; border-top-left-radius:12px; border-top-right-radius:12px;">
+                            <span style="font-size:0.8125rem; font-weight:600; color:var(--text-primary);">Notificações</span>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <button onclick="markAllNotificationsRead()" class="btn btn-ghost btn-sm" style="color:var(--accent); font-size:0.75rem;">Marcar lidas</button>
+                                <button onclick="deleteAllNotifications()" class="btn btn-ghost btn-sm" style="color:var(--red); font-size:0.75rem;">Excluir todas</button>
                             </div>
-                            <div id="notifList" style="padding:var(--sp-1) var(--sp-0); min-height:80px; max-height:300px; overflow-y:auto;">
-                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--sp-6) var(--sp-4); color:var(--text-muted); gap:var(--sp-2);">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                                    <p style="font-size:0.8125rem; margin:var(--sp-0);">Tudo em dia!</p>
-                                </div>
+                        </div>
+                        <div id="notifList" style="padding:var(--sp-1) var(--sp-0); min-height:80px; max-height:300px; overflow-y:auto;">
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--sp-6) var(--sp-4); color:var(--text-muted); gap:var(--sp-2);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                <p style="font-size:0.8125rem; margin:var(--sp-0);">Tudo em dia!</p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Direita: Perfil -->
-            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
                 <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleAdminTheme()" title="Alternar tema" style="padding:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                     <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
                     <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1468,6 +1529,18 @@
             </div>
         </div>
     </div>
+
+    <!-- Menu mobile (drawer) — só aparece via @media (max-width:768px); populado por app.js -->
+    <div id="mobile-drawer-overlay"></div>
+    <aside id="mobile-drawer" aria-hidden="true">
+        <div class="mobile-drawer-head">
+            <span class="brand-logo" style="font-size:1rem;">CliqueZoom</span>
+            <button id="mobile-drawer-close" type="button" aria-label="Fechar menu">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <nav id="mobile-drawer-nav"></nav>
+    </aside>
 </div>
 
 <!-- ═══ PREVIEW MODAL ═══ -->
