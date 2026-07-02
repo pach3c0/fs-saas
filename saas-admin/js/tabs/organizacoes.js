@@ -177,7 +177,7 @@ window.showDetails = async (id) => {
 
     let usersHtml = data.users.map(u => `
       <li>
-        <span>${esc(u.name)} (${esc(u.email)})</span>
+        <span>${esc(u.name)} (${esc(u.email)})${u.rhynoLinkedExisting ? ` <span title="Amarrado a um usuário Rhyno pré-existente — o painel do CliqueZoom não o destrói." style="background:#1e3a5f; color:#93c5fd; border-radius:0.25rem; padding:0.05rem 0.35rem; font-size:0.65rem;">🔗 Vínculo Gestão</span>` : ''}</span>
         <span style="color:#94a3b8;">${u.role} - ${u.approved ? 'Aprovado' : 'Pendente'}</span>
       </li>
     `).join('');
@@ -648,7 +648,7 @@ async function renderPanelOverview(content) {
   ).join('');
 
   const usersHtml = data.users.map(u => `
-    <li><span>${esc(u.name)} <span style="color:#64748b;">(${esc(u.email)})</span></span>
+    <li><span>${esc(u.name)} <span style="color:#64748b;">(${esc(u.email)})</span>${u.rhynoLinkedExisting ? ` <span title="Amarrado a um usuário Rhyno pré-existente — o painel do CliqueZoom não o destrói." style="background:#1e3a5f; color:#93c5fd; border-radius:0.25rem; padding:0.05rem 0.35rem; font-size:0.65rem;">🔗 Vínculo Gestão</span>` : ''}</span>
     <span style="color:${u.approved ? '#34d399' : '#fbbf24'};">${u.approved ? 'Aprovado' : 'Pendente'}</span></li>
   `).join('') || '<li style="color:#64748b;">Nenhum usuário</li>';
 

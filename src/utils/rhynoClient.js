@@ -5,6 +5,7 @@
 // caminho SEM duplicar. Extraído de gestao.js em 2026-07-02.
 const jwt = require('jsonwebtoken');
 const Organization = require('../models/Organization');
+const User = require('../models/User');
 
 // API do ERP Rhyno (backend) para chamadas servidor-a-servidor.
 const RHYNO_API = process.env.RHYNO_API_URL || 'http://localhost:8000';
@@ -20,6 +21,14 @@ class NotProvisionedError extends Error {
 // é provisionada no cadastro (src/utils/rhynoProvision.js); enquanto não estiver,
 // a Gestão responde 409 "não provisionada" e o front mostra estado neutro.
 async function resolveRhynoEmail(req) {
+  // Fase 2 — SSO-por-usuário: um MEMBRO logado entra na Gestão com o e-mail Rhyno DELE
+  // (gravado em team.js quando foi criado/amarrado), com o próprio cargo no tenant — em vez
+  // de herdar o acesso do dono. Fail-closed: sem e-mail próprio → null (Gestão responde 409).
+  // O dono (admin) e o caminho do espelho (team.js é requireOwner) seguem no e-mail da org.
+  if (req.user && req.user.role === 'member') {
+    const u = await User.findById(req.user.userId).select('rhynoUserEmail').lean();
+    return (u && u.rhynoUserEmail) || null;
+  }
   const org = await Organization.findById(req.user.organizationId)
     .select('rhynoUserEmail')
     .lean();

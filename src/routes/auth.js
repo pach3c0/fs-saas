@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
@@ -109,6 +110,18 @@ router.post('/auth/reset-password', async (req, res) => {
 
     if (payload.purpose !== 'reset') {
       return res.status(400).json({ error: 'Token inválido' });
+    }
+
+    // Convites de equipe carregam `pv` (fingerprint da senha ATUAL) para serem SINGLE-USE:
+    // após o 1º uso a senha muda, o fingerprint deixa de bater e o link morre (não é
+    // replayável). Tokens de reset comum não têm `pv` → comportamento inalterado.
+    // Ver src/routes/team.js (POST /team/:id/invite).
+    if (payload.pv) {
+      const u = await User.findById(payload.userId).select('passwordHash').lean();
+      const pv = u ? crypto.createHash('sha256').update(String(u.passwordHash)).digest('hex').slice(0, 16) : null;
+      if (!u || pv !== payload.pv) {
+        return res.status(400).json({ error: 'Link inválido ou já utilizado' });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);

@@ -418,7 +418,15 @@ router.get('/admin/organizations/:id/details', authenticateToken, requireSuperad
         const org = await Organization.findById(req.params.id).populate('ownerId', 'name email');
         if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
 
-        const users = await User.find({ organizationId: org._id }).select('name email role approved createdAt');
+        // Inclui os campos do vínculo Rhyno: só o Super Admin enxerga o "Vínculo Gestão"
+        // (o fotógrafo desconhece a divisão CZ↔Rhyno). rhynoLinkedExisting = amarrado a um
+        // usuário Rhyno pré-existente (co-dono/bolha) — computado server-side.
+        const usersRaw = await User.find({ organizationId: org._id })
+            .select('name email role approved createdAt rhynoUserId rhynoManaged rhynoUserEmail').lean();
+        const users = usersRaw.map(u => ({
+            ...u,
+            rhynoLinkedExisting: u.rhynoManaged !== true && u.rhynoUserId != null,
+        }));
         const sessions = await Session.find({ organizationId: org._id }).select('name type mode selectionStatus photos createdAt');
 
         const orgId = org._id.toString();

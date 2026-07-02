@@ -9,12 +9,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { authenticateToken } = require('../middleware/auth');
 const { seatsOf } = require('../services/subscriptionPricing');
 const { RHYNO_API, getRhynoToken } = require('../utils/rhynoClient');
+const { sendTeamInviteEmail } = require('../utils/email');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -158,10 +160,12 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
     const organizationId = req.user.organizationId;
     const [org, users, seats] = await Promise.all([
       Organization.findById(organizationId).select('ownerId').lean(),
-      User.find({ organizationId }).select('name email role approved rhynoSyncStatus rhynoManaged rhynoUserId').sort({ createdAt: 1 }).lean(),
+      User.find({ organizationId }).select('name email role approved rhynoSyncStatus').sort({ createdAt: 1 }).lean(),
       seatUsage(organizationId),
     ]);
     const ownerId = org && org.ownerId ? String(org.ownerId) : null;
+    // Visão do fotógrafo: NÃO expõe o vínculo CZ↔Gestão (ele desconhece a divisão Rhyno).
+    // O selo "Vínculo Gestão" e o rhynoManaged/rhynoUserId ficam só no endpoint do Super Admin.
     const members = users.map((u) => ({
       id: String(u._id),
       name: u.name,
@@ -170,9 +174,6 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
       approved: u.approved,
       rhynoSyncStatus: u.rhynoSyncStatus || 'synced',
       isOwner: ownerId === String(u._id),
-      // Vínculo a um usuário pré-existente da Gestão (co-dono/bolha): desativar aqui é
-      // LOCAL do CZ, nunca destrói o acesso dele ao ERP. A UI mostra selo + confirma diferente.
-      rhynoLinkedExisting: u.rhynoManaged !== true && u.rhynoUserId != null,
     }));
     res.json({ success: true, members, seats });
   } catch (err) {
@@ -245,7 +246,6 @@ router.post('/team', authenticateToken, requireOwner, async (req, res) => {
       member: {
         id: String(member._id), name: member.name, email: member.email,
         role: member.role, approved: member.approved, rhynoSyncStatus: member.rhynoSyncStatus, isOwner: false,
-        rhynoLinkedExisting: member.rhynoManaged !== true && member.rhynoUserId != null,
       },
     });
   } catch (err) {
@@ -378,6 +378,41 @@ router.post('/team/:id/retry-sync', authenticateToken, requireOwner, async (req,
   } catch (err) {
     req.logger?.error?.('Erro no retry-sync do membro', { error: err.message });
     res.status(500).json({ success: false, error: 'Erro ao sincronizar membro' });
+  }
+});
+
+// POST /api/team/:id/invite — gera o link de definição de senha p/ o membro logar (Fase 2).
+// Reusa o token de reset (purpose:'reset', consumido por /auth/reset-password) com validade
+// de 48h e SINGLE-USE. Dispara o e-mail de convite (SUPRIMIDO no beta — email.js) E devolve `inviteUrl`
+// p/ o dono copiar o link: funciona sem SMTP e é o caminho de teste no beta. Owner-only;
+// nunca o próprio dono. Não altera o Rhyno (login do membro é só no CZ nesta fase).
+router.post('/team/:id/invite', authenticateToken, requireOwner, async (req, res) => {
+  try {
+    const member = await loadOrgMember(req, res);
+    if (!member) return;
+    if (await isOwnerUser(req, member)) {
+      return res.status(400).json({ success: false, error: 'O titular já tem acesso — não precisa de convite.' });
+    }
+    if (!member.approved) {
+      return res.status(409).json({ success: false, error: 'Reative o usuário antes de enviar o acesso.' });
+    }
+    const secret = process.env.JWT_SECRET || 'fs-fotografias-secret-key';
+    // SINGLE-USE: amarra o token ao hash de senha ATUAL do membro (pv). No 1º uso a senha
+    // muda → o fingerprint deixa de bater e o link morre, não é replayável (fecha o MÉDIO da
+    // revisão adversarial). Consumido/validado em /auth/reset-password. TTL 48h.
+    const pv = crypto.createHash('sha256').update(String(member.passwordHash)).digest('hex').slice(0, 16);
+    const token = jwt.sign({ userId: member._id, purpose: 'reset', pv }, secret, { expiresIn: '48h' });
+    const baseUrl = process.env.BASE_URL || 'https://app.cliquezoom.com.br';
+    const inviteUrl = `${baseUrl}/admin/?reset=${token}`;
+    const org = await Organization.findById(member.organizationId).select('name').lean();
+    sendTeamInviteEmail(member.email, member.name, inviteUrl, org && org.name).catch(() => {});
+    req.logger?.info?.('Convite de equipe gerado', {
+      organizationId: String(member.organizationId), email: member.email,
+    });
+    res.json({ success: true, inviteUrl });
+  } catch (err) {
+    req.logger?.error?.('Erro ao gerar convite de equipe', { error: err.message });
+    res.status(500).json({ success: false, error: 'Erro ao gerar o convite' });
   }
 });
 
