@@ -29,6 +29,7 @@ const TAB_TITLES = {
   integracoes: 'Integrações',
   marketing: 'Marketing',
   perfil: 'Perfil',
+  equipe: 'Equipe',
   'marca-dagua': "Marca D'água",
   plano: 'Plano',
   ajuda: 'Ajuda & Tutoriais',

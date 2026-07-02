@@ -4,9 +4,23 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   name: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'superadmin'], default: 'admin' },
+  // 'member' = usuário adicional da equipe (assento), criado pelo dono na aba Equipe.
+  // Na Fase 1 o membro NÃO loga no CliqueZoom (passwordHash aleatório); ele é espelhado
+  // no Rhyno e o login do membro é decisão da Fase 2. Ver src/routes/team.js.
+  role: { type: String, enum: ['admin', 'superadmin', 'member'], default: 'admin' },
   organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-  approved: { type: Boolean, default: false }
+  // `approved:false` desabilita o login (auth.js) E libera o assento — é a flag de
+  // ativo/inativo do membro, espelhando o `is_active` do usuário no Rhyno.
+  approved: { type: Boolean, default: false },
+  // Vínculo por-membro com o usuário espelhado no Rhyno (cordão umbilical).
+  // `rhynoUserEmail` é a base da Fase 2 (SSO-por-usuário). Ver src/utils/rhynoClient.js.
+  rhynoUserId: { type: Number, default: null },
+  rhynoUserEmail: { type: String, default: null },
+  // Estado do espelho no Rhyno: 'synced' ok · 'pending' criado no CZ mas ainda não
+  // espelhado (retry pela UI) · 'error' última tentativa falhou. Nunca faz rollback do
+  // User do CZ (fonte da verdade) por soluço do vizinho.
+  rhynoSyncStatus: { type: String, enum: ['synced', 'pending', 'error'], default: 'synced' },
+  rhynoSyncError: { type: String, default: null }
 }, { timestamps: true });
 
 userSchema.index({ organizationId: 1 });

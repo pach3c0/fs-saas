@@ -1,65 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/auth');
-const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { canAccessRoute, gateForRoute } = require('../services/gestaoCapabilities');
 const { capabilitiesOf, seatsOf } = require('../services/subscriptionPricing');
+// SSO servidor-a-servidor do Rhyno — extraído p/ util reusável (compartilhado com team.js).
+const { RHYNO_API, NotProvisionedError, resolveRhynoEmail, mintAssertion, getRhynoToken } = require('../utils/rhynoClient');
 
 // Base do ERP Rhyno (frontend, p/ o iframe). POC: local; prod: https://erp.cliquezoom.com.br
 const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
-// API do ERP Rhyno (backend) para chamadas servidor-a-servidor.
-const RHYNO_API = process.env.RHYNO_API_URL || 'http://localhost:8000';
-
-// Resolve o email do usuário Rhyno do fotógrafo logado.
-// FAIL-CLOSED: sem `rhynoUserEmail` próprio retorna null — NUNCA cai num e-mail
-// compartilhado (era a causa do vazamento de tenant corrigido em 2026-06-19). A org
-// é provisionada no cadastro (src/utils/rhynoProvision.js); enquanto não estiver,
-// a Gestão responde 409 "não provisionada" e o front mostra estado neutro.
-async function resolveRhynoEmail(req) {
-  const org = await Organization.findById(req.user.organizationId)
-    .select('rhynoUserEmail')
-    .lean();
-  return (org && org.rhynoUserEmail) || null;
-}
-
-// Cunha uma asserção curta assinada com o segredo compartilhado (SSO).
-// `caps` (capabilities efetivas do plano) viaja na asserção para a CAMADA (b): o Rhyno
-// lê e barra a ESCRITA de módulo fora do plano (parede no Salvar). `seats` (assentos do
-// plano) viaja como `cz_seats` p/ o Rhyno cercar a criação de membros de equipe (furo #3).
-// Ambos opcionais e INERTES até o Rhyno consumir — asserção sem eles mantém fail-open.
-function mintAssertion(email, caps, seats) {
-  const secret = process.env.SSO_SHARED_SECRET;
-  if (!secret) throw new Error('SSO_SHARED_SECRET não configurado');
-  const payload = { email, iss: 'cliquezoom' };
-  if (caps) payload.caps = caps;
-  if (typeof seats === 'number') payload.seats = seats;
-  return jwt.sign(payload, secret, {
-    algorithm: 'HS256',
-    expiresIn: '120s',
-  });
-}
-
-// Erro tipado para org sem tenant Rhyno — vira HTTP 409 nas rotas.
-class NotProvisionedError extends Error {
-  constructor() { super('Gestão ainda não provisionada'); this.code = 'NOT_PROVISIONED'; }
-}
-
-// Troca a asserção por um token Rhyno (login servidor-a-servidor) p/ chamar a API do ERP.
-async function getRhynoToken(req) {
-  const email = await resolveRhynoEmail(req);
-  if (!email) throw new NotProvisionedError();
-  const assertion = mintAssertion(email);
-  const resp = await fetch(`${RHYNO_API}/auth/sso-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ assertion }),
-  });
-  if (!resp.ok) throw new Error(`SSO Rhyno falhou (${resp.status})`);
-  const data = await resp.json();
-  return data.access_token;
-}
 
 // GET /api/gestao/sso-url — URL de SSO para o iframe do ERP (login único, sem tela de login).
 router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
