@@ -1154,6 +1154,44 @@
 </head>
 <body>
 
+<!-- ═══ SPLASH DO APP ═══
+     Tela de marca ao abrir o "app" do fotógrafo (PWA instalado / ?app=1). Cobre Android e iOS
+     de forma idêntica (o splash nativo do Android vem do manifest; este garante iOS + a marca).
+     Só aparece em modo app (classe cz-app-mode) — no navegador desktop não incomoda. -->
+<style>
+  #cz-splash { position:fixed; inset:0; z-index:100000; display:none; align-items:center; justify-content:center; background:#1a1a1a; opacity:1; transition:opacity .45s ease; }
+  html.cz-app-mode #cz-splash { display:flex; }
+  #cz-splash.cz-splash-out { opacity:0; pointer-events:none; }
+  #cz-splash .cz-splash-word { font-family:'Inter', system-ui, -apple-system, sans-serif; font-weight:700; font-size:2.15rem; letter-spacing:-0.02em; color:#fff; animation:czSplashIn .55s ease both; }
+  #cz-splash .cz-splash-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#fff; margin-left:2px; vertical-align:baseline; animation:czSplashPulse 1s ease-in-out infinite; }
+  @keyframes czSplashIn { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:none; } }
+  @keyframes czSplashPulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
+</style>
+<div id="cz-splash" aria-hidden="true"><div class="cz-splash-word">CliqueZoom<span class="cz-splash-dot"></span></div></div>
+<script>
+  (function () {
+    try {
+      var isApp = new URLSearchParams(location.search).has('app')
+        || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+      if (!isApp) return;                       // só no app — desktop no navegador não vê splash
+      document.documentElement.classList.add('cz-app-mode');
+      var start = Date.now();
+      function hide() {
+        var el = document.getElementById('cz-splash');
+        if (!el || el.classList.contains('cz-splash-out')) return;
+        el.classList.add('cz-splash-out');
+        setTimeout(function () { el.style.display = 'none'; }, 500);
+      }
+      // Some após carregar, respeitando ~1s mínimo de exibição (evita "piscar").
+      window.addEventListener('load', function () {
+        setTimeout(hide, Math.max(0, 1000 - (Date.now() - start)));
+      });
+      setTimeout(hide, 4000);                   // rede de segurança: nunca fica preso
+    } catch (e) { /* splash é cosmético — nunca bloqueia o app */ }
+  })();
+</script>
+
 <!-- ═══ LOGIN ═══ -->
 <div id="loginForm" style="display:none;">
     <div class="login-card">
@@ -1419,8 +1457,10 @@
                             <button class="nav-item" data-tab="perfil" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Perfil</button>
                             <button class="nav-item" data-tab="equipe" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Equipe</button>
                             <button class="nav-item" data-tab="plano" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Plano de Assinatura</button>
-                            <!-- Só para MEMBRO (Slice 2): oculto por padrão; app.js mostra quando role==='member'. -->
-                            <button class="nav-item" data-tab="minha-conta" data-member-only style="display:none; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Minha conta</button>
+                            <!-- "Minha conta" (Slice 2): superfície PESSOAL de todo mundo — foto de
+                                 perfil + trocar senha. Universal (dono e membro); "Perfil" acima é a
+                                 identidade do NEGÓCIO (logo/contato), só do dono. -->
+                            <button class="nav-item" data-tab="minha-conta" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Minha conta</button>
                         </div>
                         <!-- Widget de Armazenamento -->
                         <div style="border-top:1px solid var(--border); padding:0.75rem 1rem; background:var(--bg-surface);">

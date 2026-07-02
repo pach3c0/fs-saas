@@ -32,7 +32,11 @@ const userSchema = new mongoose.Schema({
   // permissões do Rhyno (Role.permissions), mas por-USUÁRIO (o dono personaliza por pessoa
   // na aba Equipe) e por-MÓDULO (1 flag por área). Chave ausente cai no PADRÃO (baseline
   // "Operador"); ver src/services/memberPermissions.js. O dono (admin) ignora o mapa = tudo.
-  permissions: { type: Map, of: Boolean, default: {} }
+  permissions: { type: Map, of: Boolean, default: {} },
+  // Foto de perfil da PESSOA (self-service em "Minha conta"). Caminho do nosso storage
+  // (/uploads/<orgId>/...), enviado via POST /admin/upload e salvo via PUT /auth/me/avatar.
+  // Vazio = sem foto → o avatar da topbar cai nas iniciais do nome.
+  avatarUrl: { type: String, default: '' }
 }, { timestamps: true });
 
 userSchema.index({ organizationId: 1 });

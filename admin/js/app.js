@@ -60,6 +60,7 @@ async function loadMe() {
     appState.permissions = me.permissions || null;
     appState.userName = me.name || '';
     appState.userEmail = me.email || '';
+    appState.avatarUrl = me.avatarUrl || '';
     refreshIdentityUI();
   } catch { /* fail-open: segue como dono */ }
 }
@@ -71,19 +72,35 @@ function refreshIdentityUI() {
   const person = (appState.userName || '').trim();
   const org = (appState.orgName || '').trim();
   const display = person || org;
+  const av = document.getElementById('user-avatar-text');
+  const avatarBtn = av ? av.closest('button') : null;
   if (display) {
     const initials = display.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
       || display.substring(0, 2).toUpperCase();
-    const av = document.getElementById('user-avatar-text');
     if (av) av.textContent = initials;
     const dn = document.getElementById('user-display-name');
     if (dn) dn.textContent = display;
+  }
+  // Foto de perfil: se houver, o botão-avatar vira a imagem (iniciais escondidas); senão volta
+  // pras iniciais. Usa background-image (cover) → círculo perfeito sem <img> extra.
+  if (avatarBtn) {
+    if (appState.avatarUrl) {
+      avatarBtn.style.backgroundImage = `url("${resolveImagePath(appState.avatarUrl)}")`;
+      avatarBtn.style.backgroundSize = 'cover';
+      avatarBtn.style.backgroundPosition = 'center';
+      if (av) av.style.display = 'none';
+    } else {
+      avatarBtn.style.backgroundImage = '';
+      if (av) av.style.display = '';
+    }
   }
   const orgEl = document.getElementById('user-org-name');
   if (orgEl) orgEl.textContent = org && org !== person ? org : '';
   const roleEl = document.getElementById('user-role-label');
   if (roleEl) roleEl.textContent = appState.isOwner ? 'Titular da conta' : 'Membro da equipe';
 }
+// Exposto p/ a aba "Minha conta" repintar o avatar da topbar após trocar a foto.
+window.refreshIdentityUI = refreshIdentityUI;
 
 // O usuário pode abrir esta aba? Dono sempre; aba sem chave sempre; senão precisa da permissão.
 function canOpenTab(tab) {
@@ -99,11 +116,7 @@ function canOpenTab(tab) {
 // Usa `display:none !important` + marcador `data-role-hidden` porque os botões da nav têm
 // `display` por classe/inline — o atributo `hidden` (display:none sem !important) não venceria.
 function applyRolePermsToNav() {
-  const memberOnly = document.querySelectorAll('[data-member-only]');
-  if (appState.isOwner) {
-    memberOnly.forEach((el) => { el.style.display = 'none'; }); // dono não vê "Minha conta"
-    return;
-  }
+  if (appState.isOwner) return;            // dono vê tudo (bypass)
   const perms = appState.permissions || {};
   const hide = (el) => {
     el.style.setProperty('display', 'none', 'important');
@@ -116,8 +129,7 @@ function applyRolePermsToNav() {
   document.querySelectorAll('#topbar [data-perm]').forEach((el) => {
     if (perms[el.dataset.perm] !== true) hide(el);
   });
-  // Membro sempre tem "Minha conta" (troca de senha), independente das permissões.
-  memberOnly.forEach((el) => { el.style.display = 'flex'; });
+  // "Minha conta" não tem chave em TAB_PERMISSION → nunca é escondida (universal).
 }
 
 // ── Skeleton loading ──────────────────────────────────────────────────────
@@ -955,37 +967,21 @@ async function postLoginSetup() {
   // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
   const deep = _consumeDeepLink();
 
-  // Entra no Radar (tela mobile dedicada, só de acompanhamento) quando:
-  //  (a) a URL tem a flag ?app=1 — endereço dedicado do "app do fotógrafo", usado pelo QR e pelo
-  //      start_url do PWA (abre o radar direto, inclusive no navegador antes de instalar); ou
-  //  (b) o app está instalado num CELULAR (standalone + mobile) — fallback p/ quando abre sem a flag.
-  // Em ambos, só se NÃO houver deep-link de push (se tocou numa notificação específica, honramos o
-  // contexto no painel completo). Import dinâmico → o radar não pesa no desktop. Falha → fluxo normal.
-  const forceRadar = new URLSearchParams(window.location.search).has('app');
-  let bootRadar = (forceRadar || (isStandalone() && _isMobileDevice())) && !deep?.session;
-  if (bootRadar) {
-    try {
-      // Boot no Radar (tela mobile do app), mas SEM travar: o header segue disponível
-      // (ver openRadar + CSS .radar-mode). openRadar liga a classe, desenha e (re)inicia os timers.
-      (await import('./tabs/radar.js')).openRadar();
-    } catch (e) {
-      bootRadar = false; // falhou ao abrir radar → cai no fluxo de tab normal abaixo
-    }
-  }
+  // A tela inicial do app mobile agora é o DASHBOARD (antes o app abria direto no Radar). O Radar
+  // continua acessível pelo botão "Voltar ao Radar" da topbar — só deixou de ser a home. Detecção
+  // de app (standalone / ?app=1) usada para forçar 'dashboard'; fora do app respeitamos a última aba.
+  const appMode = new URLSearchParams(window.location.search).has('app') || (isStandalone() && _isMobileDevice());
 
   // Delay no polling para não competir com o carregamento inicial do dashboard
   setTimeout(startNotificationPolling, 5000);
 
-  // Só renderiza uma aba normal quando NÃO bootou no radar (senão sobrescreveria o radar).
-  if (!bootRadar) {
-    const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
-    await switchTab(savedTab);
-    if (deep?.session) {
-      setTimeout(() => {
-        if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
-        else window.openSessionWizard?.(deep.session);
-      }, 300);
-    }
+  const savedTab = deep?.tab || (appMode ? 'dashboard' : (sessionStorage.getItem('activeTab') || 'dashboard'));
+  await switchTab(savedTab);
+  if (deep?.session) {
+    setTimeout(() => {
+      if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
+      else window.openSessionWizard?.(deep.session);
+    }, 300);
   }
 
   // Serviços do header rodam em ambos os fluxos — o header agora está sempre vivo (inclusive no app).

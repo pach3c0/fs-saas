@@ -19,7 +19,9 @@ export let appState = {
   // o nome da pessoa (antes mostrava só as iniciais do negócio — ex.: "FS").
   userName: '',
   userEmail: '',
-  orgName: ''
+  orgName: '',
+  // Foto de perfil da pessoa (self-service em "Minha conta"). Vazio → avatar mostra iniciais.
+  avatarUrl: ''
 };
 
 export async function loadAppData() {

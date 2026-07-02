@@ -245,7 +245,7 @@ router.get('/auth/check-slug/:slug', async (req, res) => {
 // é server-side). Lê do DB → reflete mudança de permissão sem re-login.
 router.get('/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('name email role permissions').lean();
+    const user = await User.findById(req.user.userId).select('name email role permissions avatarUrl').lean();
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     const isOwner = user.role === 'admin' || user.role === 'superadmin';
     res.json({
@@ -256,6 +256,7 @@ router.get('/auth/me', authenticateToken, async (req, res) => {
       role: user.role,
       isOwner,
       permissions: effectivePerms(user),
+      avatarUrl: user.avatarUrl || '',
     });
   } catch (error) {
     req.logger.error('Erro no /auth/me', { message: error.message });
@@ -283,6 +284,30 @@ router.put('/auth/me/password', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Senha alterada com sucesso' });
   } catch (error) {
     req.logger.error('Erro ao trocar a própria senha', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/auth/me/avatar — o próprio usuário define/remove a foto de perfil (self, sem gate
+// de permissão). O arquivo já subiu via POST /admin/upload; aqui só persistimos a URL. Só
+// aceitamos caminho do NOSSO storage (/uploads/...) ou vazio — bloqueia data:/javascript:/URL
+// externa (o campo é renderizado em <img src>). Vale pro dono e pro membro.
+router.put('/auth/me/avatar', authenticateToken, async (req, res) => {
+  try {
+    let avatarUrl = req.body?.avatarUrl == null ? '' : String(req.body.avatarUrl).trim();
+    if (avatarUrl && !/^\/uploads\//.test(avatarUrl)) {
+      return res.status(400).json({ error: 'URL de foto inválida' });
+    }
+    if (avatarUrl.length > 500) {
+      return res.status(400).json({ error: 'URL de foto muito longa' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    user.avatarUrl = avatarUrl;
+    await user.save();
+    res.json({ success: true, avatarUrl });
+  } catch (error) {
+    req.logger.error('Erro ao salvar foto de perfil', { message: error.message });
     res.status(500).json({ error: 'Erro interno' });
   }
 });
