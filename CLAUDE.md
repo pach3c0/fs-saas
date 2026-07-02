@@ -92,6 +92,20 @@
 
 ---
 
+## 🟢 HANDOFF ATIVO (2026-07-02) — Equipe + Permissões por membro + Foto de perfil + App→Dashboard EM PRODUÇÃO
+
+> **Detalhe completo:** [`skills/handoff-equipe-permissoes-2026-07-02.md`](skills/handoff-equipe-permissoes-2026-07-02.md). Tudo **em prod** (merge `dc55add`, deploy `cliquezoom-saas` cluster).
+
+**Subiu pra prod hoje** (merge `origin/beta`→`main`, livre de conflito):
+- **Equipe (assentos) Slice 1** — convite/login de membro + SSO por-usuário + selo Vínculo Gestão (só super admin). CZ = fonte da verdade dos assentos (1/1/2/3).
+- **Permissões por membro Slice 2** — matriz por-membro × por-módulo (13 checkboxes, `User.permissions` Map, modelo ERP1). Gate server-side `requirePermission` em `src/middleware/auth.js` (nega `403 {forbidden:true}` → não desloga). **Dono `admin` faz bypass → zero regressão pra Flávia/Davi.** Aba **Equipe → "Permissões"** por membro.
+- **Foto de perfil** por usuário (`User.avatarUrl`, `PUT /auth/me/avatar`, upload em "Minha conta" que virou UNIVERSAL). **Ajustes topbar:** nome da pessoa no perfil (não "FS"), busca de volta, App→Ação Rápida do Dashboard, fim do encavalamento de ícones.
+- **App mobile:** home = **Dashboard** (não mais Radar; Radar no botão) + **splash "CliqueZoom"**.
+
+**⚠️ Notas:** (1) `mensagens` é cerca **só-front** (notifications.js não gated). (2) Co-dono **Pacheco é `member`** de FsFotografias → sujeito à matriz (baseline Operador). (3) Rollback: `git revert -m 1 dc55add` + pull + reload. (4) Falta E2E navegador em prod.
+
+---
+
 ## 🟢 HANDOFF ATIVO (2026-06-27) — Billing MP F0–F4 + Triagem em PRODUÇÃO
 
 > **Detalhe completo:** [`skills/handoff-2026-06-27.md`](skills/handoff-2026-06-27.md). Tudo **commitado e deployado** hoje (≠ handoffs antigos abaixo, que eram working-tree não commitado).
