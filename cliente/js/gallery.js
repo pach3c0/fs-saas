@@ -615,27 +615,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function buildPersonChipsBar() {
         const persons = facePersons();
-        const hasPersChips = persons.length > 0;
-
-        // Chip "Ver só selecionadas" — só em modo seleção, após escolher a 1ª foto.
-        // Fica FORA do gate de faces: aparece mesmo em sessões sem detecção de pessoas.
-        let selectedFilterChip = '';
-        if (state.isSelectionMode && state.selectedPhotos.length > 0) {
-            const on = state.showOnlySelected;
-            const selCount = state.selectedPhotos.length;
-            selectedFilterChip = `<button id="czShowSelectedChip" type="button"
-                style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.85rem;border-radius:9999px;border:2px solid ${on ? '#16a34a' : '#d1d5db'};background:${on ? '#dcfce7' : '#fff'};color:${on ? '#15803d' : '#374151'};font-size:0.8125rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;"
-                title="${on ? 'Mostrar todas as fotos' : 'Ver apenas as fotos que você já selecionou'}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                ${on ? 'Selecionadas (' + selCount + ')' : 'Ver selecionadas (' + selCount + ')'}
-            </button>`;
-        }
-
-        // Sem chips de pessoa E sem chip de seleção → nada a renderizar.
-        if (!hasPersChips && !selectedFilterChip) return '';
-
-        let persLabel = '';
-        if (hasPersChips) {
+        if (!persons.length) return '';
         const active = state.activePersonFilter;
 
         const chip = (pe) => {
@@ -669,13 +649,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 style="display:inline-flex;align-items:center;gap:0.35rem;margin-left:auto;background:#16a34a;color:#fff;padding:0.35rem 0.75rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;text-decoration:none;white-space:nowrap;">⬇ Baixar todas de ${nm}</a>`;
         }
 
-        persLabel = `<span style="font-size:0.8125rem;color:#6b7280;font-weight:600;margin-right:0.15rem;">Achar por pessoa:</span>
-            ${allBtn}${persons.map(chip).join('')}${dlBtn}`;
-        }
-
         return `<div class="cz-person-bar" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;padding:0.25rem 0 1rem;">
-            ${persLabel}
-            ${selectedFilterChip}
+            <span style="font-size:0.8125rem;color:#6b7280;font-weight:600;margin-right:0.15rem;">Achar por pessoa:</span>
+            ${allBtn}${persons.map(chip).join('')}${dlBtn}
         </div>`;
     }
 
@@ -731,35 +707,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).join('');
 
         wirePersonChips(renderPhotos);
-        wireSelectedChip();
         updateSelectionBar();
     }
 
-    // Liga o clique do chip "Ver só selecionadas" (chamado após (re)montar a barra de chips).
-    function wireSelectedChip() {
-        const czChip = photoGrid.querySelector('#czShowSelectedChip');
-        if (czChip) {
-            czChip.addEventListener('click', () => {
-                state.showOnlySelected = !state.showOnlySelected;
-                renderPhotos();
-            });
-        }
-    }
-
-    // Atualiza SÓ a barra de chips (achar por pessoa + "Ver selecionadas") sem reconstruir
-    // o grid inteiro — para o chip aparecer/atualizar o contador ASSIM que a seleção muda,
-    // sem precisar recarregar a página. Barato mesmo com muitas fotos.
-    function refreshChipsBar() {
-        const html = buildPersonChipsBar();
-        const existing = photoGrid.querySelector('.cz-person-bar');
-        if (html) {
-            if (existing) existing.outerHTML = html;
-            else photoGrid.insertAdjacentHTML('afterbegin', html);
-            wirePersonChips(renderPhotos);
-            wireSelectedChip();
-        } else if (existing) {
-            existing.remove();
-        }
+    // Alterna o filtro "Ver selecionadas" (botão fixo na barra de baixo). Guarda a posição
+    // de rolagem ao ENTRAR no filtro e a restaura ao SAIR — assim o cliente volta exatamente
+    // onde parou, sem precisar rolar tudo de novo atrás da última foto.
+    function toggleSelectedFilter() {
+        const goingIn = !state.showOnlySelected;
+        if (goingIn) state._scrollBeforeFilter = window.scrollY || 0;
+        state.showOnlySelected = goingIn;
+        renderPhotos();
+        const targetY = goingIn ? 0 : (state._scrollBeforeFilter || 0);
+        requestAnimationFrame(() => window.scrollTo(0, targetY));
     }
 
     // ── Cálculo de fotos extras (somente exibição) ─────────────────────────
@@ -842,6 +802,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             if (extraInfo) extraInfo.style.display = 'none';
             if (barExtra) barExtra.style.display = 'none';
+        }
+
+        // Botão "Ver selecionadas" (fixo na barra de baixo, ao lado de Salvo/Finalizar):
+        // só aparece com ≥1 foto escolhida; vira "Ver todas" quando o filtro está ligado.
+        const showSelectedBtn = document.getElementById('showSelectedBtn');
+        if (showSelectedBtn) {
+            if (count > 0) {
+                showSelectedBtn.style.display = '';
+                const on = state.showOnlySelected;
+                showSelectedBtn.textContent = on ? '👁 Ver todas' : '👁 Ver selecionadas';
+                showSelectedBtn.style.background = on ? '#16a34a' : '#4b5563';
+            } else {
+                showSelectedBtn.style.display = 'none';
+            }
         }
     }
 
@@ -1749,9 +1723,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectBtn.classList.add('selected');
         }
         updateSelectionBar();
-        // Faz o chip "Ver selecionadas" aparecer / atualizar o contador NA HORA (sem refresh).
-        // Só atualiza a barra de chips, não o grid — a não ser que já tenhamos re-renderizado.
-        if (!exitedFilter) refreshChipsBar();
 
         const payload = { accessCode: state.accessCode, photoId };
         if (state.isParticipant) {
@@ -1788,7 +1759,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 if (isSelected) selectBtn.classList.add('selected');
                 else selectBtn.classList.remove('selected');
-                refreshChipsBar();
             }
             updateSelectionBar();
         }
@@ -2211,6 +2181,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     submitSelectionBtn.addEventListener('click', submitSelection);
+    const showSelectedBtn = document.getElementById('showSelectedBtn');
+    if (showSelectedBtn) showSelectedBtn.addEventListener('click', toggleSelectedFilter);
 
     const saveSelectionBtn = document.getElementById('saveSelectionBtn');
     if (saveSelectionBtn) {
