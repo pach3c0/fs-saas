@@ -9,6 +9,7 @@
 //   4. Normal       — sem estado especial                → borda --border
 
 import { apiDelete } from '../../../utils/api.js';
+import { appState } from '../../../state.js';
 import { resolveImagePath, escapeHtml } from '../../../utils/helpers.js';
 import { icon } from '../../../utils/icons.js';
 import { stopWizardPolling } from './state.js';
@@ -140,6 +141,22 @@ export function renderUnifiedPhotoGrid({ session, refresh }) {
     btnCourtesy.title = 'Presentear o cliente com fotos fora da seleção';
     btnCourtesy.onclick = () => openSessionCourtesyModal(session, refresh);
     toolbar.appendChild(btnCourtesy);
+  }
+
+  // Botão Exportar Lightroom (só seleção individual, quando o cliente já escolheu fotos).
+  // Baixa um .txt com os nomes das selecionadas para filtrar no Lightroom antes de editar.
+  // (Recuperado: vivia no antigo passo "Editadas"; sumiu quando o fluxo migrou p/ o grid unificado.)
+  if (!isMulti && countSelected > 0) {
+    const btnExport = document.createElement('button');
+    btnExport.type = 'button';
+    btnExport.className = 'cz-ug-pill';
+    btnExport.innerHTML = `<span style="display:flex;align-items:center;">${icon('download', 14)}</span><span>Exportar Lightroom</span>`;
+    btnExport.title = 'Baixa um .txt com os nomes das fotos selecionadas para filtro no Lightroom';
+    btnExport.onclick = () => {
+      const token = encodeURIComponent(appState.authToken || '');
+      window.open(`/api/sessions/${session._id}/export?token=${token}`, '_blank');
+    };
+    toolbar.appendChild(btnExport);
   }
 
   // Botão Entregar (aparece quando tem editadas)
