@@ -1223,8 +1223,10 @@
     <div id="main-area">
         <!-- Top Bar -->
         <header id="topbar" class="glass-bar">
-            <!-- Esquerda: Logo (+ hamburger só no mobile) -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <!-- Esquerda: Logo (+ hamburger só no mobile). z-index:2 + fundo opaco: se a nav central
+                 transbordar (muitas pílulas numa tela estreita), ela some ATRÁS da marca em vez de
+                 encavalar por cima — fim do "ícones sobrepostos que só o reload conserta". -->
+            <div style="display:flex; align-items:center; gap:0.5rem; position:relative; z-index:2; flex-shrink:0; background:var(--bg-surface);">
                 <button id="mobile-hamburger" type="button" aria-label="Menu" title="Menu">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
@@ -1291,9 +1293,15 @@
                     </button>
                 </nav>
 
-                <!-- Busca Central oculta por ora (será reposicionada). Mantém-se um espaçador flex
-                     para preservar o alinhamento dos botões à direita. -->
-                <div style="flex:1 1 auto; min-width:0;"></div>
+                <!-- Busca Central: input flexível (flex:1 1 auto + min-width:0) → ENCOLHE antes das
+                     pílulas, então não empurra a nav para o overflow. setupSearch() liga o #topbar-search. -->
+                <div style="flex:1 1 auto; min-width:0; display:flex; justify-content:center;">
+                    <div style="position:relative; width:100%; max-width:280px; min-width:0;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; left:0.65rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input id="topbar-search" type="text" placeholder="Buscar seção…" autocomplete="off" aria-label="Buscar seção"
+                               style="width:100%; height:32px; padding:0 0.75rem 0 2rem; border-radius:9999px; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-primary); font-size:0.8125rem; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
 
                 <!-- Bolinhas da Direita (Ajuda, Configurações, Notificações) -->
                 <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1341,13 +1349,7 @@
                         </div>
                     </div>
 
-                    <!-- App no celular (instalar PWA + ativar notificações push) -->
-                    <button id="installAppBtn" onclick="openAppInstall()" class="header-expand-btn" title="Ver o app no celular (instalar + notificações)">
-                        <span class="header-expand-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-                        </span>
-                        <span class="header-expand-label">App</span>
-                    </button>
+                    <!-- (App no celular saiu do header → virou Ação Rápida no Dashboard, menos aperto.) -->
 
                     <button class="header-expand-btn nav-item" data-tab="configuracoes" title="Configurações">
                         <span class="header-expand-icon">
@@ -1359,8 +1361,10 @@
 
             <!-- Direita: sino de notificações + tema + perfil.
                  O SINO ficou aqui (fora de .topbar-center) de propósito: assim continua acessível no
-                 mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível. -->
-            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
+                 mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível.
+                 z-index:2 + fundo opaco: blindagem gêmea do grupo esquerdo — a nav que transbordar fica
+                 ATRÁS destes ícones (sino/tema/perfil), nunca por cima. -->
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0; position:relative; z-index:2; background:var(--bg-surface); padding-left:0.5rem;">
                 <!-- Voltar ao Radar: fora de .topbar-center (fica visível no mobile) e com
                      class nav-item + onclick → o buildMobileDrawer o injeta na gaveta automaticamente. -->
                 <button id="topbarRadarBtn" class="nav-item" onclick="openRadar()" title="Voltar ao Radar" style="padding:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:var(--text-primary); cursor:pointer;">
@@ -1405,10 +1409,11 @@
                     <div id="dropdown-user" class="header-dropdown-menu pop-right" style="position:absolute; top:100%; right:0; min-width:240px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100; margin-top:0.5rem; overflow:hidden;">
                         <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:0.25rem;">
                             <div style="display:flex; justify-content:space-between; align-items:baseline; gap:1rem;">
-                                <span id="user-org-name" style="font-size:0.875rem; font-weight:700; color:var(--text-primary);">Carregando...</span>
+                                <span id="user-display-name" style="font-size:0.875rem; font-weight:700; color:var(--text-primary);">Carregando...</span>
                                 <span id="platform-version" style="font-size:0.6875rem; color:var(--text-muted); font-weight:500;"></span>
                             </div>
-                            <span style="font-size:0.75rem; color:var(--text-secondary);">Administrador</span>
+                            <span id="user-org-name" style="font-size:0.75rem; color:var(--text-secondary);"></span>
+                            <span id="user-role-label" style="font-size:0.6875rem; color:var(--text-muted);">Administrador</span>
                         </div>
                         <div style="padding:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
                             <button class="nav-item" data-tab="perfil" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Perfil</button>

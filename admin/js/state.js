@@ -13,7 +13,13 @@ export let appState = {
   // rebaixa. `permissions` (mapa efetivo {chave:bool}) só importa p/ membro — o dono ignora.
   role: '',
   isOwner: true,
-  permissions: null
+  permissions: null,
+  // Identidade exibida no menu de perfil (topbar). userName vem do /me (nome da PESSOA
+  // logada); orgName vem do /organization/profile (nome do NEGÓCIO). O avatar/menu mostram
+  // o nome da pessoa (antes mostrava só as iniciais do negócio — ex.: "FS").
+  userName: '',
+  userEmail: '',
+  orgName: ''
 };
 
 export async function loadAppData() {

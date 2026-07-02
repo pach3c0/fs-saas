@@ -58,7 +58,31 @@ async function loadMe() {
     appState.role = me.role || '';
     appState.isOwner = me.isOwner !== false;
     appState.permissions = me.permissions || null;
+    appState.userName = me.name || '';
+    appState.userEmail = me.email || '';
+    refreshIdentityUI();
   } catch { /* fail-open: segue como dono */ }
+}
+
+// Preenche avatar + menu de perfil com o nome da PESSOA logada (fallback: nome do negócio).
+// Idempotente e à prova de corrida: loadMe() e fetchProfile() chamam ambos, em qualquer ordem
+// (cada um preenche o que sabe). Iniciais = 1ª letra das 2 primeiras palavras do nome.
+function refreshIdentityUI() {
+  const person = (appState.userName || '').trim();
+  const org = (appState.orgName || '').trim();
+  const display = person || org;
+  if (display) {
+    const initials = display.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+      || display.substring(0, 2).toUpperCase();
+    const av = document.getElementById('user-avatar-text');
+    if (av) av.textContent = initials;
+    const dn = document.getElementById('user-display-name');
+    if (dn) dn.textContent = display;
+  }
+  const orgEl = document.getElementById('user-org-name');
+  if (orgEl) orgEl.textContent = org && org !== person ? org : '';
+  const roleEl = document.getElementById('user-role-label');
+  if (roleEl) roleEl.textContent = appState.isOwner ? 'Titular da conta' : 'Membro da equipe';
 }
 
 // O usuário pode abrir esta aba? Dono sempre; aba sem chave sempre; senão precisa da permissão.
@@ -1081,13 +1105,11 @@ async function loadOrgSlug() {
         if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${slug}`;
       }
       
-      // Preencher o menu de usuário da nova Header
-      const name = orgData.name || 'Meu Estúdio';
-      const initials = name.substring(0, 2).toUpperCase();
-      const avatarText = document.getElementById('user-avatar-text');
-      if (avatarText) avatarText.textContent = initials;
-      const orgNameLabel = document.getElementById('user-org-name');
-      if (orgNameLabel) orgNameLabel.textContent = name;
+      // Guarda o nome do NEGÓCIO e delega a pintura do avatar/menu ao refreshIdentityUI
+      // (que prioriza o nome da PESSOA vindo do /me — antes o avatar ficava nas iniciais do
+      // negócio, ex.: "FS"). Idempotente: roda em qualquer ordem vs. loadMe().
+      appState.orgName = orgData.name || '';
+      refreshIdentityUI();
     }
   } catch (e) { console.error('Erro ao buscar profile:', e); }
 }
