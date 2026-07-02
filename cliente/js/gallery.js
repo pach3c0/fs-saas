@@ -731,7 +731,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).join('');
 
         wirePersonChips(renderPhotos);
-        // Wire do chip "Ver só selecionadas"
+        wireSelectedChip();
+        updateSelectionBar();
+    }
+
+    // Liga o clique do chip "Ver só selecionadas" (chamado após (re)montar a barra de chips).
+    function wireSelectedChip() {
         const czChip = photoGrid.querySelector('#czShowSelectedChip');
         if (czChip) {
             czChip.addEventListener('click', () => {
@@ -739,7 +744,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderPhotos();
             });
         }
-        updateSelectionBar();
+    }
+
+    // Atualiza SÓ a barra de chips (achar por pessoa + "Ver selecionadas") sem reconstruir
+    // o grid inteiro — para o chip aparecer/atualizar o contador ASSIM que a seleção muda,
+    // sem precisar recarregar a página. Barato mesmo com muitas fotos.
+    function refreshChipsBar() {
+        const html = buildPersonChipsBar();
+        const existing = photoGrid.querySelector('.cz-person-bar');
+        if (html) {
+            if (existing) existing.outerHTML = html;
+            else photoGrid.insertAdjacentHTML('afterbegin', html);
+            wirePersonChips(renderPhotos);
+            wireSelectedChip();
+        } else if (existing) {
+            existing.remove();
+        }
     }
 
     // ── Cálculo de fotos extras (somente exibição) ─────────────────────────
@@ -1729,6 +1749,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectBtn.classList.add('selected');
         }
         updateSelectionBar();
+        // Faz o chip "Ver selecionadas" aparecer / atualizar o contador NA HORA (sem refresh).
+        // Só atualiza a barra de chips, não o grid — a não ser que já tenhamos re-renderizado.
+        if (!exitedFilter) refreshChipsBar();
 
         const payload = { accessCode: state.accessCode, photoId };
         if (state.isParticipant) {
@@ -1762,10 +1785,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Desfaz o auto-reset: o grid foi recriado (selectBtn ficou órfão) → volta ao filtro e re-renderiza.
                 state.showOnlySelected = true;
                 renderPhotos();
-            } else if (isSelected) {
-                selectBtn.classList.add('selected');
             } else {
-                selectBtn.classList.remove('selected');
+                if (isSelected) selectBtn.classList.add('selected');
+                else selectBtn.classList.remove('selected');
+                refreshChipsBar();
             }
             updateSelectionBar();
         }
