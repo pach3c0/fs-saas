@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         faceEnabled: false,
         persons: [],
         activePersonFilter: null,
+        showOnlySelected: false, // filtro "Ver só selecionadas"
     };
 
     // Comentários visíveis a ESTE espectador. Em Seleção em Grupo, cada participante só vê
@@ -605,9 +606,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         return list.filter(p => Array.isArray(p.personTags) && p.personTags.includes(f));
     }
 
+    // Filtro "Ver só selecionadas" — ativo em modo de seleção quando state.showOnlySelected=true
+    function applySelectedFilter(list) {
+        if (!state.showOnlySelected) return list;
+        const sel = new Set(state.selectedPhotos);
+        return list.filter(p => sel.has(p.id));
+    }
+
     function buildPersonChipsBar() {
         const persons = facePersons();
-        if (!persons.length) return '';
+        const hasPersChips = persons.length > 0;
+
+        // Chip "Ver só selecionadas" — só em modo seleção, após escolher a 1ª foto.
+        // Fica FORA do gate de faces: aparece mesmo em sessões sem detecção de pessoas.
+        let selectedFilterChip = '';
+        if (state.isSelectionMode && state.selectedPhotos.length > 0) {
+            const on = state.showOnlySelected;
+            const selCount = state.selectedPhotos.length;
+            selectedFilterChip = `<button id="czShowSelectedChip" type="button"
+                style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.85rem;border-radius:9999px;border:2px solid ${on ? '#16a34a' : '#d1d5db'};background:${on ? '#dcfce7' : '#fff'};color:${on ? '#15803d' : '#374151'};font-size:0.8125rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;"
+                title="${on ? 'Mostrar todas as fotos' : 'Ver apenas as fotos que você já selecionou'}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                ${on ? 'Selecionadas (' + selCount + ')' : 'Ver selecionadas (' + selCount + ')'}
+            </button>`;
+        }
+
+        // Sem chips de pessoa E sem chip de seleção → nada a renderizar.
+        if (!hasPersChips && !selectedFilterChip) return '';
+
+        let persLabel = '';
+        if (hasPersChips) {
         const active = state.activePersonFilter;
 
         const chip = (pe) => {
@@ -641,9 +669,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 style="display:inline-flex;align-items:center;gap:0.35rem;margin-left:auto;background:#16a34a;color:#fff;padding:0.35rem 0.75rem;border-radius:0.375rem;font-size:0.8125rem;font-weight:600;text-decoration:none;white-space:nowrap;">⬇ Baixar todas de ${nm}</a>`;
         }
 
+        persLabel = `<span style="font-size:0.8125rem;color:#6b7280;font-weight:600;margin-right:0.15rem;">Achar por pessoa:</span>
+            ${allBtn}${persons.map(chip).join('')}${dlBtn}`;
+        }
+
         return `<div class="cz-person-bar" style="grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;padding:0.25rem 0 1rem;">
-            <span style="font-size:0.8125rem;color:#6b7280;font-weight:600;margin-right:0.15rem;">Achar por pessoa:</span>
-            ${allBtn}${persons.map(chip).join('')}${dlBtn}
+            ${persLabel}
+            ${selectedFilterChip}
         </div>`;
     }
 
@@ -674,7 +706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const wm = getWatermarkOverlay(state.session.organization ? state.session.organization.watermark : null, true);
 
-        const list = applyPersonFilter(state.photos);
+        const list = applySelectedFilter(applyPersonFilter(state.photos));
         photoGrid.innerHTML = buildPersonChipsBar() + list.map(photo => {
             const isSelected = state.selectedPhotos.includes(photo.id);
             const hasComments = commentsFor(photo).length > 0;
@@ -699,6 +731,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).join('');
 
         wirePersonChips(renderPhotos);
+        // Wire do chip "Ver só selecionadas"
+        const czChip = photoGrid.querySelector('#czShowSelectedChip');
+        if (czChip) {
+            czChip.addEventListener('click', () => {
+                state.showOnlySelected = !state.showOnlySelected;
+                renderPhotos();
+            });
+        }
         updateSelectionBar();
     }
 
@@ -1673,9 +1713,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectBtn = photoCard.querySelector('.photo-heart');
 
         // Optimistic UI
+        let exitedFilter = false;
         if (isSelected) {
             state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
             selectBtn.classList.remove('selected');
+            // Saiu a última foto no modo "Ver só selecionadas" → sai do filtro (evita grid vazio).
+            // NÃO damos return: a persistência no backend abaixo precisa rodar.
+            if (state.showOnlySelected && state.selectedPhotos.length === 0) {
+                state.showOnlySelected = false;
+                exitedFilter = true;
+                renderPhotos();
+            }
         } else {
             state.selectedPhotos.push(photoId);
             selectBtn.classList.add('selected');
@@ -1707,9 +1755,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             showGalleryToast('Erro ao salvar seleção. Tente novamente.', 'error');
             if (isSelected) {
                 state.selectedPhotos.push(photoId);
-                selectBtn.classList.add('selected');
             } else {
                 state.selectedPhotos = state.selectedPhotos.filter(id => id !== photoId);
+            }
+            if (exitedFilter) {
+                // Desfaz o auto-reset: o grid foi recriado (selectBtn ficou órfão) → volta ao filtro e re-renderiza.
+                state.showOnlySelected = true;
+                renderPhotos();
+            } else if (isSelected) {
+                selectBtn.classList.add('selected');
+            } else {
                 selectBtn.classList.remove('selected');
             }
             updateSelectionBar();
