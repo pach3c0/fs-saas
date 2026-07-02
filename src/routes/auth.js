@@ -14,6 +14,7 @@ const { applyDefaultTemplate } = require('./site');
 const { trackEvent } = require('../utils/activityTracker');
 const { provisionRhynoTenant } = require('../utils/rhynoProvision');
 const { validateSlug } = require('../utils/slug');
+const { effectivePerms } = require('../services/memberPermissions');
 
 router.post('/login', async (req, res) => {
   try {
@@ -236,6 +237,53 @@ router.get('/auth/check-slug/:slug', async (req, res) => {
   } catch (error) {
     req.logger.error('Erro ao verificar slug', { error: error.message });
     res.status(500).json({ error: 'Erro ao verificar slug' });
+  }
+});
+
+// GET /api/auth/me — identidade + permissões EFETIVAS do usuário logado (Slice 2). O admin
+// usa `permissions`/`isOwner` para esconder as abas fora do papel (cosmético; a cerca dura
+// é server-side). Lê do DB → reflete mudança de permissão sem re-login.
+router.get('/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('name email role permissions').lean();
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const isOwner = user.role === 'admin' || user.role === 'superadmin';
+    res.json({
+      success: true,
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isOwner,
+      permissions: effectivePerms(user),
+    });
+  } catch (error) {
+    req.logger.error('Erro no /auth/me', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/auth/me/password — o próprio usuário troca a senha (self). Valida a senha atual.
+// Membro convidado usa isto na aba "Minha conta"; o dono também pode. Não mexe no Rhyno.
+router.put('/auth/me/password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) return res.status(400).json({ error: 'Senha atual incorreta' });
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ success: true, message: 'Senha alterada com sucesso' });
+  } catch (error) {
+    req.logger.error('Erro ao trocar a própria senha', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 });
 

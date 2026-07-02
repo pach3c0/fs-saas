@@ -7,7 +7,13 @@ export let appState = {
   organizationId: localStorage.getItem('organizationId') || '',
   appData: {},
   currentTab: 'dashboard',
-  orgSlug: localStorage.getItem('orgSlug') || ''
+  orgSlug: localStorage.getItem('orgSlug') || '',
+  // Papel + permissões do usuário logado (Slice 2). Preenchidos por GET /api/auth/me no boot.
+  // `isOwner` default true = fail-open pro dono (caso comum); o /me confirma e, se for membro,
+  // rebaixa. `permissions` (mapa efetivo {chave:bool}) só importa p/ membro — o dono ignora.
+  role: '',
+  isOwner: true,
+  permissions: null
 };
 
 export async function loadAppData() {

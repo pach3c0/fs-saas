@@ -33,7 +33,16 @@ async function apiRequest(method, url, body = null) {
       error.code = body.code;
       throw error;
     }
-    // 403 sem upgrade = acesso negado (token inválido)
+    // Negação de PERMISSÃO/papel (Slice 2): backend manda `forbidden:true`. Mostra toast e
+    // deixa o chamador tratar — NÃO desloga (só 403 SEM flag = token inválido → logout).
+    if (body.forbidden) {
+      const error = new Error(body.error || 'Acesso restrito ao titular da conta.');
+      error.status = 403;
+      error.forbidden = true;
+      window.showToast?.(error.message, 'warning');
+      throw error;
+    }
+    // 403 sem flag = acesso negado (token inválido)
     localStorage.removeItem('authToken');
     localStorage.removeItem('organizationId');
     window.showToast?.('Sua sessão expirou. Faça login novamente.', 'warning', 0);

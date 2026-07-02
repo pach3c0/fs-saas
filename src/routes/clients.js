@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const Client = require('../models/Client');
 const Session = require('../models/Session');
 
 // GET /api/clients/search?q=nome - busca rapida por nome (para autocomplete)
-router.get('/clients/search', authenticateToken, async (req, res) => {
+router.get('/clients/search', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
     const q = (req.query.q || '').trim();
@@ -25,7 +25,7 @@ router.get('/clients/search', authenticateToken, async (req, res) => {
 });
 
 // GET /api/clients - listar clientes com contagem de sessoes
-router.get('/clients', authenticateToken, async (req, res) => {
+router.get('/clients', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
 
@@ -63,7 +63,7 @@ router.get('/clients', authenticateToken, async (req, res) => {
 });
 
 // POST /api/clients - criar cliente
-router.post('/clients', authenticateToken, async (req, res) => {
+router.post('/clients', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
     const { name, email, phone, cpf, notes, tags, birthDate, lastEventType, nextContactDate } = req.body;
@@ -111,7 +111,7 @@ router.post('/clients', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/clients/:id - editar cliente
-router.put('/clients/:id', authenticateToken, async (req, res) => {
+router.put('/clients/:id', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
     const { name, email, phone, cpf, notes, tags, birthDate, lastEventType, nextContactDate } = req.body;
@@ -174,7 +174,7 @@ router.put('/clients/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/clients/bulk - deletar múltiplos clientes
-router.delete('/clients/bulk', authenticateToken, async (req, res) => {
+router.delete('/clients/bulk', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
     const { ids } = req.body;
@@ -206,7 +206,7 @@ router.delete('/clients/bulk', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/clients/:id - deletar um cliente
-router.delete('/clients/:id', authenticateToken, async (req, res) => {
+router.delete('/clients/:id', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
     const clientId = req.params.id;
@@ -232,7 +232,7 @@ router.delete('/clients/:id', authenticateToken, async (req, res) => {
 });
 
 // GET /api/clients/:id/sessions - sessoes do cliente
-router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
+router.get('/clients/:id/sessions', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
 
@@ -256,7 +256,7 @@ router.get('/clients/:id/sessions', authenticateToken, async (req, res) => {
 // GET /api/clients/:id/timeline - linha do tempo consolidada do cliente
 // Cruza: cadastro do cliente, sessoes, entregas, compras de fotos extras e
 // gatilhos enviados pelo robo CRM (quando existirem - Fase 2)
-router.get('/clients/:id/timeline', authenticateToken, async (req, res) => {
+router.get('/clients/:id/timeline', authenticateToken, requirePermission('clientes'), async (req, res) => {
   try {
     const orgId = req.user.organizationId;
 

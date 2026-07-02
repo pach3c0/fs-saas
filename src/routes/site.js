@@ -8,7 +8,7 @@ const Organization = require('../models/Organization');
 const DefaultSiteTemplate = require('../models/DefaultSiteTemplate');
 const Notification = require('../models/Notification');
 const { sendPendingDepoimentoEmail } = require('../utils/email');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { clearOrgCache } = require('../middleware/tenant');
 const { createUploader } = require('../utils/multerConfig');
 const { checkHoneyPot } = require('../middleware/security');
@@ -83,7 +83,7 @@ router.get('/site/admin/config', authenticateToken, async (req, res) => {
 });
 
 // Admin: Update config
-router.put('/site/admin/config', authenticateToken, async (req, res) => {
+router.put('/site/admin/config', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const updateData = {};
     const allowedKeys = ['siteEnabled', 'siteTheme', 'siteSections', 'siteStyle'];
@@ -129,7 +129,7 @@ router.put('/site/admin/config', authenticateToken, async (req, res) => {
 });
 
 // Admin: Upload portfolio photo
-router.post('/site/admin/portfolio', authenticateToken, uploadSite.single('photo'), async (req, res) => {
+router.post('/site/admin/portfolio', authenticateToken, requirePermission('meu_site'), uploadSite.single('photo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
@@ -166,7 +166,7 @@ router.post('/site/admin/portfolio', authenticateToken, uploadSite.single('photo
 });
 
 // Admin: Delete portfolio photo
-router.delete('/site/admin/portfolio/:idx', authenticateToken, async (req, res) => {
+router.delete('/site/admin/portfolio/:idx', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId);
     if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
@@ -323,7 +323,7 @@ router.get('/site/admin/depoimentos-pendentes', authenticateToken, async (req, r
 });
 
 // Admin: Aprovar depoimento pendente
-router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, async (req, res) => {
+router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId);
     if (!org) return res.status(404).json({ error: 'Organização não encontrada' });
@@ -349,7 +349,7 @@ router.post('/site/admin/depoimentos-pendentes/:id/aprovar', authenticateToken, 
 });
 
 // Admin: Rejeitar depoimento pendente
-router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, async (req, res) => {
+router.delete('/site/admin/depoimentos-pendentes/:id', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     await Organization.findByIdAndUpdate(req.user.organizationId, {
       $pull: { 'siteContent.pendingDepoimentos': { id: req.params.id } }
@@ -453,7 +453,7 @@ router.put('/site/default-template', authenticateToken, async (req, res) => {
 });
 
 // POST /api/site/default-template/apply — aplica template na org do usuário logado
-router.post('/site/default-template/apply', authenticateToken, async (req, res) => {
+router.post('/site/default-template/apply', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     await applyDefaultTemplate(req.user.organizationId);
     if (req.user?.organizationId) {

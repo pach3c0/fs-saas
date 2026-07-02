@@ -4,7 +4,7 @@ const router = express.Router();
 const Session = require('../models/Session');
 const Notification = require('../models/Notification');
 const Subscription = require('../models/Subscription');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { checkLimit, checkSessionLimit, checkPhotoLimit, checkStorageGate } = require('../middleware/planLimits');
 const { checkHoneyPot } = require('../middleware/security');
 const rateLimit = require('express-rate-limit');
@@ -834,7 +834,7 @@ router.post('/client/request-reopen/:sessionId', async (req, res) => {
   }
 });
 
-router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/dismiss-reopen', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { participantId } = req.body || {};
     if (participantId) {
@@ -862,7 +862,7 @@ router.put('/sessions/:id/dismiss-reopen', authenticateToken, async (req, res) =
 // ADMIN: Marcar/desmarcar "upload concluído" (wizard passo 1)
 // body: { completed: true } trava o upload (uploadsCompletedAt = now)
 // body: { completed: false } reabre o upload (uploadsCompletedAt = null)
-router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/complete-uploads', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const completed = req.body?.completed !== false;
     const current = await Session.findOne(
@@ -905,7 +905,7 @@ router.put('/sessions/:id/complete-uploads', authenticateToken, async (req, res)
 
 // ADMIN: Bloqueio de emergência — impede acesso do cliente sem apagar dados.
 // Alterna clientAccessBlocked (toggle). Admin continua com acesso total.
-router.put('/sessions/:id/toggle-client-access', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/toggle-client-access', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
       .select('clientAccessBlocked name');
@@ -924,7 +924,7 @@ router.put('/sessions/:id/toggle-client-access', authenticateToken, async (req, 
 
 // ADMIN: Marcar visualização do passo de código (wizard passo 2)
 // Idempotente: só seta codeViewedAt se ainda não estiver setado.
-router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/view-code', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne(
       { _id: req.params.id, organizationId: req.user.organizationId }
@@ -943,7 +943,7 @@ router.put('/sessions/:id/view-code', authenticateToken, async (req, res) => {
 
 // ADMIN: Modo Galeria — define se compartilha prévia (com marca d'água) antes de entregar
 // ou entrega direto (pula o passo Compartilhar). Só preferência de fluxo do wizard.
-router.put('/sessions/:id/gallery-delivery-mode', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/gallery-delivery-mode', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { mode } = req.body;
     if (!['preview', 'direct'].includes(mode)) {
@@ -966,7 +966,7 @@ router.put('/sessions/:id/gallery-delivery-mode', authenticateToken, async (req,
 });
 
 // ADMIN: Autosave das mensagens customizadas (Share / Deliver)
-router.put('/sessions/:id/custom-messages', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/custom-messages', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { customShareEmailIntro, customShareWhatsAppText, customDeliverEmailIntro, customDeliverWhatsAppText } = req.body;
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
@@ -1122,7 +1122,7 @@ router.post('/client/request-extra-photos/:sessionId', async (req, res) => {
 // ============================================================================
 
 // ADMIN: CRUD Sessões
-router.get('/sessions', authenticateToken, async (req, res) => {
+router.get('/sessions', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const sessions = await Session.find({ organizationId: req.user.organizationId })
       .sort({ createdAt: -1 })
@@ -1139,7 +1139,7 @@ router.get('/sessions', authenticateToken, async (req, res) => {
 // escrita, sem efeitos colaterais). Usa aggregate + $size para NÃO trafegar o array de
 // fotos (pode ter milhares) — pensado para poll frequente no celular. Filtrado por
 // organizationId. IMPORTANTE: precede o `/sessions/:id` abaixo, senão `:id` captura "radar".
-router.get('/sessions/radar', authenticateToken, async (req, res) => {
+router.get('/sessions/radar', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const orgId = new mongoose.Types.ObjectId(String(req.user.organizationId));
     const rows = await Session.aggregate([
@@ -1251,7 +1251,7 @@ router.get('/sessions/radar', authenticateToken, async (req, res) => {
 });
 
 // ADMIN: Buscar sessão por ID (com fotos)
-router.get('/sessions/:id', authenticateToken, async (req, res) => {
+router.get('/sessions/:id', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -1266,7 +1266,7 @@ router.get('/sessions/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async (req, res) => {
+router.post('/sessions', authenticateToken, requirePermission('sessoes'), checkLimit, checkSessionLimit, async (req, res) => {
   try {
     const { mode } = req.body;
 
@@ -1335,7 +1335,7 @@ router.post('/sessions', authenticateToken, checkLimit, checkSessionLimit, async
   }
 });
 
-router.put('/sessions/:id', authenticateToken, async (req, res) => {
+router.put('/sessions/:id', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const updateData = { ...req.body };
     if (updateData.clientId === '') delete updateData.clientId;
@@ -1371,7 +1371,7 @@ router.put('/sessions/:id', authenticateToken, async (req, res) => {
 // body opcional: { channel: 'email' | 'whatsapp' | 'both', emailIntro?: string } — default 'email'
 // emailIntro: parágrafo personalizado pelo fotógrafo que substitui o texto padrão no e-mail.
 // Para 'whatsapp': não envia mensagem; retorna whatsappUrl (wa.me) que o front abre em nova aba.
-router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/send-code', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const channel = req.body?.channel || 'email';
     // 'copy' = fotógrafo copiou código/link pelo botão (não envia nada, só registra que compartilhou).
@@ -1485,7 +1485,7 @@ router.post('/sessions/:id/send-code', authenticateToken, async (req, res) => {
 });
 
 // ADMIN: Aceitar solicitação de fotos extras
-router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/extra-request/accept', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -1538,7 +1538,7 @@ router.put('/sessions/:id/extra-request/accept', authenticateToken, async (req, 
 });
 
 // ADMIN: Recusar solicitação de fotos extras
-router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/extra-request/reject', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -1603,7 +1603,7 @@ router.put('/sessions/:id/extra-request/reject', authenticateToken, async (req, 
   }
 });
 
-router.delete('/sessions/:id', authenticateToken, async (req, res) => {
+router.delete('/sessions/:id', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -1655,7 +1655,7 @@ router.delete('/sessions/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLimit, checkStorageGate, uploadSession.array('photos'), async (req, res) => {
+router.post('/sessions/:id/photos', authenticateToken, requirePermission('sessoes'), checkLimit, checkPhotoLimit, checkStorageGate, uploadSession.array('photos'), async (req, res) => {
   const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
@@ -1778,7 +1778,7 @@ router.post('/sessions/:id/photos', authenticateToken, checkLimit, checkPhotoLim
 // ── Camada facial (Triagem) ─────────────────────────────────────────────────
 // Registra/atualiza as PESSOAS da sessão + sobe a miniatura representativa de cada uma.
 // Idempotente: upsert por triagemId (re-push não duplica). Só TAGS e recorte — sem biometria.
-router.post('/sessions/:id/persons', authenticateToken, checkStorageGate, uploadSession.array('thumbs'), async (req, res) => {
+router.post('/sessions/:id/persons', authenticateToken, requirePermission('sessoes'), checkStorageGate, uploadSession.array('thumbs'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -1839,7 +1839,7 @@ router.post('/sessions/:id/persons', authenticateToken, checkStorageGate, upload
 });
 
 // Publica a sessão ao fim do push facial (libera o cliente). Idempotente.
-router.post('/sessions/:id/publish', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/publish', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.user.organizationId },
@@ -1855,7 +1855,7 @@ router.post('/sessions/:id/publish', authenticateToken, async (req, res) => {
 });
 
 // Upload das fotos editadas (fluxo post_edit) — casa por nome de arquivo
-router.post('/sessions/:id/photos/upload-edited', authenticateToken, checkStorageGate, uploadSession.array('photos'), async (req, res) => {
+router.post('/sessions/:id/photos/upload-edited', authenticateToken, requirePermission('sessoes'), checkStorageGate, uploadSession.array('photos'), async (req, res) => {
   const generatedThumbs = []; // declarado fora do try para ser acessível no catch
   try {
     const session = await Session.findOne({
@@ -1994,7 +1994,7 @@ router.post('/sessions/:id/photos/upload-edited', authenticateToken, checkStorag
 });
 
 // ADMIN: Deletar fotos em massa — deve vir ANTES de /:photoId para evitar que 'bulk' seja capturado como parâmetro
-router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) => {
+router.delete('/sessions/:id/photos/bulk', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { photoIds } = req.body;
     if (!Array.isArray(photoIds) || photoIds.length === 0) {
@@ -2047,7 +2047,7 @@ router.delete('/sessions/:id/photos/bulk', authenticateToken, async (req, res) =
 });
 
 // ADMIN: Ocultar/mostrar fotos em massa — deve vir ANTES de /:photoId
-router.put('/sessions/:id/photos/bulk-hidden', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/photos/bulk-hidden', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { photoIds, hidden } = req.body;
     if (!Array.isArray(photoIds) || photoIds.length === 0) {
@@ -2089,7 +2089,7 @@ router.put('/sessions/:id/photos/bulk-hidden', authenticateToken, async (req, re
   }
 });
 
-router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (req, res) => {
+router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.sessionId,
@@ -2135,7 +2135,7 @@ router.delete('/sessions/:sessionId/photos/:photoId', authenticateToken, async (
 // ADMIN: Remover SÓ a versão editada de uma foto (reverter), mantendo a foto na galeria
 // e na seleção de todos. Restaura a preview crua (urlRaw) preservada no upload-edited.
 // Não decrementa o contador do plano (a foto continua existindo).
-router.delete('/sessions/:sessionId/photos/:photoId/edited', authenticateToken, async (req, res) => {
+router.delete('/sessions/:sessionId/photos/:photoId/edited', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.sessionId,
@@ -2189,7 +2189,7 @@ router.delete('/sessions/:sessionId/photos/:photoId/edited', authenticateToken, 
 });
 
 // ADMIN: Ocultar/Mostrar foto
-router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2221,7 +2221,7 @@ router.put('/sessions/:id/photos/:photoId/toggle-hidden', authenticateToken, asy
 //   - Reabertura direta pelo fotógrafo (botão no passo Acompanhar): independente de pedido.
 // Body opcional { participantId } reabre apenas um participante em multi-seleção;
 // sem participantId, reabre todos os participantes que já haviam enviado.
-router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/reopen', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2265,7 +2265,7 @@ router.put('/sessions/:id/reopen', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/deliver', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2356,7 +2356,7 @@ router.put('/sessions/:id/deliver', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/reopen-delivery', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({
       _id: req.params.id,
@@ -2382,7 +2382,7 @@ router.put('/sessions/:id/reopen-delivery', authenticateToken, async (req, res) 
   }
 });
 
-router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, async (req, res) => {
+router.post('/sessions/:sessionId/photos/:photoId/comments', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { text, participantId } = req.body;
     const session = await Session.findOne({
@@ -2457,7 +2457,7 @@ router.get('/sessions/:sessionId/export', (req, res) => {
 // ADMIN: Gerenciar Participantes (Multi-Seleção)
 
 // Adicionar participante
-router.post('/sessions/:id/participants', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/participants', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { name, email, phone, packageLimit, extraPhotoPrice, clientId } = req.body;
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
@@ -2486,7 +2486,7 @@ router.post('/sessions/:id/participants', authenticateToken, async (req, res) =>
 });
 
 // Editar participante
-router.put('/sessions/:id/participants/:pid', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/participants/:pid', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2514,7 +2514,7 @@ router.put('/sessions/:id/participants/:pid', authenticateToken, async (req, res
 });
 
 // Remover participante
-router.delete('/sessions/:id/participants/:pid', authenticateToken, async (req, res) => {
+router.delete('/sessions/:id/participants/:pid', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2529,7 +2529,7 @@ router.delete('/sessions/:id/participants/:pid', authenticateToken, async (req, 
 });
 
 // Entregar participante individualmente
-router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2561,7 +2561,7 @@ router.put('/sessions/:id/participants/:pid/deliver', authenticateToken, async (
 // ADMIN: define a lista de fotos de CORTESIA de um participante (multi_selection / multi_instant).
 // Idempotente — recebe a lista COMPLETA de IDs e substitui. Valida que cada ID existe no pool da
 // sessão e descarta o que já estiver na seleção do participante (cortesia é sempre fora do pacote).
-router.put('/sessions/:id/participants/:pid/courtesy', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/participants/:pid/courtesy', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2586,7 +2586,7 @@ router.put('/sessions/:id/participants/:pid/courtesy', authenticateToken, async 
 
 // Cortesia na SELEÇÃO INDIVIDUAL (espelha o endpoint do participante acima).
 // O fotógrafo presenteia fotos fora da seleção do cliente; idempotente (salva a lista completa).
-router.put('/sessions/:id/courtesy', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/courtesy', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2607,7 +2607,7 @@ router.put('/sessions/:id/courtesy', authenticateToken, async (req, res) => {
 });
 
 // Exportar seleções dos participantes
-router.get('/sessions/:id/participants/export', authenticateToken, async (req, res) => {
+router.get('/sessions/:id/participants/export', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -2635,7 +2635,7 @@ router.get('/sessions/:id/participants/export', authenticateToken, async (req, r
 });
 
 // ADMIN: Verificar prazos manualmente (Gatilho para Cron)
-router.post('/sessions/check-deadlines', authenticateToken, async (req, res) => {
+router.post('/sessions/check-deadlines', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     // Verifica apenas para a organização do usuário logado
     const result = await checkDeadlines(req.user.organizationId);
@@ -2859,7 +2859,7 @@ router.get('/client/download-all/:sessionId', async (req, res) => {
 // ============================================================================
 
 // Salva/atualiza configuração de retenção de storage da sessão
-router.put('/sessions/:id/storage-retention', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/storage-retention', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { storageRetentionUntil, storageAutoDelete, storageBackupOnExpire } = req.body;
 
@@ -2891,7 +2891,7 @@ router.put('/sessions/:id/storage-retention', authenticateToken, async (req, res
 });
 
 // Arquiva sessão: remove fotos do disco (exceto capa), salva link externo opcional
-router.post('/sessions/:id/archive', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/archive', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { externalStorageUrl } = req.body;
 
@@ -2935,7 +2935,7 @@ router.post('/sessions/:id/archive', authenticateToken, async (req, res) => {
 });
 
 // Deleta todas as fotos do disco de uma sessão (ação manual do fotógrafo via wizard)
-router.post('/sessions/:id/delete-photos', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/delete-photos', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -3030,7 +3030,7 @@ router.get('/sessions/:id/photos-backup', async (req, res) => {
 // ============================================================================
 
 // Notificar cliente que as fotos serão removidas em breve (ação do fotógrafo)
-router.post('/sessions/:id/notify-pending-download', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/notify-pending-download', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
       .populate('clientId', 'name email')
@@ -3097,7 +3097,7 @@ router.post('/sessions/:id/track-download', async (req, res) => {
 });
 
 // ADMIN: Diagnóstico de fotos — verifica urlOriginal no disco e auto-corrige gallery sem urlOriginal
-router.get('/sessions/:id/photos/diagnose', authenticateToken, async (req, res) => {
+router.get('/sessions/:id/photos/diagnose', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' });
@@ -3296,7 +3296,7 @@ router.post('/sessions/register/:code', selfRegLimiter, checkHoneyPot, async (re
 });
 
 // ADMIN: Retorna URL pública de inscrição para exibir QR Code no painel
-router.get('/sessions/:id/register-link', authenticateToken, async (req, res) => {
+router.get('/sessions/:id/register-link', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
       .select('accessCode selfRegEnabled selfRegDeadline selectionDeadline mode name').lean();
@@ -3326,7 +3326,7 @@ router.get('/sessions/:id/register-link', authenticateToken, async (req, res) =>
 });
 
 // ADMIN: Ativar/desativar auto-inscrição e definir prazo
-router.put('/sessions/:id/self-reg', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/self-reg', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { selfRegEnabled, selfRegDeadline } = req.body;
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId });
@@ -3346,7 +3346,7 @@ router.put('/sessions/:id/self-reg', authenticateToken, async (req, res) => {
 });
 
 // ADMIN: Salvar tabela de preços progressiva da sessão
-router.put('/sessions/:id/pricing-table', authenticateToken, async (req, res) => {
+router.put('/sessions/:id/pricing-table', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const { pricingTable } = req.body;
 
@@ -3372,7 +3372,7 @@ router.put('/sessions/:id/pricing-table', authenticateToken, async (req, res) =>
 });
 
 // ADMIN: Retorna dados de um participante para pré-preencher o modal Rhyno (conversão → cliente)
-router.get('/sessions/:id/participants/:pid/to-client', authenticateToken, async (req, res) => {
+router.get('/sessions/:id/participants/:pid/to-client', authenticateToken, requirePermission('sessoes'), async (req, res) => {
   try {
     const session = await Session.findOne({ _id: req.params.id, organizationId: req.user.organizationId })
       .select('participants').lean();

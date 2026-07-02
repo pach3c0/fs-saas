@@ -34,7 +34,67 @@ const TAB_TITLES = {
   plano: 'Plano',
   ajuda: 'Ajuda & Tutoriais',
   configuracoes: 'Configurações',
+  'minha-conta': 'Minha conta',
 };
+
+// Aba → chave de permissão (Slice 2). Aba sem entrada = sempre liberada (Painel, Ajuda,
+// Minha conta). O dono ignora tudo. Lista de módulos: src/services/memberPermissions.js.
+const TAB_PERMISSION = {
+  sessoes: 'sessoes', clientes: 'clientes', mensagens: 'mensagens',
+  crm: 'crm', gestao: 'crm',
+  'meu-site': 'meu_site', marketing: 'marketing', integracoes: 'integracoes',
+  'marca-dagua': 'marca_dagua',
+  plano: 'plano', dominio: 'dominio', equipe: 'equipe',
+  configuracoes: 'configuracoes', perfil: 'perfil',
+};
+
+// Carrega papel + permissões efetivas do usuário logado. Fail-open (mantém dono) em erro:
+// o front é cosmético, a cerca dura é server-side (middleware requirePermission).
+async function loadMe() {
+  try {
+    const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${appState.authToken}` } });
+    if (!res.ok) return;
+    const me = await res.json();
+    appState.role = me.role || '';
+    appState.isOwner = me.isOwner !== false;
+    appState.permissions = me.permissions || null;
+  } catch { /* fail-open: segue como dono */ }
+}
+
+// O usuário pode abrir esta aba? Dono sempre; aba sem chave sempre; senão precisa da permissão.
+function canOpenTab(tab) {
+  if (appState.isOwner) return true;
+  const key = TAB_PERMISSION[tab];
+  if (!key) return true;                    // Painel / Ajuda / Minha conta
+  if (!appState.permissions) return true;   // /me ainda não carregou — cosmético
+  return appState.permissions[key] === true;
+}
+
+// Esconde do MEMBRO as superfícies sem permissão. É ESCONDER (não vitrine): sem cadeado/
+// upsell — upgrade de plano não concede permissão (isso é papel, não plano). Roda após o /me.
+// Usa `display:none !important` + marcador `data-role-hidden` porque os botões da nav têm
+// `display` por classe/inline — o atributo `hidden` (display:none sem !important) não venceria.
+function applyRolePermsToNav() {
+  const memberOnly = document.querySelectorAll('[data-member-only]');
+  if (appState.isOwner) {
+    memberOnly.forEach((el) => { el.style.display = 'none'; }); // dono não vê "Minha conta"
+    return;
+  }
+  const perms = appState.permissions || {};
+  const hide = (el) => {
+    el.style.setProperty('display', 'none', 'important');
+    el.setAttribute('data-role-hidden', '');
+  };
+  document.querySelectorAll('#topbar [data-tab]').forEach((el) => {
+    const key = TAB_PERMISSION[el.dataset.tab];
+    if (key && perms[key] !== true) hide(el);
+  });
+  document.querySelectorAll('#topbar [data-perm]').forEach((el) => {
+    if (perms[el.dataset.perm] !== true) hide(el);
+  });
+  // Membro sempre tem "Minha conta" (troca de senha), independente das permissões.
+  memberOnly.forEach((el) => { el.style.display = 'flex'; });
+}
 
 // ── Skeleton loading ──────────────────────────────────────────────────────
 function showSkeleton(container) {
@@ -543,6 +603,7 @@ function buildMobileDrawer() {
   // Alvos de navegação: [data-tab] (pílulas, folhas dos dropdowns, brand, perfil/plano) +
   // itens .nav-item com onclick inline (CRM, Triagem, Tarefas, Metas). Ordem = ordem do DOM.
   document.querySelectorAll('#topbar [data-tab], #topbar .nav-item[onclick]').forEach(btn => {
+    if (btn.closest('[data-role-hidden]')) return; // respeita a cerca de papel (Slice 2): não clona o oculto
     const tab = btn.dataset?.tab || null;
     const label = (tab && TAB_TITLES[tab])
       || btn.querySelector('.header-expand-label, .dropdown-label')?.textContent?.trim()
@@ -627,6 +688,7 @@ function setupSearch() {
       
       // Procura nas tabs
       for (const [key, title] of Object.entries(TAB_TITLES)) {
+        if (!canOpenTab(key)) continue; // não sugere aba fora da permissão do membro (Slice 2)
         if (title.toLowerCase().includes(val) || key.toLowerCase().includes(val)) {
           switchTab(key);
           searchInput.value = '';
@@ -637,16 +699,18 @@ function setupSearch() {
       // Procura em Gestão. Item fora do plano NÃO é escondido (vitrine): a busca o leva
       // ao upgrade em vez de abrir e tomar 403.
       const caps = appState.orgData?.capabilities;
-      for (const g of GRUPOS) {
-        for (const item of g.itens) {
-          if (!item.label.toLowerCase().includes(val)) continue;
-          if (item.cap && caps && !itemLiberado(item, caps)) {
-            openGestaoLocked(item.path, planForCap(item.cap));
-          } else {
-            openGestao(item.path);
+      if (canOpenTab('gestao')) { // membro sem CRM/Gestão não vê itens da Gestão na busca
+        for (const g of GRUPOS) {
+          for (const item of g.itens) {
+            if (!item.label.toLowerCase().includes(val)) continue;
+            if (item.cap && caps && !itemLiberado(item, caps)) {
+              openGestaoLocked(item.path, planForCap(item.cap));
+            } else {
+              openGestao(item.path);
+            }
+            searchInput.value = '';
+            return;
           }
-          searchInput.value = '';
-          return;
         }
       }
       
@@ -856,9 +920,12 @@ async function postLoginSetup() {
   // loadOrgSlug precisa terminar antes de switchTab (que usa orgSlug para o preview)
   await Promise.all([
     loadOrgSlug(),
+    loadMe(),
     loadSidebarStorage(),
     loadSecondaryColor()
   ]);
+  // Cerca de papel na navegação (Slice 2): esconde do membro as abas fora da sua permissão.
+  applyRolePermsToNav();
 
   // Deep-link do push: se o fotógrafo clicou numa notificação no celular, a URL traz
   // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
@@ -1321,6 +1388,12 @@ function showLoginForm() {
 
 // ── Switch tab ────────────────────────────────────────────────────────────
 export async function switchTab(tabName) {
+  // Cerca de papel (Slice 2): membro sem permissão pra aba → avisa e cai no Painel. Cobre
+  // deep-link (#aba), busca e chamadas programáticas. Reatribui (não recorre) p/ evitar loop.
+  if (!canOpenTab(tabName)) {
+    window.showToast?.('Acesso restrito ao titular da conta.', 'warning');
+    tabName = 'dashboard';
+  }
   // Se estávamos no Radar (tela mobile do app), encerra polling + modo antes de trocar.
   // A guarda pela classe garante que o import dinâmico só dispare ao SAIR do radar —
   // no desktop e na navegação normal entre abas isto nunca roda (radar.js nem carrega).

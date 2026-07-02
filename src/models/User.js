@@ -27,7 +27,12 @@ const userSchema = new mongoose.Schema({
   // espelhado (retry pela UI) · 'error' última tentativa falhou. Nunca faz rollback do
   // User do CZ (fonte da verdade) por soluço do vizinho.
   rhynoSyncStatus: { type: String, enum: ['synced', 'pending', 'error'], default: 'synced' },
-  rhynoSyncError: { type: String, default: null }
+  rhynoSyncError: { type: String, default: null },
+  // Permissões por-módulo do membro (Slice 2). Dict { chave: bool } — espelha o JSON de
+  // permissões do Rhyno (Role.permissions), mas por-USUÁRIO (o dono personaliza por pessoa
+  // na aba Equipe) e por-MÓDULO (1 flag por área). Chave ausente cai no PADRÃO (baseline
+  // "Operador"); ver src/services/memberPermissions.js. O dono (admin) ignora o mapa = tudo.
+  permissions: { type: Map, of: Boolean, default: {} }
 }, { timestamps: true });
 
 userSchema.index({ organizationId: 1 });

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const { canAccessRoute, gateForRoute } = require('../services/gestaoCapabilities');
 const { capabilitiesOf, seatsOf } = require('../services/subscriptionPricing');
@@ -11,7 +11,7 @@ const { RHYNO_API, NotProvisionedError, resolveRhynoEmail, mintAssertion, getRhy
 const RHYNO_BASE = process.env.RHYNO_BASE_URL || 'http://localhost:5173';
 
 // GET /api/gestao/sso-url — URL de SSO para o iframe do ERP (login único, sem tela de login).
-router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
+router.get('/gestao/sso-url', authenticateToken, requirePermission('crm'), async (req, res) => {
   try {
     if (!process.env.SSO_SHARED_SECRET) {
       return res.status(503).json({ success: false, error: 'SSO não configurado' });
@@ -95,7 +95,7 @@ router.get('/gestao/sso-url', authenticateToken, async (req, res) => {
 // GET /api/gestao/customers?search= — busca clientes no Rhyno (CRM principal).
 // Retorna no MESMO formato do /clients/search legado p/ o seletor de sessão reaproveitar.
 // O id vem prefixado com "rhyno:" para distinguir de um Client do Mongo (ObjectId).
-router.get('/gestao/customers', authenticateToken, async (req, res) => {
+router.get('/gestao/customers', authenticateToken, requirePermission('crm'), async (req, res) => {
   try {
     const token = await getRhynoToken(req);
     const search = (req.query.search || req.query.q || '').toString().trim();
@@ -126,7 +126,7 @@ router.get('/gestao/customers', authenticateToken, async (req, res) => {
 
 // POST /api/gestao/customers — cria um cliente no Rhyno (CRM principal).
 // O Rhyno exige name + document (CPF/CNPJ válido) + person_type.
-router.post('/gestao/customers', authenticateToken, async (req, res) => {
+router.post('/gestao/customers', authenticateToken, requirePermission('crm'), async (req, res) => {
   try {
     const token = await getRhynoToken(req);
     const { name, email, phone, cpf, document, person_type } = req.body;

@@ -3,7 +3,7 @@ const router = express.Router();
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
 const { can } = require('../services/subscriptionPricing');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { verifyDomain } = require('../utils/dnsVerifier');
 const { checkAvailability, DEFAULT_TLDS, PRICE_ESTIMATES } = require('../utils/domainAvailability');
 const { execFile } = require('child_process');
@@ -30,7 +30,7 @@ router.get('/domains/status', authenticateToken, async (req, res) => {
 });
 
 // Adicionar domínio customizado
-router.post('/domains', authenticateToken, async (req, res) => {
+router.post('/domains', authenticateToken, requirePermission('dominio'), async (req, res) => {
   try {
     // Normaliza antes de validar — usuário pode digitar maiúsculas ou espaços
     const domain = String(req.body.domain || '').trim().toLowerCase();
@@ -94,7 +94,7 @@ router.post('/domains', authenticateToken, async (req, res) => {
 });
 
 // Verificar configuração DNS
-router.post('/domains/verify', authenticateToken, async (req, res) => {
+router.post('/domains/verify', authenticateToken, requirePermission('dominio'), async (req, res) => {
   try {
     const org = await Organization.findById(req.user.organizationId);
     if (!org.customDomain) {
@@ -134,7 +134,7 @@ router.post('/domains/verify', authenticateToken, async (req, res) => {
 });
 
 // Remover domínio customizado
-router.delete('/domains', authenticateToken, async (req, res) => {
+router.delete('/domains', authenticateToken, requirePermission('dominio'), async (req, res) => {
   try {
     // $unset (não null): customDomain tem índice unique sparse — null gravado conta no
     // índice e duas orgs sem domínio colidiriam em duplicate key

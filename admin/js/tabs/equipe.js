@@ -13,6 +13,30 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
 
 let state = { members: [], seats: { used: 0, limit: 1 } };
 
+// Espelho de src/services/memberPermissions.js (MODULES). Módulos por-área para os checkboxes
+// de permissão do membro (Slice 2, modelo Controle de Acesso do Rhyno). Manter em sincronia.
+const PERM_GROUPS = [
+  { group: 'Operacional', items: [
+    { key: 'sessoes', label: 'Sessões' },
+    { key: 'clientes', label: 'Clientes' },
+    { key: 'mensagens', label: 'Mensagens' },
+    { key: 'crm', label: 'CRM / Gestão' },
+  ] },
+  { group: 'Site & Marketing', items: [
+    { key: 'meu_site', label: 'Meu Site' },
+    { key: 'marketing', label: 'Marketing' },
+    { key: 'integracoes', label: 'Integrações' },
+    { key: 'marca_dagua', label: "Marca d'água" },
+  ] },
+  { group: 'Conta & Negócio', items: [
+    { key: 'plano', label: 'Plano / Cobrança' },
+    { key: 'dominio', label: 'Domínio' },
+    { key: 'equipe', label: 'Equipe' },
+    { key: 'configuracoes', label: 'Configurações' },
+    { key: 'perfil', label: 'Perfil do negócio' },
+  ] },
+];
+
 export async function renderEquipe(container) {
   container.innerHTML = `<div id="equipe-root" style="display:flex; flex-direction:column; gap:1.25rem;"></div>`;
   await load(container);
@@ -119,6 +143,7 @@ function paintList(list) {
         ${statusBadge(m)}
         ${needsRetry ? `<button data-retry="${m.id}" style="font-size:0.6875rem; padding:0.25rem 0.5rem; border-radius:6px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-text); cursor:pointer;">tentar de novo</button>` : ''}
         ${(!m.isOwner && m.approved) ? `<button data-invite="${m.id}" style="font-size:0.6875rem; padding:0.25rem 0.5rem; border-radius:6px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-text); cursor:pointer;">Convidar</button>` : ''}
+        ${(!m.isOwner && m.approved) ? `<button data-perms="${m.id}" style="font-size:0.6875rem; padding:0.25rem 0.5rem; border-radius:6px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-text); cursor:pointer;">Permissões</button>` : ''}
         ${m.isOwner ? '' : (m.approved
           ? `<button data-deactivate="${m.id}" style="font-size:0.6875rem; padding:0.25rem 0.5rem; border-radius:6px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-red); cursor:pointer;">Desativar</button>`
           : `<button data-reactivate="${m.id}" style="font-size:0.6875rem; padding:0.25rem 0.5rem; border-radius:6px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-green); cursor:pointer;">Reativar</button>`)}
@@ -128,6 +153,7 @@ function paintList(list) {
 
   list.querySelectorAll('[data-retry]').forEach((b) => b.onclick = () => retrySync(b.dataset.retry));
   list.querySelectorAll('[data-invite]').forEach((b) => b.onclick = () => invite(b.dataset.invite));
+  list.querySelectorAll('[data-perms]').forEach((b) => b.onclick = () => openPermsModal(b.dataset.perms));
   list.querySelectorAll('[data-deactivate]').forEach((b) => b.onclick = () => toggleMember(b.dataset.deactivate, false));
   list.querySelectorAll('[data-reactivate]').forEach((b) => b.onclick = () => toggleMember(b.dataset.reactivate, true));
 }
@@ -253,5 +279,57 @@ function showInviteLink(url) {
       document.execCommand?.('copy');
     }
     window.showToast?.('Link copiado.', 'success');
+  };
+}
+
+// Modal de permissões por-módulo do membro (Slice 2). Checkboxes agrupados, pré-marcados
+// pelas permissões EFETIVAS (vindas do GET /api/team). Salva o OBJETO INTEIRO (padrão ERP1)
+// via PUT /api/team/:id/permissions; efeito vale na hora (o gate no back lê do DB).
+function openPermsModal(id) {
+  const member = state.members.find((m) => String(m.id) === String(id));
+  if (!member) return;
+  const perms = member.permissions || {};
+  const groupsHtml = PERM_GROUPS.map((g) => `
+    <div style="display:flex; flex-direction:column; gap:0.35rem;">
+      <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--ad-text); opacity:0.55;">${esc(g.group)}</span>
+      ${g.items.map((it) => `
+        <label style="display:flex; align-items:center; gap:0.55rem; font-size:0.8125rem; color:var(--ad-text); cursor:pointer; padding:0.2rem 0;">
+          <input type="checkbox" data-perm-key="${esc(it.key)}" ${perms[it.key] === true ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--ad-accent); cursor:pointer;">
+          ${esc(it.label)}
+        </label>`).join('')}
+    </div>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; padding:1rem;';
+  overlay.innerHTML = `
+    <div style="background:var(--ad-bg-surface); border-radius:14px; padding:1.5rem; width:min(480px, 92vw); max-height:88vh; overflow-y:auto; display:flex; flex-direction:column; gap:1rem;">
+      <div style="display:flex; flex-direction:column; gap:0.2rem;">
+        <h3 style="margin:0; font-size:1.05rem; color:var(--ad-text);">Permissões de ${esc(member.name)}</h3>
+        <p style="margin:0; font-size:0.75rem; color:var(--ad-text); opacity:0.65;">Escolha o que este usuário pode acessar. O titular tem acesso total.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1rem;">${groupsHtml}</div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button id="perm-cancel" style="padding:0.5rem 0.9rem; border-radius:8px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); background:transparent; color:var(--ad-text); font-size:0.8125rem; cursor:pointer;">Cancelar</button>
+        <button id="perm-save" style="padding:0.5rem 0.9rem; border-radius:8px; border:1px solid var(--ad-accent); background:var(--ad-accent); color:var(--ad-bg-surface); font-size:0.8125rem; font-weight:600; cursor:pointer;">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  overlay.querySelector('#perm-cancel').onclick = close;
+  overlay.querySelector('#perm-save').onclick = async () => {
+    const permissions = {};
+    overlay.querySelectorAll('[data-perm-key]').forEach((cb) => { permissions[cb.dataset.permKey] = cb.checked; });
+    const btn = overlay.querySelector('#perm-save');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      await apiPut(`/api/team/${id}/permissions`, { permissions });
+      close();
+      window.showToast?.('Permissões atualizadas.', 'success');
+      await load(document.getElementById('tabContent') || document);
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Salvar';
+      window.showToast?.(err.message || 'Erro ao salvar permissões.', 'error');
+    }
   };
 }

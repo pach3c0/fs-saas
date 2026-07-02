@@ -13,19 +13,16 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireOwner } = require('../middleware/auth');
 const { seatsOf } = require('../services/subscriptionPricing');
 const { RHYNO_API, getRhynoToken } = require('../utils/rhynoClient');
 const { sendTeamInviteEmail } = require('../utils/email');
+const { effectivePerms, sanitizePerms } = require('../services/memberPermissions');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Guarda de dono: só admin/superadmin da própria org gerencia a equipe. Em Fase 1 só o
-// dono (admin) existe; deixa a porta pronta p/ negar membros ('member') na Fase 2.
-function requireOwner(req, res, next) {
-  if (req.user.role === 'admin' || req.user.role === 'superadmin') return next();
-  return res.status(403).json({ success: false, error: 'Apenas o titular da conta gerencia a equipe.' });
-}
+// requireOwner agora vem de middleware/auth (Slice 2) — mesma guarda (admin/superadmin
+// passam; 'member' 403 com forbidden:true), reusada em todas as superfícies só-do-titular.
 
 // Plano que libera mais um assento (espelha a regra do Rhyno users.py:89).
 function requiredPlanForSeats(limit) {
@@ -160,7 +157,7 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
     const organizationId = req.user.organizationId;
     const [org, users, seats] = await Promise.all([
       Organization.findById(organizationId).select('ownerId').lean(),
-      User.find({ organizationId }).select('name email role approved rhynoSyncStatus').sort({ createdAt: 1 }).lean(),
+      User.find({ organizationId }).select('name email role approved rhynoSyncStatus permissions').sort({ createdAt: 1 }).lean(),
       seatUsage(organizationId),
     ]);
     const ownerId = org && org.ownerId ? String(org.ownerId) : null;
@@ -174,6 +171,9 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
       approved: u.approved,
       rhynoSyncStatus: u.rhynoSyncStatus || 'synced',
       isOwner: ownerId === String(u._id),
+      // Permissões efetivas por-módulo (Slice 2): dono = tudo; membro = baseline + overrides.
+      // A UI pré-marca os checkboxes com isto. Ver src/services/memberPermissions.js.
+      permissions: effectivePerms(u),
     }));
     res.json({ success: true, members, seats });
   } catch (err) {
@@ -413,6 +413,29 @@ router.post('/team/:id/invite', authenticateToken, requireOwner, async (req, res
   } catch (err) {
     req.logger?.error?.('Erro ao gerar convite de equipe', { error: err.message });
     res.status(500).json({ success: false, error: 'Erro ao gerar o convite' });
+  }
+});
+
+// PUT /api/team/:id/permissions — o dono personaliza as permissões por-módulo do membro
+// (Slice 2, modelo Controle de Acesso do Rhyno). Body { permissions:{chave:bool} } com o
+// OBJETO INTEIRO (padrão ERP1); só chaves conhecidas/booleanas passam (sanitizePerms). O
+// dono/self não tem permissões a editar (imune). Efeito vale na hora (gate lê do DB).
+router.put('/team/:id/permissions', authenticateToken, requireOwner, async (req, res) => {
+  try {
+    const member = await loadOrgMember(req, res);
+    if (!member) return;
+    if (await isOwnerUser(req, member)) {
+      return res.status(400).json({ success: false, error: 'O titular tem acesso total — não há permissões a editar.' });
+    }
+    member.permissions = sanitizePerms(req.body.permissions);
+    await member.save();
+    req.logger?.info?.('Permissões de membro atualizadas', {
+      organizationId: String(member.organizationId), memberId: String(member._id),
+    });
+    res.json({ success: true, permissions: effectivePerms(member) });
+  } catch (err) {
+    req.logger?.error?.('Erro ao salvar permissões do membro', { error: err.message });
+    res.status(500).json({ success: false, error: 'Erro ao salvar permissões' });
   }
 });
 
