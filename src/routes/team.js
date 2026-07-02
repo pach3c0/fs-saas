@@ -55,6 +55,8 @@ function pickRoleId(roles) {
 // Espelha o membro no Rhyno. Idempotente: e-mail já existente (unique por-tenant) é
 // tratado como sucesso (acha o id e reativa se preciso). Lança em falha inesperada —
 // o chamador captura e marca `pending` (nunca faz rollback do User autoritativo).
+// Retorna `rhynoManaged`: true = o CZ CRIOU o usuário no Rhyno (pode gerenciar/destruir);
+// false = AMARROU a um usuário pré-existente (co-dono/bolha) → NUNCA destruir.
 async function mirrorMemberToRhyno(req, member) {
   const token = await getRhynoToken(req); // throws NotProvisionedError
   const auth = { Authorization: `Bearer ${token}` };
@@ -81,8 +83,9 @@ async function mirrorMemberToRhyno(req, member) {
   });
 
   if (resp.ok) {
+    // O CZ CRIOU o usuário no Rhyno → gerenciável (desativar/restaurar propagam).
     const data = await resp.json();
-    return { rhynoUserId: data.id, rhynoUserEmail: (data.email || member.email).toLowerCase() };
+    return { rhynoUserId: data.id, rhynoUserEmail: (data.email || member.email).toLowerCase(), rhynoManaged: true };
   }
 
   // 400 "Email já cadastrado" (por-tenant): assume que já existe — acha o id e reativa.
@@ -99,7 +102,9 @@ async function mirrorMemberToRhyno(req, member) {
         if (found.is_active === false) {
           await fetch(`${RHYNO_API}/users/${found.id}/restore`, { method: 'PUT', headers: auth }).catch(() => {});
         }
-        return { rhynoUserId: found.id, rhynoUserEmail: (found.email || member.email).toLowerCase() };
+        // AMARROU a um usuário pré-existente do tenant (ex.: co-dono admin da bolha FS):
+        // rhynoManaged=false → o painel nunca vai destruí-lo (blindagem do kill-switch).
+        return { rhynoUserId: found.id, rhynoUserEmail: (found.email || member.email).toLowerCase(), rhynoManaged: false };
       }
     }
   }
@@ -115,8 +120,13 @@ async function mirrorRestoreToRhyno(req, member) {
     const r = await mirrorMemberToRhyno(req, { name: member.name, email: member.email });
     member.rhynoUserId = r.rhynoUserId;
     member.rhynoUserEmail = r.rhynoUserEmail;
+    member.rhynoManaged = r.rhynoManaged;
     return;
   }
+  // BLINDAGEM: vínculo a usuário pré-existente (rhynoManaged !== true) nunca foi desativado
+  // por nós no Rhyno — logo não há o que restaurar. A reativação é local do CZ (libera o
+  // assento de volta); o acesso dele à Gestão nunca foi tocado.
+  if (member.rhynoManaged !== true) return;
   const token = await getRhynoToken(req);
   const resp = await fetch(`${RHYNO_API}/users/${member.rhynoUserId}/restore`, {
     method: 'PUT', headers: { Authorization: `Bearer ${token}` },
@@ -129,6 +139,12 @@ async function mirrorRestoreToRhyno(req, member) {
 // pode ser fire-and-forget (senão o membro vira fantasma ativo no Rhyno).
 async function mirrorDeactivateToRhyno(req, member) {
   if (member.rhynoUserId == null) return;
+  // BLINDAGEM DO KILL-SWITCH: só desativa no Rhyno o usuário que o CZ CRIOU. Um vínculo a
+  // usuário pré-existente (rhynoManaged !== true — inclui o co-dono da bolha e registros
+  // antigos sem o campo) NUNCA é destruído aqui: desativar no CZ apenas libera o assento,
+  // e o acesso dele ao próprio ERP/Gestão fica intacto. Sem isto, "Desativar" trancaria o
+  // dono fora do seu próprio Rhyno.
+  if (member.rhynoManaged !== true) return;
   const token = await getRhynoToken(req);
   const resp = await fetch(`${RHYNO_API}/users/${member.rhynoUserId}`, {
     method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
@@ -142,7 +158,7 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
     const organizationId = req.user.organizationId;
     const [org, users, seats] = await Promise.all([
       Organization.findById(organizationId).select('ownerId').lean(),
-      User.find({ organizationId }).select('name email role approved rhynoSyncStatus').sort({ createdAt: 1 }).lean(),
+      User.find({ organizationId }).select('name email role approved rhynoSyncStatus rhynoManaged rhynoUserId').sort({ createdAt: 1 }).lean(),
       seatUsage(organizationId),
     ]);
     const ownerId = org && org.ownerId ? String(org.ownerId) : null;
@@ -154,6 +170,9 @@ router.get('/team', authenticateToken, requireOwner, async (req, res) => {
       approved: u.approved,
       rhynoSyncStatus: u.rhynoSyncStatus || 'synced',
       isOwner: ownerId === String(u._id),
+      // Vínculo a um usuário pré-existente da Gestão (co-dono/bolha): desativar aqui é
+      // LOCAL do CZ, nunca destrói o acesso dele ao ERP. A UI mostra selo + confirma diferente.
+      rhynoLinkedExisting: u.rhynoManaged !== true && u.rhynoUserId != null,
     }));
     res.json({ success: true, members, seats });
   } catch (err) {
@@ -204,9 +223,10 @@ router.post('/team', authenticateToken, requireOwner, async (req, res) => {
     // Espelha no Rhyno. Falha NÃO faz rollback: mantém o membro em 'pending' + retry pela UI.
     let warning = null;
     try {
-      const { rhynoUserId, rhynoUserEmail } = await mirrorMemberToRhyno(req, { name, email });
+      const { rhynoUserId, rhynoUserEmail, rhynoManaged } = await mirrorMemberToRhyno(req, { name, email });
       member.rhynoUserId = rhynoUserId;
       member.rhynoUserEmail = rhynoUserEmail;
+      member.rhynoManaged = rhynoManaged;
       member.rhynoSyncStatus = 'synced';
       member.rhynoSyncError = null;
     } catch (err) {
@@ -225,6 +245,7 @@ router.post('/team', authenticateToken, requireOwner, async (req, res) => {
       member: {
         id: String(member._id), name: member.name, email: member.email,
         role: member.role, approved: member.approved, rhynoSyncStatus: member.rhynoSyncStatus, isOwner: false,
+        rhynoLinkedExisting: member.rhynoManaged !== true && member.rhynoUserId != null,
       },
     });
   } catch (err) {

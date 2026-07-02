@@ -112,6 +112,7 @@ function paintList(list) {
         <div style="display:flex; align-items:center; gap:0.5rem;">
           <span style="font-size:0.875rem; font-weight:600; color:var(--ad-text);">${esc(m.name)}</span>
           ${m.isOwner ? `<span style="font-size:0.625rem; padding:0.1rem 0.4rem; border-radius:999px; background:var(--ad-bg-base); color:var(--ad-text); opacity:0.7;">Você</span>` : ''}
+          ${m.rhynoLinkedExisting ? `<span title="Este usuário já existia na Gestão e foi vinculado. Desativar aqui só libera o assento no CliqueZoom — o acesso dele à Gestão é preservado." style="font-size:0.625rem; padding:0.1rem 0.4rem; border-radius:999px; border:1px solid var(--ad-border, rgba(128,128,128,0.3)); color:var(--ad-text); opacity:0.75;">🔗 Vínculo Gestão</span>` : ''}
         </div>
         <div style="font-size:0.75rem; color:var(--ad-text); opacity:0.6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.email)}</div>
       </div>
@@ -181,8 +182,18 @@ function openAddModal(root) {
 }
 
 async function toggleMember(id, approved) {
-  const verb = approved ? 'reativar' : 'desativar';
-  const ok = await window.showConfirm?.(`Deseja ${verb} este usuário?`, { confirmText: approved ? 'Reativar' : 'Desativar' });
+  const m = state.members.find((x) => String(x.id) === String(id));
+  let msg;
+  if (approved) {
+    msg = 'Deseja reativar este usuário?';
+  } else if (m && m.rhynoLinkedExisting) {
+    // Membro vinculado a um usuário pré-existente da Gestão (co-dono/bolha): desativar aqui
+    // é local do CZ — libera o assento sem tocar no acesso dele à Gestão. Deixa isso explícito.
+    msg = `Isto libera o assento removendo ${esc(m.name)} do CliqueZoom. Ele CONTINUA com acesso à Gestão — o vínculo não é desfeito. Deseja continuar?`;
+  } else {
+    msg = 'Deseja desativar este usuário?';
+  }
+  const ok = await window.showConfirm?.(msg, { confirmText: approved ? 'Reativar' : 'Desativar' });
   if (ok === false) return;
   try {
     await apiPut(`/api/team/${id}`, { approved });

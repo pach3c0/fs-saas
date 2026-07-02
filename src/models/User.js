@@ -16,6 +16,13 @@ const userSchema = new mongoose.Schema({
   // `rhynoUserEmail` é a base da Fase 2 (SSO-por-usuário). Ver src/utils/rhynoClient.js.
   rhynoUserId: { type: Number, default: null },
   rhynoUserEmail: { type: String, default: null },
+  // Cordão umbilical — quem MANDA no usuário do Rhyno: `true` só quando o CZ CRIOU o
+  // usuário lá; `false` quando AMARROU a um usuário pré-existente (ex.: co-dono que já
+  // era admin de outro tenant — a bolha FS Fotografias). Só propagamos desativar/restaurar
+  // ao Rhyno quando `rhynoManaged === true` — assim o painel NUNCA destrói (soft-delete)
+  // um usuário que não criou, e nunca tranca o dono fora do próprio ERP. Default `false` =
+  // fail-safe: registro antigo (sem o campo) é tratado como amarrado → protegido.
+  rhynoManaged: { type: Boolean, default: false },
   // Estado do espelho no Rhyno: 'synced' ok · 'pending' criado no CZ mas ainda não
   // espelhado (retry pela UI) · 'error' última tentativa falhou. Nunca faz rollback do
   // User do CZ (fonte da verdade) por soluço do vizinho.
