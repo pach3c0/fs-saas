@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const Session = require('../models/Session');
 const Organization = require('../models/Organization');
 const anniversaryAutomator = require('../utils/anniversaryAutomator');
@@ -125,7 +125,7 @@ router.post('/sales/coupons/:code/redeem', authenticateToken, async (req, res) =
 });
 
 // POST /api/sales/trigger-reactivation — disparo manual da reativacao de clientes
-router.post('/sales/trigger-reactivation', authenticateToken, async (req, res) => {
+router.post('/sales/trigger-reactivation', authenticateToken, requirePermission('marketing'), async (req, res) => {
   try {
     const includePhotos = req.body?.includePhotos !== false;
     const result = await anniversaryAutomator.run(req.user.organizationId, { includePhotos });

@@ -1154,6 +1154,44 @@
 </head>
 <body>
 
+<!-- ═══ SPLASH DO APP ═══
+     Tela de marca ao abrir o "app" do fotógrafo (PWA instalado / ?app=1). Cobre Android e iOS
+     de forma idêntica (o splash nativo do Android vem do manifest; este garante iOS + a marca).
+     Só aparece em modo app (classe cz-app-mode) — no navegador desktop não incomoda. -->
+<style>
+  #cz-splash { position:fixed; inset:0; z-index:100000; display:none; align-items:center; justify-content:center; background:#1a1a1a; opacity:1; transition:opacity .45s ease; }
+  html.cz-app-mode #cz-splash { display:flex; }
+  #cz-splash.cz-splash-out { opacity:0; pointer-events:none; }
+  #cz-splash .cz-splash-word { font-family:'Inter', system-ui, -apple-system, sans-serif; font-weight:700; font-size:2.15rem; letter-spacing:-0.02em; color:#fff; animation:czSplashIn .55s ease both; }
+  #cz-splash .cz-splash-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#fff; margin-left:2px; vertical-align:baseline; animation:czSplashPulse 1s ease-in-out infinite; }
+  @keyframes czSplashIn { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:none; } }
+  @keyframes czSplashPulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
+</style>
+<div id="cz-splash" aria-hidden="true"><div class="cz-splash-word">CliqueZoom<span class="cz-splash-dot"></span></div></div>
+<script>
+  (function () {
+    try {
+      var isApp = new URLSearchParams(location.search).has('app')
+        || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+      if (!isApp) return;                       // só no app — desktop no navegador não vê splash
+      document.documentElement.classList.add('cz-app-mode');
+      var start = Date.now();
+      function hide() {
+        var el = document.getElementById('cz-splash');
+        if (!el || el.classList.contains('cz-splash-out')) return;
+        el.classList.add('cz-splash-out');
+        setTimeout(function () { el.style.display = 'none'; }, 500);
+      }
+      // Some após carregar, respeitando ~1s mínimo de exibição (evita "piscar").
+      window.addEventListener('load', function () {
+        setTimeout(hide, Math.max(0, 1000 - (Date.now() - start)));
+      });
+      setTimeout(hide, 4000);                   // rede de segurança: nunca fica preso
+    } catch (e) { /* splash é cosmético — nunca bloqueia o app */ }
+  })();
+</script>
+
 <!-- ═══ LOGIN ═══ -->
 <div id="loginForm" style="display:none;">
     <div class="login-card">
@@ -1223,8 +1261,10 @@
     <div id="main-area">
         <!-- Top Bar -->
         <header id="topbar" class="glass-bar">
-            <!-- Esquerda: Logo (+ hamburger só no mobile) -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <!-- Esquerda: Logo (+ hamburger só no mobile). z-index:2 + fundo opaco: se a nav central
+                 transbordar (muitas pílulas numa tela estreita), ela some ATRÁS da marca em vez de
+                 encavalar por cima — fim do "ícones sobrepostos que só o reload conserta". -->
+            <div style="display:flex; align-items:center; gap:0.5rem; position:relative; z-index:2; flex-shrink:0; background:var(--bg-surface);">
                 <button id="mobile-hamburger" type="button" aria-label="Menu" title="Menu">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
@@ -1271,7 +1311,7 @@
                     </div>
                     
                     <!-- Dropdown Gestão -->
-                    <div class="header-dropdown-container" style="position:relative;">
+                    <div class="header-dropdown-container" data-perm="crm" style="position:relative;">
                         <button class="header-expand-btn nav-item header-dropdown-btn" data-dropdown="gestao" title="Gestão">
                             <span class="header-expand-icon">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
@@ -1283,7 +1323,7 @@
                         </div>
                     </div>
 
-                    <button id="topbarCrmBtn" class="header-expand-btn nav-item" onclick="openGestao('/crm')" title="CRM">
+                    <button id="topbarCrmBtn" class="header-expand-btn nav-item" data-perm="crm" onclick="openGestao('/crm')" title="CRM">
                         <span class="header-expand-icon">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                         </span>
@@ -1291,9 +1331,15 @@
                     </button>
                 </nav>
 
-                <!-- Busca Central oculta por ora (será reposicionada). Mantém-se um espaçador flex
-                     para preservar o alinhamento dos botões à direita. -->
-                <div style="flex:1 1 auto; min-width:0;"></div>
+                <!-- Busca Central: input flexível (flex:1 1 auto + min-width:0) → ENCOLHE antes das
+                     pílulas, então não empurra a nav para o overflow. setupSearch() liga o #topbar-search. -->
+                <div style="flex:1 1 auto; min-width:0; display:flex; justify-content:center;">
+                    <div style="position:relative; width:100%; max-width:280px; min-width:0;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; left:0.65rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input id="topbar-search" type="text" placeholder="Buscar seção…" autocomplete="off" aria-label="Buscar seção"
+                               style="width:100%; height:32px; padding:0 0.75rem 0 2rem; border-radius:9999px; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-primary); font-size:0.8125rem; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
 
                 <!-- Bolinhas da Direita (Ajuda, Configurações, Notificações) -->
                 <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1303,13 +1349,13 @@
                         </span>
                         <span class="header-expand-label">Marca D'água</span>
                     </button>
-                    <button class="header-expand-btn nav-item" onclick="openGestao('/tasks')" title="Tarefas">
+                    <button class="header-expand-btn nav-item" data-perm="crm" onclick="openGestao('/tasks')" title="Tarefas">
                         <span class="header-expand-icon">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/></svg>
                         </span>
                         <span class="header-expand-label">Tarefas</span>
                     </button>
-                    <button class="header-expand-btn nav-item" onclick="openGestao('/goals')" title="Metas">
+                    <button class="header-expand-btn nav-item" data-perm="crm" onclick="openGestao('/goals')" title="Metas">
                         <span class="header-expand-icon">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                         </span>
@@ -1341,13 +1387,7 @@
                         </div>
                     </div>
 
-                    <!-- App no celular (instalar PWA + ativar notificações push) -->
-                    <button id="installAppBtn" onclick="openAppInstall()" class="header-expand-btn" title="Ver o app no celular (instalar + notificações)">
-                        <span class="header-expand-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-                        </span>
-                        <span class="header-expand-label">App</span>
-                    </button>
+                    <!-- (App no celular saiu do header → virou Ação Rápida no Dashboard, menos aperto.) -->
 
                     <button class="header-expand-btn nav-item" data-tab="configuracoes" title="Configurações">
                         <span class="header-expand-icon">
@@ -1359,8 +1399,10 @@
 
             <!-- Direita: sino de notificações + tema + perfil.
                  O SINO ficou aqui (fora de .topbar-center) de propósito: assim continua acessível no
-                 mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível. -->
-            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
+                 mobile, onde .topbar-center é escondido. No desktop o deslocamento é imperceptível.
+                 z-index:2 + fundo opaco: blindagem gêmea do grupo esquerdo — a nav que transbordar fica
+                 ATRÁS destes ícones (sino/tema/perfil), nunca por cima. -->
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-shrink:0; position:relative; z-index:2; background:var(--bg-surface); padding-left:0.5rem;">
                 <!-- Voltar ao Radar: fora de .topbar-center (fica visível no mobile) e com
                      class nav-item + onclick → o buildMobileDrawer o injeta na gaveta automaticamente. -->
                 <button id="topbarRadarBtn" class="nav-item" onclick="openRadar()" title="Voltar ao Radar" style="padding:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:var(--text-primary); cursor:pointer;">
@@ -1405,14 +1447,20 @@
                     <div id="dropdown-user" class="header-dropdown-menu pop-right" style="position:absolute; top:100%; right:0; min-width:240px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100; margin-top:0.5rem; overflow:hidden;">
                         <div style="padding:1rem; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:0.25rem;">
                             <div style="display:flex; justify-content:space-between; align-items:baseline; gap:1rem;">
-                                <span id="user-org-name" style="font-size:0.875rem; font-weight:700; color:var(--text-primary);">Carregando...</span>
+                                <span id="user-display-name" style="font-size:0.875rem; font-weight:700; color:var(--text-primary);">Carregando...</span>
                                 <span id="platform-version" style="font-size:0.6875rem; color:var(--text-muted); font-weight:500;"></span>
                             </div>
-                            <span style="font-size:0.75rem; color:var(--text-secondary);">Administrador</span>
+                            <span id="user-org-name" style="font-size:0.75rem; color:var(--text-secondary);"></span>
+                            <span id="user-role-label" style="font-size:0.6875rem; color:var(--text-muted);">Administrador</span>
                         </div>
                         <div style="padding:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
                             <button class="nav-item" data-tab="perfil" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Perfil</button>
+                            <button class="nav-item" data-tab="equipe" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Equipe</button>
                             <button class="nav-item" data-tab="plano" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Plano de Assinatura</button>
+                            <!-- "Minha conta" (Slice 2): superfície PESSOAL de todo mundo — foto de
+                                 perfil + trocar senha. Universal (dono e membro); "Perfil" acima é a
+                                 identidade do NEGÓCIO (logo/contato), só do dono. -->
+                            <button class="nav-item" data-tab="minha-conta" style="display:flex; width:100%; padding:0.4rem 0.6rem; border-radius:4px; border:none; background:transparent; cursor:pointer; text-align:left; color:var(--text-primary); font-size:0.8125rem;">Minha conta</button>
                         </div>
                         <!-- Widget de Armazenamento -->
                         <div style="border-top:1px solid var(--border); padding:0.75rem 1rem; background:var(--bg-surface);">

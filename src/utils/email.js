@@ -166,6 +166,44 @@ async function sendPasswordResetEmail(email, name, resetUrl) {
 }
 
 /**
+ * Convite de equipe: um usuário foi adicionado ao negócio e precisa definir a senha
+ * para acessar. Reusa o fluxo de reset (o link cai na mesma tela ?reset=), mas com
+ * linguagem de "boas-vindas à equipe" em vez de "esqueci a senha". `orgName` opcional.
+ */
+async function sendTeamInviteEmail(email, name, inviteUrl, orgName) {
+  const negocio = orgName ? `<strong>${orgName}</strong>` : 'um negócio no CliqueZoom';
+  const subject = 'Você foi adicionado à equipe - CliqueZoom';
+  const html = `
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+      <div style="border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">CLIQUEZOOM</h1>
+      </div>
+
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Bem-vindo(a) à equipe</h2>
+      <p style="color: #555; line-height: 1.7; font-size: 0.9375rem;">
+        Ola, ${name}! Voce foi adicionado(a) como usuario de ${negocio}.
+        Clique no botao abaixo para definir sua senha e acessar.
+      </p>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="${inviteUrl}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 0.875rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9375rem;">
+          Definir minha senha
+        </a>
+      </div>
+
+      <p style="color: #999; font-size: 0.8125rem; text-align: center;">
+        Este link expira em <strong>7 dias</strong>. Se voce nao esperava este convite, ignore este e-mail.
+      </p>
+
+      <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; color: #999; font-size: 0.8125rem;">
+        <p>CliqueZoom - Plataforma para fotógrafos</p>
+      </div>
+    </div>
+  `;
+  return sendEmail(email, subject, html, { template: 'team_invite' });
+}
+
+/**
  * Email de aprovacao (conta ativada)
  */
 async function sendApprovalEmail(email, name, slug) {
@@ -1260,6 +1298,7 @@ module.exports = {
   verifySmtp,
   sendWelcomeEmail,
   sendPasswordResetEmail,
+  sendTeamInviteEmail,
   sendApprovalEmail,
   sendGalleryAvailableEmail,
   sendPhotosDeliveredEmail,

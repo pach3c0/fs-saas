@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { createCheckoutSession, handleWebhook, verifyWebhookSignature, cancelPreapproval, getPreapproval,
   refundPayment, revertSubscriptionToFree, markRefundHandled, findRefundablePreapprovalPayment,
   friendlyCheckoutError } = require('../middleware/mercadopago');
@@ -113,7 +113,7 @@ router.get('/billing/subscription', authenticateToken, async (req, res) => {
 // Criar checkout session (upgrade de plano)
 // Dois modos: com `cardTokenId` (CardForm, cartão tokenizado no browser → assinatura
 // authorized sem conta MP) ou sem ele (fluxo hospedado legado → devolve checkoutUrl).
-router.post('/billing/checkout', authenticateToken, async (req, res) => {
+router.post('/billing/checkout', authenticateToken, requirePermission('plano'), async (req, res) => {
   try {
     const { plan, cardTokenId, payerEmail, identificationType, identificationNumber,
       recurringConsent, consentAmountCents } = req.body;
@@ -175,7 +175,7 @@ router.post('/billing/webhook', express.json(), async (req, res) => {
 });
 
 // Cancelar assinatura
-router.post('/billing/cancel', authenticateToken, async (req, res) => {
+router.post('/billing/cancel', authenticateToken, requirePermission('plano'), async (req, res) => {
   try {
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId });
     if (!sub || sub.plan === 'free') {
@@ -232,7 +232,7 @@ router.post('/billing/cancel', authenticateToken, async (req, res) => {
 // refund REAL no MP. Vale só pra 1ª compra (Free→pago): desistir de UPGRADE não gera reembolso
 // (modelo sem pró-rata — é trocar pro plano de baixo no fluxo normal). Reusa a MESMA máquina do
 // estorno (revertSubscriptionToFree) + acopla o congelamento comercial (freeze).
-router.post('/billing/refund', authenticateToken, async (req, res) => {
+router.post('/billing/refund', authenticateToken, requirePermission('plano'), async (req, res) => {
   try {
     const sub = await Subscription.findOne({ organizationId: req.user.organizationId });
     if (!sub || sub.plan === 'free') {

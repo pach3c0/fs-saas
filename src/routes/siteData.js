@@ -5,7 +5,7 @@ const SiteData = require('../models/SiteData');
 const Organization = require('../models/Organization');
 const Session = require('../models/Session');
 const Client = require('../models/Client');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
 
 // ============================================================================
 // ROTAS DE SITE DATA (Hero, Sobre, etc)
@@ -31,7 +31,7 @@ router.get('/site-data', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/site-data', authenticateToken, async (req, res) => {
+router.put('/site-data', authenticateToken, requirePermission('meu_site', 'marketing'), async (req, res) => {
   try {
     // Proteção para não apagar dados acidentalmente
     const setFields = {};
@@ -77,7 +77,7 @@ router.get('/faq', async (req, res) => {
   }
 });
 
-router.post('/faq', authenticateToken, async (req, res) => {
+router.post('/faq', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const { question, answer } = req.body;
     const newFAQ = { id: `faq-${Date.now()}`, question, answer };
@@ -93,7 +93,7 @@ router.post('/faq', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/faq/:index', authenticateToken, async (req, res) => {
+router.put('/faq/:index', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const index = parseInt(req.params.index);
     const data = await SiteData.findOne({ organizationId: req.user.organizationId });
@@ -113,7 +113,7 @@ router.put('/faq/:index', authenticateToken, async (req, res) => {
   }
 });
 
-router.delete('/faq/:index', authenticateToken, async (req, res) => {
+router.delete('/faq/:index', authenticateToken, requirePermission('meu_site'), async (req, res) => {
   try {
     const index = parseInt(req.params.index);
     const data = await SiteData.findOne({ organizationId: req.user.organizationId });

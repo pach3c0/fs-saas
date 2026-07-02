@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const Subscription = require('../models/Subscription');
@@ -13,6 +14,7 @@ const { applyDefaultTemplate } = require('./site');
 const { trackEvent } = require('../utils/activityTracker');
 const { provisionRhynoTenant } = require('../utils/rhynoProvision');
 const { validateSlug } = require('../utils/slug');
+const { effectivePerms } = require('../services/memberPermissions');
 
 router.post('/login', async (req, res) => {
   try {
@@ -109,6 +111,18 @@ router.post('/auth/reset-password', async (req, res) => {
 
     if (payload.purpose !== 'reset') {
       return res.status(400).json({ error: 'Token inválido' });
+    }
+
+    // Convites de equipe carregam `pv` (fingerprint da senha ATUAL) para serem SINGLE-USE:
+    // após o 1º uso a senha muda, o fingerprint deixa de bater e o link morre (não é
+    // replayável). Tokens de reset comum não têm `pv` → comportamento inalterado.
+    // Ver src/routes/team.js (POST /team/:id/invite).
+    if (payload.pv) {
+      const u = await User.findById(payload.userId).select('passwordHash').lean();
+      const pv = u ? crypto.createHash('sha256').update(String(u.passwordHash)).digest('hex').slice(0, 16) : null;
+      if (!u || pv !== payload.pv) {
+        return res.status(400).json({ error: 'Link inválido ou já utilizado' });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -223,6 +237,78 @@ router.get('/auth/check-slug/:slug', async (req, res) => {
   } catch (error) {
     req.logger.error('Erro ao verificar slug', { error: error.message });
     res.status(500).json({ error: 'Erro ao verificar slug' });
+  }
+});
+
+// GET /api/auth/me — identidade + permissões EFETIVAS do usuário logado (Slice 2). O admin
+// usa `permissions`/`isOwner` para esconder as abas fora do papel (cosmético; a cerca dura
+// é server-side). Lê do DB → reflete mudança de permissão sem re-login.
+router.get('/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('name email role permissions avatarUrl').lean();
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const isOwner = user.role === 'admin' || user.role === 'superadmin';
+    res.json({
+      success: true,
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isOwner,
+      permissions: effectivePerms(user),
+      avatarUrl: user.avatarUrl || '',
+    });
+  } catch (error) {
+    req.logger.error('Erro no /auth/me', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/auth/me/password — o próprio usuário troca a senha (self). Valida a senha atual.
+// Membro convidado usa isto na aba "Minha conta"; o dono também pode. Não mexe no Rhyno.
+router.put('/auth/me/password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) return res.status(400).json({ error: 'Senha atual incorreta' });
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ success: true, message: 'Senha alterada com sucesso' });
+  } catch (error) {
+    req.logger.error('Erro ao trocar a própria senha', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/auth/me/avatar — o próprio usuário define/remove a foto de perfil (self, sem gate
+// de permissão). O arquivo já subiu via POST /admin/upload; aqui só persistimos a URL. Só
+// aceitamos caminho do NOSSO storage (/uploads/...) ou vazio — bloqueia data:/javascript:/URL
+// externa (o campo é renderizado em <img src>). Vale pro dono e pro membro.
+router.put('/auth/me/avatar', authenticateToken, async (req, res) => {
+  try {
+    let avatarUrl = req.body?.avatarUrl == null ? '' : String(req.body.avatarUrl).trim();
+    if (avatarUrl && !/^\/uploads\//.test(avatarUrl)) {
+      return res.status(400).json({ error: 'URL de foto inválida' });
+    }
+    if (avatarUrl.length > 500) {
+      return res.status(400).json({ error: 'URL de foto muito longa' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    user.avatarUrl = avatarUrl;
+    await user.save();
+    res.json({ success: true, avatarUrl });
+  } catch (error) {
+    req.logger.error('Erro ao salvar foto de perfil', { message: error.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 });
 

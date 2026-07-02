@@ -145,6 +145,13 @@ export async function renderDashboard(container) {
                             <span style="font-weight:500;">Ver meu Site</span>
                         </button>
 
+                        <button id="qa-app" onclick="openAppInstall()" style="display:flex; align-items:center; gap:0.75rem; width:100%; padding:1rem; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-card); color:var(--text-primary); cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-surface)'">
+                            <div style="width:32px; height:32px; border-radius:50%; background:var(--bg-elevated); color:var(--text-primary); display:flex; align-items:center; justify-content:center;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                            </div>
+                            <span style="font-weight:500;">App no celular</span>
+                        </button>
+
                         <div id="clients-online-card"></div>
                     </div>
                 </div>

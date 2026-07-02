@@ -29,11 +29,108 @@ const TAB_TITLES = {
   integracoes: 'Integrações',
   marketing: 'Marketing',
   perfil: 'Perfil',
+  equipe: 'Equipe',
   'marca-dagua': "Marca D'água",
   plano: 'Plano',
   ajuda: 'Ajuda & Tutoriais',
   configuracoes: 'Configurações',
+  'minha-conta': 'Minha conta',
 };
+
+// Aba → chave de permissão (Slice 2). Aba sem entrada = sempre liberada (Painel, Ajuda,
+// Minha conta). O dono ignora tudo. Lista de módulos: src/services/memberPermissions.js.
+const TAB_PERMISSION = {
+  sessoes: 'sessoes', clientes: 'clientes', mensagens: 'mensagens',
+  crm: 'crm', gestao: 'crm',
+  'meu-site': 'meu_site', marketing: 'marketing', integracoes: 'integracoes',
+  'marca-dagua': 'marca_dagua',
+  plano: 'plano', dominio: 'dominio', equipe: 'equipe',
+  configuracoes: 'configuracoes', perfil: 'perfil',
+};
+
+// Carrega papel + permissões efetivas do usuário logado. Fail-open (mantém dono) em erro:
+// o front é cosmético, a cerca dura é server-side (middleware requirePermission).
+async function loadMe() {
+  try {
+    const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${appState.authToken}` } });
+    if (!res.ok) return;
+    const me = await res.json();
+    appState.role = me.role || '';
+    appState.isOwner = me.isOwner !== false;
+    appState.permissions = me.permissions || null;
+    appState.userName = me.name || '';
+    appState.userEmail = me.email || '';
+    appState.avatarUrl = me.avatarUrl || '';
+    refreshIdentityUI();
+  } catch { /* fail-open: segue como dono */ }
+}
+
+// Preenche avatar + menu de perfil com o nome da PESSOA logada (fallback: nome do negócio).
+// Idempotente e à prova de corrida: loadMe() e fetchProfile() chamam ambos, em qualquer ordem
+// (cada um preenche o que sabe). Iniciais = 1ª letra das 2 primeiras palavras do nome.
+function refreshIdentityUI() {
+  const person = (appState.userName || '').trim();
+  const org = (appState.orgName || '').trim();
+  const display = person || org;
+  const av = document.getElementById('user-avatar-text');
+  const avatarBtn = av ? av.closest('button') : null;
+  if (display) {
+    const initials = display.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+      || display.substring(0, 2).toUpperCase();
+    if (av) av.textContent = initials;
+    const dn = document.getElementById('user-display-name');
+    if (dn) dn.textContent = display;
+  }
+  // Foto de perfil: se houver, o botão-avatar vira a imagem (iniciais escondidas); senão volta
+  // pras iniciais. Usa background-image (cover) → círculo perfeito sem <img> extra.
+  if (avatarBtn) {
+    if (appState.avatarUrl) {
+      avatarBtn.style.backgroundImage = `url("${resolveImagePath(appState.avatarUrl)}")`;
+      avatarBtn.style.backgroundSize = 'cover';
+      avatarBtn.style.backgroundPosition = 'center';
+      if (av) av.style.display = 'none';
+    } else {
+      avatarBtn.style.backgroundImage = '';
+      if (av) av.style.display = '';
+    }
+  }
+  const orgEl = document.getElementById('user-org-name');
+  if (orgEl) orgEl.textContent = org && org !== person ? org : '';
+  const roleEl = document.getElementById('user-role-label');
+  if (roleEl) roleEl.textContent = appState.isOwner ? 'Titular da conta' : 'Membro da equipe';
+}
+// Exposto p/ a aba "Minha conta" repintar o avatar da topbar após trocar a foto.
+window.refreshIdentityUI = refreshIdentityUI;
+
+// O usuário pode abrir esta aba? Dono sempre; aba sem chave sempre; senão precisa da permissão.
+function canOpenTab(tab) {
+  if (appState.isOwner) return true;
+  const key = TAB_PERMISSION[tab];
+  if (!key) return true;                    // Painel / Ajuda / Minha conta
+  if (!appState.permissions) return true;   // /me ainda não carregou — cosmético
+  return appState.permissions[key] === true;
+}
+
+// Esconde do MEMBRO as superfícies sem permissão. É ESCONDER (não vitrine): sem cadeado/
+// upsell — upgrade de plano não concede permissão (isso é papel, não plano). Roda após o /me.
+// Usa `display:none !important` + marcador `data-role-hidden` porque os botões da nav têm
+// `display` por classe/inline — o atributo `hidden` (display:none sem !important) não venceria.
+function applyRolePermsToNav() {
+  if (appState.isOwner) return;            // dono vê tudo (bypass)
+  const perms = appState.permissions || {};
+  const hide = (el) => {
+    el.style.setProperty('display', 'none', 'important');
+    el.setAttribute('data-role-hidden', '');
+  };
+  document.querySelectorAll('#topbar [data-tab]').forEach((el) => {
+    const key = TAB_PERMISSION[el.dataset.tab];
+    if (key && perms[key] !== true) hide(el);
+  });
+  document.querySelectorAll('#topbar [data-perm]').forEach((el) => {
+    if (perms[el.dataset.perm] !== true) hide(el);
+  });
+  // "Minha conta" não tem chave em TAB_PERMISSION → nunca é escondida (universal).
+}
 
 // ── Skeleton loading ──────────────────────────────────────────────────────
 function showSkeleton(container) {
@@ -542,6 +639,7 @@ function buildMobileDrawer() {
   // Alvos de navegação: [data-tab] (pílulas, folhas dos dropdowns, brand, perfil/plano) +
   // itens .nav-item com onclick inline (CRM, Triagem, Tarefas, Metas). Ordem = ordem do DOM.
   document.querySelectorAll('#topbar [data-tab], #topbar .nav-item[onclick]').forEach(btn => {
+    if (btn.closest('[data-role-hidden]')) return; // respeita a cerca de papel (Slice 2): não clona o oculto
     const tab = btn.dataset?.tab || null;
     const label = (tab && TAB_TITLES[tab])
       || btn.querySelector('.header-expand-label, .dropdown-label')?.textContent?.trim()
@@ -626,6 +724,7 @@ function setupSearch() {
       
       // Procura nas tabs
       for (const [key, title] of Object.entries(TAB_TITLES)) {
+        if (!canOpenTab(key)) continue; // não sugere aba fora da permissão do membro (Slice 2)
         if (title.toLowerCase().includes(val) || key.toLowerCase().includes(val)) {
           switchTab(key);
           searchInput.value = '';
@@ -636,16 +735,18 @@ function setupSearch() {
       // Procura em Gestão. Item fora do plano NÃO é escondido (vitrine): a busca o leva
       // ao upgrade em vez de abrir e tomar 403.
       const caps = appState.orgData?.capabilities;
-      for (const g of GRUPOS) {
-        for (const item of g.itens) {
-          if (!item.label.toLowerCase().includes(val)) continue;
-          if (item.cap && caps && !itemLiberado(item, caps)) {
-            openGestaoLocked(item.path, planForCap(item.cap));
-          } else {
-            openGestao(item.path);
+      if (canOpenTab('gestao')) { // membro sem CRM/Gestão não vê itens da Gestão na busca
+        for (const g of GRUPOS) {
+          for (const item of g.itens) {
+            if (!item.label.toLowerCase().includes(val)) continue;
+            if (item.cap && caps && !itemLiberado(item, caps)) {
+              openGestaoLocked(item.path, planForCap(item.cap));
+            } else {
+              openGestao(item.path);
+            }
+            searchInput.value = '';
+            return;
           }
-          searchInput.value = '';
-          return;
         }
       }
       
@@ -855,45 +956,32 @@ async function postLoginSetup() {
   // loadOrgSlug precisa terminar antes de switchTab (que usa orgSlug para o preview)
   await Promise.all([
     loadOrgSlug(),
+    loadMe(),
     loadSidebarStorage(),
     loadSecondaryColor()
   ]);
+  // Cerca de papel na navegação (Slice 2): esconde do membro as abas fora da sua permissão.
+  applyRolePermsToNav();
 
   // Deep-link do push: se o fotógrafo clicou numa notificação no celular, a URL traz
   // #<aba>?session=<id>&photo=<id>. Prioriza sobre a última aba salva e abre o contexto.
   const deep = _consumeDeepLink();
 
-  // Entra no Radar (tela mobile dedicada, só de acompanhamento) quando:
-  //  (a) a URL tem a flag ?app=1 — endereço dedicado do "app do fotógrafo", usado pelo QR e pelo
-  //      start_url do PWA (abre o radar direto, inclusive no navegador antes de instalar); ou
-  //  (b) o app está instalado num CELULAR (standalone + mobile) — fallback p/ quando abre sem a flag.
-  // Em ambos, só se NÃO houver deep-link de push (se tocou numa notificação específica, honramos o
-  // contexto no painel completo). Import dinâmico → o radar não pesa no desktop. Falha → fluxo normal.
-  const forceRadar = new URLSearchParams(window.location.search).has('app');
-  let bootRadar = (forceRadar || (isStandalone() && _isMobileDevice())) && !deep?.session;
-  if (bootRadar) {
-    try {
-      // Boot no Radar (tela mobile do app), mas SEM travar: o header segue disponível
-      // (ver openRadar + CSS .radar-mode). openRadar liga a classe, desenha e (re)inicia os timers.
-      (await import('./tabs/radar.js')).openRadar();
-    } catch (e) {
-      bootRadar = false; // falhou ao abrir radar → cai no fluxo de tab normal abaixo
-    }
-  }
+  // A tela inicial do app mobile agora é o DASHBOARD (antes o app abria direto no Radar). O Radar
+  // continua acessível pelo botão "Voltar ao Radar" da topbar — só deixou de ser a home. Detecção
+  // de app (standalone / ?app=1) usada para forçar 'dashboard'; fora do app respeitamos a última aba.
+  const appMode = new URLSearchParams(window.location.search).has('app') || (isStandalone() && _isMobileDevice());
 
   // Delay no polling para não competir com o carregamento inicial do dashboard
   setTimeout(startNotificationPolling, 5000);
 
-  // Só renderiza uma aba normal quando NÃO bootou no radar (senão sobrescreveria o radar).
-  if (!bootRadar) {
-    const savedTab = deep?.tab || sessionStorage.getItem('activeTab') || 'dashboard';
-    await switchTab(savedTab);
-    if (deep?.session) {
-      setTimeout(() => {
-        if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
-        else window.openSessionWizard?.(deep.session);
-      }, 300);
-    }
+  const savedTab = deep?.tab || (appMode ? 'dashboard' : (sessionStorage.getItem('activeTab') || 'dashboard'));
+  await switchTab(savedTab);
+  if (deep?.session) {
+    setTimeout(() => {
+      if (deep.photo && window.openComments) window.openComments(deep.session, deep.photo);
+      else window.openSessionWizard?.(deep.session);
+    }, 300);
   }
 
   // Serviços do header rodam em ambos os fluxos — o header agora está sempre vivo (inclusive no app).
@@ -1013,13 +1101,11 @@ async function loadOrgSlug() {
         if (urlBar) urlBar.value = window.location.origin + `/site?_tenant=${slug}`;
       }
       
-      // Preencher o menu de usuário da nova Header
-      const name = orgData.name || 'Meu Estúdio';
-      const initials = name.substring(0, 2).toUpperCase();
-      const avatarText = document.getElementById('user-avatar-text');
-      if (avatarText) avatarText.textContent = initials;
-      const orgNameLabel = document.getElementById('user-org-name');
-      if (orgNameLabel) orgNameLabel.textContent = name;
+      // Guarda o nome do NEGÓCIO e delega a pintura do avatar/menu ao refreshIdentityUI
+      // (que prioriza o nome da PESSOA vindo do /me — antes o avatar ficava nas iniciais do
+      // negócio, ex.: "FS"). Idempotente: roda em qualquer ordem vs. loadMe().
+      appState.orgName = orgData.name || '';
+      refreshIdentityUI();
     }
   } catch (e) { console.error('Erro ao buscar profile:', e); }
 }
@@ -1320,6 +1406,12 @@ function showLoginForm() {
 
 // ── Switch tab ────────────────────────────────────────────────────────────
 export async function switchTab(tabName) {
+  // Cerca de papel (Slice 2): membro sem permissão pra aba → avisa e cai no Painel. Cobre
+  // deep-link (#aba), busca e chamadas programáticas. Reatribui (não recorre) p/ evitar loop.
+  if (!canOpenTab(tabName)) {
+    window.showToast?.('Acesso restrito ao titular da conta.', 'warning');
+    tabName = 'dashboard';
+  }
   // Se estávamos no Radar (tela mobile do app), encerra polling + modo antes de trocar.
   // A guarda pela classe garante que o import dinâmico só dispare ao SAIR do radar —
   // no desktop e na navegação normal entre abas isto nunca roda (radar.js nem carrega).

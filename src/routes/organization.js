@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { can: memberCan } = require('../services/memberPermissions');
 const Organization = require('../models/Organization');
 const PlatformConfig = require('../models/PlatformConfig');
 const Subscription = require('../models/Subscription');
@@ -79,18 +80,27 @@ router.get('/organization/profile', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/organization/profile - Atualizar perfil da organizacao
-router.put('/organization/profile', authenticateToken, async (req, res) => {
+router.put('/organization/profile', authenticateToken, requirePermission('perfil', 'marca_dagua'), async (req, res) => {
   try {
     // 'email' (contato) e 'website'/'slug'/'customDomain' NÃO entram aqui de propósito:
     // são somente leitura no perfil. Troca de e-mail de contato vai por chamado (Fala Conosco)
     // para o super admin verificar a identidade — evita perda de contato / sequestro de conta.
-    const allowedFields = [
-      'name', 'logo', 'phone', 'whatsapp',
-      'bio', 'address', 'city', 'state', 'primaryColor',
+    // Campos de IDENTIDADE do negócio (perfil) × campos de MARCA D'ÁGUA (marca_dagua). O gate
+    // é OR (basta uma das duas permissões p/ entrar), então segregamos AQUI: um membro só com
+    // 'marca_dagua' NÃO altera nome/logo/contato do negócio, e um só com 'perfil' não mexe na
+    // marca d'água. O dono (bypass do gate → req._permUser undefined) altera ambos.
+    const idFields = ['name', 'logo', 'phone', 'whatsapp', 'bio', 'address', 'city', 'state', 'primaryColor'];
+    const wmFields = [
       'watermarkType', 'watermarkText', 'watermarkOpacity', 'watermarkPosition', 'watermarkSize',
       'watermarkFontColor', 'watermarkFontFamily', 'watermarkFontWeight', 'watermarkFontStyle',
       'watermarkLetterSpacing', 'watermarkRotation', 'watermarkCustomSize', 'watermarkShadow',
       'watermarkImageFilter', 'watermarkImageOpacity', 'watermarkLayers'
+    ];
+    const isOwner = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const u = req._permUser; // membro carregado pelo requirePermission (undefined p/ dono)
+    const allowedFields = [
+      ...((isOwner || memberCan(u, 'perfil')) ? idFields : []),
+      ...((isOwner || memberCan(u, 'marca_dagua')) ? wmFields : []),
     ];
 
     const updates = {};
@@ -225,7 +235,7 @@ router.get('/organization/integrations', authenticateToken, async (req, res) => 
 });
 
 // PUT /api/organization/integrations - Atualizar integrations
-router.put('/organization/integrations', authenticateToken, async (req, res) => {
+router.put('/organization/integrations', authenticateToken, requirePermission('integracoes'), async (req, res) => {
   try {
     const { salesAutomator, googleAnalytics, metaPixel, deadlineAutomation } = req.body;
     const $set = {};
@@ -339,7 +349,7 @@ router.get('/organization/preferences', authenticateToken, async (req, res) => {
 // PUT /api/organization/support-access - Consentimento do fotógrafo para o
 // suporte acessar o painel dele ("Entrar como"). Endpoint dedicado (fora da
 // whitelist de preferences) por ser uma flag de segurança/privacidade.
-router.put('/organization/support-access', authenticateToken, async (req, res) => {
+router.put('/organization/support-access', authenticateToken, requirePermission('configuracoes'), async (req, res) => {
   try {
     const enabled = req.body.enabled === true;
     const org = await Organization.findByIdAndUpdate(
@@ -363,7 +373,7 @@ router.put('/organization/support-access', authenticateToken, async (req, res) =
 });
 
 // PUT /api/organization/preferences - Atualizar preferências (whitelist + validação por campo)
-router.put('/organization/preferences', authenticateToken, async (req, res) => {
+router.put('/organization/preferences', authenticateToken, requirePermission('configuracoes'), async (req, res) => {
   try {
     const { messageTemplates, sessionDefaults, galleryDeliveryDefault, notifications, selectionIcon, push } = req.body;
     const $set = {};
